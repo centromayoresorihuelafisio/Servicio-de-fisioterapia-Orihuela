@@ -24,6 +24,7 @@ function onOpen() {
     .addItem("📋 Valoración", "abrirFormularioValoracion")
     .addItem("🗃️ Añadir Historia Clínica", "generarHistoriaClinica")
     .addItem("🔗 Enlace HC", "insertarEnlaceHistoriaClinica")
+    .addItem('🖥️ HCs Turno', 'prepararJornada')
     .addSeparator() // Separador
     .addItem("✔️ Alta Paciente", "darDeAltaPaciente")
     .addItem("🔄 Ordenar", "ordenarPacientes")

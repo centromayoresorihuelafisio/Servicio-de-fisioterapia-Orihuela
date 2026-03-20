@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <style>
+      body { font-family: 'Segoe UI', Arial, sans-serif; padding: 20px; text-align: center; color: #333; }
+      h3 { color: #1F4E79; }
+      .btn { background-color: #4F81BD; color: white; padding: 12px 24px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: bold; margin-top: 15px; }
+      .btn:hover { background-color: #385D8A; }
+      .warning { color: #D32F2F; font-size: 0.85em; margin-top: 20px; background-color: #FDECEA; padding: 10px; border-radius: 4px; }
+    </style>
+  </head>
+  <body>
+    <h3>Abriendo Historias Clínicas</h3>
+    <p>Se van a cargar <strong><span id="count"></span></strong> pestañas para este turno.</p>
+    
+    <button class="btn" onclick="abrirEnlaces()">Lanzar Historias Clínicas</button>
+
+    <div class="warning">
+      <strong>⚠️ Importante (Solo la primera vez):</strong><br>
+      Si tu navegador bloquea las ventanas emergentes (pop-ups), verás un icono de advertencia en la barra de direcciones (arriba a la derecha). Haz clic en él y selecciona <em>"Permitir siempre ventanas emergentes de docs.google.com"</em>.
+    </div>
+
+    <script>
+      // Recibimos el array inyectado desde el archivo .gs
+      const urls = <?!= urls ?>;
+      document.getElementById('count').innerText = urls.length;
+
+      function abrirEnlaces() {
+        urls.forEach(url => {
+          window.open(url, '_blank');
+        });
+        // Cierra el cuadro de diálogo modal automáticamente
+        google.script.host.close();
+      }
+
+      // Auto-ejecución tras una fracción de segundo para dar tiempo a renderizar el aviso
+      window.onload = function() {
+        setTimeout(abrirEnlaces, 800);
+      };
+    </script>
+  </body>
+</html>
