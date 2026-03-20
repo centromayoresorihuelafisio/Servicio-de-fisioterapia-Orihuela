@@ -1,0 +1,13 @@
+{
+  "timeZone": "Europe/Madrid",
+  "dependencies": {
+  },
+  "exceptionLogging": "STACKDRIVER",
+  "runtimeVersion": "V8",
+  "sheets": {
+    "macros": [{
+      "menuName": "Copiar a Agenda",
+      "functionName": "CopiaraAgenda"
+    }]
+  }
+}

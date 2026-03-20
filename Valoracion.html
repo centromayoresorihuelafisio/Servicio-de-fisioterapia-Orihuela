@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Evaluación de Dolor y Función</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #F7FAFC; /* Un azul muy suave */
+            color: #1f2937;
+        }
+        .collapsible-header {
+            cursor: pointer;
+            user-select: none;
+            transition: background-color 0.2s;
+        }
+        .collapsible-header:hover {
+            background-color: #EBF2F9; /* Un azul suave al pasar el ratón */
+        }
+        .collapsible-icon {
+            transition: transform 0.3s ease-in-out;
+        }
+        .collapsible-header.open .collapsible-icon {
+            transform: rotate(90deg);
+        }
+        .collapsible-content {
+            max-height: 0;
+            opacity: 0;
+            transition: max-height 0.3s ease-in-out, opacity 0.3s ease-in-out, padding 0.3s ease-in-out;
+            overflow: hidden;
+            padding-top: 0;
+            padding-bottom: 0;
+        }
+        .collapsible-content.open {
+            max-height: 1000px; /* Suficiente para todo el contenido */
+            opacity: 1;
+            padding-top: 1rem;
+            padding-bottom: 1rem;
+        }
+
+        /* Estilos personalizados para los selectores de rango */
+        .range-slider {
+            -webkit-appearance: none;
+            appearance: none;
+            background: transparent;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        /* Estilos de la pista (track) */
+        .range-slider::-webkit-slider-runnable-track {
+            background: #EBF2F9;
+            border-radius: 9999px;
+            height: 8px;
+        }
+
+        .range-slider::-moz-range-track {
+            background: #EBF2F9;
+            border-radius: 9999px;
+            height: 8px;
+        }
+
+        /* Estilos del 'pulgar' (thumb) */
+        .range-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            margin-top: -4px;
+            height: 16px;
+            width: 16px;
+            background-color: #2563EB; /* Color principal */
+            border-radius: 9999px;
+            box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.2), 0 1px 2px -1px rgba(0, 0, 0, 0.12);
+            transition: background-color 0.2s, box-shadow 0.2s;
+        }
+
+        .range-slider::-moz-range-thumb {
+            height: 16px;
+            width: 16px;
+            background-color: #2563EB; /* Color principal */
+            border-radius: 9999px;
+            box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.2), 0 1px 2px -1px rgba(0, 0, 0, 0.12);
+            border: none;
+            transition: background-color 0.2s, box-shadow 0.2s;
+        }
+
+        /* Estados de hover y focus para el 'pulgar' */
+        .range-slider:hover::-webkit-slider-thumb,
+        .range-slider:focus::-webkit-slider-thumb {
+            background-color: #1E40AF; /* Un azul más oscuro */
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -2px rgba(0, 0, 0, 0.18);
+        }
+
+        .range-slider:hover::-moz-range-thumb,
+        .range-slider:focus::-moz-range-thumb {
+            background-color: #1E40AF;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -2px rgba(0, 0, 0, 0.18);
+        }
+
+        /* Estilo para los 'badges' que muestran el valor del slider */
+        .value-badge {
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            min-width: 2rem;
+            height: 1.5rem;
+            padding: 0 0.5rem;
+            background-color: #CBE1F8; /* Un azul claro que contrasta */
+            color: #1E40AF;
+            border-radius: 9999px;
+            font-weight: 600;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+            transition: background-color 0.3s, transform 0.1s;
+        }
+    </style>
+</head>
+<body class="p-6">
+    <div class="mx-auto bg-white rounded-xl shadow-lg p-8 w-full max-w-3xl">
+        <!-- Encabezado -->
+        <header class="text-center mb-6">
+            <h1 class="text-3xl font-bold text-gray-800">Valoración</h1>
+        </header>
+
+        <!-- Contenedor del formulario principal -->
+        <form id="valoracionForm" onsubmit="handleFormSubmit(this)">
+            <!-- Secciones del formulario -->
+            <div class="space-y-6">
+                <!-- Información del Paciente simplificada -->
+                <div class="grid grid-cols-1 gap-4 mb-6">
+                    <div>
+                        <label for="nombre" class="block text-base font-medium text-gray-700">Nombre del Paciente</label>
+                        <!-- MODIFICACIÓN: Se añade el scriptlet para inyectar el nombre del usuario -->
+                        <input type="text" id="nombre" name="nombre" value="<?= nombreUsuario ?>" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-2 px-3" required>
+                    </div>
+                </div>
+
+                <!-- Sección de Evaluación del Dolor -->
+                <section>
+                    <div class="collapsible-header flex items-center justify-between bg-blue-100 p-4 rounded-lg font-semibold text-blue-800">
+                        <h3>Evaluación del dolor</h3>
+                        <svg class="collapsible-icon w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                    </div>
+                    <div class="collapsible-content">
+                        <div class="space-y-6">
+                            <div>
+                                <label for="pegDolor" class="block text-sm font-medium text-gray-700">Dolor promedio: En la última semana, ¿Qué valor del 0-10 definiría tu nivel de dolor? <span id="pegDolorValue" class="value-badge ml-2">—</span></label>
+                                <input type="range" id="pegDolor" name="pegDolor" min="-1" max="10" value="-1" class="range-slider w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer mt-1">
+                            </div>
+                            <div>
+                                <label for="pegActividad" class="block text-sm font-medium text-gray-700">Actividad: En la última semana del 0-10, ¿Cuánto ha dificultado tu dolor tus actividades habituales? <span id="pegActividadValue" class="value-badge ml-2">—</span></label>
+                                <input type="range" id="pegActividad" name="pegActividad" min="-1" max="10" value="-1" class="range-slider w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer mt-1">
+                            </div>
+                            <div>
+                                <label for="pegVida" class="block text-sm font-medium text-gray-700">Vida diaria: En la última semana ¿Cuánto ha afectado tu dolor a tu vida en general? <span id="pegVidaValue" class="value-badge ml-2">—</span></label>
+                                <input type="range" id="pegVida" name="pegVida" min="-1" max="10" value="-1" class="range-slider w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer mt-1">
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Sección de Evaluación Funcional -->
+                <section>
+                    <div class="collapsible-header flex items-center justify-between bg-blue-100 p-4 rounded-lg font-semibold text-blue-800">
+                        <h3>Evaluación funcional</h3>
+                        <svg class="collapsible-icon w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                    </div>
+                    <div class="collapsible-content">
+                        <!-- Sub-sección Columna -->
+                        <div class="border border-gray-200 rounded-lg p-4 mt-4 bg-blue-50">
+                            <div class="collapsible-header flex items-center justify-between font-medium text-blue-700">
+                                <h4>Columna</h4>
+                                <svg class="collapsible-icon w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                            </div>
+                            <div class="collapsible-content space-y-4">
+                                <div>
+                                    <label for="columnaLevantarse" class="block text-sm font-medium text-gray-700">
+                                        Levantarse de la cama
+                                        <span class="text-xs text-gray-500">(0=incapaz, 10=sin dificultad)</span>
+                                        <span id="columnaLevantarseValue" class="value-badge ml-2">—</span>
+                                    </label>
+                                    <input type="range" id="columnaLevantarse" name="columnaLevantarse" min="-1" max="10" value="-1" class="range-slider w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer mt-1">
+                                </div>
+                                <div>
+                                    <label for="columnaAgacharse" class="block text-sm font-medium text-gray-700">
+                                        Agacharse para coger algo del suelo o un cajón
+                                        <span class="text-xs text-gray-500">(0=incapaz, 10=sin dificultad)</span>
+                                        <span id="columnaAgacharseValue" class="value-badge ml-2">—</span>
+                                    </label>
+                                    <input type="range" id="columnaAgacharse" name="columnaAgacharse" min="-1" max="10" value="-1" class="range-slider w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer mt-1">
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Sub-sección Miembro Superior -->
+                        <div class="border border-gray-200 rounded-lg p-4 mt-4 bg-blue-50">
+                            <div class="collapsible-header flex items-center justify-between font-medium text-blue-700">
+                                <h4>Miembro Superior</h4>
+                                <svg class="collapsible-icon w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                            </div>
+                            <div class="collapsible-content space-y-4">
+                                <div>
+                                    <label for="msVestirse" class="block text-sm font-medium text-gray-700">
+                                        Vestirse y peinarse
+                                        <span class="text-xs text-gray-500">(0=incapaz, 10=sin dificultad)</span>
+                                        <span id="msVestirseValue" class="value-badge ml-2">—</span>
+                                    </label>
+                                    <input type="range" id="msVestirse" name="msVestirse" min="-1" max="10" value="-1" class="range-slider w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer mt-1">
+                                </div>
+                                <div>
+                                    <label for="msAlcanzar" class="block text-sm font-medium text-gray-700">
+                                        Alcanzar objetos altos
+                                        <span class="text-xs text-gray-500">(0=incapaz, 10=sin dificultad)</span>
+                                        <span id="msAlcanzarValue" class="value-badge ml-2">—</span>
+                                    </label>
+                                    <input type="range" id="msAlcanzar" name="msAlcanzar" min="-1" max="10" value="-1" class="range-slider w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer mt-1">
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Sub-sección Miembro Inferior -->
+                        <div class="border border-gray-200 rounded-lg p-4 mt-4 bg-blue-50">
+                            <div class="collapsible-header flex items-center justify-between font-medium text-blue-700">
+                                <h4>Miembro Inferior</h4>
+                                <svg class="collapsible-icon w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                            </div>
+                            <div class="collapsible-content space-y-4">
+                                <div>
+                                    <label for="miCaminar" class="block text-sm font-medium text-gray-700">
+                                        Caminar 10m a ritmo normal
+                                        <span class="text-xs text-gray-500">(0=incapaz, 10=sin dificultad)</span>
+                                        <span id="miCaminarValue" class="value-badge ml-2">—</span>
+                                    </label>
+                                    <input type="range" id="miCaminar" name="miCaminar" min="-1" max="10" value="-1" class="range-slider w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer mt-1">
+                                </div>
+                                <div>
+                                    <label for="miEscaleras" class="block text-sm font-medium text-gray-700">
+                                        Subir y bajar un tramo de escaleras
+                                        <span class="text-xs text-gray-500">(0=incapaz, 10=sin dificultad)</span>
+                                        <span id="miEscalerasValue" class="value-badge ml-2">—</span>
+                                    </label>
+                                    <input type="range" id="miEscaleras" name="miEscaleras" min="-1" max="10" value="-1" class="range-slider w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer mt-1">
+                                </div>
+                                <div>
+                                    <label for="miSilla" class="block text-sm font-medium text-gray-700">
+                                        Sentarse y levantarse de una silla
+                                        <span class="text-xs text-gray-500">(0=incapaz, 10=sin dificultad)</span>
+                                        <span id="miSillaValue" class="value-badge ml-2">—</span>
+                                    </label>
+                                    <input type="range" id="miSilla" name="miSilla" min="-1" max="10" value="-1" class="range-slider w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer mt-1">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Sección de Consumo de Analgésicos -->
+            <section class="mt-8">
+                <div class="collapsible-header flex items-center justify-between bg-blue-100 p-4 rounded-lg font-semibold text-blue-800">
+                        <h3>Consumo de analgésicos</h3>
+                        <svg class="collapsible-icon w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                    </div>
+                <div class="collapsible-content">
+                    <div class="mt-4 space-y-4">
+                        <div>
+                            <label for="analgesicos" class="block text-sm font-medium text-gray-700">
+                                Valoración
+                                <span id="analgesicosValue" class="value-badge ml-2">—</span>
+                            </label>
+                            <input type="range" id="analgesicos" name="analgesicos" min="-1" max="5" value="-1" class="range-slider w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer mt-1">
+                            <div id="analgesicosDescription" class="mt-2 text-sm text-gray-500 text-center">Sin registrar</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Botón de guardar -->
+            <div class="mt-8 text-center">
+                <button type="submit" id="submitButton" class="w-full md:w-auto px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 shadow-md transition-transform transform hover:scale-105">
+                    Guardar Valoración
+                </button>
+            </div>
+        </form>
+
+        <!-- Contenedor de mensajes -->
+        <div id="messageBox" class="mt-6 p-4 rounded-lg text-center" style="display: none;"></div>
+    </div>
+    <script>
+        // Logica para mostrar el valor del slider
+        function updateSliderValue(sliderId, valueSpanId) {
+            const slider = document.getElementById(sliderId);
+            const valueSpan = document.getElementById(valueSpanId);
+            if (slider && valueSpan) {
+                const getDisplayValue = (value) => value === '-1' ? '—' : value;
+                valueSpan.textContent = getDisplayValue(slider.value);
+                slider.addEventListener('input', () => {
+                    valueSpan.textContent = getDisplayValue(slider.value);
+                });
+            }
+        }
+        
+        const analgesicosDescriptions = [
+            "Sin registrar", "Ninguno", "Ocasional (menos de 1 vez por semana)", 
+            "Semanal (1–2 veces por semana)", "Habitual (casi todos los días)", 
+            "Diario (1 vez al día)", "Varios al día"
+        ];
+
+        function updateSliderAndDescription(sliderId, valueSpanId, descriptionSpanId) {
+            const slider = document.getElementById(sliderId);
+            const valueSpan = document.getElementById(valueSpanId);
+            const descriptionSpan = document.getElementById(descriptionSpanId);
+            if (slider && valueSpan && descriptionSpan) {
+                const updateDisplay = () => {
+                    const sliderValue = parseInt(slider.value, 10);
+                    const descIndex = sliderValue + 1; 
+                    const displayValue = sliderValue === -1 ? '—' : sliderValue.toString();
+                    valueSpan.textContent = displayValue;
+                    descriptionSpan.textContent = analgesicosDescriptions[descIndex];
+                };
+                updateDisplay();
+                slider.addEventListener('input', updateDisplay);
+            }
+        }
+
+        window.addEventListener('load', () => {
+            updateSliderValue('pegDolor', 'pegDolorValue');
+            updateSliderValue('pegActividad', 'pegActividadValue');
+            updateSliderValue('pegVida', 'pegVidaValue');
+            updateSliderValue('columnaLevantarse', 'columnaLevantarseValue');
+            updateSliderValue('columnaAgacharse', 'columnaAgacharseValue');
+            updateSliderValue('msVestirse', 'msVestirseValue');
+            updateSliderValue('msAlcanzar', 'msAlcanzarValue');
+            updateSliderValue('miCaminar', 'miCaminarValue');
+            updateSliderValue('miEscaleras', 'miEscalerasValue');
+            updateSliderValue('miSilla', 'miSillaValue');
+            updateSliderAndDescription('analgesicos', 'analgesicosValue', 'analgesicosDescription');
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const collapsibleHeaders = document.querySelectorAll('.collapsible-header');
+            collapsibleHeaders.forEach(header => {
+                header.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const content = header.nextElementSibling;
+                    if (content && content.classList.contains('collapsible-content')) {
+                        const isOpen = content.classList.toggle('open');
+                        header.classList.toggle('open', isOpen);
+                    }
+                });
+            });
+        });
+
+        function handleFormSubmit(formObject) {
+            event.preventDefault();
+            const form = document.getElementById('valoracionForm');
+            const formData = new FormData(form);
+            const data = {};
+            formData.forEach((value, key) => data[key] = value);
+
+            for (const key in data) {
+                const value = data[key];
+                if (key === 'nombre') continue;
+                if (value === "-1") {
+                    data[key] = ""; 
+                } else {
+                    data[key] = parseFloat(value);
+                }
+            }
+
+            const submitButton = document.getElementById('submitButton');
+            const messageBox = document.getElementById('messageBox');
+            submitButton.disabled = true;
+            submitButton.textContent = 'Guardando...';
+            submitButton.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+            submitButton.classList.add('bg-gray-400', 'cursor-not-allowed');
+            messageBox.style.display = 'none';
+
+            if (typeof google === 'undefined' || typeof google.script === 'undefined' || typeof google.script.run === 'undefined') {
+                messageBox.textContent = "Error: La API de Apps Script no está disponible.";
+                messageBox.classList.add('bg-red-200', 'text-red-800');
+                messageBox.style.display = 'block';
+                submitButton.disabled = false;
+                submitButton.textContent = 'Guardar Valoración';
+                submitButton.classList.remove('bg-gray-400', 'cursor-not-allowed');
+                submitButton.classList.add('bg-blue-600', 'hover:bg-blue-700');
+                return;
+            }
+
+            google.script.run
+                .withSuccessHandler(result => {
+                    messageBox.textContent = result;
+                    messageBox.classList.add('bg-green-200', 'text-green-800');
+                    messageBox.style.display = 'block';
+                    form.reset();
+                    submitButton.disabled = false;
+                    submitButton.textContent = 'Guardar Valoración';
+                    submitButton.classList.remove('bg-gray-400', 'cursor-not-allowed');
+                    submitButton.classList.add('bg-blue-600', 'hover:bg-blue-700');
+                    document.querySelectorAll('input[type="range"]').forEach(slider => {
+                      const valueSpan = document.getElementById(slider.id + 'Value');
+                      if(valueSpan) valueSpan.textContent = '—';
+                    });
+                    const analgesicosDescription = document.getElementById('analgesicosDescription');
+                    if(analgesicosDescription) analgesicosDescription.textContent = analgesicosDescriptions[0];
+                })
+                .withFailureHandler(error => {
+                    messageBox.textContent = "Error: " + error.message;
+                    messageBox.classList.add('bg-red-200', 'text-red-800');
+                    messageBox.style.display = 'block';
+                    submitButton.disabled = false;
+                    submitButton.textContent = 'Guardar Valoración';
+                    submitButton.classList.remove('bg-gray-400', 'cursor-not-allowed');
+                    submitButton.classList.add('bg-blue-600', 'hover:bg-blue-700');
+                })
+                .procesarValoracion(data);
+        }
+    </script>
+</body>
+</html>

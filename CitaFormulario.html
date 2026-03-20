@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    /* ------------------------------------------- */
+    /* CONFIGURACIÓN GLOBAL (CLAVE PARA ELIMINAR SCROLL HORIZONTAL) */
+    /* ------------------------------------------- */
+    *, *::before, *::after {
+        box-sizing: border-box;
+    }
+    
+    /* ------------------------------------------- */
+    /* ESTILOS BASE Y CONTENEDOR */
+    /* ------------------------------------------- */
+    body { 
+        font-family: 'Inter', sans-serif;
+        padding: 20px; 
+        background-color: #eef1f4; 
+        margin: 0;
+        height: auto; 
+        overflow-x: hidden;
+        /* CLAVE: Prevenir scroll horizontal accidental */
+    }
+    
+    .container { 
+        display: flex;
+        flex-direction: column; 
+        max-width: 900px; 
+        margin: 0 auto; 
+        background-color: #ffffff; 
+        border-radius: 16px; 
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        /* Permitir que el contenido desborde el contenedor si es necesario */
+        overflow: visible;
+        /* Ajuste de altura para que crezca libremente */
+        height: auto; 
+        min-height: 98%;
+        max-width: 95%;
+    }
+    
+    /* ------------------------------------------- */
+    /* PANEL DE FORMULARIO (SUPERIOR) */
+    /* ------------------------------------------- */
+    .header-form-panel {
+        padding: 24px;
+        background-color: #f7f9fb; 
+        border-bottom: 1px solid #e0e0e0;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); 
+        gap: 20px; 
+        align-items: end; 
+        flex-shrink: 0;
+    }
+    
+    .form-field {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    #nombre-field { grid-column: span 2; } 
+    #notes-field { grid-column: 1 / -1; } 
+
+    #feedback {
+        grid-column: 1 / -1; 
+        order: -1;
+    }
+    .actions {
+        grid-column: 1 / -1; 
+        order: 10;
+    }
+
+    /* ------------------------------------------- */
+    /* ESTILOS DE ENTRADA Y TEXTO */
+    /* ------------------------------------------- */
+    h4 { 
+        color: #00796b;
+        margin-top: 0; 
+        padding-bottom: 8px; 
+        margin-bottom: 20px; 
+        font-size: 1.3em; 
+        font-weight: 600;
+        border-bottom: 3px solid #00796b; 
+        opacity: 0.8;
+        text-align: center;
+    }
+    label { 
+        font-weight: 600; 
+        color: #555; 
+        font-size: 0.85em;
+        margin-bottom: 5px;
+    }
+    
+    input[type="text"], textarea, select { 
+        padding: 10px 12px;
+        border: 1px solid #dcdcdc; 
+        border-radius: 8px; 
+        box-sizing: border-box; 
+        font-size: 0.9em; 
+        transition: all 0.2s; 
+        box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
+        width: 100%; 
+        background-color: #ffffff;
+    }
+    
+    .custom-select-wrapper {
+        position: relative;
+        width: 100%;
+    }
+
+    input[type="text"]:focus, textarea:focus, select:focus {
+        border-color: #00796b;
+        box-shadow: 0 0 0 3px rgba(0, 121, 107, 0.2);
+        outline: none;
+    }
+    
+    input:disabled, select:disabled {
+        background-color: #e9ecef;
+        border-color: #ccc;
+        cursor: not-allowed;
+    }
+    
+    textarea { 
+        resize: vertical;
+        min-height: 40px; 
+    }
+    
+    /* ------------------------------------------- */
+    /* PANEL DE CALENDARIO (INFERIOR) */
+    /* ------------------------------------------- */
+    .calendar-full-panel { 
+        padding: 24px;
+        display: flex; 
+        flex-direction: column; 
+        overflow: visible; 
+    }
+    
+    .week-nav { 
+        display: flex;
+        justify-content: space-between; 
+        align-items: center; 
+        margin-bottom: 20px; 
+        flex-shrink: 0; 
+    }
+    .week-nav button { 
+        background-color: #ffffff;
+        border: 1px solid #dcdcdc; 
+        font-size: 1.1em; 
+        cursor: pointer; 
+        color: #00796b; 
+        width: 38px;
+        height: 38px;
+        border-radius: 50%; 
+        transition: all 0.2s;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    .week-nav button:hover:not(:disabled) { 
+        background-color: #e0f2f1;
+        border-color: #00796b;
+        transform: translateY(-1px);
+    }
+    .week-nav button:disabled { 
+        color: #ccc;
+        cursor: not-allowed; 
+        box-shadow: none;
+        background-color: #f7f7f7;
+    }
+
+    #currentWeekLabel { 
+        font-weight: 700;
+        font-size: 1.2em; 
+        color: #333; 
+        text-align: center; 
+        flex-grow: 1; 
+    }
+    
+    .calendar-grid { 
+        display: grid;
+        grid-template-columns: repeat(5, 1fr); 
+        gap: 10px; 
+        overflow-y: visible; 
+    }
+    .day-column { 
+        background-color: #f7f9fb;
+        padding: 8px;
+        border-radius: 10px; 
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08); 
+    }
+    .day-label { 
+        font-weight: 700;
+        text-align: center; 
+        margin-bottom: 8px; 
+        color: #004d40; 
+        font-size: 0.9em; 
+        padding-bottom: 5px;
+        border-bottom: 1px dashed #b2dfdb;
+    }
+    
+    .hour-button { 
+        width: 100%;
+        padding: 8px 4px; 
+        margin-bottom: 6px; 
+        border: none; 
+        color: #333; 
+        border-radius: 6px; 
+        cursor: pointer; 
+        font-size: 0.85em; 
+        transition: all 0.2s;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    .turno-manana { background-color: #c0edec; }
+    .turno-tarde { background-color: #dbd3e3; }
+
+    .hour-button:hover:not(.selected) { 
+        box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+        transform: translateY(-1px);
+        opacity: 0.9;
+    }
+    .hour-button.selected { 
+        background-color: #00796b;
+        color: white; 
+        border-color: #004d40; 
+        font-weight: bold;
+        box-shadow: 0 4px 10px rgba(0, 121, 107, 0.4);
+        transform: scale(1.02);
+    }
+    
+    button.submit { 
+        background-color: #00796b;
+        color: white; 
+        padding: 12px 1px; 
+        border: none; 
+        border-radius: 10px; 
+        cursor: pointer; 
+        width: 100%; 
+        font-size: 1.1em; 
+        font-weight: bold;
+        transition: all 0.3s;
+        margin-top: 15px; 
+        box-shadow: 0 4px 15px rgba(0, 121, 107, 0.4);
+    }
+    button.submit:hover:not(:disabled) { 
+        background-color: #004d40;
+        box-shadow: 0 6px 20px rgba(0, 121, 107, 0.5);
+    }
+    button.submit:disabled { 
+        background-color: #ccc;
+        cursor: not-allowed; 
+        box-shadow: none;
+    }
+
+    #feedback { 
+        padding: 12px;
+        border-radius: 8px; 
+        font-weight: 600; 
+        display: none; 
+        text-align: center; 
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        font-size: 0.95em;
+    }
+    .success { background-color: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7; }
+    .error { background-color: #ffebee; color: #c62828; border: 1px solid #ef9a9a; }
+
+    .loader { 
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #00796b; 
+        border-radius: 50%; 
+        width: 20px; 
+        height: 20px; 
+        animation: spin 1s linear infinite; 
+        display: none; 
+        margin: 0 auto;
+    }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+    @media (max-width: 650px) {
+        .container {
+            min-height: initial;
+            border-radius: 0;
+            box-shadow: none;
+            max-width: 100%;
+            padding-bottom: 20px;
+        }
+        body { padding: 0; }
+        .header-form-panel {
+            grid-template-columns: 1fr;
+            gap: 15px;
+            padding: 15px;
+        }
+        #nombre-field, #notes-field { grid-column: span 1; }
+        .calendar-full-panel { padding: 15px; }
+        .calendar-grid {
+            gap: 5px;
+            grid-template-columns: repeat(3, 1fr); 
+        }
+        @media (max-width: 450px) {
+            .calendar-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+    }
+
+    /* ------------------------------------------- */
+    /* NUEVOS ESTILOS AUTOCOMPLETE */
+    /* ------------------------------------------- */
+    .autocomplete-items {
+        position: absolute;
+        border: 1px solid #dcdcdc;
+        border-top: none;
+        z-index: 99;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: white;
+        max-height: 200px;
+        overflow-y: auto;
+        border-radius: 0 0 8px 8px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+
+    .autocomplete-items div {
+        padding: 10px;
+        cursor: pointer;
+        font-size: 0.9em;
+        color: #333;
+    }
+
+    .autocomplete-items div:hover {
+        background-color: #e0f2f1;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  
+  <div class="header-form-panel">
+    <div id="feedback"></div>
+
+    <div class="form-field" id="nombre-field">
+        <label for="nombreUsuarioInput">Nombre:</label>
+        <div class="custom-select-wrapper"> 
+            <input type="text" id="nombreUsuarioInput" placeholder="Buscar paciente..." disabled autocomplete="off">
+            <div id="autocomplete-list" class="autocomplete-items"></div>
+        </div>
+    </div>
+    
+    <div class="form-field">
+        <label for="telefonoUsuario">Teléfono:</label>
+        <input type="text" id="telefonoUsuario" placeholder="Cargando teléfono...">
+    </div>
+    
+    <div class="form-field">
+        <label for="numSesion">Sesión:</label>
+        <input type="text" id="numSesion" placeholder="Ej: 5 o N/A">
+    </div>
+
+    <div class="form-field" id="notes-field">
+        <label for="notas">Notas:</label>
+        <textarea id="notas" rows="1" placeholder="Información relevante para la cita."></textarea>
+    </div>
+    
+    <div class="actions">
+        <button class="submit" id="btnGuardar" onclick="enviarCita()" disabled>
+          <span id="btnText">Registrar Citas Seleccionadas</span>
+          <div id="loader" class="loader"></div>
+        </button>
+    </div>
+  </div>
+
+  <div class="calendar-full-panel">
+    <h4>Agenda</h4> 
+
+    <div class="week-nav">
+      <button onclick="changeWeek(-1)" id="prevWeekBtn" disabled title="Semana Anterior"> &lt; </button>
+      <div id="currentWeekLabel">Cargando Agenda...</div>
+      <button onclick="changeWeek(1)" id="nextWeekBtn" disabled title="Semana Siguiente"> &gt; </button>
+    </div>
+
+    <div id="calendarGrid" class="calendar-grid"></div>
+  </div>
+  
+</div>
+
+<script>
+  // Elementos del DOM
+  const calendarGrid = document.getElementById('calendarGrid');
+  const currentWeekLabel = document.getElementById('currentWeekLabel');
+  const btnGuardar = document.getElementById('btnGuardar');
+  const btnText = document.getElementById('btnText');
+  const loader = document.getElementById('loader');
+  const feedback = document.getElementById('feedback');
+  const numSesionInput = document.getElementById('numSesion');
+  const notasTextarea = document.getElementById('notas');
+  const nombreUsuarioInput = document.getElementById('nombreUsuarioInput');
+  const autocompleteList = document.getElementById('autocomplete-list');
+  const telefonoUsuarioInput = document.getElementById('telefonoUsuario');
+
+  // Estado Global
+  let semanasData = [];
+  let currentWeekIndex = 0;
+  let selectedHuecos = []; 
+  let currentUserName = '';
+  let currentUserPhone = ''; 
+  let allPatientsList = [];
+  let allPatientsData = {};
+  
+  const EXCLUDED_TIMES = ["08:00", "08:30", "11:00", "13:00", "13:30", "16:00", "19:30"];
+  const DIA_ORDEN = { 'Lunes': 1, 'Martes': 2, 'Miércoles': 3, 'Jueves': 4, 'Viernes': 5 };
+
+  // ===============================================
+  // 1. UTILIDADES Y FEEDBACK
+  // ===============================================
+  
+  function mostrarFeedback(message, isSuccess) {
+    feedback.style.display = 'block';
+    feedback.innerHTML = message;
+    feedback.className = isSuccess ? 'success' : 'error';
+    if (isSuccess) {
+      setTimeout(() => { feedback.style.display = 'none'; }, 5000);
+    }
+  }
+
+  function toggleLoading(isLoading) {
+    btnGuardar.disabled = isLoading; 
+    btnText.style.display = isLoading ? 'none' : 'inline';
+    loader.style.display = isLoading ? 'block' : 'none';
+  }
+
+  // ===============================================
+  // 2. LÓGICA DE CALENDARIO Y UI
+  // ===============================================
+  
+  function sortDaysByDate(dias) {
+      return Object.keys(dias).sort((a, b) => {
+          const partsA = a.split('/');
+          const dateA = new Date(partsA[2], partsA[1] - 1, partsA[0]); 
+          const partsB = b.split('/');
+          const dateB = new Date(partsB[2], partsB[1] - 1, partsB[0]);
+          return dateA - dateB;
+      });
+  }
+  
+  function filterAndSortDays(diasData) {
+      const sortedDateKeys = sortDaysByDate(diasData);
+      const orderedDaysMap = {};
+      sortedDateKeys.forEach(dateKey => {
+          const dayData = diasData[dateKey];
+          const dayName = dayData.label.split(' ')[0].trim(); 
+          if (DIA_ORDEN[dayName] && !orderedDaysMap[dayName]) {
+              dayData.huecos = dayData.huecos.filter(hueco => !EXCLUDED_TIMES.includes(hueco.hora));
+              orderedDaysMap[dayName] = dayData;
+          }
+      });
+      return Object.values(orderedDaysMap).sort((a, b) => {
+          const aName = a.label.split(' ')[0].trim();
+          const bName = b.label.split(' ')[0].trim();
+          return DIA_ORDEN[aName] - DIA_ORDEN[bName];
+      });
+  }
+
+  function getTurnoClass(hora) {
+    const [h, m] = hora.split(':').map(Number);
+    const timeInMinutes = h * 60 + m; 
+    if (timeInMinutes >= 540 && timeInMinutes <= 750) return 'turno-manana';
+    if (timeInMinutes >= 990) return 'turno-tarde';
+    return ''; 
+  }
+
+  function renderWeek() {
+    if (semanasData.length === 0) {
+      calendarGrid.innerHTML = '<p style="text-align:center; color:#555;">No hay semanas para mostrar.</p>';
+      currentWeekLabel.textContent = 'Sin Datos';
+      return;
+    }
+    
+    if (currentWeekIndex < 0) currentWeekIndex = 0;
+    if (currentWeekIndex >= semanasData.length) currentWeekIndex = semanasData.length - 1;
+
+    const currentWeek = semanasData[currentWeekIndex];
+    if (currentWeek.error) {
+        currentWeekLabel.textContent = 'Error de Configuración';
+        calendarGrid.innerHTML = `<p class="error">${currentWeek.error}</p>`;
+        return;
+    }
+
+    currentWeekLabel.textContent = currentWeek.label; 
+    calendarGrid.innerHTML = '';
+    
+    const daysToRender = filterAndSortDays(currentWeek.dias);
+    daysToRender.forEach(dayData => {
+      const dayColumn = document.createElement('div');
+      dayColumn.className = 'day-column';
+      const dayLabel = document.createElement('div');
+      dayLabel.className = 'day-label';
+      const [dayName, fullDate] = dayData.label.split(' ');
+      const dateParts = fullDate.split('/');
+      const shortDate = `${dateParts[0]}/${dateParts[1]}/${dateParts[2].substring(2)}`;
+
+      dayLabel.innerHTML = `<span>${dayName}</span><span style="display:block; font-size: 0.8em; font-weight: normal; color: #555;">${shortDate}</span>`;
+      dayColumn.appendChild(dayLabel);
+      
+      if (dayData.huecos.length === 0) {
+          const noHueco = document.createElement('p');
+          noHueco.style.fontSize = '0.8em'; noHueco.style.textAlign = 'center'; noHueco.style.color = '#999';
+          noHueco.textContent = 'Completo';
+          dayColumn.appendChild(noHueco);
+      } else {
+        dayData.huecos.forEach(hueco => {
+          const button = document.createElement('button');
+          button.className = 'hour-button ' + getTurnoClass(hueco.hora); 
+          button.textContent = hueco.hora; 
+          button.setAttribute('data-value', hueco.value); 
+          button.onclick = selectHueco;
+          if (selectedHuecos.includes(hueco.value)) button.classList.add('selected');
+          dayColumn.appendChild(button);
+        });
+      }
+      calendarGrid.appendChild(dayColumn);
+    });
+    document.getElementById('prevWeekBtn').disabled = currentWeekIndex === 0;
+    document.getElementById('nextWeekBtn').disabled = currentWeekIndex === semanasData.length - 1;
+    updateSaveButtonState();
+  }
+
+  function changeWeek(delta) {
+    const newIndex = currentWeekIndex + delta;
+    if (newIndex >= 0 && newIndex < semanasData.length) {
+      currentWeekIndex = newIndex;
+      renderWeek();
+    }
+  }
+  
+  function selectHueco(event) {
+    const button = event.target;
+    button.classList.toggle('selected');
+    selectedHuecos = Array.from(document.querySelectorAll('.hour-button.selected'))
+                            .map(btn => btn.getAttribute('data-value'));
+    updateSaveButtonState();
+  }
+  
+  function deselectHueco() {
+    if (selectedHuecos.length > 0) {
+        document.querySelectorAll('.hour-button.selected').forEach(btn => btn.classList.remove('selected'));
+        selectedHuecos = [];
+        updateSaveButtonState();
+        mostrarFeedback('Selección cancelada.', false);
+    }
+  }
+
+  function updateSaveButtonState() {
+      const isUserNameValid = !!currentUserName && currentUserName !== 'NOT_FOUND' && currentUserName !== 'HEADER_ROW';
+      btnGuardar.disabled = selectedHuecos.length === 0 || !isUserNameValid;
+      const count = selectedHuecos.length;
+      btnText.textContent = count > 1 ? `Registrar ${count} Citas` : count === 1 ? 'Registrar 1 Cita' : 'Registrar Citas Seleccionadas';
+
+      if (!isUserNameValid) {
+          telefonoUsuarioInput.placeholder = 'Necesitas un paciente válido.';
+      } else {
+          if (telefonoUsuarioInput.value === '') {
+             telefonoUsuarioInput.placeholder = 'Teléfono no registrado (Editable).';
+          }
+      }
+  }
+  
+  // ===============================================
+  // 3. AUTOCOMPLETE Y CARGA DE PACIENTES
+  // ===============================================
+
+  function renderPatientSelect(patientNames, defaultName) {
+      allPatientsList = patientNames;
+      nombreUsuarioInput.disabled = false;
+      let defaultSelected = false;
+
+      if (defaultName && defaultName !== 'NOT_FOUND' && defaultName !== 'HEADER_ROW') {
+          nombreUsuarioInput.value = defaultName;
+          currentUserName = defaultName;
+          defaultSelected = true;
+      }
+      updateSaveButtonState();
+  }
+
+  nombreUsuarioInput.addEventListener('input', function () {
+      const value = this.value.toLowerCase();
+      autocompleteList.innerHTML = '';
+      currentUserName = '';
+
+      if (!value) return;
+
+      const filtered = allPatientsList.filter(name =>
+          name.toLowerCase().includes(value)
+      );
+
+      filtered.forEach(name => {
+          const item = document.createElement('div');
+          item.textContent = name;
+          item.addEventListener('click', function () {
+              nombreUsuarioInput.value = name;
+              currentUserName = name;
+              const newPhone = allPatientsData[name] || '';
+              currentUserPhone = newPhone;
+              telefonoUsuarioInput.value = newPhone;
+              numSesionInput.value = '';
+              notasTextarea.value = '';
+              mostrarFeedback(`Paciente seleccionado: **${name}**`, true);
+              autocompleteList.innerHTML = '';
+              updateSaveButtonState();
+          });
+          autocompleteList.appendChild(item);
+      });
+  });
+
+  document.addEventListener('click', function (e) {
+      if (e.target !== nombreUsuarioInput) {
+          autocompleteList.innerHTML = '';
+      }
+  });
+  
+  function loadPatientData() {
+    nombreUsuarioInput.value = '';
+    nombreUsuarioInput.disabled = true;
+    telefonoUsuarioInput.placeholder = 'Buscando teléfono...'; 
+    
+    google.script.run
+        .withSuccessHandler(data => {
+            const userName = data.name || 'NOT_FOUND';
+            const userPhone = data.phone || ''; 
+            allPatientsData = data.allPatientsData || {}; 
+            const patientNames = Object.keys(allPatientsData);
+
+            renderPatientSelect(patientNames, userName);
+
+            if (userName && userName !== 'HEADER_ROW' && userName !== 'NOT_FOUND') {
+                currentUserName = userName;
+                currentUserPhone = userPhone;
+                telefonoUsuarioInput.value = userPhone;
+                mostrarFeedback(`Cita para: **${currentUserName}**`, true);
+            } else {
+                currentUserName = '';
+                currentUserPhone = ''; 
+                telefonoUsuarioInput.value = ''; 
+                const msg = userName === 'HEADER_ROW' ? '🛑 ERROR: Fila de encabezado seleccionada.' : 'Elige un paciente de la lista.';
+                mostrarFeedback(msg, !msg.startsWith('🛑'));
+            }
+            updateSaveButtonState();
+        })
+        .withFailureHandler(error => {
+            nombreUsuarioInput.disabled = false;
+            mostrarFeedback('Error al cargar pacientes: ' + error, false);
+        })
+        .obtenerNombreDeFilaActiva();
+  }
+
+  // ===============================================
+  // 4. COMUNICACIÓN CON APPS SCRIPT
+  // ===============================================
+
+  function loadInitialData() {
+      loadPatientData();
+      currentWeekLabel.textContent = 'Cargando Agenda...';
+      toggleLoading(true);
+      google.script.run
+        .withSuccessHandler(res => {
+          toggleLoading(false);
+          semanasData = res.semanas; 
+          if (semanasData && semanasData.length > 0) {
+            currentWeekIndex = res.index; 
+            renderWeek();
+          }
+        })
+        .withFailureHandler(error => {
+          toggleLoading(false);
+          mostrarFeedback('Error: ' + error, false);
+        })
+        .obtenerSemanasYHuecos();
+  }
+  
+  function enviarCita() {
+    const nombreUsuario = currentUserName; 
+    const telefonoUsuario = telefonoUsuarioInput.value.trim(); 
+    const numSesion = numSesionInput.value.trim();
+    const notas = notasTextarea.value.trim();
+    
+    if (!nombreUsuario) {
+      mostrarFeedback('🛑 Selecciona un paciente válido.', false);
+      return;
+    }
+    
+    toggleLoading(true);
+    const formData = {
+      nombreUsuario: nombreUsuario,
+      telefonoUsuario: telefonoUsuario, 
+      huecosJson: selectedHuecos,
+      numSesion: numSesion,
+      notas: notas
+    };
+    google.script.run
+      .withSuccessHandler(res => {
+        toggleLoading(false);
+        if (res.success) {
+          mostrarFeedback(`✅ ${res.message}`, true);
+          numSesionInput.value = ''; notasTextarea.value = ''; selectedHuecos = []; 
+          loadInitialData(); 
+        } else {
+          mostrarFeedback(`⚠️ ${res.message}`, false);
+          loadInitialData(); 
+        }
+      })
+      .withFailureHandler(error => {
+        toggleLoading(false);
+        mostrarFeedback('Error: ' + error, false);
+      })
+      .guardarCitasMultiples(formData);
+  }
+  
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') deselectHueco(); });
+  loadInitialData();
+
+</script>
+</body>
+</html>
