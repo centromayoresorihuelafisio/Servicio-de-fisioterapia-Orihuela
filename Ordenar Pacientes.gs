@@ -1,7 +1,22 @@
+/**
+ * @fileordenar_pacientes.gs
+ * @description Optimización de ordenamiento de pacientes para evitar filas extra y mejorar rendimiento.
+ * @mentor Scriptor Master
+ */
+
 function ordenarPacientes() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName("Base de Datos Maestra");
-  const data = sheet.getDataRange().getValues();
+  
+  // 1. Obtención de datos masiva (Una sola llamada)
+  const range = sheet.getDataRange();
+  const data = range.getValues();
+  
+  // Validar si hay datos más allá de los encabezados
+  if (data.length <= 1) {
+    ss.toast("No hay datos de pacientes para ordenar.", "Aviso", 5);
+    return;
+  }
 
   const headers = data[0].map(h => h.toString().trim().toLowerCase());
 
@@ -17,15 +32,27 @@ function ordenarPacientes() {
 
   if (idxEstado === -1 || idxIngreso === -1 || idxGravedad === -1 || idxUltimaVisita === -1 || idxFechaInscripcion === -1) {
     Logger.log("No se encontraron todas las columnas necesarias");
-    ss.toast("Error de configuración: revisa los encabezados requeridos en 'Base de Datos Maestra'.", "Error", 8);
+    ss.toast("Error de configuración: revisa los encabezados.", "Error", 8);
     return;
   }
 
   const now = new Date();
+  // Array para almacenar los scores y escribirlos de una sola vez
+  // El tamaño debe ser igual a las filas de datos (data.length - 1)
+  let scoresArray = [];
 
+  // 2. Procesamiento lógico en memoria (Sin tocar la hoja)
   for (let i = 1; i < data.length; i++) {
     const row = data[i];
-    const estado = row[idxEstado].toString().trim();
+    const estadoRaw = row[idxEstado];
+    
+    // VALIDACIÓN: Si la fila está vacía en la columna estado, score 0 o saltar
+    if (!estadoRaw || estadoRaw.toString().trim() === "") {
+      scoresArray.push([null]); // No asignamos puntaje a filas vacías
+      continue;
+    }
+
+    const estado = estadoRaw.toString().trim();
     const ingreso = row[idxIngreso].toString().trim();
     const gravedad = row[idxGravedad].toString().trim();
     const fechaUlt = parseFecha(row[idxUltimaVisita]);
@@ -61,16 +88,30 @@ function ordenarPacientes() {
       score += diffDays2 * 0.01;
     }
 
-    sheet.getRange(i + 1, 1).setNumberFormat("0.00");
-    sheet.getRange(i + 1, 1).setValue(Number(score.toFixed(2)));
+    // Guardamos el resultado con formato de 2 decimales
+    scoresArray.push([Number(score.toFixed(2))]);
   }
 
-  sheet.getRange(2, 1, sheet.getLastRow() - 1, sheet.getLastColumn())
-       .sort({column: 1, ascending: false});
+  // 3. Escritura masiva de scores (Una sola llamada)
+  if (scoresArray.length > 0) {
+    const scoreRange = sheet.getRange(2, 1, scoresArray.length, 1);
+    scoreRange.setNumberFormat("0.00");
+    scoreRange.setValues(scoresArray);
+  }
 
-  ss.toast("Usuarios ordenados correctamente.", "Completado", 5);
+  // 4. Ordenamiento final
+  const lastRow = sheet.getLastRow();
+  if (lastRow > 1) {
+    sheet.getRange(2, 1, lastRow - 1, sheet.getLastColumn())
+         .sort({column: 1, ascending: false});
+  }
+
+  ss.toast("Pacientes procesados y ordenados con éxito.", "Completado", 5);
 }
 
+/**
+ * Función auxiliar para procesar diversos formatos de fecha.
+ */
 function parseFecha(valor) {
   if (!valor && valor !== 0) return null;
   if (Object.prototype.toString.call(valor) === "[object Date]" && !isNaN(valor)) {
