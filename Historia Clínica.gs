@@ -22,6 +22,7 @@ function generarHistoriaClinica() {
 
   const nombre = patientData['nombre'] || '';
   const dni = patientData['dni'] || '';
+  const edad = patientData['edad'] || '';
   const telefono1 = patientData['teléfono 1'] || '';
   const telefono2 = patientData['teléfono 2'] || '';
   let fechaInscripcion = patientData['fecha inscripción'] || patientData['fecha_inscripción'] || '';
@@ -54,6 +55,7 @@ function generarHistoriaClinica() {
 
   body.replaceText('{{nombre}}', nombre);
   body.replaceText('{{dni}}', dni);
+  body.replaceText('{{edad}}', edad);
   body.replaceText('{{telefono1}}', telefono1);
   body.replaceText('{{telefono2}}', telefono2);
   body.replaceText('{{fechaInscripcion}}', formatDate(fechaInscripcion));
