@@ -9,6 +9,7 @@ function onOpen() {
   ui.createMenu("📅")
     .addItem('📍 Hoy', 'irAFechaActual')
     .addItem('🔍 Buscar Fecha', 'mostrarSelectorFecha')
+    .addItem('🗂️ Jornada', 'prepararJornada')
     .addSeparator() // Separador
     .addItem('📞 Citas', 'mostrarDialogoCita')
     .addItem("🗓️ Agenda Semanal", "showAgendaModal")
