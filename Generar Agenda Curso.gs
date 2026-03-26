@@ -86,7 +86,7 @@ function generarAgendaCurso() {
   let monthStartRow = -1, weekStartRow = -1;
 
   // --- REGLAS DE VALIDACIÓN (DESPLEGABLES) ---
-  const opcionesAsistencia = ["✅ Asistió", "❌ No Asistió", "⚠️ Justificada", "⏳ Pendiente"];
+  const opcionesAsistencia = ["✅ Asistido", "❌ No Asistido", "⚠️ Justificada", "⏳ Pendiente"];
   const ruleAsistencia = SpreadsheetApp.newDataValidation().requireValueInList(opcionesAsistencia).setAllowInvalid(false).build();
   
   let ruleUser = null;
@@ -257,8 +257,8 @@ function generarAgendaCurso() {
   const rules = [];
   rules.push(SpreadsheetApp.newConditionalFormatRule().whenTextEqualTo("⏳ Pendiente").setBackground("#FFEDD5").setFontColor("#9A3412").setRanges([asisRange]).build());
   rules.push(SpreadsheetApp.newConditionalFormatRule().whenTextEqualTo("⚠️ Justificada").setBackground("#FEF08A").setFontColor("#854D0E").setRanges([asisRange]).build());
-  rules.push(SpreadsheetApp.newConditionalFormatRule().whenTextEqualTo("✅ Asistió").setBackground("#BBF7D0").setFontColor("#166534").setRanges([asisRange]).build());
-  rules.push(SpreadsheetApp.newConditionalFormatRule().whenTextEqualTo("❌ No Asistió").setBackground("#FECACA").setFontColor("#991B1B").setRanges([asisRange]).build());
+  rules.push(SpreadsheetApp.newConditionalFormatRule().whenTextEqualTo("✅ Asistido").setBackground("#BBF7D0").setFontColor("#166534").setRanges([asisRange]).build());
+  rules.push(SpreadsheetApp.newConditionalFormatRule().whenTextEqualTo("❌ No Asistido").setBackground("#FECACA").setFontColor("#991B1B").setRanges([asisRange]).build());
   sheet.setConditionalFormatRules(rules);
 
   const widths = { 1: 110, 2: 90, 3: 70, 4: 220, 7: 130, 9: 150, 10: 250 };
