@@ -1,579 +1,321 @@
 /**
- * Función que gestiona la creación y generación de la agenda para un nuevo curso.
- * Pide el año, crea la hoja y la rellena con la agenda.
+ * @fileoverview Generador de Agenda Anual para Citas Médicas/Clínicas.
+ * @version 5.2
+ * @author Scriptor Master (Turn Highlighting)
  */
+
 function generarAgendaCurso() {
   const ui = SpreadsheetApp.getUi();
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const scriptTimeZone = ss.getSpreadsheetTimeZone();
 
-  // 1. Preguntar el año académico y validar formato
-  const response = ui.prompt('Crear Nueva Agenda', 'Introduce el año de inicio del curso (ej. 2025):', ui.ButtonSet.OK_CANCEL);
-  if (response.getSelectedButton() !== ui.Button.OK) {
-    ui.alert("Operación cancelada.");
-    return;
-  }
+  const response = ui.prompt(
+    'Configuración de Agenda Clínica',
+    'Introduce el año de inicio del curso (ej. 2025):',
+    ui.ButtonSet.OK_CANCEL
+  );
+
+  if (response.getSelectedButton() !== ui.Button.OK) return;
 
   const yearStartStr = response.getResponseText();
   const yearStart = parseInt(yearStartStr);
 
   if (isNaN(yearStart) || yearStartStr.length !== 4) {
-    ui.alert("Formato de año incorrecto.", "Por favor, introduce un año válido de 4 dígitos (ej. 2025).");
+    ui.alert("⚠️ Error: El formato del año debe ser de 4 dígitos (ej: 2025).");
     return;
   }
 
   const yearEnd = yearStart + 1;
-  const sheetName = `Agenda ${yearStart}-${yearStart + 1}`;
-
-  // 2. Comprobar si la hoja ya existe y preguntar al usuario si desea eliminarla
+  const sheetName = `Agenda ${yearStart}-${yearEnd}`;
   let sheet = ss.getSheetByName(sheetName);
+
+  // --- GESTIÓN DE HOJA Y LIMPIEZA ---
   if (sheet) {
-    const confirmDelete = ui.alert(
-      'Hoja ya existe',
-      `Ya existe una hoja con el nombre "${sheetName}". ¿Deseas eliminarla y crear una nueva?`,
-      ui.ButtonSet.YES_NO
-    );
-    if (confirmDelete === ui.Button.YES) {
-      ss.deleteSheet(sheet);
-      ui.alert('Hoja Eliminada', `La hoja "${sheetName}" ha sido eliminada.`, ui.ButtonSet.OK);
-      sheet = ss.insertSheet(sheetName); // Re-insertar la hoja después de eliminarla
-    } else {
-      ui.alert('Operación Cancelada', `La hoja "${sheetName}" no fue eliminada. Creación de agenda cancelada.`, ui.ButtonSet.OK);
-      return; // Cancelar si el usuario no quiere eliminarla
-    }
+    const confirmDelete = ui.alert('Reiniciar Hoja', `¿Borrar "${sheetName}" y generar de nuevo?`, ui.ButtonSet.YES_NO);
+    if (confirmDelete !== ui.Button.YES) return;
+    sheet.clear();
+    sheet.clearConditionalFormatRules();
+    try { 
+      // Limpiar grupos previos reseteando profundidad (limpia hasta 8 niveles)
+      sheet.getRange("A:A").shiftRowGroupDepth(-8); 
+    } catch (e) {}
+    sheet.showColumns(1, sheet.getMaxColumns());
   } else {
     sheet = ss.insertSheet(sheetName);
-    // Insertar la hoja si no existe
   }
 
-  // Limpiar la hoja y establecer encabezados iniciales
-  sheet.clear();
-  const headers = ["Fecha", "Día", "Hora", "Usuario", "Teléfono", "Sesión", "Asistencia", "ID Evento Calendar", "Notas"];
-  sheet.getRange(1, 1, 1, headers.length).setValues([headers]).setFontWeight("bold").setBackground("#c9daf8").setHorizontalAlignment("center");
-  sheet.setFrozenRows(1); // Congelar la fila de encabezados
-
+  // --- CONFIGURACIÓN DE CABECERAS PRINCIPALES ---
+  const headers = ["Fecha", "Día", "Hora", "Usuario", "Teléfono", "Sesión", "Asistencia", "ID Evento Calendar", "Historia Clínica", "Notas"];
   const numCols = headers.length;
-
-  // Definir Fechas y Horarios de Generación
-  const startDate = new Date(yearStart, 8, 1);
-  const endDate = new Date(yearEnd, 6, 31, 23, 59, 59, 999);
-  const diasLaborables = [1, 2, 3, 4, 5];
-  const allRowsToInsert = [];
-  const formattingRules = [];
-  const groupingRules = [];
-  let currentAbsoluteRow = 2;
-  const nombresDiasSemanaEs = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-  const colorPalette = {
-    monthHeaderBg: "#DDEBF7",
-    monthHeaderFont: "#1F4E79",
-    weekHeaderBg: "#EFEFEF",
-    weekHeaderFont: "#4F81BD",
-    eventRowOddBg: "#FFFFFF",
-    eventRowEvenBg: "#F0F0F0",
-    spacingRowBg: "#F3F4F6",
-    turnHeaderBg: "#e0f2fe",
-    turnHeaderFont: "#1F4E79",
-    dateDayHeaderBg: "#DDEBF7",
-    dateDayHeaderFont: "#1F4E79"
-  };
-  let fechaActual = new Date(startDate);
-  fechaActual.setHours(0, 0, 0, 0);
-
-  let lastMonth = -1;
-  let lastWeek = -1;
-  let startMonthGroupRow = -1;
-  let startWeekGroupRow = -1; // <-- añadido: inicio de grupo por semana (manteniendo todo lo demás intacto)
-
-  while (fechaActual <= endDate) {
-    const diaSemana = fechaActual.getDay();
-    const currentMonth = fechaActual.getMonth();
-    const currentWeek = getSemanaDelMes(fechaActual);
-
-    if (currentMonth !== lastMonth) {
-      if (startMonthGroupRow !== -1) {
-        groupingRules.push({
-          startRow: startMonthGroupRow,
-          endRow: currentAbsoluteRow - 1,
-          depth: 2
-        });
-      }
-
-      if (allRowsToInsert.length > 0) {
-        allRowsToInsert.push(new Array(numCols).fill(""));
-        formattingRules.push({
-          type: 'spacing',
-          startRow: currentAbsoluteRow,
-          endRow: currentAbsoluteRow,
-          height: 40,
-          bgColor: colorPalette.spacingRowBg
-        });
-        currentAbsoluteRow++;
-      }
-
-      const monthTitleRow = new Array(numCols).fill("");
-      monthTitleRow[0] = "📆 " + capitalizar(fechaActual.toLocaleString('es-ES', { month: 'long', year: 'numeric' }));
-      allRowsToInsert.push(monthTitleRow);
-      formattingRules.push({
-        type: 'monthHeader',
-        startRow: currentAbsoluteRow,
-        endRow: currentAbsoluteRow,
-        bgColor: colorPalette.monthHeaderBg,
-        fontColor: colorPalette.monthHeaderFont,
-        fontSize: 16,
-        fontWeight: "bold",
-        alignment: "center",
-        merge: true,
-        mergeCols: numCols
-      });
-      startMonthGroupRow = currentAbsoluteRow;
-      currentAbsoluteRow++;
-
-      lastMonth = currentMonth;
-      lastWeek = -1;
-    }
-
-    if (currentWeek !== lastWeek) {
-      // <-- añadido: cerrar el grupo de la semana anterior exactamente igual que se hace con los meses
-      if (startWeekGroupRow !== -1) {
-        groupingRules.push({
-          startRow: startWeekGroupRow,
-          endRow: currentAbsoluteRow - 1,
-          depth: 1
-        });
-      }
-
-      if (allRowsToInsert.length > 0 && lastWeek !== -1) {
-        allRowsToInsert.push(new Array(numCols).fill(""));
-        formattingRules.push({
-          type: 'spacing',
-          startRow: currentAbsoluteRow,
-          endRow: currentAbsoluteRow,
-          height: 30,
-          bgColor: colorPalette.spacingRowBg
-        });
-        currentAbsoluteRow++;
-      }
-      const weekTitleRow = new Array(numCols).fill("");
-      weekTitleRow[0] = `Semana ${currentWeek}`;
-      allRowsToInsert.push(weekTitleRow);
-
-      formattingRules.push({
-        type: 'weekHeader',
-        startRow: currentAbsoluteRow,
-        endRow: currentAbsoluteRow,
-        bgColor: colorPalette.weekHeaderBg,
-        fontColor: colorPalette.weekHeaderFont,
-        fontSize: 11,
-        fontWeight: "bold",
-        alignment: "left",
-        merge: true,
-        mergeCols: numCols
-      });
-      // marcar inicio del grupo de la semana en la misma posición que el título (exactamente como meses)
-      startWeekGroupRow = currentAbsoluteRow;
-      currentAbsoluteRow++;
-      lastWeek = currentWeek;
-    }
-
-    if (diasLaborables.includes(diaSemana)) {
-      const fechaParaFila = new Date(fechaActual);
-      const diaSemanaTexto = nombresDiasSemanaEs[fechaParaFila.getDay()];
-      const formattedDate = Utilities.formatDate(fechaParaFila, scriptTimeZone, "dd/MM/yyyy");
-      const dateDayHeaderRow = new Array(numCols).fill("");
-      dateDayHeaderRow[0] = formattedDate;
-      dateDayHeaderRow[1] = diaSemanaTexto;
-      allRowsToInsert.push(dateDayHeaderRow);
-      formattingRules.push({
-        type: 'dateDayHeader',
-        startRow: currentAbsoluteRow,
-        endRow: currentAbsoluteRow,
-        fontSize: 12,
-        fontWeight: "bold",
-        alignment: "left",
-        bgColor: colorPalette.dateDayHeaderBg,
-        fontColor: colorPalette.dateDayHeaderFont,
-        merge: true,
-        mergeCols: numCols - 2
-      });
-      currentAbsoluteRow++;
-
-      const morningTurnRow = new Array(numCols).fill("");
-      morningTurnRow[0] = "🟡 Turno MAÑANA";
-      allRowsToInsert.push(morningTurnRow);
-      formattingRules.push({
-        type: 'turnHeader',
-        startRow: currentAbsoluteRow,
-        endRow: currentAbsoluteRow,
-        bgColor: colorPalette.turnHeaderBg,
-        fontColor: colorPalette.turnHeaderFont,
-        fontSize: 12,
-        fontWeight: "bold",
-        alignment: "center",
-        merge: true,
-        mergeCols: numCols
-      });
-      currentAbsoluteRow++;
-
-      const timeSlotsForDay = [];
-      if (diaSemana >= 1 && diaSemana <= 4) {
-        timeSlotsForDay.push(...generarBloques('08:00', '14:00', 30));
-      } else if (diaSemana === 5) {
-        timeSlotsForDay.push(...generarBloques('08:00', '14:00', 30));
-      }
-
-      let isOddRow = true;
-      timeSlotsForDay.forEach((horaFormateada) => {
-        const eventRow = new Array(numCols).fill('');
-        eventRow[2] = horaFormateada;
-        allRowsToInsert.push(eventRow);
-
-        formattingRules.push({
-          type: 'eventRow',
-          startRow: currentAbsoluteRow,
-          endRow: currentAbsoluteRow,
-          bgColor: isOddRow ? colorPalette.eventRowOddBg : colorPalette.eventRowEvenBg,
-          verticalAlignment: "middle",
-          wrap: true
-        });
-        currentAbsoluteRow++;
-        isOddRow = !isOddRow;
-      });
-      if (diaSemana >= 1 && diaSemana <= 4) {
-        const afternoonTurnRow = new Array(numCols).fill("");
-        afternoonTurnRow[0] = "🟠 Turno TARDE";
-        allRowsToInsert.push(afternoonTurnRow);
-        formattingRules.push({
-          type: 'turnHeader',
-          startRow: currentAbsoluteRow,
-          endRow: currentAbsoluteRow,
-          bgColor: colorPalette.turnHeaderBg,
-          fontColor: colorPalette.turnHeaderFont,
-          fontSize: 12,
-          fontWeight: "bold",
-          alignment: "center",
-          merge: true,
-          mergeCols: numCols
-        });
-        currentAbsoluteRow++;
-
-        const afternoonTimeSlots = generarBloques('16:00', '20:00', 30);
-        afternoonTimeSlots.forEach((horaFormateada) => {
-          const eventRow = new Array(numCols).fill('');
-          eventRow[2] = horaFormateada;
-          allRowsToInsert.push(eventRow);
-          formattingRules.push({
-            type: 'eventRow',
-            startRow: currentAbsoluteRow,
-            endRow: currentAbsoluteRow,
-            bgColor: isOddRow ? colorPalette.eventRowOddBg : colorPalette.eventRowEvenBg,
-            verticalAlignment: "middle",
-            wrap: true
-          });
-          currentAbsoluteRow++;
-          isOddRow = !isOddRow;
-        });
-      }
-    }
-    fechaActual.setDate(fechaActual.getDate() + 1);
-  }
-
-  // Cerrar el último grupo de semanas (si existe) y meses exactamente como en la versión original
-  if (startWeekGroupRow !== -1) {
-    groupingRules.push({
-      startRow: startWeekGroupRow,
-      endRow: currentAbsoluteRow - 1,
-      depth: 1
-    });
-  }
-
-  if (startMonthGroupRow !== -1) {
-    groupingRules.push({
-      startRow: startMonthGroupRow,
-      endRow: currentAbsoluteRow - 1,
-      depth: 1
-    });
-  }
-
-  if (allRowsToInsert.length > 0) {
-    sheet.getRange(2, 1, allRowsToInsert.length, numCols).setValues(allRowsToInsert);
-  }
-
-  const rangesToFormat = {
-    monthHeader: [],
-    weekHeader: [],
-    eventRowOdd: [],
-    eventRowEven: [],
-    spacing: [],
-    turnHeader: [],
-    dateDayHeader: []
-  };
-  formattingRules.forEach(rule => {
-    const targetCols = (rule.type === 'dateDayHeader') ? 2 : numCols;
-    const rangeA1 = sheet.getRange(rule.startRow, 1, rule.endRow - rule.startRow + 1, targetCols).getA1Notation();
-    if (rule.type === 'monthHeader') rangesToFormat.monthHeader.push({ range: rangeA1, rule: rule });
-    else if (rule.type === 'weekHeader') rangesToFormat.weekHeader.push({ range: rangeA1, rule: rule });
-    else if (rule.type === 'eventRow' && rule.bgColor === colorPalette.eventRowOddBg) rangesToFormat.eventRowOdd.push({ range: rangeA1, rule: rule });
-    else if (rule.type === 'eventRow' && rule.bgColor === colorPalette.eventRowEvenBg) rangesToFormat.eventRowEven.push({ range: rangeA1, rule: rule });
-    else if (rule.type === 'spacing') rangesToFormat.spacing.push({ range: rangeA1, rule: rule });
-    else if (rule.type === 'turnHeader') rangesToFormat.turnHeader.push({ range: rangeA1, rule: rule });
-    else if (rule.type === 'dateDayHeader') rangesToFormat.dateDayHeader.push({ range: rangeA1, rule: rule });
-  });
-
-  function applyBatchFormat(ranges, commonRule) {
-    if (ranges.length === 0) return;
-    const allRangesA1 = ranges.map(item => item.range);
-    const combinedRangeList = sheet.getRangeList(allRangesA1);
-    if (commonRule.bgColor) combinedRangeList.setBackground(commonRule.bgColor);
-    if (commonRule.fontColor) combinedRangeList.setFontColor(commonRule.fontColor);
-    if (commonRule.fontSize) combinedRangeList.setFontSize(commonRule.fontSize);
-    if (commonRule.fontWeight) combinedRangeList.setFontWeight(commonRule.fontWeight);
-    if (commonRule.alignment) combinedRangeList.setHorizontalAlignment(commonRule.alignment);
-    if (commonRule.verticalAlignment) combinedRangeList.setVerticalAlignment(commonRule.verticalAlignment);
-    if (commonRule.wrap !== undefined) combinedRangeList.setWrap(commonRule.wrap);
-    ranges.forEach(item => {
-      if (item.rule.merge) {
-        if (item.rule.type === 'dateDayHeader') {
-          sheet.getRange(item.rule.startRow, 3, item.rule.endRow - item.rule.startRow + 1, numCols - 2).merge();
-        } else {
-          sheet.getRange(item.rule.startRow, 1, item.rule.endRow - item.rule.startRow + 1, numCols).merge();
-        }
-      }
-      if (item.rule.height) {
-        sheet.setRowHeight(item.rule.startRow, item.rule.height);
-      }
-    });
-  }
-
-  applyBatchFormat(rangesToFormat.monthHeader, {
-    bgColor: colorPalette.monthHeaderBg,
-    fontColor: colorPalette.monthHeaderFont,
-    fontSize: 16,
-    fontWeight: "bold",
-    alignment: "center",
-    merge: true
-  });
-  applyBatchFormat(rangesToFormat.weekHeader, {
-    bgColor: colorPalette.weekHeaderBg,
-    fontColor: colorPalette.weekHeaderFont,
-    fontSize: 11,
-    fontWeight: "bold",
-    alignment: "left",
-    merge: true
-  });
-  applyBatchFormat(rangesToFormat.eventRowOdd, {
-    bgColor: colorPalette.eventRowOddBg,
-    verticalAlignment: "middle",
-    wrap: true
-  });
-  applyBatchFormat(rangesToFormat.eventRowEven, {
-    bgColor: colorPalette.eventRowEvenBg,
-    verticalAlignment: "middle",
-    wrap: true
-  });
-  applyBatchFormat(rangesToFormat.spacing, {
-    bgColor: colorPalette.spacingRowBg
-  });
-  applyBatchFormat(rangesToFormat.turnHeader, {
-    bgColor: colorPalette.turnHeaderBg,
-    fontColor: colorPalette.turnHeaderFont,
-    fontSize: 12,
-    fontWeight: "bold",
-    alignment: "center",
-    merge: true
-  });
-  applyBatchFormat(rangesToFormat.dateDayHeader, {
-    bgColor: colorPalette.dateDayHeaderBg,
-    fontColor: colorPalette.dateDayHeaderFont,
-    fontSize: 12,
-    fontWeight: "bold",
-    alignment: "left",
-    merge: true,
-    mergeCols: numCols - 2
-  });
   
-  sheet.getRange("A:A").setNumberFormat("dd/mm/yyyy");
+  sheet.getRange(1, 1, 1, numCols)
+    .setValues([headers])
+    .setFontWeight("bold")
+    .setFontColor("#475569") 
+    .setBackground("#F1F5F9") 
+    .setHorizontalAlignment("center")
+    .setVerticalAlignment("middle");
 
-  const hojaBD = ss.getSheetByName("Base de Datos Maestra");
-  if (hojaBD) {
-    const usuarioValidation = SpreadsheetApp.newDataValidation()
-      .requireValueInRange(hojaBD.getRange('B2:B'), true)
-      .setAllowInvalid(false)
-      .setHelpText('Selecciona un usuario de la lista de tu Base de Datos Maestra.')
-      .build();
-    sheet.getRange("D2:D").setDataValidation(usuarioValidation);
+  sheet.setFrozenRows(1);
+  sheet.setRowHeight(1, 35);
+
+  // --- CONFIGURACIÓN DE FECHAS Y COLORES ---
+  const startDate = new Date(yearStart, 8, 1); 
+  const endDate = new Date(yearEnd, 6, 31, 23, 59, 59);
+  const diasLaborables = [1, 2, 3, 4, 5];
+
+  const cp = {
+    monthBg: "#E2E8F0",      
+    monthFont: "#1E293B",    
+    weekBg: "#F8FAFC",       
+    weekFont: "#64748B",     
+    dayBg: "#F0F9FF",        
+    dayFont: "#0369A1",      
+    turnBg: "#cbd5e1",       // CAMBIO SOLICITADO: Color de relleno de turnos
+    turnFont: "#1e293b",     // Ajuste ligero para legibilidad sobre el nuevo fondo
+    rowEven: "#FFFFFF",
+    rowOdd: "#FAFAFA",       
+    border: "#F1F5F9"
+  };
+
+  const values = [], backgrounds = [], fontColors = [], fontWeights = [], alignments = [], validations = [], merges = [];
+  const monthGroups = [], weekGroups = [];
+  const monthRows = [], weekRows = [], turnRows = [];
+
+  let currentRow = 2;
+  let lastMonth = -1, lastWeek = -1;
+  let monthStartRow = -1, weekStartRow = -1;
+
+  // --- REGLAS DE VALIDACIÓN (DESPLEGABLES) ---
+  const opcionesAsistencia = ["✅ Asistió", "❌ No Asistió", "⚠️ Justificada", "⏳ Pendiente"];
+  const ruleAsistencia = SpreadsheetApp.newDataValidation().requireValueInList(opcionesAsistencia).setAllowInvalid(false).build();
+  
+  let ruleUser = null;
+  const dbSheet = ss.getSheetByName("Base de Datos Maestra");
+  if (dbSheet && dbSheet.getLastRow() > 1) {
+    ruleUser = SpreadsheetApp.newDataValidation().requireValueInRange(dbSheet.getRange(2, 2, dbSheet.getLastRow() - 1, 1), true).build();
   }
 
+  // --- BUCLE DE GENERACIÓN ---
+  let cursor = new Date(startDate);
+  cursor.setHours(0,0,0,0);
 
-  const asistenciaValidation = SpreadsheetApp.newDataValidation()
-    .requireValueInList(["✅ Sí", "❌ No", "Pendiente", "Justificada"])
-    .setAllowInvalid(false)
-    .setHelpText('Selecciona el estado de asistencia: Sí, No, Pendiente o Justificada.')
-    .build();
-  sheet.getRange("G2:G").setDataValidation(asistenciaValidation);
+  while (cursor <= endDate) {
+    const m = cursor.getMonth();
+    const w = getSemanaDelMes(cursor);
+    const d = cursor.getDay();
+    const dateObj = new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate());
 
-  const horaOptions = "00:00,00:30,01:00,01:30,02:00,02:30,03:00,03:30,04:00,04:30,05:00,05:30,06:00,06:30,07:00,07:30,08:00,08:30,09:00,09:30,10:00,10:30,11:00,11:30,12:00,12:30,13:00,13:30,14:00,14:30,15:00,15:30,16:00,16:30,17:00,17:30,18:00,18:30,19:00,19:30,20:00,20:30,21:00,21:30,22:00,22:30,23:00,23:30";
-  const horaValidation = SpreadsheetApp.newDataValidation()
-    .requireValueInList(horaOptions.split(','))
-    .setAllowInvalid(false)
-    .setHelpText('Selecciona la hora de la cita.')
-    .build();
-  sheet.getRange("C2:C").setDataValidation(horaValidation);
+    // Cambio de Mes
+    if (m !== lastMonth) {
+      if (weekStartRow !== -1) weekGroups.push([weekStartRow, currentRow - 1]);
+      if (monthStartRow !== -1) monthGroups.push([monthStartRow, currentRow - 1]);
+      
+      monthRows.push(currentRow);
+      
+      const mLabel = "● " + capitalizar(cursor.toLocaleString('es-ES', { month: 'long', year: 'numeric' }));
+      let mRow = buildRow(numCols, dateObj, "", mLabel);
+      values.push(mRow);
+      backgrounds.push(new Array(numCols).fill(cp.monthBg));
+      fontColors.push(buildColorRow(numCols, cp.monthFont, cp.monthBg));
+      fontWeights.push(new Array(numCols).fill("bold"));
+      alignments.push(buildAlignRow(numCols, "center"));
+      validations.push(new Array(numCols).fill(null));
+      
+      merges.push([currentRow, 3, 1, numCols - 2]);
+      
+      monthStartRow = currentRow + 1; 
+      currentRow++;
+      lastMonth = m;
+      lastWeek = w; 
 
-  sheet.autoResizeColumns(1, headers.length);
-  sheet.setColumnWidth(1, 120);
-  sheet.setColumnWidth(2, 80);
-  sheet.setColumnWidth(3, 80);
-  sheet.setColumnWidth(4, 250);
-  sheet.setColumnWidth(5, 120);
-  sheet.setColumnWidth(6, 150);
-  sheet.setColumnWidth(7, 100);
-  sheet.setColumnWidth(8, 150);
-  sheet.setColumnWidth(9, 200);
-
-
-// Esto evita que un grupo de mayor rango “se trague" a los internos y produzca un único control de colapso.
-// Aplicar agrupaciones: crear primero los grupos internos (semanas) y después los externos (meses)
-groupingRules.sort(function(a,b){
-  if (a.depth !== b.depth) return a.depth - b.depth; // grupos más pequeños (semanas) primero
-  return a.startRow - b.startRow; // en empate, ordenar por posición
-});
-
-groupingRules.forEach(rule => {
-  if (rule.endRow >= rule.startRow) {
-    // aplicar la profundidad según el tipo de grupo (1 = semana, 2 = mes)
-    sheet.getRange(rule.startRow, 1, rule.endRow - rule.startRow + 1, 1).shiftRowGroupDepth(rule.depth);
-  }
-});
-
-  ui.alert('Completado', `Agenda "${sheetName}" generada correctamente.`, ui.ButtonSet.OK);
-}
-
-// Funciones auxiliares que se utilizan en la función principal
-function getSemanaDelMes(d) {
-  const firstDayOfMonth = new Date(d.getFullYear(), d.getMonth(), 1);
-  const startDay = firstDayOfMonth.getDay() || 7; // Convertir 0 (domingo) a 7 para el cálculo
-  if (startDay !== 1) {
-    firstDayOfMonth.setDate(firstDayOfMonth.getDate() - startDay + 1);
-  }
-  return Math.ceil((d.getTime() - firstDayOfMonth.getTime()) / (7 * 24 * 60 * 60 * 1000)) + 1;
-}
-
-function capitalizar(string) {
-  if (!string) return '';
-  return string.charAt(0).toUpperCase() + string.slice(1);
-}
-
-function generarBloques(start, end, interval) {
-  const result = [];
-  const startMinutes = parseTime(start);
-  const endMinutes = parseTime(end);
-
-  for (let m = startMinutes; m < endMinutes; m += interval) {
-    result.push(formatTime(m));
-  }
-  return result;
-}
-
-function parseTime(timeStr) {
-  const [hours, minutes] = timeStr.split(':').map(Number);
-  return hours * 60 + minutes;
-}
-
-function formatTime(minutes) {
-  const hours = Math.floor(minutes / 60);
-  const mins = minutes % 60;
-  return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
-}
-/**
- * Función auxiliar para generar bloques de horas.
- */
-function generarBloques(inicio, fin, duracionMin) {
-  const bloques = [];
-  let [h, m] = inicio.split(":").map(Number);
-  const [hf, mf] = fin.split(':').map(Number);
-
-  while (h < hf || (h === hf && m < mf)) {
-    const hora = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
-    bloques.push(hora);
-    m += duracionMin;
-    if (m >= 60) {
-      m -= 60;
-      h += 1;
+      weekRows.push(currentRow);
+      let wRow = buildRow(numCols, dateObj, "", `SEMANA ${w}`);
+      values.push(wRow);
+      backgrounds.push(new Array(numCols).fill(cp.weekBg));
+      fontColors.push(buildColorRow(numCols, cp.weekFont, cp.weekBg)); 
+      fontWeights.push(new Array(numCols).fill("bold"));
+      alignments.push(buildAlignRow(numCols, "left"));
+      validations.push(new Array(numCols).fill(null));
+      merges.push([currentRow, 3, 1, numCols - 2]);
+      weekStartRow = currentRow + 1;
+      currentRow++;
+    } 
+    else if (w !== lastWeek) {
+      if (weekStartRow !== -1) weekGroups.push([weekStartRow, currentRow - 1]);
+      
+      weekRows.push(currentRow);
+      let wRow = buildRow(numCols, dateObj, "", `SEMANA ${w}`);
+      values.push(wRow);
+      backgrounds.push(new Array(numCols).fill(cp.weekBg));
+      fontColors.push(buildColorRow(numCols, cp.weekFont, cp.weekBg)); 
+      fontWeights.push(new Array(numCols).fill("bold"));
+      alignments.push(buildAlignRow(numCols, "left"));
+      validations.push(new Array(numCols).fill(null));
+      
+      merges.push([currentRow, 3, 1, numCols - 2]);
+      weekStartRow = currentRow + 1;
+      currentRow++;
+      lastWeek = w;
     }
+
+    if (diasLaborables.includes(d)) {
+      const dTxt = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'][d];
+
+      // Encabezado del Día
+      let dRow = buildRow(numCols, dateObj, dTxt, "");
+      values.push(dRow);
+      backgrounds.push(new Array(numCols).fill(cp.dayBg));
+      fontColors.push(new Array(numCols).fill(cp.dayFont));
+      fontWeights.push(new Array(numCols).fill("bold"));
+      alignments.push(buildAlignRow(numCols, "left"));
+      validations.push(new Array(numCols).fill(null));
+      merges.push([currentRow, 3, 1, numCols - 2]); 
+      currentRow++;
+
+      const turnos = [{ n: "MAÑANA", i: '08:00', f: '14:00' }];
+      if (d >= 1 && d <= 4) turnos.push({ n: "TARDE", i: '16:00', f: '20:00' });
+
+      turnos.forEach(t => {
+        turnRows.push(currentRow);
+        
+        let tRow = buildRow(numCols, dateObj, dTxt, "   " + t.n);
+        values.push(tRow);
+        backgrounds.push(new Array(numCols).fill(cp.turnBg));
+        fontColors.push(buildColorRow(numCols, cp.turnFont, cp.turnBg));
+        fontWeights.push(new Array(numCols).fill("bold"));
+        alignments.push(buildAlignRow(numCols, "left"));
+        validations.push(new Array(numCols).fill(null));
+        merges.push([currentRow, 3, 1, numCols - 2]);
+        currentRow++;
+
+        const slots = generarBloques(t.i, t.f, 30);
+        slots.forEach((h, idx) => {
+          let [hh, mm] = h.split(':').map(Number);
+          let timeObj = new Date(1899, 11, 30, hh, mm, 0); 
+          
+          let sRow = buildRow(numCols, dateObj, dTxt, timeObj);
+          let bgHex = (idx % 2 === 0) ? cp.rowEven : cp.rowOdd;
+          
+          values.push(sRow);
+          backgrounds.push(new Array(numCols).fill(bgHex));
+          fontColors.push(buildColorRow(numCols, "#475569", bgHex));
+          fontWeights.push(new Array(numCols).fill("normal"));
+          
+          let al = new Array(numCols).fill("left"); al[2]="center"; al[6]="center";
+          alignments.push(al);
+          
+          let val = new Array(numCols).fill(null);
+          if(ruleUser) val[3] = ruleUser; 
+          val[6] = ruleAsistencia;
+          validations.push(val);
+          
+          currentRow++;
+        });
+      });
+    }
+    cursor.setDate(cursor.getDate() + 1);
   }
-  return bloques;
+
+  // --- CIERRE DE GRUPOS FINAL ---
+  if (weekStartRow !== -1) weekGroups.push([weekStartRow, currentRow - 1]);
+  if (monthStartRow !== -1) monthGroups.push([monthStartRow, currentRow - 1]);
+
+  // --- ESCRITURA ---
+  if (values.length > 0) {
+    const range = sheet.getRange(2, 1, values.length, numCols);
+    range.setValues(values);
+    range.setBackgrounds(backgrounds);
+    range.setFontColors(fontColors);
+    range.setFontWeights(fontWeights);
+    range.setHorizontalAlignments(alignments);
+    range.setDataValidations(validations);
+    range.setVerticalAlignment("middle");
+    range.setBorder(true, true, true, true, true, true, cp.border, SpreadsheetApp.BorderStyle.SOLID);
+    
+    sheet.getRange(2, 1, values.length, 1).setNumberFormat("dd/MM/yyyy");
+    sheet.getRange(2, 3, values.length, 1).setNumberFormat("HH:mm");
+    
+    merges.forEach(m => {
+      try { sheet.getRange(m[0], m[1], m[2], m[3]).merge(); } catch(e) {}
+    });
+  }
+
+  // --- SEPARADORES Y OCULTAR ID ---
+  monthRows.forEach(r => sheet.getRange(r, 1, 1, numCols).setBorder(true, false, false, false, false, false, "#1E293B", SpreadsheetApp.BorderStyle.SOLID_THICK));
+  weekRows.forEach(r => sheet.getRange(r, 1, 1, numCols).setBorder(true, false, false, false, false, false, "#94A3B8", SpreadsheetApp.BorderStyle.SOLID_MEDIUM));
+  
+  // MODIFICACIÓN SOLICITADA: Borde inferior claro para las filas de turno
+  turnRows.forEach(r => {
+      const tRange = sheet.getRange(r, 1, 1, numCols);
+      tRange.setBorder(null, null, true, null, null, null, "#475569", SpreadsheetApp.BorderStyle.SOLID); // Borde inferior marcado
+  });
+
+  sheet.hideColumns(8); 
+
+  // --- FORMATO CONDICIONAL ---
+  const asisRange = sheet.getRange(2, 7, currentRow - 2, 1);
+  const rules = [];
+  rules.push(SpreadsheetApp.newConditionalFormatRule().whenTextEqualTo("⏳ Pendiente").setBackground("#FFEDD5").setFontColor("#9A3412").setRanges([asisRange]).build());
+  rules.push(SpreadsheetApp.newConditionalFormatRule().whenTextEqualTo("⚠️ Justificada").setBackground("#FEF08A").setFontColor("#854D0E").setRanges([asisRange]).build());
+  rules.push(SpreadsheetApp.newConditionalFormatRule().whenTextEqualTo("✅ Asistió").setBackground("#BBF7D0").setFontColor("#166534").setRanges([asisRange]).build());
+  rules.push(SpreadsheetApp.newConditionalFormatRule().whenTextEqualTo("❌ No Asistió").setBackground("#FECACA").setFontColor("#991B1B").setRanges([asisRange]).build());
+  sheet.setConditionalFormatRules(rules);
+
+  const widths = { 1: 110, 2: 90, 3: 70, 4: 220, 7: 130, 9: 150, 10: 250 };
+  Object.keys(widths).forEach(k => sheet.setColumnWidth(parseInt(k), widths[k]));
+
+  // --- AGRUPADORES JERÁRQUICOS DE 3 NIVELES ---
+  if (currentRow > 3) {
+    sheet.getRange(3, 1, currentRow - 3).shiftRowGroupDepth(1);
+  }
+  monthGroups.forEach(g => {
+    if (g[1] >= g[0]) {
+      sheet.getRange(g[0], 1, g[1] - g[0] + 1).shiftRowGroupDepth(1);
+    }
+  });
+  weekGroups.forEach(g => {
+    if (g[1] >= g[0]) {
+      sheet.getRange(g[0], 1, g[1] - g[0] + 1).shiftRowGroupDepth(1);
+    }
+  });
+
+  ui.alert('✅ Nueva Agenda generada.');
 }
 
-/**
- * Auxiliar para saber la semana del mes.
- */
+function buildRow(numCols, col1, col2, col3) {
+  const r = new Array(numCols).fill("");
+  r[0] = col1; r[1] = col2; r[2] = col3;
+  return r;
+}
+
+function buildColorRow(numCols, mainColor, hiddenBgColor) {
+  const c = new Array(numCols).fill(mainColor);
+  c[0] = hiddenBgColor; 
+  c[1] = hiddenBgColor; 
+  return c;
+}
+
+function buildAlignRow(numCols, col3Align) {
+  const a = new Array(numCols).fill("left");
+  a[2] = col3Align;
+  return a;
+}
+
 function getSemanaDelMes(date) {
-  const primerDiaMes = new Date(date.getFullYear(), date.getMonth(), 1);
-  const dia = date.getDate();
-  // getDay() devuelve 0 para Domingo, 1 para Lunes...
-  // Ajustar para que Lunes sea 1, Domingo sea 7 para el cálculo de la semana
-  const dayOfWeek = (primerDiaMes.getDay() === 0) ? 7 : primerDiaMes.getDay();
-  return Math.ceil((dia + dayOfWeek - 1) / 7);
+  const first = new Date(date.getFullYear(), date.getMonth(), 1);
+  const day = (first.getDay() === 0) ? 7 : first.getDay();
+  return Math.ceil((date.getDate() + day - 1) / 7);
 }
 
-/**
- * Auxiliar para capitalizar nombres de días/meses.
- */
-function capitalizar(texto) {
-  if (!texto) return '';
-  return texto.charAt(0).toUpperCase() + texto.slice(1);
-}
+function capitalizar(t) { return t.charAt(0).toUpperCase() + t.slice(1); }
 
-function collapsePastWeeksOnOpen(sheet) {
-  const today = new Date();
-  today.setHours(0,0,0,0);
-  const lastRow = sheet.getLastRow();
-  if (lastRow < 2) return;
-  const values = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
-
-  // Buscar la primera fila con fecha >= hoy
-  let targetRowIndex = -1; // índice en array `values` (0 = fila 2)
-  for (let i = 0; i < values.length; i++) {
-    const v = values[i][0];
-    if (v instanceof Date) {
-      const d = new Date(v);
-      d.setHours(0,0,0,0);
-      if (d >= today) { targetRowIndex = i; break; }
-    }
+function generarBloques(ini, fin, dur) {
+  const b = [];
+  let [h, m] = ini.split(":").map(Number);
+  const [hf, mf] = fin.split(':').map(Number);
+  while (h < hf || (h === hf && m < mf)) {
+    b.push(`${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`);
+    m += dur; if (m >= 60) { m -= 60; h++; }
   }
-
-  // Si no hay fecha >= hoy, usar la última fecha disponible (por si abres fuera de rango)
-  if (targetRowIndex === -1) {
-    for (let i = values.length - 1; i >= 0; i--) {
-      if (values[i][0] instanceof Date) { targetRowIndex = i; break; }
-    }
-    if (targetRowIndex === -1) return; // no hay fechas en la hoja
-  }
-
-  // Buscar hacia atrás el encabezado 'Semana' más cercano
-  let currentWeekHeaderRow = null;
-  for (let k = targetRowIndex; k >= 0; k--) {
-    const cell = values[k][0];
-    if (typeof cell === 'string' && cell.toString().startsWith('Semana')) {
-      currentWeekHeaderRow = k + 2; // +2 porque values[0] corresponde a la fila 2
-      break;
-    }
-  }
-  if (!currentWeekHeaderRow) return;
-
-  // Colapsar todas las semanas anteriores y expandir la actual
-  for (let k = 0; k < values.length; k++) {
-    const cell = values[k][0];
-    if (typeof cell === 'string' && cell.toString().startsWith('Semana')) {
-      const rowIndex = k + 2;
-      try {
-        const group = sheet.getRowGroup(rowIndex, 1);
-        if (!group) continue;
-        if (rowIndex < currentWeekHeaderRow) group.collapse();
-        else if (rowIndex === currentWeekHeaderRow) group.expand();
-      } catch (e) {
-        // ignorar errores en caso de que no exista el grupo exactamente
-      }
-    }
-  }
+  return b;
 }
