@@ -43,5 +43,5 @@ function abrirChatWhatsapp() {
       .setWidth(350)
       .setHeight(180);
   
-  SpreadsheetApp.getUi().showModalDialog(interfaz, "Conectando...");
+  SpreadsheetApp.getUi().showModalDialog(interfaz, "Abriendo WhatsApp...");
 }

@@ -14,6 +14,7 @@ function onOpen() {
     .addItem('📞 Citas', 'mostrarDialogoCita')
     .addItem('💬 WhatsApp', 'abrirChatWhatsapp')
     .addItem("🗓️ Agenda Semanal", "showAgendaModal")
+    .addItem("📌 Evento", "mostrarFormularioEvento")
     .addItem('➡️ Siguiente cita', 'copiarSiguienteCita')
     .addSeparator() // Separador
     .addItem("⬆️ Sincronizar con Calendar", "exportSheetAgendaToCalendar")

@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+      .loading-pulse { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+      @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
+    </style>
+  </head>
+  <body class="bg-slate-50 p-6">
+    <div class="max-w-md mx-auto bg-white rounded-xl shadow-md overflow-hidden p-6 border border-slate-200">
+      <h2 class="text-xl font-bold text-slate-800 mb-1">Gestión de Agenda</h2>
+      <p class="text-sm text-slate-500 mb-6">Añade una nota informativa o bloquea un día festivo.</p>
+
+      <form id="eventoForm" class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-slate-700">Fecha del evento</label>
+          <input type="date" id="fecha" name="fecha" required class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border">
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-slate-700">Tipo de aviso</label>
+          <select id="tipo" name="tipo" class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border">
+            <option value="Nota">📝 Nota </option>
+            <option value="Festivo">🚩 Festivo </option>
+            <option value="Blog">📱 Blog </option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-slate-700">Descripción</label>
+          <input type="text" id="evento" name="evento" placeholder="Ej: Vacaciones / Reunión equipo" required class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border">
+        </div>
+
+        <div class="pt-4">
+          <button type="button" onclick="enviarFormulario()" id="btnGuardar" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-slate-800 hover:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all">
+            Guardar y Sincronizar
+          </button>
+        </div>
+      </form>
+      
+      <div id="status" class="hidden mt-4 text-center text-sm font-medium text-indigo-600 italic animate-pulse">
+        Sincronizando con la Agenda... por favor, espera.
+      </div>
+    </div>
+
+    <script>
+      function enviarFormulario() {
+        const btn = document.getElementById('btnGuardar');
+        const status = document.getElementById('status');
+        const form = document.getElementById('eventoForm');
+        
+        // Validación técnica
+        if(!form.fecha.value || !form.evento.value) {
+          showError("Por favor, completa la fecha y la descripción.");
+          return;
+        }
+
+        // Estado de carga UI
+        btn.disabled = true;
+        btn.innerHTML = "Procesando...";
+        btn.classList.add('opacity-50', 'cursor-not-allowed');
+        status.classList.remove('hidden');
+
+        const datos = {
+          fecha: form.fecha.value,
+          tipo: form.tipo.value,
+          evento: form.evento.value
+        };
+
+        // Ejecución en el servidor de Google
+        google.script.run
+          .withSuccessHandler(() => {
+            google.script.host.close(); 
+          })
+          .withFailureHandler((err) => {
+            alert("Error en el servidor: " + err);
+            resetUI();
+          })
+          .guardarEventoDesdeForm(datos);
+      }
+
+      function resetUI() {
+        const btn = document.getElementById('btnGuardar');
+        const status = document.getElementById('status');
+        btn.disabled = false;
+        btn.innerHTML = "Guardar y Sincronizar";
+        btn.classList.remove('opacity-50', 'cursor-not-allowed');
+        status.classList.add('hidden');
+      }
+
+      function showError(msg) {
+        // En Apps Script modal no podemos usar alert cómodamente, pero para validación simple sirve.
+        alert(msg);
+      }
+    </script>
+  </body>
+</html>

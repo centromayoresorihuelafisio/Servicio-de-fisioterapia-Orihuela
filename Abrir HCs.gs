@@ -83,7 +83,7 @@ function prepararJornada() {
   }
 
   // 5. Lanzamiento de la interfaz
-  const htmlTemplate = HtmlService.createTemplateFromFile('Lanzador');
+  const htmlTemplate = HtmlService.createTemplateFromFile('Lanzador HCs');
   htmlTemplate.urls = JSON.stringify(linksToOpen);
   const htmlOutput = htmlTemplate.evaluate().setWidth(400).setHeight(200);
   ui.showModalDialog(htmlOutput, "Abriendo Jornada...");
