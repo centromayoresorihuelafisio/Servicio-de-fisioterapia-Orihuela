@@ -12,6 +12,7 @@ function onOpen() {
     .addItem('🗂️ Jornada', 'prepararJornada')
     .addSeparator() // Separador
     .addItem('📞 Citas', 'mostrarDialogoCita')
+    .addItem('💬 WhatsApp', 'abrirChatWhatsapp')
     .addItem("🗓️ Agenda Semanal", "showAgendaModal")
     .addItem('➡️ Siguiente cita', 'copiarSiguienteCita')
     .addSeparator() // Separador

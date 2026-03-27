@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+  </head>
+  <body style="font-family: sans-serif; text-align: center;">
+    <p>Abriendo chat de WhatsApp...</p>
+    
+    <a href="<?= linkFinal ?>" target="_blank" id="botonManual" 
+       style="background:#25D366; color:white; padding:10px; text-decoration:none; border-radius:5px;">
+      Haga clic aquí si no abre solo
+    </a>
+
+    <script>
+      window.onload = function() {
+        // Ejecutamos la apertura automática
+        var url = "<?= linkFinal ?>";
+        window.open(url, "_blank");
+        
+        // Cerramos el diálogo después de 2 segundos
+        setTimeout(function(){
+          google.script.host.close();
+        }, 2000);
+      };
+    </script>
+  </body>
+</html>
