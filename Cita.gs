@@ -108,83 +108,85 @@ function getTodayKey(timeZone) {
     return Utilities.formatDate(today, timeZone, 'dd/MM/yyyy'); 
 }
 
+/**
+ * Lee la agenda y extrae las semanas, días y huecos disponibles.
+ * VERSIÓN 11.2: Detección ultra-robusta de huecos vacíos.
+ */
 function obtenerSemanasYHuecos() {
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
-    const sheet = ss.getSheetByName(NOMBRE_HOJA_AGENDA);
+    // Usamos la constante o el nombre directo
+    const sheet = ss.getSheetByName("Agenda 2025-2026") || ss.getSheetByName("Agenda 2024-2025");
 
     if (!sheet) {
-      return { semanas: [{ error: `Hoja '${NOMBRE_HOJA_AGENDA}' no encontrada.` }], index: 0 };
+      throw new Error("No se encontró la hoja de Agenda.");
     }
-    
-    const timeZone = ss.getSpreadsheetTimeZone(); 
-    const todayKey = getTodayKey(timeZone); 
-    let currentWeekIndexToStart = 0; 
-    let currentDateKey = null;
 
-    const data = sheet.getRange('A1:J5000').getValues();
+    const timeZone = ss.getSpreadsheetTimeZone();
+    const data = sheet.getDataRange().getValues();
+    const NUM_SEMANAS_A_CARGAR = 60; // Ajusta según necesites
+
     const semanasData = [];
     let currentWeek = null;
     let currentDay = null;
     let semanaCounter = 0;
     let weekLabel = null;
+    let currentDateKey = null;
 
     for (let i = 0; i < data.length; i++) {
       const row = data[i];
-      const cellA = row[0].toString().trim();
-      if (cellA.startsWith('Semana') && currentWeek) {
-          weekLabel = cellA; 
+      if (!row[0] && !row[2]) continue;
+
+      // --- 1. DETECCIÓN DE ETIQUETA DE SEMANA ---
+      const cellC_text = row[2] ? row[2].toString().trim().toUpperCase() : "";
+      if (cellC_text.startsWith('SEMANA')) {
+        weekLabel = row[2].toString().trim();
+        continue; // Saltamos a la siguiente fila para buscar el lunes
       }
-      
-      if (row[0] instanceof Date && row[1]) {
-        currentDateKey = formatFecha(row[0]); 
-        const dateKey = currentDateKey; 
-        const dayLabel = `${row[1]} ${dateKey}`; 
 
-        if (currentWeek === null || !currentWeek.dias[dateKey]) {
-            if (currentDay && currentWeek) {
-                const previousDateKey = formatFecha(data[i - 1][0]);
-                if (previousDateKey) {
-                    currentWeek.dias[previousDateKey] = currentDay;
-                }
-            }
-            
-            if (row[1].toString().trim() === 'Lunes' || currentWeek === null) {
-              if (semanaCounter >= NUM_SEMANAS_A_CARGAR) break; 
-              
-              if (currentWeek !== null) {
-                  semanasData.push(currentWeek); 
-                  semanaCounter++;
-              }
-              
-              currentWeek = {
-                  label: weekLabel || `Semana ${semanaCounter + 1}`,
-                  dias: {}
-              };
-            }
+      // --- 2. DETECCIÓN DE ENCABEZADO DE DÍA ---
+      // Si la columna A es fecha y la B tiene el nombre del día
+      if (row[0] instanceof Date && row[1] && cellC_text === "") {
+        currentDateKey = Utilities.formatDate(row[0], timeZone, "dd/MM/yyyy");
+        const dayName = row[1].toString().trim();
+        const dayLabel = `${dayName} ${currentDateKey}`;
+
+        // Lógica de cambio de semana (Suele ser los Lunes)
+        if (dayName === 'Lunes' || currentWeek === null) {
+          if (semanaCounter >= NUM_SEMANAS_A_CARGAR) break;
+          
+          currentWeek = {
+            label: weekLabel || `Semana ${semanaCounter + 1}`,
+            dias: {}
+          };
+          semanasData.push(currentWeek);
+          semanaCounter++;
+          weekLabel = null; // Reset para la siguiente
         }
-        
+
         currentDay = { label: dayLabel, huecos: [] };
-        currentWeek.dias[dateKey] = currentDay;
-        
-      } else if (currentDay && row[2]) {
-        let horaDisplay = '';
-        const rawHoraValue = row[2];
-        const usuario = row[3].toString().trim(); 
-        
-        if (rawHoraValue instanceof Date) {
-            horaDisplay = Utilities.formatDate(rawHoraValue, timeZone, 'HH:mm');
-        } else {
-            horaDisplay = rawHoraValue.toString().trim();
-        }
+        currentWeek.dias[currentDateKey] = currentDay;
+        continue;
+      }
 
-        if (usuario === '' && horaDisplay) {
+      // --- 3. DETECCIÓN DE SLOT REAL (row[2] es Date) ---
+      if (row[2] instanceof Date) {
+        // Limpieza extrema del nombre de usuario en columna D
+        // Eliminamos espacios, saltos de línea y caracteres no imprimibles
+        const usuarioRaw = row[3] ? row[3].toString() : "";
+        const usuarioLimpio = usuarioRaw.replace(/[\s\uFEFF\xA0]/g, '');
+
+        // Si el usuario está realmente vacío
+        if (usuarioLimpio === "") {
+          if (!currentDay) continue; // Seguridad
+
+          const horaDisplay = Utilities.formatDate(row[2], timeZone, 'HH:mm');
           const rowNumber = i + 1;
-          const fechaKey = currentDateKey; 
-          const huecoValue = JSON.stringify({ 
-              row: rowNumber, 
-              date: fechaKey, 
-              time: horaDisplay 
+
+          const huecoValue = JSON.stringify({
+            row: rowNumber,
+            date: currentDateKey,
+            time: horaDisplay
           });
 
           currentDay.huecos.push({
@@ -194,23 +196,24 @@ function obtenerSemanasYHuecos() {
         }
       }
     }
-    
-    if (currentWeek && semanaCounter < NUM_SEMANAS_A_CARGAR) {
-        semanasData.push(currentWeek);
-    }
 
+    // Calculamos el index de la semana actual para el formulario
+    const todayKey = Utilities.formatDate(new Date(), timeZone, "dd/MM/yyyy");
+    let currentWeekIndexToStart = 0;
     for (let i = 0; i < semanasData.length; i++) {
-        const week = semanasData[i];
-        if (week.dias && week.dias[todayKey]) {
-            currentWeekIndexToStart = i;
-            break; 
-        }
+      if (semanasData[i].dias[todayKey]) {
+        currentWeekIndexToStart = i;
+        break;
+      }
     }
 
-    return { semanas: semanasData, index: currentWeekIndexToStart };
+    return { 
+      semanas: semanasData.filter(s => Object.keys(s.dias).length > 0), 
+      index: currentWeekIndexToStart 
+    };
 
   } catch (e) {
-    Logger.log(e);
+    console.error(e);
     return { semanas: [{ error: `Error: ${e.message}` }], index: 0 };
   }
 }
