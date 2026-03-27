@@ -108,6 +108,32 @@ function getTodayKey(timeZone) {
     return Utilities.formatDate(today, timeZone, 'dd/MM/yyyy'); 
 }
 
+function obtenerHojaAgenda() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheets = ss.getSheets();
+  const today = new Date();
+  const month = today.getMonth() + 1; // 1-12
+
+  let cursoInicio, cursoFin;
+
+  if (month >= 9) { // Septiembre - Diciembre
+    cursoInicio = today.getFullYear();
+    cursoFin = cursoInicio + 1;
+  } else { // Enero - Julio
+    cursoFin = today.getFullYear();
+    cursoInicio = cursoFin - 1;
+  }
+
+  const regex = new RegExp(`^Agenda\\s+${cursoInicio}-${cursoFin}$`);
+
+  for (let i = 0; i < sheets.length; i++) {
+    if (regex.test(sheets[i].getName())) {
+      return sheets[i];
+    }
+  }
+
+  throw new Error(`No se encontró una hoja de Agenda para el curso ${cursoInicio}-${cursoFin}.`);
+}
 /**
  * Lee la agenda y extrae las semanas, días y huecos disponibles.
  * VERSIÓN 11.2: Detección ultra-robusta de huecos vacíos.
@@ -116,11 +142,7 @@ function obtenerSemanasYHuecos() {
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     // Usamos la constante o el nombre directo
-    const sheet = ss.getSheetByName("Agenda 2025-2026") || ss.getSheetByName("Agenda 2024-2025");
-
-    if (!sheet) {
-      throw new Error("No se encontró la hoja de Agenda.");
-    }
+    const sheet = obtenerHojaAgenda();
 
     const timeZone = ss.getSpreadsheetTimeZone();
     const data = sheet.getDataRange().getValues();
