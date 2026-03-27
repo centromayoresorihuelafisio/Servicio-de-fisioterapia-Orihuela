@@ -44,7 +44,7 @@ function generarAgendaCurso() {
   }
 
   // --- CONFIGURACIÓN DE CABECERAS PRINCIPALES ---
-  const headers = ["Fecha", "Día", "Hora", "Usuario", "Teléfono", "Sesión", "Asistencia", "ID Evento Calendar", "Historia Clínica", "Notas"];
+  const headers = ["Fecha", "Día", "Hora", "Usuario", "Teléfono", "Sesión", "Asistencia", "ID Evento Calendar", "Historia clínica", "Notas"];
   const numCols = headers.length;
   
   sheet.getRange(1, 1, 1, numCols)
@@ -68,12 +68,12 @@ function generarAgendaCurso() {
     monthFont: "#1E293B",    
     weekBg: "#F8FAFC",       
     weekFont: "#64748B",     
-    dayBg: "#F0F9FF",        
-    dayFont: "#0369A1",      
+    dayBg: "#f1f5f9",        
+    dayFont: "#1e293b",      
     turnBg: "#cbd5e1",       // CAMBIO SOLICITADO: Color de relleno de turnos
     turnFont: "#1e293b",     // Ajuste ligero para legibilidad sobre el nuevo fondo
     rowEven: "#FFFFFF",
-    rowOdd: "#FAFAFA",       
+    rowOdd: "#F0F0F0",       
     border: "#F1F5F9"
   };
 
