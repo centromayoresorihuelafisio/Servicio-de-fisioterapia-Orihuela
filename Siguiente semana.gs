@@ -1,29 +1,3 @@
-/**
- * **********************************************
- * FUNCIONES DE UTILIDAD DE FISIOTERAPIA (APPS SCRIPT)
- * **********************************************
- */
-
-// **********************************************
-// 0. FUNCIONES AUXILIARES GLOBALES
-// **********************************************
-
-/**
- * Normaliza y formatea el valor de una celda de tiempo a un string limpio (e.g., "8:00" o "17:30").
- * Esto es CRÍTICO para comparar valores de hora que pueden ser strings o Date objects en Google Sheets.
- * @param {any} timeValue El valor de la celda de tiempo (columna C).
- * @param {string} timeZone La zona horaria del Spreadsheet.
- * @returns {string} El string de tiempo limpio en formato "H:mm".
- */
-const getCleanTimeKey = (timeValue, timeZone) => {
-    if (timeValue instanceof Date) {
-        // Formatear el objeto Date a un string de tiempo limpio (ej. "8:00")
-        return Utilities.formatDate(timeValue, timeZone, 'H:mm');
-    }
-    // Para entradas de string o número, limpiar y devolver
-    return timeValue?.toString().trim() || '';
-};
-
 // **********************************************
 // 1. GESTIÓN DE CITAS (COPIADO A DOS SEMANAS ALTERNAS)
 // **********************************************
