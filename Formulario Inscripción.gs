@@ -89,10 +89,58 @@ function guardarPaciente(datos) {
     // se posicione inmediatamente según su prioridad (puntuación en columna A)
     ordenarPacientes();
 
+    // --- NUEVA LÓGICA: CREACIÓN DE CONTACTO EN GOOGLE ---
+    // Extraemos el nombre utilizando la propiedad 'Nombre' (o alternativas si varía la mayúscula)
+    const nombreContacto = datos['Nombre'] || datos['nombre'] || '';
+    // Extraemos el teléfono mapeado a la variable 'telefono1' proporcionada por su formulario
+    const telefonoContacto = datos['telefono1'] || '';
+
+    if (nombreContacto) {
+      crearContactoGoogle(nombreContacto, telefonoContacto);
+    } else {
+      Logger.log('Advertencia: No se intentó crear el contacto en Google porque el campo "Nombre" venía vacío.');
+    }
+
     Logger.log('Fila añadida correctamente a la hoja en la fila ' + filaVacia);
     return { success: true, message: "Paciente guardado correctamente." }; // Devuelve un objeto de éxito
   } catch (e) {
     Logger.log('ERROR al añadir la fila: ' + e.message);
     return { success: false, message: 'Error al guardar el paciente: ' + e.message }; // Devuelve un objeto de error
+  }
+}
+
+/**
+ * Crea un contacto en Google Contacts utilizando el servicio avanzado People API v1.
+ * 
+ * @param {string} nombre El nombre del paciente.
+ * @param {string} telefono El teléfono del paciente.
+ */
+function crearContactoGoogle(nombre, telefono) {
+  Logger.log('Iniciando proceso de creación de contacto en Google Contacts...');
+  
+  try {
+    // Definimos la estructura del nuevo contacto según los requerimientos de la People API v1
+    const persona = {
+      names: [{
+        displayName: nombre,
+        givenName: nombre
+      }]
+    };
+
+    // Solo añadimos el teléfono al recurso si el campo no está vacío
+    if (telefono && telefono.trim() !== "") {
+      persona.phoneNumbers = [{
+        value: telefono,
+        type: 'mobile'
+      }];
+    }
+
+    // Llamada al endpoint nativo de People API v1 para la creación del contacto
+    const contactoCreado = People.People.createContact(persona);
+    Logger.log('Contacto creado con éxito en Google Contacts. ID de Recurso: ' + contactoCreado.resourceName);
+
+  } catch (e) {
+    // Captura cualquier excepción de cuotas, red o formato sin bloquear el flujo principal del Sheets
+    Logger.log('ERROR al crear el contacto en Google Contacts: ' + e.message);
   }
 }

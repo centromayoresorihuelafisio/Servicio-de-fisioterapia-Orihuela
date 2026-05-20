@@ -1,13 +1,22 @@
 {
   "timeZone": "Europe/Madrid",
   "dependencies": {
+    "enabledAdvancedServices": [
+      {
+        "userSymbol": "People",
+        "version": "v1",
+        "serviceId": "peopleapi"
+      }
+    ]
   },
   "exceptionLogging": "STACKDRIVER",
   "runtimeVersion": "V8",
   "sheets": {
-    "macros": [{
-      "menuName": "Copiar a Agenda",
-      "functionName": "CopiaraAgenda"
-    }]
+    "macros": [
+      {
+        "menuName": "Copiar a Agenda",
+        "functionName": "CopiaraAgenda"
+      }
+    ]
   }
 }
