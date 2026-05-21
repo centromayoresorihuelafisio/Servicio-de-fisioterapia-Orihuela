@@ -130,12 +130,26 @@ function sincronizarEventos() {
       }
     }
 
-    // 3. Escritura masiva
-    rangoCitas.setValues(datosAgenda);
-    rangoCitas.setBackgrounds(backgrounds);
-    rangoCitas.setFontLines(fontLines);
+    // --- PASO C: ESCRITURA AISLADA EN COLUMNA C ---
+    // Construcción de estructuras vectoriales (Nx1) exclusivas para la columna de Eventos
+    const valoresColC = [];
+    const backgroundsColC = [];
+    const fontLinesColC = [];
 
-    console.log("Sincronización completada con éxito.");
+    for (let i = 0; i < datosAgenda.length; i++) {
+      valoresColC.push([datosAgenda[i][2]]);
+      backgroundsColC.push([backgrounds[i][2]]);
+      fontLinesColC.push([fontLines[i][2]]);
+    }
+
+    // Definición del rango específico: Fila inicial=2, Columna=3 (C), Filas=lrAgenda-1, Columnas=1
+    const rangoColC = sheetAgenda.getRange(2, 3, lrAgenda - 1, 1);
+    
+    rangoColC.setValues(valoresColC);
+    rangoColC.setBackgrounds(backgroundsColC);
+    rangoColC.setFontLines(fontLinesColC);
+
+    console.log("Sincronización completada con éxito. Hipervínculos protegidos.");
 
   } catch (error) {
     if (ui) ui.alert("❌ Error en sincronización: " + error.message);

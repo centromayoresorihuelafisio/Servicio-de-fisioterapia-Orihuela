@@ -32,7 +32,7 @@ function onOpen() {
     .addItem("🔄 Ordenar", "ordenarPacientes")
     .addItem("🔍 Buscar", "mostrarDialogoBusqueda")
     .addSeparator() // Separador
-    .addItem('Sincronizar contactos con Google', 'sincronizarContactosGoogle')
+    .addItem('👥 Sincronizar contactos con Google', 'sincronizarContactosGoogle')
     .addToUi();
 
  }
