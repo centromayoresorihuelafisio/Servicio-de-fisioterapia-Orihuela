@@ -198,7 +198,7 @@ function generarHistoriaClinicaRegistroUsuario(patientData) {
 
     // 1. Duplicar la plantilla en la carpeta de destino de Google Drive
     const targetFolder = DriveApp.getFolderById(folderId);
-    const newDocName = `Historia Clínica - ${nombre}${dni ? ' (' + dni + ')' : ''}`;
+    const newDocName = `HISTORIA CLINICA ${nombre}${dni ? ' (' + dni + ')' : ''}`;
     const newDocFile = DriveApp.getFileById(templateId).makeCopy(newDocName, targetFolder);
     const newDoc = DocumentApp.openById(newDocFile.getId());
     const body = newDoc.getBody();
