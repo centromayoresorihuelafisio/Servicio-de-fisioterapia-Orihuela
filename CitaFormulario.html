@@ -549,7 +549,7 @@
     let allPatientsList  = [];
     let allPatientsData  = {};
 
-    const EXCLUDED_TIMES = ["08:00","08:30","11:00","13:00","13:30","16:00","19:30"];
+    const EXCLUDED_TIMES = ["08:00","08:30","11:00","13:30","16:00","19:30"];
     const DIA_ORDEN = { Lunes:1, Martes:2, 'Miércoles':3, Jueves:4, Viernes:5 };
 
     // ── Date badge ──
@@ -598,8 +598,8 @@
     function getTurnoClass(hora) {
       const [h, m] = hora.split(':').map(Number);
       const t = h * 60 + m;
-      if (t >= 540 && t <= 750) return 'turno-manana';
-      if (t >= 990) return 'turno-tarde';
+      if (t >= 480 && t <= 840) return 'turno-manana';
+      if (t >= 850) return 'turno-tarde';
       return '';
     }
 
