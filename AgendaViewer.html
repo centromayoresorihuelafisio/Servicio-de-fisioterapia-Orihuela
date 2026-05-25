@@ -1,492 +1,595 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
   <base target="_top">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Agenda Semanal</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
   <style>
-    /* Variables CSS para colores y espaciado */
-    :root {
-      --primary-color: #4A90E2;
-      --secondary-color: #F0F8FF; /* Azul muy claro */
-      --text-color: #333;
-      --light-text-color: #666;
-      --border-color: #E0E0E0;
-      --card-bg: #FFFFFF;
-      --shadow-light: rgba(0, 0, 0, 0.08);
-      --shadow-medium: rgba(0, 0, 0, 0.12);
-      --spacing-unit: 1rem;
-      --day-header-bg: #EBF5FF; /* Nuevo color de fondo para el encabezado del día */
-      --alt-column-bg: #F9FAFB; /* Color para columnas alternas */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-      /* Nuevos colores para citas */
-      --morning-bg: #EBF5FF; /* Azul muy clarito */
-      --morning-border: #46ECD5; /* Azul más oscuro para el borde */
-      --afternoon-bg: #EBF5FF; /* Morado muy clarito */
-      --afternoon-border: #8A9DFF; /* Morado más oscuro para el borde */
+    :root {
+      --bg:              #f0f2f5;
+      --surface:         #ffffff;
+      --surface-2:       #f7f9fb;
+      --border:          #dce2ea;
+      --border-focus:    #475569;
+      --text-1:          #0f1923;
+      --text-2:          #4a5568;
+      --text-3:          #94a3b8;
+      --accent:          #475569;
+      --accent-light:    #f1f5f9;
+      --accent-dark:     #334155;
+      --morning-bg:      #eef2f6;
+      --morning-border:  #475569;
+      --morning-text:    #475569;
+      --afternoon-bg:    #AFBBCA;
+      --afternoon-border:#475569;
+      --afternoon-text:  #64748b;
+      --radius:          8px;
+      --radius-lg:       14px;
+      --shadow:          0 1px 3px rgba(0,0,0,.08), 0 4px 16px rgba(0,0,0,.06);
+      --shadow-focus:    0 0 0 3px rgba(71,85,105,.15);
+      --font:            'DM Sans', sans-serif;
+      --mono:            'DM Mono', monospace;
+      --transition:      180ms ease;
     }
 
     body {
-      font-family: 'Inter', sans-serif;
-      margin: 0;
-      padding: 0;
-      background-color: var(--secondary-color);
-      color: var(--text-color);
-      display: flex;
-      flex-direction: column;
-      height: 100vh;
-      overflow-y: auto; /* Permite el scroll del body en móviles */
+      font-family: var(--font);
+      background: var(--bg);
+      min-height: 100vh;
+      padding: 2.5rem 1.25rem 4rem;
+      color: var(--text-1);
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
     }
 
-    .container {
+    /* ── Page header ── */
+    .page-header {
+      max-width: 1080px;
+      margin: 0 auto 1.75rem;
       display: flex;
-      flex-direction: column;
-      min-height: 100%;
-      padding: var(--spacing-unit);
-      box-sizing: border-box;
-    }
-
-    .header {
-      display: flex;
-      justify-content: space-between;
       align-items: center;
-      flex-wrap: wrap; /* Nuevo: para que se ajuste en móviles */
-      padding-bottom: var(--spacing-unit);
-      border-bottom: 1px solid var(--border-color);
-      margin-bottom: var(--spacing-unit);
+      gap: 1rem;
+      flex-wrap: wrap;
+      animation: fadeDown .45s ease both;
     }
-
-    .title-container {
-      background-color: var(--card-bg);
+    .logo-mark {
+      width: 48px; height: 48px;
+      background: var(--accent-dark);
       border-radius: 12px;
-      box-shadow: 0 4px 12px var(--shadow-light);
-      padding: 0.8rem 1.5rem;
-      margin-right: var(--spacing-unit);
-      display: flex;
-      align-items: center;
-      margin-bottom: 10px; /* Nuevo: espacio en móvil */
+      display: grid; place-items: center;
+      flex-shrink: 0;
+    }
+    .logo-mark svg { color: #fff; }
+    .page-header-text h1 {
+      font-size: 1.35rem;
+      font-weight: 600;
+      letter-spacing: -.02em;
+      color: var(--text-1);
+      line-height: 1.2;
+    }
+    .page-header-text p {
+      font-size: .8125rem;
+      color: var(--text-3);
+      margin-top: .15rem;
     }
 
-    .header h1 {
-      margin: 0;
-      font-size: 1.8rem;
-      color: var(--primary-color);
-      font-weight: 700;
-    }
-
+    /* ── Controls ── */
     .controls {
+      margin-left: auto;
       display: flex;
       align-items: center;
-      gap: 0.5rem;
+      gap: .5rem;
       flex-wrap: wrap;
     }
 
-    .button {
-      background-color: var(--primary-color);
-      color: white;
-      border: none;
-      padding: 0.6rem 1rem;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 1rem;
-      font-weight: 500;
-      transition: background-color 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
-      box-shadow: 0 2px 4px var(--shadow-light);
-      display: flex;
+    .btn {
+      display: inline-flex;
       align-items: center;
       justify-content: center;
-      min-width: 40px;
+      gap: .4rem;
+      height: 36px;
+      padding: 0 .9rem;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      color: var(--text-2);
+      font-family: var(--font);
+      font-size: .82rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: border-color var(--transition), background var(--transition), color var(--transition), transform var(--transition), box-shadow var(--transition);
+      white-space: nowrap;
     }
+    .btn:hover { border-color: var(--accent); background: var(--accent-light); color: var(--accent); transform: translateY(-1px); }
+    .btn:active { transform: translateY(0); }
 
-    .button:hover {
-      background-color: #3a7bd5;
-      transform: translateY(-1px);
-      box-shadow: 0 4px 8px var(--shadow-medium);
-    }
-
-    .button:active {
-      transform: translateY(0);
-      box-shadow: 0 1px 2px var(--shadow-light);
-    }
-
-    .button-secondary {
-      background-color: #6c757d;
-    }
-
-    .button-secondary:hover {
-      background-color: #5a6268;
-    }
-
-    .date-input {
-      padding: 0.6rem;
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
+    .btn-nav {
+      width: 36px; height: 36px;
+      padding: 0;
+      border-radius: 50%;
+      font-family: var(--mono);
       font-size: 1rem;
-      color: var(--text-color);
     }
 
-    .week-display {
-      text-align: center;
-      font-size: 1.4rem;
-      font-weight: 700;
-      margin-top: 0.5rem;
-      margin-bottom: var(--spacing-unit);
-      color: var(--primary-color);
-      padding: 0.8rem 1.5rem;
-      background-color: var(--card-bg);
-      border-radius: 12px;
-      box-shadow: 0 4px 12px var(--shadow-light);
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+    .btn-primary:hover {
+      background: var(--accent-dark);
+      border-color: var(--accent-dark);
+      color: #fff;
+    }
+
+    input[type="date"] {
+      height: 36px;
+      padding: 0 .75rem;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      color: var(--text-2);
+      font-family: var(--mono);
+      font-size: .78rem;
+      cursor: pointer;
+      outline: none;
+      transition: border-color var(--transition), box-shadow var(--transition);
+    }
+    input[type="date"]:focus { border-color: var(--border-focus); box-shadow: var(--shadow-focus); }
+
+    /* ── Week label ── */
+    .week-label-bar {
+      max-width: 1080px;
+      margin: 0 auto 1.25rem;
+      animation: fadeUp .4s .05s ease both;
+    }
+    .week-label {
+      display: inline-flex;
+      align-items: center;
+      gap: .5rem;
+      font-size: .82rem;
+      font-weight: 500;
+      color: var(--text-2);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: .35rem .85rem;
+      font-family: var(--mono);
+    }
+    .week-label .dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+    }
+
+    /* ── Card / grid wrapper ── */
+    .card {
+      background: var(--surface);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+      max-width: 1080px;
+      margin: 0 auto;
+      overflow: hidden;
+      animation: fadeUp .45s .1s ease both;
+    }
+
+    .section-label {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      font-size: .6875rem;
+      font-weight: 600;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--text-3);
+      padding: 1.25rem 1.75rem .75rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .section-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+    .section-label .dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      flex-shrink: 0;
+    }
+
+    /* ── Agenda grid ── */
+    .agenda-wrapper {
+      padding: 1.25rem 1.5rem 1.75rem;
     }
 
     .agenda-grid {
       display: grid;
       grid-template-columns: repeat(5, 1fr);
-      gap: var(--spacing-unit);
-      flex-grow: 1;
-      overflow-y: auto;
-      padding-right: 5px;
+      gap: .75rem;
     }
 
+    /* ── Day column ── */
     .day-column {
-      background-color: var(--card-bg);
-      border-radius: 12px;
-      box-shadow: 0 4px 12px var(--shadow-light);
-      padding: var(--spacing-unit);
+      background: var(--surface-2);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      padding: .75rem .625rem;
       display: flex;
       flex-direction: column;
-      gap: 0.8rem;
-      min-height: 200px;
-      transition: background-color 0.3s ease;
-    }
-
-    .day-column.odd-day {
-      background-color: var(--alt-column-bg);
+      gap: .5rem;
+      min-height: 160px;
     }
 
     .day-header {
-      font-size: 1.1rem;
-      font-weight: 600;
-      color: var(--primary-color);
       text-align: center;
-      background-color: var(--day-header-bg);
-      padding: 0.7rem 0.5rem;
-      margin-bottom: 0.8rem;
-      border-radius: 8px;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+      padding-bottom: .5rem;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: .25rem;
     }
-
-    /* Mejora en las tarjetas de eventos */
-    .event-card {
-      background-color: #F8F8F8;
-      border: 1px solid #EAEAEA;
-      border-radius: 8px;
-      padding: 0.8rem;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    .day-header .day-name {
+      font-size: .75rem;
+      font-weight: 700;
+      color: var(--text-1);
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+    .day-header .day-date {
+      font-family: var(--mono);
+      font-size: .68rem;
+      color: var(--text-3);
+      margin-top: .1rem;
+    }
+    .day-header.is-today .day-name { color: var(--accent); }
+    .day-header.is-today .day-date { color: var(--accent); }
+    .day-header.is-today {
       position: relative;
     }
+    .day-header.is-today::after {
+      content: 'hoy';
+      display: inline-block;
+      font-size: .6rem;
+      font-weight: 600;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+      color: #fff;
+      background: var(--accent);
+      border-radius: 100px;
+      padding: .05rem .35rem;
+      margin-left: .35rem;
+      vertical-align: middle;
+    }
 
+    /* ── Event cards ── */
+    .event-card {
+      border-radius: var(--radius);
+      padding: .6rem .7rem;
+      border: 1.5px solid transparent;
+      transition: transform var(--transition), box-shadow var(--transition);
+      cursor: default;
+    }
     .event-card:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      transform: translateY(-1px);
+      box-shadow: 0 3px 10px rgba(0,0,0,.09);
     }
 
-    /* Estilos para citas de mañana */
     .event-card.morning-appointment {
-      background-color: var(--morning-bg);
-      border-left: 5px solid var(--morning-border);
+      background: var(--morning-bg);
+      border-color: var(--morning-border);
+      border-left: 3px solid var(--morning-border);
     }
-
-    /* Estilos para citas de tarde */
     .event-card.afternoon-appointment {
-      background-color: var(--afternoon-bg);
-      border-left: 5px solid var(--afternoon-border);
+      background: var(--afternoon-bg);
+      border-color: var(--afternoon-border);
+      border-left: 3px solid var(--afternoon-border);
     }
 
     .event-time {
-      font-weight: 600;
-      color: var(--primary-color);
-      margin-bottom: 0.2rem;
+      font-family: var(--mono);
+      font-size: .72rem;
+      font-weight: 500;
+      margin-bottom: .2rem;
     }
+    .morning-appointment  .event-time { color: var(--morning-text); }
+    .afternoon-appointment .event-time { color: var(--afternoon-text); }
 
-    .event-detail {
-      font-size: 0.9rem;
-      color: var(--light-text-color);
+    .event-name {
+      font-size: .8rem;
+      font-weight: 600;
+      color: var(--text-1);
+      line-height: 1.3;
+      margin-bottom: .2rem;
+    }
+    .event-meta {
+      font-size: .72rem;
+      color: var(--text-3);
       line-height: 1.4;
     }
-
-    .event-detail strong {
-      color: var(--text-color);
-    }
+    .event-meta span { display: block; }
 
     .no-events {
+      font-size: .75rem;
+      color: var(--text-3);
       text-align: center;
-      color: var(--light-text-color);
       font-style: italic;
-      padding: 1rem;
+      padding: .75rem 0;
     }
 
-    /* Estilos para el spinner de carga */
-    .loading-overlay {
-      position: fixed; /* Cambiado a fixed para cubrir toda la ventana */
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(255, 255, 255, 0.8);
+    /* ── Legend ── */
+    .legend {
       display: flex;
-      justify-content: center;
+      gap: 1.25rem;
+      flex-wrap: wrap;
+      padding: .875rem 1.75rem 1.125rem;
+      border-top: 1px solid var(--border);
+      background: var(--surface-2);
+    }
+    .legend-item {
+      display: flex;
       align-items: center;
-      z-index: 1000;
+      gap: .4rem;
+      font-size: .72rem;
+      color: var(--text-3);
+    }
+    .legend-dot {
+      width: 10px; height: 10px;
+      border-radius: 3px;
+      flex-shrink: 0;
+    }
+
+    /* ── Loading overlay ── */
+    .loading-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(240,242,245,.85);
+      backdrop-filter: blur(3px);
+      display: flex;
       flex-direction: column;
+      align-items: center;
+      justify-content: center;
       gap: 1rem;
+      z-index: 100;
     }
+    .loading-overlay.hidden { display: none; }
 
-    .spinner {
-      border: 4px solid #f3f3f3;
-      border-top: 4px solid var(--primary-color);
+    .spin-ring {
+      width: 36px; height: 36px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
       border-radius: 50%;
-      width: 40px;
-      height: 40px;
-      animation: spin 1s linear infinite;
+      animation: spin .7s linear infinite;
     }
-
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
+    @keyframes spin { to { transform: rotate(360deg); } }
 
     .loading-text {
-      color: var(--primary-color);
-      font-size: 1.1rem;
-      font-weight: 600;
+      font-size: .84rem;
+      font-weight: 500;
+      color: var(--text-2);
+      font-family: var(--mono);
     }
 
-    /*
-      NUEVO: MEDIA QUERY PARA HACER EL DISEÑO RESPONSIVO
-      En pantallas de menos de 768px (móviles y tablets pequeñas),
-      cambia la cuadrícula a una sola columna.
-    */
-    @media (max-width: 768px) {
-      .agenda-grid {
-        grid-template-columns: 1fr; /* Una sola columna */
-        overflow-y: visible; /* Permite el scroll de la columna */
-      }
-      .day-column {
-        margin-bottom: var(--spacing-unit); /* Espacio entre columnas */
-        min-height: auto; /* Desactiva la altura mínima */
-      }
-      .title-container {
-        width: 100%; /* El título ocupa todo el ancho */
-        text-align: center;
-        margin-right: 0;
-      }
+    /* ── Animations ── */
+    @keyframes fadeDown {
+      from { opacity: 0; transform: translateY(-14px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 800px) {
+      body { padding: 1.25rem .75rem 3rem; }
+      .agenda-grid { grid-template-columns: repeat(3, 1fr); }
+      .controls { margin-left: 0; width: 100%; }
+    }
+    @media (max-width: 520px) {
+      body { padding: 0 0 3rem; }
+      .card { border-radius: 0; border-left: none; border-right: none; box-shadow: none; }
+      .page-header { padding: 1rem .875rem .5rem; }
+      .agenda-wrapper { padding: .875rem; }
+      .agenda-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 360px) {
+      .agenda-grid { grid-template-columns: 1fr; }
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="header">
-      <div class="title-container">
-        <h1>Agenda Semanal</h1>
-      </div>
-      <div class="controls">
-        <button class="button" onclick="changeWeek(-1)">←</button>
-        <button class="button button-secondary" onclick="goToToday()">Hoy</button>
-        <button class="button" onclick="changeWeek(1)">→</button>
-        <input type="date" id="weekPicker" class="date-input" onchange="selectWeek()">
-      </div>
+
+  <!-- Header -->
+  <header class="page-header">
+    <div class="logo-mark">
+      <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <rect x="3" y="4" width="18" height="18" rx="2"/>
+        <line x1="16" y1="2" x2="16" y2="6"/>
+        <line x1="8"  y1="2" x2="8"  y2="6"/>
+        <line x1="3"  y1="10" x2="21" y2="10"/>
+      </svg>
+    </div>
+    <div class="page-header-text">
+      <h1>Agenda Semanal</h1>
+      <p>Visualización de citas por semana</p>
     </div>
 
-    <div id="weekDisplay" class="week-display"></div>
+    <div class="controls">
+      <button class="btn btn-nav" onclick="changeWeek(-1)" title="Semana anterior">‹</button>
+      <button class="btn btn-primary" onclick="goToToday()">Hoy</button>
+      <button class="btn btn-nav" onclick="changeWeek(1)"  title="Semana siguiente">›</button>
+      <input type="date" id="weekPicker" onchange="selectWeek()" title="Ir a semana">
+    </div>
+  </header>
 
-    <div class="agenda-grid" id="agendaGrid">
+  <!-- Week label -->
+  <div class="week-label-bar">
+    <span class="week-label"><span class="dot"></span><span id="weekDisplay">Cargando...</span></span>
+  </div>
+
+  <!-- Card -->
+  <div class="card">
+    <div class="section-label"><span class="dot"></span>Citas de la semana</div>
+    <div class="agenda-wrapper">
+      <div class="agenda-grid" id="agendaGrid"></div>
+    </div>
+    <div class="legend">
+      <div class="legend-item">
+        <span class="legend-dot" style="background:var(--morning-bg);border:1.5px solid var(--morning-border);"></span>
+        Turno mañana
       </div>
-
-    <div id="loadingOverlay" class="loading-overlay" style="display: none;">
-      <div class="spinner"></div>
-      <div class="loading-text">Cargando agenda...</div>
+      <div class="legend-item">
+        <span class="legend-dot" style="background:var(--afternoon-bg);border:1.5px solid var(--afternoon-border);"></span>
+        Turno tarde
+      </div>
     </div>
   </div>
 
+  <!-- Loading -->
+  <div id="loadingOverlay" class="loading-overlay hidden">
+    <div class="spin-ring"></div>
+    <div class="loading-text">Cargando agenda…</div>
+  </div>
+
   <script>
-    const daysOfWeek = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
-    const monthNames = ["enero", "febrero", "marzo", "abril", "mayo", "junio",
-      "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"
-    ];
-    let currentMonday = new Date();
-    let selectedDateInput = document.getElementById('weekPicker');
-    let agendaGrid = document.getElementById('agendaGrid');
-    let weekDisplay = document.getElementById('weekDisplay');
-    let loadingOverlay = document.getElementById('loadingOverlay');
+    const DAY_NAMES   = ["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"];
+    const MONTH_NAMES = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+
+    let currentMonday      = new Date();
+    const weekPicker       = document.getElementById('weekPicker');
+    const agendaGrid       = document.getElementById('agendaGrid');
+    const weekDisplay      = document.getElementById('weekDisplay');
+    const loadingOverlay   = document.getElementById('loadingOverlay');
 
     function formatDate(date) {
       const d = new Date(date);
-      const year = d.getFullYear();
-      const month = (d.getMonth() + 1).toString().padStart(2, '0');
-      const day = d.getDate().toString().padStart(2, '0');
-      return `${day}/${month}/${year}`;
+      return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
     }
 
     function getMonday(d) {
       d = new Date(d);
       const day = d.getDay();
-      const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-      return new Date(d.setDate(diff));
+      d.setDate(d.getDate() - day + (day === 0 ? -6 : 1));
+      return d;
     }
 
-    document.addEventListener('DOMContentLoaded', function() {
+    function isToday(date) {
+      const t = new Date();
+      return date.getDate() === t.getDate() && date.getMonth() === t.getMonth() && date.getFullYear() === t.getFullYear();
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
       currentMonday = getMonday(new Date());
-      selectedDateInput.valueAsDate = currentMonday;
+      weekPicker.valueAsDate = currentMonday;
       loadAgendaForWeek(currentMonday);
     });
 
     function loadAgendaForWeek(mondayDate) {
       showLoading();
-      const mondayTimestamp = mondayDate.getTime();
-      google.script.run
-        .withSuccessHandler(renderAgenda)
-        .withFailureHandler(showError)
-        .getWeekData(mondayTimestamp);
+      if (typeof google !== 'undefined') {
+        google.script.run
+          .withSuccessHandler(renderAgenda)
+          .withFailureHandler(showError)
+          .getWeekData(mondayDate.getTime());
+      }
     }
 
     function renderAgenda(data) {
       hideLoading();
       agendaGrid.innerHTML = '';
 
-      const weekStartDay = currentMonday.getDate();
+      // Week label
       const weekEnd = new Date(currentMonday);
       weekEnd.setDate(currentMonday.getDate() + 4);
-      const weekEndDay = weekEnd.getDate();
-      const monthName = monthNames[currentMonday.getMonth()];
-      const year = currentMonday.getFullYear();
+      weekDisplay.textContent =
+        `${currentMonday.getDate()} – ${weekEnd.getDate()} de ${MONTH_NAMES[currentMonday.getMonth()]} de ${currentMonday.getFullYear()}`;
 
-      weekDisplay.textContent = `Semana del ${weekStartDay} - ${weekEndDay} de ${monthName} de ${year}`;
-
+      // Build day buckets
       const days = {};
       for (let i = 0; i < 5; i++) {
-        const date = new Date(currentMonday);
-        date.setDate(currentMonday.getDate() + i);
-        const dayKey = formatDate(date);
-        days[dayKey] = [];
+        const d = new Date(currentMonday);
+        d.setDate(currentMonday.getDate() + i);
+        days[formatDate(d)] = [];
       }
+      data.forEach(ev => { if (days[ev.Fecha]) days[ev.Fecha].push(ev); });
 
-      data.forEach(event => {
-        if (days[event.Fecha]) {
-          days[event.Fecha].push(event);
-        }
-      });
-
+      // Render columns
       for (let i = 0; i < 5; i++) {
-        const date = new Date(currentMonday);
+        const date   = new Date(currentMonday);
         date.setDate(currentMonday.getDate() + i);
-        const dayKey = formatDate(date);
-        const dayName = daysOfWeek[date.getDay()];
+        const key    = formatDate(date);
+        const events = (days[key] || []).sort((a,b) => {
+          const [ha,ma] = a.Hora.split(':').map(Number);
+          const [hb,mb] = b.Hora.split(':').map(Number);
+          return (ha*60+ma) - (hb*60+mb);
+        });
 
-        const column = document.createElement('div');
-        column.classList.add('day-column');
-        if (i % 2 !== 0) {
-          column.classList.add('odd-day');
-        }
+        const col = document.createElement('div');
+        col.className = 'day-column';
 
-        const dayHeader = document.createElement('div');
-        dayHeader.classList.add('day-header');
-        dayHeader.textContent = `${dayName} - ${dayKey}`;
-        column.appendChild(dayHeader);
+        // Header
+        const hdr = document.createElement('div');
+        hdr.className = 'day-header' + (isToday(date) ? ' is-today' : '');
+        const shortDate = `${String(date.getDate()).padStart(2,'0')}/${String(date.getMonth()+1).padStart(2,'0')}`;
+        hdr.innerHTML = `<div class="day-name">${DAY_NAMES[date.getDay()]}</div><div class="day-date">${shortDate}</div>`;
+        col.appendChild(hdr);
 
-        const eventsForDay = days[dayKey];
-        if (eventsForDay && eventsForDay.length > 0) {
-          eventsForDay.sort((a, b) => {
-            const [hA, mA] = a.Hora.split(':').map(Number);
-            const [hB, mB] = b.Hora.split(':').map(Number);
-            if (hA !== hB) return hA - hB;
-            return mA - mB;
-          });
-
-          eventsForDay.forEach(event => {
-            const eventCard = document.createElement('div');
-            eventCard.classList.add('event-card');
-
-            // Lógica para asignar clase de turno
-            const [hour] = event.Hora.split(':').map(Number);
-            if (hour >= 8 && hour < 14) {
-              eventCard.classList.add('morning-appointment');
-            } else if (hour >= 16 && hour < 19) {
-              eventCard.classList.add('afternoon-appointment');
-            }
-
-            const timeSpan = document.createElement('div');
-            timeSpan.classList.add('event-time');
-            timeSpan.textContent = event.Hora;
-            eventCard.appendChild(timeSpan);
-
-            const userSpan = document.createElement('div');
-            userSpan.classList.add('event-detail');
-            userSpan.innerHTML = `<strong>${event.Usuario}</strong>`;
-            eventCard.appendChild(userSpan);
-
-            if (event.Teléfono) {
-              const phoneSpan = document.createElement('div');
-              phoneSpan.classList.add('event-detail');
-              phoneSpan.textContent = `Teléfono: ${event.Teléfono}`;
-              eventCard.appendChild(phoneSpan);
-            }
-            if (event.Sesión) {
-              const sessionSpan = document.createElement('div');
-              sessionSpan.classList.add('event-detail');
-              sessionSpan.textContent = `Sesión: ${event.Sesión}`;
-              eventCard.appendChild(sessionSpan);
-            }
-            if (event.Notas) {
-              const notesSpan = document.createElement('div');
-              notesSpan.classList.add('event-detail');
-              notesSpan.textContent = `Notas: ${event.Notas}`;
-              eventCard.appendChild(notesSpan);
-            }
-            column.appendChild(eventCard);
-          });
+        if (!events.length) {
+          const empty = document.createElement('div');
+          empty.className = 'no-events';
+          empty.textContent = 'Sin citas';
+          col.appendChild(empty);
         } else {
-          const noEvents = document.createElement('div');
-          noEvents.classList.add('no-events');
-          noEvents.textContent = 'No hay citas programadas.';
-          column.appendChild(noEvents);
+          events.forEach(ev => {
+            const card = document.createElement('div');
+            card.className = 'event-card';
+            const [h] = ev.Hora.split(':').map(Number);
+            if (h >= 8 && h < 14) card.classList.add('morning-appointment');
+            else if (h >= 16)     card.classList.add('afternoon-appointment');
+
+            let html = `<div class="event-time">${ev.Hora}</div><div class="event-name">${ev.Usuario}</div>`;
+            const meta = [];
+            if (ev.Teléfono) meta.push(`<span>📞 ${ev.Teléfono}</span>`);
+            if (ev.Sesión)   meta.push(`<span>Ses. ${ev.Sesión}</span>`);
+            if (ev.Notas)    meta.push(`<span>💬 ${ev.Notas}</span>`);
+            if (meta.length) html += `<div class="event-meta">${meta.join('')}</div>`;
+
+            card.innerHTML = html;
+            col.appendChild(card);
+          });
         }
-        agendaGrid.appendChild(column);
+        agendaGrid.appendChild(col);
       }
     }
 
     function changeWeek(delta) {
-      currentMonday.setDate(currentMonday.getDate() + (delta * 7));
-      selectedDateInput.valueAsDate = currentMonday;
+      currentMonday.setDate(currentMonday.getDate() + delta * 7);
+      weekPicker.valueAsDate = currentMonday;
       loadAgendaForWeek(currentMonday);
     }
 
     function goToToday() {
       currentMonday = getMonday(new Date());
-      selectedDateInput.valueAsDate = currentMonday;
+      weekPicker.valueAsDate = currentMonday;
       loadAgendaForWeek(currentMonday);
     }
 
     function selectWeek() {
-      const selectedDate = selectedDateInput.valueAsDate;
-      if (selectedDate) {
-        currentMonday = getMonday(selectedDate);
+      if (weekPicker.valueAsDate) {
+        currentMonday = getMonday(weekPicker.valueAsDate);
         loadAgendaForWeek(currentMonday);
       }
     }
 
-    function showLoading() {
-      loadingOverlay.style.display = 'flex';
-    }
-
-    function hideLoading() {
-      loadingOverlay.style.display = 'none';
-    }
-
-    function showError(error) {
+    function showLoading() { loadingOverlay.classList.remove('hidden'); }
+    function hideLoading()  { loadingOverlay.classList.add('hidden'); }
+    function showError(err) {
       hideLoading();
-      alert('Error al cargar la agenda: ' + error.message);
-      console.error('Error:', error);
+      console.error('Error:', err);
+      agendaGrid.innerHTML = `<p style="color:var(--text-3);grid-column:1/-1;padding:1rem;text-align:center;">Error al cargar la agenda: ${err.message||err}</p>`;
     }
   </script>
 </body>
