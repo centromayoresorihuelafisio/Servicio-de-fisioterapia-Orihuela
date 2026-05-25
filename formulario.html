@@ -150,29 +150,32 @@
 
     <div class="form-field">
       <label for="nombre">Nombre:</label>
-      <input type="text" id="nombre" name="Nombre" class="focus:ring-indigo-500 focus:border-indigo-500" required>
+      <input type="text" id="nombre" name="Nombre" placeholder="EJ. JUAN PEREZ" class="focus:ring-indigo-500 focus:border-indigo-500" required>
+      <span class="text-[10px] text-gray-400 mt-1">Se escribirá automáticamente en mayúsculas y sin acentos.</span>
     </div>
 
     <div class="form-field">
-      <label for="dni">DNI:</label>
-      <input type="text" id="dni" name="DNI" pattern="[0-9]{8}[A-Za-z]" title="8 dígitos y una letra (ej. 12345678A)" class="focus:ring-indigo-500 focus:border-indigo-500">
+      <label for="dni">Identificación (DNI/SIP):</label>
+      <input type="text" id="dni" name="DNI" placeholder="ej. 12345678A o similar" class="focus:ring-indigo-500 focus:border-indigo-500">
     </div>
 
+    <!-- Modificado: Seleccionada por defecto la opción "En espera" -->
     <div class="form-field">
       <label for="estado">Estado:</label>
       <select id="estado" name="Estado" class="focus:ring-indigo-500 focus:border-indigo-500">
-        <option value="" disabled selected>--Selecciona--</option>
+        <option value="" disabled>--Selecciona--</option>
         <option value="🟢 Activo">🟢 Activo</option>
-        <option value="🟡 En espera">🟡 En espera</option>
+        <option value="🟡 En espera" selected>🟡 En espera</option>
         <option value="🕐 Contactará">🕐 Contactará</option>
       </select>
     </div>
 
+    <!-- Modificado: Seleccionada por defecto la opción "Volante" -->
     <div class="form-field">
       <label for="tipoIngreso">Tipo de Ingreso:</label>
       <select id="tipoIngreso" name="Tipo de Ingreso" class="focus:ring-indigo-500 focus:border-indigo-500">
-        <option value="" disabled selected>--Selecciona--</option>
-        <option value="📄 Volante">📄 Volante</option>
+        <option value="" disabled>--Selecciona--</option>
+        <option value="📄 Volante" selected>📄 Volante</option>
         <option value="🔁 Derivación propia">🔁 Derivación propia</option>
         <option value="🕰️ Antiguo paciente">🕰️ Antiguo paciente</option>
       </select>
@@ -292,12 +295,12 @@
       </div>
     </div>
 
-    <!-- Preguntas de Evaluación de Gravedad - MODIFICADO para diseño en 2 columnas -->
+    <!-- Preguntas de Evaluación de Gravedad -->
     <div class="form-field full-width">
       <h3 class="text-lg font-semibold mb-2 mt-4 text-gray-700 text-center col-span-2">Evaluación de Gravedad</h3>
       <p class="text-sm text-gray-500 mb-4 text-center col-span-2">Selecciona ✅ si aplica, ❌ si no aplica.</p>
 
-      <!-- Nuevo contenedor con un grid de 2 columnas para pantallas grandes -->
+      <!-- Contenedor con un grid de 2 columnas para pantallas grandes -->
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4 w-full">
         <div class="gravedad-question">
           <label>Riesgo de pérdida ADV</label>
@@ -406,6 +409,28 @@
       input.value = value;
     }
 
+    // Función para limpiar acentos, signos y forzar mayúsculas en el Nombre
+    function sanitizeNombre(input) {
+      let value = input.value;
+      
+      // Convertir a mayúsculas
+      value = value.toUpperCase();
+      
+      // Reemplazar acentos y diéresis comunes en español de forma manual para conservar la Ñ intacta
+      value = value.replace(/[ÁÀÄÂ]/g, "A")
+                   .replace(/[ÉÈËÊ]/g, "E")
+                   .replace(/[ÍÌÏÎ]/g, "I")
+                   .replace(/[ÓÒÖÔ]/g, "O")
+                   .replace(/[ÚÙÜÛ]/g, "U")
+                   .replace(/[ÝŸ]/g, "Y");
+                   
+      // Eliminar números, signos de puntuación y cualquier otro símbolo especial
+      // Solo se permiten letras de la A a la Z, la Ñ española y espacios
+      value = value.replace(/[^A-ZÑ ]/g, "");
+      
+      input.value = value;
+    }
+
     // Código JavaScript para manejar la lógica de la evaluación de gravedad y los selects múltiples
     document.addEventListener('DOMContentLoaded', () => {
       // Formateo de teléfonos y fecha de inscripción
@@ -413,6 +438,12 @@
       const tel2Input = document.getElementById('telefono2');
       if (tel1Input) tel1Input.addEventListener('input', () => formatPhoneNumber(tel1Input));
       if (tel2Input) tel2Input.addEventListener('input', () => formatPhoneNumber(tel2Input));
+
+      // Asignación de formateo en tiempo real al Nombre
+      const nombreInput = document.getElementById('nombre');
+      if (nombreInput) {
+        nombreInput.addEventListener('input', () => sanitizeNombre(nombreInput));
+      }
 
       const fechaInscripcionInput = document.getElementById('fechaInscripcion');
       if (fechaInscripcionInput) {
@@ -430,7 +461,7 @@
       const SEVERITY_MAP = [
         { label: '🟢 Leve', minScore: 0, maxScore: 3, color: '#10B981' }, // emerald-500
         { label: '🟠 Moderado', minScore: 4, maxScore: 6, color: '#F97316' }, // orange-500
-        { label: '🔴 Urgente', minScore: 7, maxScore: 9, color: '#EF4444' }  // red-500
+        { label: '🔴 Urgente', minScore: 7, maxScore: 9, color: '#EF4444' }  // red-500
       ];
 
       function updateCalculatedSeverity() {
@@ -548,24 +579,20 @@
           return;
       }
 
-      // --- CAMBIO CLAVE PARA GESTIONAR LA SELECCIÓN MÚLTIPLE ---
+      // --- GESTIONAR LA SELECCIÓN MÚLTIPLE ---
       const formData = new FormData(form);
       const datos = {};
       
       for (const [key, value] of formData.entries()) {
-          // Si el campo ya existe, es porque es una selección múltiple.
           if (datos.hasOwnProperty(key)) {
-              // Si el valor no es un array, lo convertimos a uno y añadimos el valor actual.
               if (!Array.isArray(datos[key])) {
                   datos[key] = [datos[key]];
               }
               datos[key].push(value);
           } else {
-              // Si es un campo simple, lo añadimos directamente.
               datos[key] = value;
           }
       }
-      // --- FIN DEL CAMBIO ---
 
       const gravedadKeys = ['gravedad_q1', 'gravedad_q2', 'gravedad_q3', 'gravedad_q4', 'gravedad_q5'];
       gravedadKeys.forEach(key => delete datos[key]);
