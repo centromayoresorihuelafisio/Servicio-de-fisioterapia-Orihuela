@@ -333,6 +333,9 @@ function guardarCitasMultiples(formData) {
   
   if (successCount > 0) {
     actualizarEstadoPaciente(nombreUsuario, "🟢 Activo ");
+
+    ordenarPacientes();
+    
     let message = `Registro exitoso de **${successCount}** cita(s).`;
     message += `<br>Estado de **${nombreUsuario}** actualizado a **🟢 Activo** e Historia Clínica vinculada.`;
     return { success: true, message: message };
