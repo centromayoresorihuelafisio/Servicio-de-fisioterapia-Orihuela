@@ -691,30 +691,34 @@
           <textarea id="observaciones" name="Observaciones" rows="4" placeholder="Escribe aquí cualquier observación adicional sobre el paciente..."></textarea>
         </div>
 
-        <!-- Toggle historia -->
-        <label class="toggle-field" style="margin-top:1rem;">
-          <input type="checkbox" id="generarHistoria" style="display:none">
-          <div class="toggle-inner">
-            <div class="toggle-track"><div class="toggle-thumb"></div></div>
-            <div class="toggle-text">
-              <strong>Generar Historia Clínica</strong>
-              <span>Se creará automáticamente al guardar el paciente</span>
+        <!-- Fila de opciones adicionales (Grid de 2 columnas) -->
+        <div class="grid-2" style="margin-top: 1rem;">
+          
+          <!-- Toggle historia -->
+          <label class="toggle-field">
+            <input type="checkbox" id="generarHistoria" style="display:none">
+            <div class="toggle-inner">
+              <div class="toggle-track"><div class="toggle-thumb"></div></div>
+              <div class="toggle-text">
+                <strong>Historia Clínica</strong>
+                <span>Crear documento de HC</span>
+              </div>
             </div>
-          </div>
-        </label>
+          </label>
 
-        <!-- Toggle contacto (NUEVO) -->
-        <label class="toggle-field" style="margin-top:0.75rem;">
-          <input type="checkbox" id="anadirContacto" style="display:none" checked>
-          <div class="toggle-inner">
-            <div class="toggle-track"><div class="toggle-thumb"></div></div>
-            <div class="toggle-text">
-              <strong>Añadir a Google Contacts</strong>
-              <span>Se guardará como contacto en tu cuenta de Google</span>
+          <!-- Toggle contacto -->
+          <label class="toggle-field">
+            <input type="checkbox" id="anadirContacto" style="display:none" checked>
+            <div class="toggle-inner">
+              <div class="toggle-track"><div class="toggle-thumb"></div></div>
+              <div class="toggle-text">
+                <strong>Google Contacts</strong>
+                <span>Añadir contacto Google</span>
+              </div>
             </div>
-          </div>
-        </label>
+          </label>
 
+        </div>
       </div>
 
       <!-- Submit -->
