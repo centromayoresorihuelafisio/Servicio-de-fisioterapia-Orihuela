@@ -66,11 +66,15 @@ function formatearArchivosDeCarpeta() {
 
 // Función encargada de limpiar el texto (Mayúsculas, sin acentos y sin símbolos)
 function normalizarTextoCarpeta(texto) {
+  if (!texto) return ""; // Control de seguridad por si el texto llega vacío o null
+
   return texto
     .toUpperCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "") // Elimina acentos y diéresis
-    .replace(/[^A-Z0-9Ñ ]/g, "")    // Elimina símbolos
-    .replace(/\s+/g, " ")           // Elimina espacios dobles o múltiples
-    .trim();                        // Elimina espacios al inicio y al final
+    .replace(/Ñ/g, "___N_ENYE___")  // 1. Protege la Ñ antes de normalizar
+    .normalize("NFD")               // 2. Descompone acentos y diéresis
+    .replace(/[\u0300-\u036f]/g, "") // 3. Elimina los diacríticos
+    .replace(/___N_ENYE___/g, "Ñ")  // 4. Recupera la Ñ original
+    .replace(/[^A-Z0-9Ñ ]/g, "")    // 5. Elimina símbolos (ahora respeta la Ñ)
+    .replace(/\s+/g, " ")           // 6. Elimina espacios dobles o múltiples
+    .trim();                        // 7. Elimina espacios al inicio y al final
 }

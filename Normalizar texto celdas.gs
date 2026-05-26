@@ -17,13 +17,20 @@ function normalizarTextoSoloCeldas() {
       
       // 1. Limpiar el texto (Mayúsculas, sin acentos, sin símbolos)
       var textoLimpio = textoOriginal
-        .toUpperCase()
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "") // Elimina acentos y diéresis
-        .replace(/[^A-Z0-9Ñ ]/g, "")    // Mantén solo letras, números, Ñ y espacios
-        .replace(/\s+/g, " ")           // Elimina espacios dobles
-        .trim();                        // Quita espacios al inicio y al final
-      
+    .toUpperCase()
+    // 1. Protegemos la Ñ sustituyéndola temporalmente por un marcador único
+    .replace(/Ñ/g, "___N_ENYE___") 
+    // 2. Descomponemos el resto de acentos
+    .normalize("NFD") 
+    // 3. Eliminamos los diacríticos (acentos, diéresis)
+    .replace(/[\u0300-\u036f]/g, "") 
+    // 4. Restauramos nuestra Ñ original
+    .replace(/___N_ENYE___/g, "Ñ") 
+    // 5. Mantenemos solo letras, números, Ñ y espacios (eliminando símbolos)
+    .replace(/[^A-Z0-9Ñ ]/g, "") 
+    // 6. Limpieza de espacios en blanco
+    .replace(/\s+/g, " ") 
+    .trim();
       // 2. Si el texto ha cambiado, lo actualizamos en la memoria
       if (textoOriginal !== textoLimpio) {
         valores[fila][col] = textoLimpio;
