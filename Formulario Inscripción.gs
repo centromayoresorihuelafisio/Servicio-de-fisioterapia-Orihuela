@@ -93,7 +93,7 @@ function guardarPaciente(datos) {
     // Extraemos el nombre utilizando la propiedad 'Nombre' (o alternativas si varía la mayúscula)
     const nombreContacto = datos['Nombre'] || datos['nombre'] || '';
     // Extraemos el teléfono mapeado a la variable 'telefono1' proporcionada por su formulario
-    const telefonoContacto = datos['telefono1'] || '';
+    const telefonoContacto = datos['Teléfono 1'] || datos['telefono1'] || '';
 
     if (nombreContacto) {
       crearContactoGoogle(nombreContacto, telefonoContacto);
