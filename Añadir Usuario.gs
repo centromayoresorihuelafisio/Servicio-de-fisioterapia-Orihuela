@@ -2,7 +2,7 @@
  * Abre el diálogo modal con el formulario HTML.
  */
 function abrirFormularioPaciente() {
-  const html = HtmlService.createHtmlOutputFromFile('formulario')
+  const html = HtmlService.createHtmlOutputFromFile('Añadir Usuario')
     .setWidth(700)
     .setHeight(650);
   SpreadsheetApp.getUi().showModalDialog(html, ' ');
