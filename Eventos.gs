@@ -15,7 +15,7 @@ function mostrarFormularioEvento() {
       .setWidth(450)
       .setHeight(500)
       .setTitle('Gestión de Eventos y Notas');
-  SpreadsheetApp.getUi().showModalDialog(html, 'Nueva entrada en Agenda');
+  SpreadsheetApp.getUi().showModalDialog(html, '\u200B');
 }
 
 /**

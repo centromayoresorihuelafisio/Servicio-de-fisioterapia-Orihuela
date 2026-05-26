@@ -16,7 +16,7 @@ function normalizarTexto(text) {
 function mostrarDialogoBusqueda() {
   const ui = SpreadsheetApp.getUi();
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const title = 'Búsqueda Rápida de Pacientes';
+  const title = 'Búsqueda Avanzada';
   
   // Usamos ui.prompt() para la entrada nativa
   const response = ui.prompt(

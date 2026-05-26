@@ -87,7 +87,7 @@ function mostrarDialogoCita() {
     const html = HtmlService.createHtmlOutputFromFile('CitaFormulario') 
         .setWidth(800) 
         .setHeight(650); 
-    SpreadsheetApp.getUi().showModalDialog(html, 'Registro de Citas');
+    SpreadsheetApp.getUi().showModalDialog(html, '\u200B');
   } catch (e) {
     SpreadsheetApp.getUi().alert('Error al mostrar el diálogo: ' + e.toString());
   }
