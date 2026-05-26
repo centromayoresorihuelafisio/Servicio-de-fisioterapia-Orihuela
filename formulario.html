@@ -702,6 +702,19 @@
             </div>
           </div>
         </label>
+
+        <!-- Toggle contacto (NUEVO) -->
+        <label class="toggle-field" style="margin-top:0.75rem;">
+          <input type="checkbox" id="anadirContacto" style="display:none" checked>
+          <div class="toggle-inner">
+            <div class="toggle-track"><div class="toggle-thumb"></div></div>
+            <div class="toggle-text">
+              <strong>Añadir a Google Contacts</strong>
+              <span>Se guardará como contacto en tu cuenta de Google</span>
+            </div>
+          </div>
+        </label>
+
       </div>
 
       <!-- Submit -->
@@ -812,10 +825,6 @@
       document.querySelectorAll('.ms-menu.open').forEach(m => { m.classList.remove('open'); m.previousElementSibling.classList.remove('open'); });
     });
 
-    // Toggle visual for generarHistoria
-    const toggleCB = document.getElementById('generarHistoria');
-    const toggleField = toggleCB.closest('label.toggle-field') || toggleCB.closest('.toggle-field');
-
     // Historia clínica
     function generarHistoriaClinicaRegistroUsuario(datosPaciente) {
       if (typeof google !== 'undefined' && typeof google.script.run !== 'undefined') {
@@ -851,6 +860,9 @@
       }
       ['gravedad_q1','gravedad_q2','gravedad_q3','gravedad_q4','gravedad_q5'].forEach(k=>delete datos[k]);
       datos.Gravedad = grav;
+      
+      // Añadimos el estado del toggle explícitamente a nuestro Payload (Objeto datos)
+      datos.anadirContacto = document.getElementById('anadirContacto').checked;
 
       btn.disabled = true;
       btn.innerHTML = `<svg class="spinner" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg> Guardando...`;

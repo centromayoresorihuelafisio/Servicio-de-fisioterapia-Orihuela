@@ -87,16 +87,23 @@ function guardarPaciente(datos) {
     // --- NUEVA LÓGICA: ORDENACIÓN AUTOMÁTICA ---
     // Llamamos a la función de ordenación para que el nuevo paciente 
     // se posicione inmediatamente según su prioridad (puntuación en columna A)
-    ordenarPacientes();
+    if (typeof ordenarPacientes === "function") {
+      ordenarPacientes();
+    }
 
     // --- NUEVA LÓGICA: CREACIÓN DE CONTACTO EN GOOGLE ---
     // Extraemos el nombre utilizando la propiedad 'Nombre' (o alternativas si varía la mayúscula)
     const nombreContacto = datos['Nombre'] || datos['nombre'] || '';
     // Extraemos el teléfono mapeado a la variable 'telefono1' proporcionada por su formulario
     const telefonoContacto = datos['Teléfono 1'] || datos['telefono1'] || '';
+    // Extraemos el valor del toggle de añadir a contactos (enviado desde JS)
+    const anadirContacto = datos.anadirContacto;
 
-    if (nombreContacto) {
+    // Evaluamos si el usuario dejó marcado el toggle antes de ejecutar la acción
+    if (anadirContacto && nombreContacto) {
       crearContactoGoogle(nombreContacto, telefonoContacto);
+    } else if (!anadirContacto) {
+      Logger.log('Info: Creación de contacto omitida por elección del usuario en el formulario.');
     } else {
       Logger.log('Advertencia: No se intentó crear el contacto en Google porque el campo "Nombre" venía vacío.');
     }
@@ -111,8 +118,7 @@ function guardarPaciente(datos) {
 
 /**
  * Crea un contacto en Google Contacts utilizando el servicio avanzado People API v1.
- * 
- * @param {string} nombre El nombre del paciente.
+ * * @param {string} nombre El nombre del paciente.
  * @param {string} telefono El teléfono del paciente.
  */
 function crearContactoGoogle(nombre, telefono) {
@@ -144,6 +150,7 @@ function crearContactoGoogle(nombre, telefono) {
     Logger.log('ERROR al crear el contacto en Google Contacts: ' + e.message);
   }
 }
+
 /**
  * Genera una historia clínica en Google Docs basada en un formato de plantilla
  * para el paciente recién registrado a través del formulario HTML.
