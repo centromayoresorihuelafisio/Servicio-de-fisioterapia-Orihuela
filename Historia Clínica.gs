@@ -74,5 +74,5 @@ function generarHistoriaClinica() {
   }
 
   // MODIFICACIÓN 2: Alerta sutil (Toast) en la parte inferior de la interfaz
-  ss.toast('La historia clínica se ha generado correctamente en Google Drive.', '✅ Completado', 5);
+  ss.toast('Historia clínica generada correctamente.', '✅ Completado', 5);
 }
