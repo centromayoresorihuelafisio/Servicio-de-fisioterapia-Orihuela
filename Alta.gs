@@ -170,7 +170,7 @@ function darDeAltaPaciente() {
   if (ultimaVisitaRange) {
       const today = new Date();
       ultimaVisitaRange.setValue(today);
-      ultimaVisitaMsg = "La fecha de última visita se ha actualizado a hoy.";
+      ultimaVisitaMsg = "La fecha de última visita se ha actualizada.";
   }
   
 

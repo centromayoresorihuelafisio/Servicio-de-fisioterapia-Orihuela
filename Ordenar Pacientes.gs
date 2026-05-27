@@ -106,7 +106,7 @@ function ordenarPacientes() {
          .sort({column: 1, ascending: false});
   }
 
-  ss.toast("Pacientes procesados y ordenados con éxito.", "Completado", 5);
+  ss.toast("Usuarios ordenados correctamente", "✅ Completado", 6);
 }
 
 /**
