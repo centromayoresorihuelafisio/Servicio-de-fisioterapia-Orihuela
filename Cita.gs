@@ -332,7 +332,7 @@ function guardarCitasMultiples(formData) {
   });
   
   if (successCount > 0) {
-    actualizarEstadoPaciente(nombreUsuario, "🟢 Activo ");
+    actualizarEstadoPaciente(nombreUsuario, "🟢 Activo");
 
     ordenarPacientes();
     

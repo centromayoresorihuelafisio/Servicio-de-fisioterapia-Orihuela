@@ -1,5 +1,5 @@
 /**
- *Generar historia clínica para el usuario seleccionado
+ * Generar historia clínica para el usuario seleccionado
  */
 function generarHistoriaClinica() {
   const ui = SpreadsheetApp.getUi();
@@ -48,7 +48,10 @@ function generarHistoriaClinica() {
   };
 
   const targetFolder = DriveApp.getFolderById(folderId);
-  const newDocName = `HISTORIA CLINICA ${nombre}${dni ? ' (' + dni + ')' : ''}`;
+  
+  // MODIFICACIÓN 1: Nombre de archivo sin paréntesis para el DNI
+  const newDocName = `HISTORIA CLINICA ${nombre}${dni ? ' ' + dni : ''}`;
+  
   const newDocFile = DriveApp.getFileById(templateId).makeCopy(newDocName, targetFolder);
   const newDoc = DocumentApp.openById(newDocFile.getId());
   const body = newDoc.getBody();
@@ -70,5 +73,6 @@ function generarHistoriaClinica() {
     sheet.getRange(rowIndex, colIndex + 1).setRichTextValue(richText);
   }
 
-  ui.alert('✅ Historia clínica generada.');
+  // MODIFICACIÓN 2: Alerta sutil (Toast) en la parte inferior de la interfaz
+  ss.toast('La historia clínica se ha generado correctamente en Google Drive.', '✅ Completado', 5);
 }
