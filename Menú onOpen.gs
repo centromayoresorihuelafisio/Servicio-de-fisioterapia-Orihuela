@@ -34,5 +34,10 @@ function onOpen() {
     .addSeparator() // Separador
     .addItem('👥 Sincronizar contactos con Google', 'sincronizarContactosGoogle')
     .addToUi();
-
+  // 3. Menú CONFIGURACIÓN
+  ui.createMenu("⚙️")
+    .addItem('1️⃣ Cambiar Plantilla Historia Clínica', 'configurarPlantillaHC')
+    .addItem('2️⃣ Cambiar Carpeta Destino Drive', 'configurarCarpetaDrive')
+    .addItem('3️⃣ Cambiar Mensaje WhatsApp', 'configurarMensajeWhatsapp')
+    .addToUi();
  }

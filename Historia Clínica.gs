@@ -7,8 +7,20 @@ function generarHistoriaClinica() {
   const sheet = ss.getSheetByName("Base de Datos Maestra");
   if (!sheet) { ui.alert("Error: La hoja 'Base de Datos Maestra' no existe."); return; }
 
-  const templateId = '1xNuxllwhqTI4_hSRwUfSp4PF4je-XTTJSdoNjYEUVjA';
-  const folderId = '1L5aoSeaEy3BD3C_Ladk2kfgHLsMDg0Sa';
+  const scriptProperties = PropertiesService.getScriptProperties();
+  const templateId = scriptProperties.getProperty('DOC_TEMPLATE_ID');
+  const folderId = scriptProperties.getProperty('DRIVE_FOLDER_ID');
+
+  // Validación de seguridad para evitar que falle el script si están vacíos
+  if (!templateId || !folderId) {
+    SpreadsheetApp.getUi().alert(
+      '⚠️ Error de Configuración',
+      'Falta configurar el ID de la Plantilla o de la Carpeta de Destino.\n' +
+      'Por favor, ve al menú ⚙️ Config y actualiza los valores.',
+      SpreadsheetApp.getUi().ButtonSet.OK
+    );
+    return;
+  }
 
   const activeRange = sheet.getActiveRange();
   const rowIndex = activeRange.getRow();
