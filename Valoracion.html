@@ -5,55 +5,22 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Evaluación de Dolor y Función</title>
   
-  <!-- Tipografías -->
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <!-- Tipografías y Símbolos de Material Design 3 -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300;8..144,400;8..144,500;8..144,600&family=Roboto+Mono&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
   
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   
-  <!-- Configuración de Tailwind para replicar el sistema de diseño -->
   <script>
     tailwind.config = {
       theme: {
         extend: {
-          colors: {
-            bg: '#f0f2f5',
-            surface: '#ffffff',
-            'surface-2': '#f7f9fb',
-            border: '#dce2ea',
-            'border-focus': '#475569',
-            'text-1': '#0f1923',
-            'text-2': '#4a5568',
-            'text-3': '#94a3b8',
-            accent: '#475569',
-            'accent-light': '#f1f5f9',
-            success: '#059669',
-            'success-light': '#ecfdf5',
-            error: '#dc2626',
-            'error-light': '#fef2f2',
-            warning: '#d97706',
-          },
           fontFamily: {
-            sans: ['"DM Sans"', 'sans-serif'],
-            mono: ['"DM Mono"', 'monospace'],
-          },
-          boxShadow: {
-            card: '0 1px 3px rgba(0,0,0,.08), 0 4px 16px rgba(0,0,0,.06)',
-            focus: '0 0 0 3px rgba(71,85,105,.15)',
-          },
-          animation: {
-            'fade-down': 'fadeDown .5s ease both',
-            'fade-up': 'fadeUp .5s .1s ease both',
-          },
-          keyframes: {
-            fadeDown: {
-              '0%': { opacity: '0', transform: 'translateY(-14px)' },
-              '100%': { opacity: '1', transform: 'translateY(0)' },
-            },
-            fadeUp: {
-              '0%': { opacity: '0', transform: 'translateY(12px)' },
-              '100%': { opacity: '1', transform: 'translateY(0)' },
-            }
+            sans: ['"Roboto Flex"', 'sans-serif'],
+            mono: ['"Roboto Mono"', 'monospace'],
           }
         }
       }
@@ -61,314 +28,505 @@
   </script>
 
   <style>
-    /* Estilos base y transiciones para inputs que Tailwind no cubre por defecto fácilmente */
-    input[type="text"] {
-      transition: border-color 180ms ease, box-shadow 180ms ease, background 180ms ease;
-    }
-    input[type="text"]:hover {
-      border-color: #b6c2d4;
-    }
-    input[type="text"]:focus {
-      outline: none;
-      border-color: var(--border-focus);
-      box-shadow: var(--shadow-focus);
-      background: var(--surface);
+    /* Variables del Sistema de Diseño Material Design 3 */
+    :root {
+      --md-primary: #2b5c75;
+      --md-primary-container: #e0f1fc;
+      --md-primary-glow: rgba(43, 92, 117, 0.12);
+      
+      /* Superficies en 5 niveles profesionales y desaturados */
+      --md-surface-1: #ffffff;
+      --md-surface-2: #f8fafc;
+      --md-surface-3: #f1f5f9;
+      --md-surface-4: #e2e8f0;
+      --md-surface-5: #dadfe3;
+      
+      --md-error: #b63636;
+      --md-success: #2a7047;
+      --md-warning: #8a5d1a;
+      
+      --md-text-1: #1e293b;
+      --md-text-2: #475569;
+      --md-text-3: #64748b;
+
+      /* Transiciones y Easing cubic-bezier M3 */
+      --t-short: 180ms cubic-bezier(.3,0,0,1);
+      --t-medium: 280ms cubic-bezier(.3,0,0,1);
+      --t-long: 380ms cubic-bezier(.3,0,0,1);
+      --t-entry: 450ms cubic-bezier(0,0,.2,1);
+      --t-elastic: cubic-bezier(0.34,1.4,0.64,1);
     }
 
-    /* Range Sliders personalizados para coincidir con el tema "Slate" */
-    .custom-range {
+    body {
+      background-color: var(--md-surface-3);
+      color: var(--md-text-1);
+      font-family: 'Roboto Flex', sans-serif;
+    }
+
+    /* Sombras tonales teñidas de primary */
+    .shadow-m3-1 { box-shadow: 0 1px 3px rgba(43, 92, 117, 0.12), 0 1px 2px rgba(43, 92, 117, 0.16); }
+    .shadow-m3-2 { box-shadow: 0 4px 8px -2px rgba(43, 92, 117, 0.1), 0 2px 4px -1px rgba(43, 92, 117, 0.06); }
+    .shadow-m3-3 { box-shadow: 0 12px 16px -4px rgba(43, 92, 117, 0.12), 0 4px 6px -2px rgba(43, 92, 117, 0.05); }
+
+    /* Animaciones de Entrada (M3 Entry Animations) */
+    .animate-fade-down-m3 {
+      animation: fadeDownM3 350ms var(--t-entry) forwards;
+    }
+    .animate-fade-up-m3 {
+      opacity: 0;
+      animation: fadeUpM3 var(--t-entry) 50ms forwards;
+    }
+    @keyframes fadeDownM3 {
+      0% { opacity: 0; transform: translateY(-16px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeUpM3 {
+      0% { opacity: 0; transform: translateY(24px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Text fields outlined con floating label real */
+    .m3-field-container {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+    .m3-input {
+      width: 100%;
+      height: 56px;
+      padding: 0 16px 0 44px;
+      font-size: 1rem;
+      border: 1.5px solid var(--md-surface-5);
+      border-radius: 16px; /* Shape input: 16px */
+      background: var(--md-surface-1);
+      color: var(--md-text-1);
+      transition: border var(--t-short), box-shadow var(--t-short);
+      outline: none;
+    }
+    .m3-input:hover {
+      border-color: var(--md-text-2);
+    }
+    .m3-input:focus {
+      border-color: var(--md-primary);
+      border-width: 2px;
+      box-shadow: 0 0 0 3px var(--md-primary-glow);
+    }
+    
+    /* Lógica Floating Label nativa */
+    .m3-label {
+      position: absolute;
+      left: 40px;
+      top: 16px;
+      font-size: 1rem;
+      color: var(--md-text-3);
+      pointer-events: none;
+      transition: transform var(--t-short), font-size var(--t-short), color var(--t-short), background var(--t-short);
+      padding: 0 4px;
+      background: transparent;
+    }
+    .m3-input:focus ~ .m3-label,
+    .m3-input:not(:placeholder-shown) ~ .m3-label {
+      transform: translate(-4px, -26px) scale(0.85);
+      background: var(--md-surface-1);
+      color: var(--md-primary);
+    }
+    .m3-input:focus ~ .m3-icon-leading {
+      color: var(--md-primary);
+    }
+
+    /* Iconos */
+    .m3-icon-leading {
+      position: absolute;
+      left: 14px;
+      top: 16px;
+      color: var(--md-text-3);
+      transition: color var(--t-short);
+      user-select: none;
+    }
+    .m3-icon-trailing {
+      position: absolute;
+      right: 14px;
+      top: 16px;
+      display: none;
+      user-select: none;
+    }
+
+    /* Estado de Error en M3 */
+    .m3-field-container.has-error .m3-input {
+      border-color: var(--md-error) !important;
+    }
+    .m3-field-container.has-error .m3-label {
+      color: var(--md-error) !important;
+    }
+    .m3-field-container.has-error .m3-icon-leading {
+      color: var(--md-error) !important;
+    }
+    .m3-field-container.has-error .m3-icon-trailing {
+      display: block;
+      color: var(--md-error);
+    }
+    .m3-error-text {
+      font-size: 0.75rem;
+      color: var(--md-error);
+      margin-top: 4px;
+      margin-left: 16px;
+      display: none;
+    }
+    .m3-field-container.has-error .m3-error-text {
+      display: block;
+    }
+
+    /* Range Sliders con diseño premium M3 */
+    .m3-range {
       -webkit-appearance: none;
       appearance: none;
       background: transparent;
       cursor: pointer;
+      height: 32px;
     }
-    .custom-range::-webkit-slider-runnable-track {
-      background: #e2e8f0;
-      border-radius: 9999px;
-      height: 6px;
-      transition: background 0.2s;
+    .m3-range::-webkit-slider-runnable-track {
+      background: var(--md-surface-4);
+      border-radius: 100px;
+      height: 4px;
+      transition: background var(--t-short);
     }
-    .custom-range:hover::-webkit-slider-runnable-track {
-      background: #cbd5e1;
+    .m3-range:hover::-webkit-slider-runnable-track {
+      background: var(--md-surface-5);
     }
-    .custom-range::-webkit-slider-thumb {
+    .m3-range::-webkit-slider-thumb {
       -webkit-appearance: none;
       appearance: none;
-      margin-top: -5px;
-      height: 16px;
-      width: 16px;
-      background-color: #475569; /* Color accent */
-      border-radius: 9999px;
-      border: 2px solid #ffffff;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-      transition: transform 0.1s, background-color 0.2s;
+      margin-top: -8px;
+      height: 20px;
+      width: 20px;
+      background-color: var(--md-primary);
+      border-radius: 100px;
+      box-shadow: 0 1px 3px rgba(43, 92, 117, 0.3);
+      transition: transform var(--t-short), background-color var(--t-short);
     }
-    .custom-range:focus {
-      outline: none;
-    }
-    .custom-range:active::-webkit-slider-thumb {
+    .m3-range:active::-webkit-slider-thumb {
       transform: scale(1.2);
-      background-color: #334155;
+      background-color: #1a3c4e;
     }
-    .custom-range::-moz-range-track {
-      background: #e2e8f0;
-      border-radius: 9999px;
-      height: 6px;
+    .m3-range::-moz-range-track {
+      background: var(--md-surface-4);
+      border-radius: 100px;
+      height: 4px;
     }
-    .custom-range::-moz-range-thumb {
-      height: 16px;
-      width: 16px;
-      background-color: #475569;
-      border-radius: 9999px;
-      border: 2px solid #ffffff;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-      transition: transform 0.1s, background-color 0.2s;
-    }
-    .custom-range:active::-moz-range-thumb {
-      transform: scale(1.2);
+    .m3-range::-moz-range-thumb {
+      height: 20px;
+      width: 20px;
+      background-color: var(--md-primary);
+      border-radius: 100px;
+      border: none;
+      box-shadow: 0 1px 3px rgba(43, 92, 117, 0.3);
+      transition: transform var(--t-short), background-color var(--t-short);
     }
 
-    /* Badge para los valores del slider */
-    .value-badge {
-      font-family: 'DM Mono', monospace;
-      font-size: 0.75rem;
-      min-width: 28px;
-      text-align: center;
+    /* Sub-Cards de Evaluación Funcional con interacción */
+    .m3-card-sub {
+      background: var(--md-surface-1);
+      border: 1px solid var(--md-surface-4);
+      border-radius: 16px; /* Shape cards: 16px */
+      padding: 20px;
+      transition: transform var(--t-medium), box-shadow var(--t-medium), border-color var(--t-medium);
+      cursor: pointer;
+    }
+    .m3-card-sub:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 12px -2px rgba(43, 92, 117, 0.12);
+    }
+    .m3-card-sub.selected-card {
+      transform: translateY(-3px);
+      border-color: var(--md-primary);
+      box-shadow: 0 8px 16px -4px rgba(43, 92, 117, 0.16);
+    }
+
+    /* Efecto Ripple (Onda M3) */
+    .ripple {
+      position: absolute;
+      border-radius: 50%;
+      transform: scale(0);
+      animation: rippleEffect 600ms linear;
+      pointer-events: none;
+    }
+    @keyframes rippleEffect {
+      to {
+        transform: scale(4);
+        opacity: 0;
+      }
+    }
+    .ripple-dark { background: rgba(0, 0, 0, 0.08); }
+    .ripple-light { background: rgba(255, 255, 255, 0.25); }
+
+    /* Forzar diseño responsivo M3 a 1 columna por debajo de 600px */
+    @media (max-width: 600px) {
+      .m3-responsive-grid {
+        grid-template-columns: 1fr !important;
+      }
+      body {
+        padding: 16px 8px;
+      }
     }
   </style>
 </head>
-<body class="bg-bg text-text-1 min-h-screen py-10 px-5 font-sans antialiased">
+<body class="min-h-screen py-10 px-4 antialiased">
 
   <!-- Header -->
-  <header class="max-w-[820px] mx-auto mb-7 flex items-center gap-4 animate-fade-down">
-    <div class="w-12 h-12 bg-slate-700 rounded-xl flex items-center justify-center shrink-0">
-      <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
-      </svg>
+  <header class="max-w-[820px] mx-auto mb-8 flex items-center gap-4 animate-fade-down-m3">
+    <div class="w-12 h-12 bg-[#2b5c75] rounded-[16px] flex items-center justify-center shrink-0 shadow-m3-1">
+      <span class="material-symbols-outlined text-white text-[24px]">assignment</span>
     </div>
     <div>
-      <h1 class="text-[1.35rem] font-semibold tracking-tight leading-tight text-text-1">Valoración de Dolor y Función</h1>
-      <p class="text-[0.8125rem] text-text-3 mt-0.5">Registre el estado actual del paciente mediante escalas validadas</p>
+      <h1 class="text-[1.5rem] font-semibold tracking-tight text-text-1" style="color: var(--md-text-1)">Valoración de Dolor y Función</h1>
+      <p class="text-[0.875rem] mt-0.5" style="color: var(--md-text-3)">Registre el estado actual del paciente mediante escalas validadas</p>
     </div>
-    <div id="badgeDate" class="ml-auto font-mono text-[0.7rem] text-text-3 bg-surface border border-border px-3 py-1.5 rounded-md whitespace-nowrap hidden sm:block"></div>
+    <div id="badgeDate" class="ml-auto font-mono text-[0.75rem] border rounded-[100px] px-4 py-1.5 hidden sm:block shadow-m3-1" style="background: var(--md-surface-1); border-color: var(--md-surface-4); color: var(--md-text-2)"></div>
   </header>
 
-  <!-- Main Card -->
-  <div class="bg-surface rounded-[14px] shadow-card border border-border max-w-[820px] mx-auto overflow-hidden animate-fade-up">
+  <!-- Tarjeta Principal (Shape: 28px) -->
+  <div class="rounded-[28px] shadow-m3-2 max-w-[820px] mx-auto overflow-hidden animate-fade-up-m3 border" style="background: var(--md-surface-1); border-color: var(--md-surface-4);">
     <form id="valoracionForm" onsubmit="handleFormSubmit(event)" novalidate>
 
       <!-- SECCIÓN 1: Identificación -->
-      <div class="p-7 border-b border-border">
-        <div class="flex items-center gap-2 text-[0.6875rem] font-semibold tracking-[0.08em] uppercase text-text-3 mb-5 after:content-[''] after:flex-1 after:h-px after:bg-border">
-          <span class="w-1.5 h-1.5 rounded-full bg-accent shrink-0"></span>Datos del Paciente
+      <div class="p-8 border-b" style="border-color: var(--md-surface-4)">
+        <div class="flex items-center gap-2 text-[0.75rem] font-semibold tracking-[0.08em] uppercase mb-6 after:content-[''] after:flex-1 after:h-px" style="color: var(--md-text-3); after:background: var(--md-surface-4)">
+          <span class="w-2 h-2 rounded-full shrink-0" style="background: var(--md-primary)"></span>Datos del Paciente
         </div>
         
-        <div class="flex flex-col gap-1.5 max-w-md">
-          <label for="nombre" class="flex items-center gap-1.5 text-[0.78rem] font-medium text-text-2">
-            <svg class="w-3.5 h-3.5 text-text-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
-            Nombre completo <span class="text-accent ml-0.5">*</span>
-          </label>
-          <!-- Scriptlet mantenido según requerimiento -->
-          <input type="text" id="nombre" name="nombre" value="<?= nombreUsuario ?>" required
-                 class="w-full px-3.5 py-2.5 border-[1.5px] border-border rounded-lg bg-surface-2 text-text-1 text-[0.875rem]">
+        <div class="m3-field-container max-w-md">
+          <input type="text" id="nombre" name="nombre" value="<?= nombreUsuario ?>" placeholder=" " required class="m3-input">
+          <span class="material-symbols-outlined m3-icon-leading">person</span>
+          <label for="nombre" class="m3-label">Nombre completo *</label>
+          <span class="material-symbols-outlined m3-icon-trailing">error</span>
+          <span class="m3-error-text">El nombre completo es obligatorio</span>
         </div>
       </div>
 
       <!-- SECCIÓN 2: Evaluación del Dolor (Escala PEG) -->
-      <div class="p-7 border-b border-border">
-        <div class="flex items-center gap-2 text-[0.6875rem] font-semibold tracking-[0.08em] uppercase text-text-3 mb-5 after:content-[''] after:flex-1 after:h-px after:bg-border">
-          <span class="w-1.5 h-1.5 rounded-full bg-accent shrink-0"></span>Evaluación del Dolor (PEG)
+      <div class="p-8 border-b" style="border-color: var(--md-surface-4)">
+        <div class="flex items-center gap-2 text-[0.75rem] font-semibold tracking-[0.08em] uppercase mb-6 after:content-[''] after:flex-1 after:h-px" style="color: var(--md-text-3); after:background: var(--md-surface-4)">
+          <span class="w-2 h-2 rounded-full shrink-0" style="background: var(--md-primary)"></span>Evaluación del Dolor (PEG)
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 m3-responsive-grid">
           <!-- Slider 1 -->
-          <div class="flex flex-col justify-between min-h-[110px]">
-            <label for="pegDolor" class="flex flex-col gap-1.5 text-[0.78rem] font-medium text-text-2 mb-3">
+          <div class="flex flex-col justify-between min-h-[120px] p-2">
+            <label for="pegDolor" class="flex flex-col gap-1 text-[0.85rem] font-medium mb-3" style="color: var(--md-text-2)">
               <div class="flex items-center justify-between">
-                <span class="flex items-center gap-1.5">
-                  <svg class="w-3.5 h-3.5 text-text-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                <span class="flex items-center gap-1.5 font-semibold">
+                  <span class="material-symbols-outlined text-[18px]" style="color: var(--md-text-3)">bolt</span>
                   Nivel de dolor
                 </span>
-                <span id="pegDolorValue" class="value-badge text-accent bg-accent-light border border-border px-1.5 py-0.5 rounded">—</span>
+                <span id="pegDolorValue" class="font-mono text-[0.75rem] font-semibold px-2 py-0.5 rounded-[100px] border shadow-m3-1" style="color: var(--md-primary); background: var(--md-primary-container); border-color: var(--md-surface-4)">—</span>
               </div>
-              <span class="text-[0.7rem] text-text-3 font-normal leading-snug">Intensidad promedio en la última semana (0-10)</span>
+              <span class="text-[0.75rem] font-normal leading-snug" style="color: var(--md-text-3)">Intensidad promedio en la última semana (0-10)</span>
             </label>
-            <input type="range" id="pegDolor" name="pegDolor" min="-1" max="10" value="-1" class="custom-range w-full mt-auto">
+            <input type="range" id="pegDolor" name="pegDolor" min="-1" max="10" value="-1" class="m3-range w-full mt-auto">
           </div>
 
           <!-- Slider 2 -->
-          <div class="flex flex-col justify-between min-h-[110px]">
-            <label for="pegActividad" class="flex flex-col gap-1.5 text-[0.78rem] font-medium text-text-2 mb-3">
+          <div class="flex flex-col justify-between min-h-[120px] p-2">
+            <label for="pegActividad" class="flex flex-col gap-1 text-[0.85rem] font-medium mb-3" style="color: var(--md-text-2)">
               <div class="flex items-center justify-between">
-                <span class="flex items-center gap-1.5">
-                  <svg class="w-3.5 h-3.5 text-text-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                <span class="flex items-center gap-1.5 font-semibold">
+                  <span class="material-symbols-outlined text-[18px]" style="color: var(--md-text-3)">work</span>
                   Dificultad en actividad
                 </span>
-                <span id="pegActividadValue" class="value-badge text-accent bg-accent-light border border-border px-1.5 py-0.5 rounded">—</span>
+                <span id="pegActividadValue" class="font-mono text-[0.75rem] font-semibold px-2 py-0.5 rounded-[100px] border shadow-m3-1" style="color: var(--md-primary); background: var(--md-primary-container); border-color: var(--md-surface-4)">—</span>
               </div>
-              <span class="text-[0.7rem] text-text-3 font-normal leading-snug">Impacto en actividades habituales (0-10)</span>
+              <span class="text-[0.75rem] font-normal leading-snug" style="color: var(--md-text-3)">Impacto en actividades habituales (0-10)</span>
             </label>
-            <input type="range" id="pegActividad" name="pegActividad" min="-1" max="10" value="-1" class="custom-range w-full mt-auto">
+            <input type="range" id="pegActividad" name="pegActividad" min="-1" max="10" value="-1" class="m3-range w-full mt-auto">
           </div>
 
           <!-- Slider 3 -->
-          <div class="flex flex-col justify-between min-h-[110px]">
-            <label for="pegVida" class="flex flex-col gap-1.5 text-[0.78rem] font-medium text-text-2 mb-3">
+          <div class="flex flex-col justify-between min-h-[120px] p-2">
+            <label for="pegVida" class="flex flex-col gap-1 text-[0.85rem] font-medium mb-3" style="color: var(--md-text-2)">
               <div class="flex items-center justify-between">
-                <span class="flex items-center gap-1.5">
-                  <svg class="w-3.5 h-3.5 text-text-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <span class="flex items-center gap-1.5 font-semibold">
+                  <span class="material-symbols-outlined text-[18px]" style="color: var(--md-text-3)">monitoring</span>
                   Afectación general
                 </span>
-                <span id="pegVidaValue" class="value-badge text-accent bg-accent-light border border-border px-1.5 py-0.5 rounded">—</span>
+                <span id="pegVidaValue" class="font-mono text-[0.75rem] font-semibold px-2 py-0.5 rounded-[100px] border shadow-m3-1" style="color: var(--md-primary); background: var(--md-primary-container); border-color: var(--md-surface-4)">—</span>
               </div>
-              <span class="text-[0.7rem] text-text-3 font-normal leading-snug">Efecto en la vida diaria en general (0-10)</span>
+              <span class="text-[0.75rem] font-normal leading-snug" style="color: var(--md-text-3)">Efecto en la vida diaria en general (0-10)</span>
             </label>
-            <input type="range" id="pegVida" name="pegVida" min="-1" max="10" value="-1" class="custom-range w-full mt-auto">
+            <input type="range" id="pegVida" name="pegVida" min="-1" max="10" value="-1" class="m3-range w-full mt-auto">
           </div>
         </div>
       </div>
 
       <!-- SECCIÓN 3: Evaluación Funcional -->
-      <div class="p-7 border-b border-border bg-[#fcfdfe]">
-        <div class="flex items-center gap-2 text-[0.6875rem] font-semibold tracking-[0.08em] uppercase text-text-3 mb-5 after:content-[''] after:flex-1 after:h-px after:bg-border">
-          <span class="w-1.5 h-1.5 rounded-full bg-accent shrink-0"></span>Evaluación Funcional
+      <div class="p-8 border-b" style="border-color: var(--md-surface-4); background-color: var(--md-surface-2)">
+        <div class="flex items-center gap-2 text-[0.75rem] font-semibold tracking-[0.08em] uppercase mb-6 after:content-[''] after:flex-1 after:h-px" style="color: var(--md-text-3); after:background: var(--md-surface-4)">
+          <span class="w-2 h-2 rounded-full shrink-0" style="background: var(--md-primary)"></span>Evaluación Funcional
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 m3-responsive-grid">
           
           <!-- Bloque Columna -->
-          <div class="bg-surface-2 border-[1.5px] border-border rounded-lg p-5 flex flex-col justify-between">
+          <div class="m3-card-sub flex flex-col justify-between" onclick="selectM3Card(this)">
             <div>
-              <h4 class="text-[0.8rem] font-semibold text-text-1 mb-4 flex items-center gap-2">
-                <svg class="w-4 h-4 text-text-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"/></svg>
+              <h4 class="text-[0.9rem] font-semibold mb-5 flex items-center gap-2" style="color: var(--md-text-1)">
+                <span class="material-symbols-outlined text-[20px]" style="color: var(--md-text-2)">accessibility_new</span>
                 Columna
               </h4>
               <div class="space-y-5">
                 <div>
-                  <label for="columnaLevantarse" class="flex items-center justify-between text-[0.78rem] font-medium text-text-2 mb-2">
+                  <label for="columnaLevantarse" class="flex items-center justify-between text-[0.8rem] font-medium mb-1" style="color: var(--md-text-2)">
                     <span>Levantarse de la cama</span>
-                    <span id="columnaLevantarseValue" class="value-badge text-accent bg-surface border border-border px-1.5 py-0.5 rounded shadow-sm">—</span>
+                    <span id="columnaLevantarseValue" class="font-mono text-[0.7rem] font-semibold px-1.5 py-0.5 rounded-[100px]" style="background: var(--md-surface-4); color: var(--md-text-1)">—</span>
                   </label>
-                  <input type="range" id="columnaLevantarse" name="columnaLevantarse" min="-1" max="10" value="-1" class="custom-range w-full">
+                  <input type="range" id="columnaLevantarse" name="columnaLevantarse" min="-1" max="10" value="-1" class="m3-range w-full">
                 </div>
                 <div>
-                  <label for="columnaAgacharse" class="flex items-center justify-between text-[0.78rem] font-medium text-text-2 mb-2">
+                  <label for="columnaAgacharse" class="flex items-center justify-between text-[0.8rem] font-medium mb-1" style="color: var(--md-text-2)">
                     <span class="truncate pr-2">Agacharse al suelo</span>
-                    <span id="columnaAgacharseValue" class="value-badge text-accent bg-surface border border-border px-1.5 py-0.5 rounded shadow-sm">—</span>
+                    <span id="columnaAgacharseValue" class="font-mono text-[0.7rem] font-semibold px-1.5 py-0.5 rounded-[100px]" style="background: var(--md-surface-4); color: var(--md-text-1)">—</span>
                   </label>
-                  <input type="range" id="columnaAgacharse" name="columnaAgacharse" min="-1" max="10" value="-1" class="custom-range w-full">
+                  <input type="range" id="columnaAgacharse" name="columnaAgacharse" min="-1" max="10" value="-1" class="m3-range w-full">
                 </div>
               </div>
             </div>
-            <p class="text-[0.65rem] text-text-3 mt-5 text-center">0=Incapaz / 10=Sin dificultad</p>
+            <p class="text-[0.7rem] mt-5 text-center font-medium" style="color: var(--md-text-3)">0=Incapaz / 10=Sin dificultad</p>
           </div>
 
           <!-- Bloque MS -->
-          <div class="bg-surface-2 border-[1.5px] border-border rounded-lg p-5 flex flex-col justify-between">
+          <div class="m3-card-sub flex flex-col justify-between" onclick="selectM3Card(this)">
             <div>
-              <h4 class="text-[0.8rem] font-semibold text-text-1 mb-4 flex items-center gap-2">
-                <svg class="w-4 h-4 text-text-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0m-3 6a1.5 1.5 0 00-3 0v2a7.5 7.5 0 0015 0v-5a1.5 1.5 0 00-3 0m-6-3V11m0-5.5v-1a1.5 1.5 0 013 0v1m0 0V11"/></svg>
+              <h4 class="text-[0.9rem] font-semibold mb-5 flex items-center gap-2" style="color: var(--md-text-1)">
+                <span class="material-symbols-outlined text-[20px]" style="color: var(--md-text-2)">pan_tool</span>
                 Miembro Superior
               </h4>
               <div class="space-y-5">
                 <div>
-                  <label for="msVestirse" class="flex items-center justify-between text-[0.78rem] font-medium text-text-2 mb-2">
+                  <label for="msVestirse" class="flex items-center justify-between text-[0.8rem] font-medium mb-1" style="color: var(--md-text-2)">
                     <span>Vestirse y peinarse</span>
-                    <span id="msVestirseValue" class="value-badge text-accent bg-surface border border-border px-1.5 py-0.5 rounded shadow-sm">—</span>
+                    <span id="msVestirseValue" class="font-mono text-[0.7rem] font-semibold px-1.5 py-0.5 rounded-[100px]" style="background: var(--md-surface-4); color: var(--md-text-1)">—</span>
                   </label>
-                  <input type="range" id="msVestirse" name="msVestirse" min="-1" max="10" value="-1" class="custom-range w-full">
+                  <input type="range" id="msVestirse" name="msVestirse" min="-1" max="10" value="-1" class="m3-range w-full">
                 </div>
                 <div>
-                  <label for="msAlcanzar" class="flex items-center justify-between text-[0.78rem] font-medium text-text-2 mb-2">
+                  <label for="msAlcanzar" class="flex items-center justify-between text-[0.8rem] font-medium mb-1" style="color: var(--md-text-2)">
                     <span>Alcanzar objetos altos</span>
-                    <span id="msAlcanzarValue" class="value-badge text-accent bg-surface border border-border px-1.5 py-0.5 rounded shadow-sm">—</span>
+                    <span id="msAlcanzarValue" class="font-mono text-[0.7rem] font-semibold px-1.5 py-0.5 rounded-[100px]" style="background: var(--md-surface-4); color: var(--md-text-1)">—</span>
                   </label>
-                  <input type="range" id="msAlcanzar" name="msAlcanzar" min="-1" max="10" value="-1" class="custom-range w-full">
+                  <input type="range" id="msAlcanzar" name="msAlcanzar" min="-1" max="10" value="-1" class="m3-range w-full">
                 </div>
               </div>
             </div>
-            <p class="text-[0.65rem] text-text-3 mt-5 text-center">0=Incapaz / 10=Sin dificultad</p>
+            <p class="text-[0.7rem] mt-5 text-center font-medium" style="color: var(--md-text-3)">0=Incapaz / 10=Sin dificultad</p>
           </div>
 
           <!-- Bloque MI -->
-          <div class="bg-surface-2 border-[1.5px] border-border rounded-lg p-5 flex flex-col justify-between">
+          <div class="m3-card-sub flex flex-col justify-between" onclick="selectM3Card(this)">
             <div>
-              <h4 class="text-[0.8rem] font-semibold text-text-1 mb-4 flex items-center gap-2">
-                <svg class="w-4 h-4 text-text-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+              <h4 class="text-[0.9rem] font-semibold mb-5 flex items-center gap-2" style="color: var(--md-text-1)">
+                <span class="material-symbols-outlined text-[20px]" style="color: var(--md-text-2)">directions_walk</span>
                 Miembro Inferior
               </h4>
               <div class="space-y-5">
                 <div>
-                  <label for="miCaminar" class="flex items-center justify-between text-[0.78rem] font-medium text-text-2 mb-2">
+                  <label for="miCaminar" class="flex items-center justify-between text-[0.8rem] font-medium mb-1" style="color: var(--md-text-2)">
                     <span>Caminar 10m normal</span>
-                    <span id="miCaminarValue" class="value-badge text-accent bg-surface border border-border px-1.5 py-0.5 rounded shadow-sm">—</span>
+                    <span id="miCaminarValue" class="font-mono text-[0.7rem] font-semibold px-1.5 py-0.5 rounded-[100px]" style="background: var(--md-surface-4); color: var(--md-text-1)">—</span>
                   </label>
-                  <input type="range" id="miCaminar" name="miCaminar" min="-1" max="10" value="-1" class="custom-range w-full">
+                  <input type="range" id="miCaminar" name="miCaminar" min="-1" max="10" value="-1" class="m3-range w-full">
                 </div>
                 <div>
-                  <label for="miEscaleras" class="flex items-center justify-between text-[0.78rem] font-medium text-text-2 mb-2">
+                  <label for="miEscaleras" class="flex items-center justify-between text-[0.8rem] font-medium mb-1" style="color: var(--md-text-2)">
                     <span>Subir/bajar escaleras</span>
-                    <span id="miEscalerasValue" class="value-badge text-accent bg-surface border border-border px-1.5 py-0.5 rounded shadow-sm">—</span>
+                    <span id="miEscalerasValue" class="font-mono text-[0.7rem] font-semibold px-1.5 py-0.5 rounded-[100px]" style="background: var(--md-surface-4); color: var(--md-text-1)">—</span>
                   </label>
-                  <input type="range" id="miEscaleras" name="miEscaleras" min="-1" max="10" value="-1" class="custom-range w-full">
+                  <input type="range" id="miEscaleras" name="miEscaleras" min="-1" max="10" value="-1" class="m3-range w-full">
                 </div>
                 <div>
-                  <label for="miSilla" class="flex items-center justify-between text-[0.78rem] font-medium text-text-2 mb-2">
+                  <label for="miSilla" class="flex items-center justify-between text-[0.8rem] font-medium mb-1" style="color: var(--md-text-2)">
                     <span>Levantarse de silla</span>
-                    <span id="miSillaValue" class="value-badge text-accent bg-surface border border-border px-1.5 py-0.5 rounded shadow-sm">—</span>
+                    <span id="miSillaValue" class="font-mono text-[0.7rem] font-semibold px-1.5 py-0.5 rounded-[100px]" style="background: var(--md-surface-4); color: var(--md-text-1)">—</span>
                   </label>
-                  <input type="range" id="miSilla" name="miSilla" min="-1" max="10" value="-1" class="custom-range w-full">
+                  <input type="range" id="miSilla" name="miSilla" min="-1" max="10" value="-1" class="m3-range w-full">
                 </div>
               </div>
             </div>
-            <p class="text-[0.65rem] text-text-3 mt-5 text-center">0=Incapaz / 10=Sin dificultad</p>
+            <p class="text-[0.7rem] mt-5 text-center font-medium" style="color: var(--md-text-3)">0=Incapaz / 10=Sin dificultad</p>
           </div>
           
         </div>
       </div>
 
       <!-- SECCIÓN 4: Analgésicos -->
-      <div class="p-7 border-b border-border">
-        <div class="flex items-center gap-2 text-[0.6875rem] font-semibold tracking-[0.08em] uppercase text-text-3 mb-5 after:content-[''] after:flex-1 after:h-px after:bg-border">
-          <span class="w-1.5 h-1.5 rounded-full bg-accent shrink-0"></span>Consumo de Analgésicos
+      <div class="p-8 border-b" style="border-color: var(--md-surface-4)">
+        <div class="flex items-center gap-2 text-[0.75rem] font-semibold tracking-[0.08em] uppercase mb-6 after:content-[''] after:flex-1 after:h-px" style="color: var(--md-text-3); after:background: var(--md-surface-4)">
+          <span class="w-2 h-2 rounded-full shrink-0" style="background: var(--md-primary)"></span>Consumo de Analgésicos
         </div>
         
-        <div class="max-w-xl mx-auto bg-surface-2 border border-border rounded-lg p-6">
-          <label for="analgesicos" class="flex items-center justify-between text-[0.78rem] font-medium text-text-2 mb-4">
+        <div class="max-w-xl mx-auto rounded-16 p-6 border shadow-m3-1" style="background: var(--md-surface-2); border-color: var(--md-surface-4); border-radius: 16px;">
+          <label for="analgesicos" class="flex items-center justify-between text-[0.85rem] font-semibold mb-4" style="color: var(--md-text-2)">
             <span class="flex items-center gap-1.5">
-              <svg class="w-3.5 h-3.5 text-text-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg>
+              <span class="material-symbols-outlined text-[18px]" style="color: var(--md-text-3)">medication</span>
               Frecuencia de consumo
             </span>
-            <span id="analgesicosValue" class="value-badge text-accent bg-surface border border-border px-2 py-0.5 rounded shadow-sm">—</span>
+            <span id="analgesicosValue" class="font-mono text-[0.75rem] font-semibold px-2 py-0.5 rounded-[100px] border" style="background: var(--md-surface-1); border-color: var(--md-surface-4); color: var(--md-text-1)">—</span>
           </label>
-          <input type="range" id="analgesicos" name="analgesicos" min="-1" max="5" value="-1" class="custom-range w-full mb-3">
-          <div id="analgesicosDescription" class="text-[0.875rem] font-semibold text-accent text-center bg-white py-2 rounded border border-border shadow-sm transition-all duration-200">Sin registrar</div>
+          <input type="range" id="analgesicos" name="analgesicos" min="-1" max="5" value="-1" class="m3-range w-full mb-4">
+          <div id="analgesicosDescription" class="text-[0.9rem] font-medium text-center py-3 rounded-[12px] border shadow-m3-1 transition-all duration-200" style="background: var(--md-surface-1); border-color: var(--md-surface-4); color: var(--md-primary)">Sin registrar</div>
         </div>
       </div>
 
       <!-- Submit Section -->
-      <div class="p-6 sm:px-7 sm:py-6 bg-surface-2 flex flex-col sm:flex-row items-center gap-4">
-        <button type="submit" id="submitButton" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-accent hover:bg-slate-700 text-white rounded-lg font-sans text-[0.875rem] font-semibold transition-all shadow-sm hover:shadow-md active:translate-y-px disabled:opacity-50 disabled:cursor-not-allowed">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
+      <div class="p-6 sm:p-8 flex flex-col sm:flex-row items-center gap-4" style="background: var(--md-surface-2)">
+        <button type="submit" id="submitButton" class="relative overflow-hidden w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-[100px] text-[0.875rem] font-semibold transition-all shadow-m3-1 hover:shadow-m3-2 active:translate-y-px disabled:opacity-50 disabled:cursor-not-allowed" style="background-color: var(--md-primary); color: #ffffff;" onclick="createRipple(event, 'light')">
+          <span class="material-symbols-outlined text-[18px]">save</span>
           Guardar Valoración
         </button>
-        <p class="text-[0.75rem] text-text-3 leading-relaxed">Los campos marcados con <strong class="text-accent">*</strong> son obligatorios.</p>
+        <p class="text-[0.75rem] leading-relaxed" style="color: var(--md-text-3)">Los campos marcados con <strong style="color: var(--md-primary)">*</strong> son obligatorios.</p>
       </div>
 
     </form>
   </div>
 
   <!-- Message Box -->
-  <div id="messageBox" class="hidden max-w-[820px] mx-auto mt-4 p-3.5 rounded-lg text-[0.875rem] font-medium border-[1.5px] animate-fade-up text-center"></div>
+  <div id="messageBox" class="hidden max-w-[820px] mx-auto mt-5 p-4 rounded-[16px] text-[0.9rem] font-medium border-2 text-center animate-fade-up-m3"></div>
 
   <script>
-    // Fecha en el Header
+    // Configuración de fecha del header
     const badgeDate = document.getElementById('badgeDate');
     if (badgeDate) {
       badgeDate.textContent = new Date().toLocaleDateString('es-ES', { weekday:'short', day:'numeric', month:'short', year:'numeric' });
     }
 
-    // Lógica para mostrar el valor de los sliders numéricos
+    // Efecto de interacción para sub-cards funcionales
+    function selectM3Card(element) {
+      document.querySelectorAll('.m3-card-sub').forEach(card => card.classList.remove('selected-card'));
+      element.classList.add('selected-card');
+    }
+
+    // Ripple Effect adaptado a las especificaciones M3 (desde el punto exacto de clic)
+    function createRipple(event, theme) {
+      const button = event.currentTarget;
+      const circle = document.createElement("span");
+      const diameter = Math.max(button.clientWidth, button.clientHeight);
+      const radius = diameter / 2;
+
+      circle.style.width = circle.style.height = `${diameter}px`;
+      circle.style.left = `${event.clientX - button.getBoundingClientRect().left - radius}px`;
+      circle.style.top = `${event.clientY - button.getBoundingClientRect().top - radius}px`;
+      circle.classList.add("ripple");
+      
+      if(theme === 'light') {
+        circle.classList.add("ripple-light");
+      } else {
+        circle.classList.add("ripple-dark");
+      }
+
+      const prevRipple = button.getElementsByClassName("ripple")[0];
+      if (prevRipple) { prevRipple.remove(); }
+      button.appendChild(circle);
+    }
+
+    // Lógica de actualización de sliders numéricos
     function updateSliderValue(sliderId, valueSpanId) {
       const slider = document.getElementById(sliderId);
       const valueSpan = document.getElementById(valueSpanId);
@@ -381,7 +539,7 @@
       }
     }
     
-    // Lógica específica para el slider de Analgésicos
+    // Descripciones para el slider de analgésicos
     const analgesicosDescriptions = [
       "Sin registrar", "Ninguno", "Ocasional (< 1 vez/semana)", 
       "Semanal (1–2 veces/semana)", "Habitual (casi todos los días)", 
@@ -400,13 +558,18 @@
           valueSpan.textContent = displayValue;
           descriptionSpan.textContent = analgesicosDescriptions[descIndex];
           
-          // Cambiar color sutilmente si es alto consumo
           if(sliderValue > 2) {
-             descriptionSpan.classList.add('text-warning');
-             descriptionSpan.classList.remove('text-accent');
+             descriptionSpan.style.color = 'var(--md-warning)';
+             descriptionSpan.style.borderColor = 'var(--md-warning)';
+             descriptionSpan.style.backgroundColor = '#fffbeb';
+          } else if (sliderValue === -1) {
+             descriptionSpan.style.color = 'var(--md-primary)';
+             descriptionSpan.style.borderColor = 'var(--md-surface-4)';
+             descriptionSpan.style.backgroundColor = 'var(--md-surface-1)';
           } else {
-             descriptionSpan.classList.add('text-accent');
-             descriptionSpan.classList.remove('text-warning');
+             descriptionSpan.style.color = 'var(--md-success)';
+             descriptionSpan.style.borderColor = 'var(--md-success)';
+             descriptionSpan.style.backgroundColor = '#f0fdf4';
           }
         };
         updateDisplay();
@@ -414,7 +577,7 @@
       }
     }
 
-    // Inicializar sliders
+    // Inicialización general de sliders
     window.addEventListener('load', () => {
       ['pegDolor', 'pegActividad', 'pegVida', 
        'columnaLevantarse', 'columnaAgacharse', 
@@ -425,21 +588,34 @@
       updateSliderAndDescription('analgesicos', 'analgesicosValue', 'analgesicosDescription');
     });
 
-    // Manejo del formulario
+    // Control de validación nativo visual M3
+    const nombreInput = document.getElementById('nombre');
+    if(nombreInput) {
+      nombreInput.addEventListener('input', () => {
+        if(nombreInput.value.trim() !== "") {
+          nombreInput.parentElement.classList.remove('has-error');
+        }
+      });
+    }
+
+    // Manejo de envío y procesamiento del formulario
     function handleFormSubmit(event) {
       event.preventDefault();
       const form = document.getElementById('valoracionForm');
+      const containerNombre = nombreInput.parentElement;
       
       if (!form.checkValidity()) { 
+        containerNombre.classList.add('has-error');
         form.reportValidity(); 
         return; 
+      } else {
+        containerNombre.classList.remove('has-error');
       }
 
       const formData = new FormData(form);
       const data = {};
       formData.forEach((value, key) => data[key] = value);
 
-      // Limpieza de datos (convirtiendo -1 en string vacío y el resto en números)
       for (const key in data) {
         const value = data[key];
         if (key === 'nombre') continue;
@@ -453,55 +629,65 @@
       const submitButton = document.getElementById('submitButton');
       const messageBox = document.getElementById('messageBox');
       
-      // Estado de carga
       submitButton.disabled = true;
-      submitButton.innerHTML = `<svg class="animate-spin w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Guardando...`;
+      submitButton.innerHTML = `<svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Guardando...`;
       
       messageBox.classList.add('hidden');
-      messageBox.className = 'hidden max-w-[820px] mx-auto mt-4 p-3.5 rounded-lg text-[0.875rem] font-medium border-[1.5px] animate-fade-up text-center';
+      messageBox.style.display = 'none';
 
-      // Fallback si no está en Apps Script
       if (typeof google === 'undefined' || typeof google.script === 'undefined' || typeof google.script.run === 'undefined') {
         setTimeout(() => {
           messageBox.textContent = "Error: API de Apps Script no disponible. Abre desde Google Sheets.";
+          messageBox.style.display = 'block';
           messageBox.classList.remove('hidden');
-          messageBox.classList.add('bg-error-light', 'text-error', 'border-[#fca5a5]');
+          messageBox.style.backgroundColor = '#fef2f2';
+          messageBox.style.color = 'var(--md-error)';
+          messageBox.style.borderColor = 'var(--md-error)';
           
           submitButton.disabled = false;
-          submitButton.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg> Guardar Valoración`;
+          submitButton.innerHTML = `<span class="material-symbols-outlined text-[18px]">save</span> Guardar Valoración`;
         }, 800);
         return;
       }
 
-      // Llamada real a Apps Script
       google.script.run
         .withSuccessHandler(result => {
           messageBox.textContent = result || "Valoración guardada correctamente.";
+          messageBox.style.display = 'block';
           messageBox.classList.remove('hidden');
-          messageBox.classList.add('bg-success-light', 'text-success', 'border-[#6ee7b7]');
+          messageBox.style.backgroundColor = '#f0fdf4';
+          messageBox.style.color = 'var(--md-success)';
+          messageBox.style.borderColor = 'var(--md-success)';
           
           form.reset();
           
-          // Resetear labels de sliders
           document.querySelectorAll('input[type="range"]').forEach(slider => {
             const valueSpan = document.getElementById(slider.id + 'Value');
             if(valueSpan) valueSpan.textContent = '—';
           });
           const analgesicosDescription = document.getElementById('analgesicosDescription');
-          if(analgesicosDescription) analgesicosDescription.textContent = analgesicosDescriptions[0];
+          if(analgesicosDescription) {
+            analgesicosDescription.textContent = analgesicosDescriptions[0];
+            analgesicosDescription.style.color = 'var(--md-primary)';
+            analgesicosDescription.style.borderColor = 'var(--md-surface-4)';
+            analgesicosDescription.style.backgroundColor = 'var(--md-surface-1)';
+          }
 
           submitButton.disabled = false;
-          submitButton.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg> Guardar Valoración`;
+          submitButton.innerHTML = `<span class="material-symbols-outlined text-[18px]">save</span> Guardar Valoración`;
           
           setTimeout(() => google.script.host.close(), 1500);
         })
         .withFailureHandler(error => {
           messageBox.textContent = "Error: " + error.message;
+          messageBox.style.display = 'block';
           messageBox.classList.remove('hidden');
-          messageBox.classList.add('bg-error-light', 'text-error', 'border-[#fca5a5]');
+          messageBox.style.backgroundColor = '#fef2f2';
+          messageBox.style.color = 'var(--md-error)';
+          messageBox.style.borderColor = 'var(--md-error)';
           
           submitButton.disabled = false;
-          submitButton.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg> Guardar Valoración`;
+          submitButton.innerHTML = `<span class="material-symbols-outlined text-[18px]">save</span> Guardar Valoración`;
         })
         .procesarValoracion(data);
     }
