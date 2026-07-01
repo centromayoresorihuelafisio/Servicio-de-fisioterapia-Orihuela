@@ -12,76 +12,56 @@ function procesarValoracion(data) {
       throw new Error("No se encontró la hoja 'Valoraciones'.");
     }
 
-    // --- LÓGICA DE CORRECCIÓN: Función auxiliar para calcular promedio seguro ---
     /**
-     * Calcula el promedio de un array de valores, ignorando NaN y devuelve
-     * null si no hay valores válidos para promediar.
-     * @param {number[]} values Array de valores numéricos (puede contener NaN).
+     * Calcula el promedio de un array de valores, ignorando null, undefined y NaN.
+     * Devuelve null si no hay valores válidos.
+     * @param {Array} values Array de valores (puede contener null, undefined o NaN).
      * @returns {number|null} El promedio redondeado o null.
      */
     const safeAverage = (values) => {
-      // 1. Filtrar los valores válidos (que no sean NaN)
-      const validValues = values.filter(v => !isNaN(v));
-      
-      // 2. Si no hay valores válidos, retorna null.
-      if (validValues.length === 0) return null; 
-
-      // 3. Calcular la suma y el promedio
+      const validValues = values.filter(v => v !== null && v !== undefined && !isNaN(v));
+      if (validValues.length === 0) return null;
       const sum = validValues.reduce((acc, current) => acc + current, 0);
       return Math.round(sum / validValues.length);
     };
 
     // --- PROCESAMIENTO DE DATOS ---
-    
-    // Convertir los valores PEG y Analgésicos. Si es NaN (no valorado), guardamos null
-    const pegDolor = parseFloat(data.pegDolor);
+
+    // Convertir valores PEG y Analgésicos. Si es NaN (no valorado), se guarda null.
+    const pegDolor     = parseFloat(data.pegDolor);
     const pegActividad = parseFloat(data.pegActividad);
-    const pegVida = parseFloat(data.pegVida);
-    const analgesicos = parseInt(data.analgesicos, 10);
-    
-    // Los campos individuales se guardan como null si no fueron valorados (NaN)
-    const pegDolorOutput = isNaN(pegDolor) ? null : pegDolor;
+    const pegVida      = parseFloat(data.pegVida);
+    const analgesicos  = parseInt(data.analgesicos, 10);
+
+    const pegDolorOutput     = isNaN(pegDolor)     ? null : pegDolor;
     const pegActividadOutput = isNaN(pegActividad) ? null : pegActividad;
-    const pegVidaOutput = isNaN(pegVida) ? null : pegVida;
-    const analgesicosOutput = isNaN(analgesicos) ? null : analgesicos;
+    const pegVidaOutput      = isNaN(pegVida)      ? null : pegVida;
+    const analgesicosOutput  = isNaN(analgesicos)  ? null : analgesicos;
 
+    // 1. Calcular la media de cada sección funcional
+    const mediaColumna = safeAverage([
+      parseFloat(data.columnaLevantarse),
+      parseFloat(data.columnaAgacharse),
+    ]);
 
-    // 1. Calcular la media de cada sección funcional (USANDO safeAverage)
-    
-    // Columna
-    const columnaLevantarse = parseFloat(data.columnaLevantarse);
-    const columnaAgacharse = parseFloat(data.columnaAgacharse);
-    let mediaColumna = safeAverage([columnaLevantarse, columnaAgacharse]);
+    const mediaMS = safeAverage([
+      parseFloat(data.msVestirse),
+      parseFloat(data.msAlcanzar),
+    ]);
 
-    // Miembro Superior (MS)
-    const msVestirse = parseFloat(data.msVestirse);
-    const msAlcanzar = parseFloat(data.msAlcanzar);
-    let mediaMS = safeAverage([msVestirse, msAlcanzar]);
+    const mediaMI = safeAverage([
+      parseFloat(data.miCaminar),
+      parseFloat(data.miEscaleras),
+      parseFloat(data.miSilla),
+    ]);
 
-    // Miembro Inferior (MI)
-    const miCaminar = parseFloat(data.miCaminar);
-    const miEscaleras = parseFloat(data.miEscaleras);
-    const miSilla = parseFloat(data.miSilla);
-    let mediaMI = safeAverage([miCaminar, miEscaleras, miSilla]);
+    // 2. Calcular la Función Global (FG) promediando solo las secciones valoradas.
+    //    safeAverage ya ignora los null internamente, no hace falta filtrar antes.
+    const mediaFG = safeAverage([mediaColumna, mediaMS, mediaMI]);
 
-    // 2. Calcular la media de la Función Global (FG), solo promediando promedios válidos
-    const promediosFuncionales = [mediaColumna, mediaMS, mediaMI];
-    // Quitamos los nulls (ítems no valorados) antes de llamar a safeAverage
-    let mediaFG = safeAverage(promediosFuncionales.filter(v => v !== null)); 
-
-    // 3. SANITIZACIÓN FINAL (Asegura que no se escriba NaN, aunque safeAverage debería evitarlo)
-    mediaColumna = isNaN(mediaColumna) ? null : mediaColumna;
-    mediaMS = isNaN(mediaMS) ? null : mediaMS;
-    mediaMI = isNaN(mediaMI) ? null : mediaMI;
-    mediaFG = isNaN(mediaFG) ? null : mediaFG;
-
-
-    // 4. Preparar la fila para la hoja de cálculo
+    // 3. Preparar la fila para la hoja de cálculo
     const filaDatos = [
-// ELIMINA ESTA LÍNEA COMPLETA:
-//      new Date(), // Fecha actual
-// Y REEMPLÁZALA POR LA SIGUIENTE:
-      new Date().toLocaleDateString('es-ES'), // Solo la fecha en formato local
+      new Date().toLocaleDateString('es-ES'),
       data.nombre,
       pegDolorOutput,
       pegActividadOutput,
@@ -93,13 +73,95 @@ function procesarValoracion(data) {
       analgesicosOutput,
     ];
 
-    // Añadir la nueva fila a la hoja de cálculo
     sheet.appendRow(filaDatos);
-
     return "Valoración guardada con éxito.";
 
   } catch (e) {
     Logger.log("Error al procesar valoración: " + e.message);
     throw new Error("Error al guardar la valoración: " + e.message);
   }
+}
+/**
+ * Función de testeo de errores de cálculo
+ */
+function testProcesarValoracion() {
+  const casos = [
+    {
+      nombre: "Caso 1 – Todo valorado",
+      data: {
+        nombre: "Paciente A",
+        pegDolor: "7", pegActividad: "5", pegVida: "6",
+        columnaLevantarse: "4", columnaAgacharse: "6",
+        msVestirse: "3", msAlcanzar: "5",
+        miCaminar: "4", miEscaleras: "6", miSilla: "2",
+        analgesicos: "2",
+      },
+      // mediaColumna=5, mediaMS=4, mediaMI=4 → mediaFG=4
+      esperado: { mediaColumna: 5, mediaMS: 4, mediaMI: 4, mediaFG: 4 },
+    },
+    {
+      nombre: "Caso 2 – Columna no valorada",
+      data: {
+        nombre: "Paciente B",
+        pegDolor: "", pegActividad: "", pegVida: "",
+        columnaLevantarse: "", columnaAgacharse: "",  // <-- sin valorar
+        msVestirse: "6", msAlcanzar: "4",
+        miCaminar: "8", miEscaleras: "6", miSilla: "4",
+        analgesicos: "",
+      },
+      // mediaColumna=null, mediaMS=5, mediaMI=6 → mediaFG=6 (solo MS y MI)
+      esperado: { mediaColumna: null, mediaMS: 5, mediaMI: 6, mediaFG: 6 },
+    },
+    {
+      nombre: "Caso 3 – Nada valorado",
+      data: {
+        nombre: "Paciente C",
+        pegDolor: "", pegActividad: "", pegVida: "",
+        columnaLevantarse: "", columnaAgacharse: "",
+        msVestirse: "", msAlcanzar: "",
+        miCaminar: "", miEscaleras: "", miSilla: "",
+        analgesicos: "",
+      },
+      // Todo null → mediaFG debe ser null, no 0
+      esperado: { mediaColumna: null, mediaMS: null, mediaMI: null, mediaFG: null },
+    },
+  ];
+
+  // Replicar la lógica de safeAverage aquí para poder testearla de forma aislada
+  const safeAverage = (values) => {
+    const validValues = values.filter(v => v !== null && v !== undefined && !isNaN(v));
+    if (validValues.length === 0) return null;
+    const sum = validValues.reduce((acc, current) => acc + current, 0);
+    return Math.round(sum / validValues.length);
+  };
+
+  let todosCorrecto = true;
+
+  casos.forEach(caso => {
+    const d = caso.data;
+    const mediaColumna = safeAverage([parseFloat(d.columnaLevantarse), parseFloat(d.columnaAgacharse)]);
+    const mediaMS      = safeAverage([parseFloat(d.msVestirse), parseFloat(d.msAlcanzar)]);
+    const mediaMI      = safeAverage([parseFloat(d.miCaminar), parseFloat(d.miEscaleras), parseFloat(d.miSilla)]);
+    const mediaFG      = safeAverage([mediaColumna, mediaMS, mediaMI]);
+
+    const resultados = { mediaColumna, mediaMS, mediaMI, mediaFG };
+    const esp        = caso.esperado;
+
+    const ok =
+      resultados.mediaColumna === esp.mediaColumna &&
+      resultados.mediaMS      === esp.mediaMS      &&
+      resultados.mediaMI      === esp.mediaMI      &&
+      resultados.mediaFG      === esp.mediaFG;
+
+    if (ok) {
+      Logger.log(`✅ ${caso.nombre} → CORRECTO`);
+    } else {
+      todosCorrecto = false;
+      Logger.log(`❌ ${caso.nombre} → ERROR`);
+      Logger.log(`   Esperado:  ${JSON.stringify(esp)}`);
+      Logger.log(`   Obtenido:  ${JSON.stringify(resultados)}`);
+    }
+  });
+
+  Logger.log(todosCorrecto ? "✅ Todos los tests pasaron." : "❌ Hay fallos. Revisa los logs.");
 }
