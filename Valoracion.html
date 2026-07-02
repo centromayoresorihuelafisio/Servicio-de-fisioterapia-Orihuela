@@ -122,7 +122,6 @@
     @keyframes spin { to { transform: rotate(360deg); } }
     .spinner { animation: spin .8s linear infinite; }
 
-    /* ── Focus Ring Normativo M3 ── */
     *:focus-visible {
       outline: 2px solid var(--md-primary);
       outline-offset: 2px;
@@ -148,55 +147,34 @@
     }
     .logo-mark .ms { font-size: 24px; font-variation-settings: 'FILL' 1; }
     .header-text h1 {
-      font-size: 1.5rem;
-      font-weight: 400;
-      color: var(--md-on-surface);
-      line-height: 1.25;
-      letter-spacing: -0.01em;
+      font-size: 1.5rem; font-weight: 400; color: var(--md-on-surface);
+      line-height: 1.25; letter-spacing: -0.01em;
     }
     .header-text p {
-      font-size: .875rem;
-      color: var(--md-on-surface-variant);
-      margin-top: .25rem;
+      font-size: .875rem; color: var(--md-on-surface-variant); margin-top: .25rem;
     }
     .badge-date {
-      margin-left: auto;
-      display: inline-flex;
-      align-items: center;
-      gap: .375rem;
-      font-size: .75rem;
-      font-weight: 500;
-      color: var(--md-on-surface-variant);
-      background: var(--md-surface-container-low);
-      border: 1px solid var(--md-outline-variant);
-      padding: .375rem .75rem;
-      border-radius: var(--md-shape-full);
+      margin-left: auto; display: inline-flex; align-items: center; gap: .375rem;
+      font-size: .75rem; font-weight: 500; color: var(--md-on-surface-variant);
+      background: var(--md-surface-container-low); border: 1px solid var(--md-outline-variant);
+      padding: .375rem .75rem; border-radius: var(--md-shape-full);
     }
 
     /* ── Barra de Progreso Sticky ── */
     .progress-wrap {
-      position: sticky;
-      top: 0;
-      z-index: 100;
-      background: var(--md-surface);
-      max-width: 860px;
-      margin: 0 auto 1.25rem;
-      padding: 1rem 0;
-      border-bottom: 1px solid var(--md-surface-container-highest);
+      position: sticky; top: 0; z-index: 100;
+      background: var(--md-surface); max-width: 860px; margin: 0 auto 1.25rem;
+      padding: 1rem 0; border-bottom: 1px solid var(--md-surface-container-highest);
       animation: md-fade-down var(--md-dur-long) var(--md-ease) 50ms both;
     }
     .progress-steps {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 8px;
+      display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
     }
     .progress-step {
       display: flex; align-items: center; gap: 6px;
       font-size: .6875rem; font-weight: 600;
       letter-spacing: .05em; text-transform: uppercase;
-      color: var(--md-on-surface-variant);
-      opacity: 0.6;
+      color: var(--md-on-surface-variant); opacity: 0.6;
       transition: opacity var(--md-dur-short) var(--md-ease), color var(--md-dur-short) var(--md-ease);
     }
     .progress-step .dot {
@@ -209,414 +187,247 @@
     .progress-sep { flex: 1; height: 1px; background: var(--md-surface-container-highest); }
     
     .progress-track {
-      width: 100%; height: 4px;
-      background: var(--md-surface-container-highest);
-      border-radius: var(--md-shape-full);
-      overflow: hidden;
+      width: 100%; height: 4px; background: var(--md-surface-container-highest);
+      border-radius: var(--md-shape-full); overflow: hidden;
     }
     .progress-fill {
-      height: 100%;
-      background: var(--md-primary);
-      border-radius: var(--md-shape-full);
-      width: 0%;
-      transition: width var(--md-dur-long) var(--md-ease);
+      height: 100%; background: var(--md-primary); border-radius: var(--md-shape-full);
+      width: 0%; transition: width var(--md-dur-long) var(--md-ease);
     }
 
     /* ── Card Principal M3 ── */
     .card {
       background: var(--md-surface-container-lowest);
-      border-radius: var(--md-shape-xl);
-      box-shadow: var(--md-elev-1);
-      max-width: 860px;
-      margin: 0 auto;
-      overflow: hidden;
+      border-radius: var(--md-shape-xl); box-shadow: var(--md-elev-1);
+      max-width: 860px; margin: 0 auto; overflow: hidden;
       animation: md-fade-up var(--md-dur-long) var(--md-ease) 100ms both;
     }
-    .card-section {
-      padding: 2rem 2.25rem;
-      border-bottom: 1px solid var(--md-outline-variant);
-    }
+    .card-section { padding: 2rem 2.25rem; border-bottom: 1px solid var(--md-outline-variant); }
     .card-section:last-child { border-bottom: none; }
 
-    /* Section label chip M3 - Rediseñado en forma de Píldora (Pill) */
-    .section-label {
-      display: flex; align-items: center; gap: 1rem;
-      margin-bottom: 1.5rem;
-    }
+    .section-label { display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem; }
     .section-label-chip {
-      display: inline-flex;
-      align-items: center;
-      gap: .5rem;
-      font-size: .75rem;
-      font-weight: 600;
-      letter-spacing: .05em;
-      text-transform: uppercase;
-      color: var(--md-on-primary-container);
-      background: var(--md-primary-container);
-      padding: .375rem 1.25rem .375rem 1rem; /* Padding equilibrado para una píldora M3 */
-      border-radius: var(--md-shape-full); /* Esquinas con curvatura total tipo píldora */
+      display: inline-flex; align-items: center; gap: .5rem;
+      font-size: .75rem; font-weight: 600; letter-spacing: .05em; text-transform: uppercase;
+      color: var(--md-on-primary-container); background: var(--md-primary-container);
+      padding: .375rem 1.25rem .375rem 1rem; border-radius: var(--md-shape-full);
     }
     .section-label-chip .ms { font-size: 16px; color: var(--md-primary); }
     .section-divider { flex: 1; height: 1px; background: var(--md-surface-container-highest); }
 
-    /* ── Grid ── */
     .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.25rem; }
     .grid-peg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; }
 
-    /* ── M3 Outlined Text Field (Alineado con especificación M3 de 8px) ── */
-    .md-field {
-      position: relative;
-      display: flex;
-      flex-direction: column;
-      margin-bottom: 0.5rem;
+    /* ── Autocompletado M3 ── */
+    .ms-autocomplete-wrapper { position: relative; width: 100%; }
+    .ms-menu {
+      position: absolute; top: 100%; left: 0; right: 0;
+      background: var(--md-surface-container-lowest);
+      border-radius: var(--md-shape-sm);
+      box-shadow: var(--md-elev-1);
+      max-height: 220px; overflow-y: auto; z-index: 100;
+      border: 1px solid var(--md-outline-variant);
+      margin-top: 4px; display: none;
     }
-    .md-field-inner {
-      position: relative;
-      display: flex;
-      align-items: center;
+    .ms-menu-item {
+      padding: 12px 16px; cursor: pointer;
+      font-size: .875rem; color: var(--md-on-surface);
+      border-bottom: 1px solid var(--md-surface-container-highest);
+      transition: background var(--md-dur-short);
     }
+    .ms-menu-item:last-child { border-bottom: none; }
+    .ms-menu-item:hover { background: var(--md-surface-container-high); }
+
+    /* ── Selector Tipo Valoración (Segmented Buttons M3) ── */
+    .segmented-btn {
+      display: flex; background: var(--md-surface-container-high);
+      border-radius: var(--md-shape-full); overflow: hidden; width: fit-content;
+      padding: 2px; gap: 2px;
+    }
+    .seg-label {
+      padding: 8px 24px; cursor: pointer; font-size: .875rem; font-weight: 500;
+      color: var(--md-on-surface-variant); border-radius: var(--md-shape-full);
+      transition: all var(--md-dur-short) var(--md-ease);
+    }
+    .segmented-btn input[type="radio"] { display: none; }
+    .segmented-btn input[type="radio"]:checked + .seg-label {
+      background: var(--md-primary-container);
+      color: var(--md-on-primary-container);
+    }
+
+    /* ── Textarea M3 ── */
+    .md-textarea {
+      width: 100%; padding: 16px; border: 1px solid var(--md-outline);
+      border-radius: var(--md-shape-md); background: transparent;
+      font-family: var(--md-font); font-size: 1rem; color: var(--md-on-surface);
+      resize: vertical; min-height: 100px;
+      transition: border-color var(--md-dur-short) var(--md-ease);
+    }
+    .md-textarea:focus {
+      border-color: var(--md-primary); border-width: 2px; padding: 15px; outline: none;
+    }
+
+    /* ── M3 Outlined Text Field ── */
+    .md-field { position: relative; display: flex; flex-direction: column; margin-bottom: 0.5rem; }
+    .md-field-inner { position: relative; display: flex; align-items: center; }
     .md-field-inner .leading-icon {
-      position: absolute; left: 16px; top: 50%;
-      transform: translateY(-50%);
-      color: var(--md-on-surface-variant);
-      pointer-events: none; z-index: 1;
+      position: absolute; left: 16px; top: 50%; transform: translateY(-50%);
+      color: var(--md-on-surface-variant); pointer-events: none; z-index: 1;
     }
     .md-field-inner .leading-icon .ms { font-size: 24px; transition: color var(--md-dur-short) var(--md-ease); }
     
     .md-field label {
-      position: absolute;
-      left: 48px; top: 50%;
-      transform: translateY(-50%);
-      font-size: 1rem;
-      color: var(--md-on-surface-variant);
-      pointer-events: none;
-      background: var(--md-surface-container-lowest);
-      padding: 0 6px;
-      transition: top var(--md-dur-short) var(--md-ease),
-                  font-size var(--md-dur-short) var(--md-ease),
-                  color var(--md-dur-short) var(--md-ease);
+      position: absolute; left: 48px; top: 50%; transform: translateY(-50%);
+      font-size: 1rem; color: var(--md-on-surface-variant); pointer-events: none;
+      background: var(--md-surface-container-lowest); padding: 0 6px;
+      transition: top var(--md-dur-short) var(--md-ease), font-size var(--md-dur-short) var(--md-ease), color var(--md-dur-short) var(--md-ease);
       z-index: 1; line-height: 1;
     }
     .md-field input:not(:placeholder-shown) ~ label,
     .md-field input:focus ~ label {
-      top: 0; left: 16px; font-size: .75rem; font-weight: 500;
-      color: var(--md-primary);
+      top: 0; left: 16px; font-size: .75rem; font-weight: 500; color: var(--md-primary);
     }
     .md-field input {
-      width: 100%;
-      padding: 16px 16px 16px 48px;
-      border: 1px solid var(--md-outline);
-      border-radius: var(--md-shape-sm);
-      background: transparent;
-      color: var(--md-on-surface);
-      font-family: var(--md-font);
-      font-size: 1rem;
-      outline: none;
-      transition: border-color var(--md-dur-short) var(--md-ease), border-width var(--md-dur-short) var(--md-ease);
+      width: 100%; padding: 16px 16px 16px 48px; border: 1px solid var(--md-outline);
+      border-radius: var(--md-shape-md); background: transparent;
+      color: var(--md-on-surface); font-family: var(--md-font); font-size: 1rem;
+      outline: none; transition: border-color var(--md-dur-short) var(--md-ease), border-width var(--md-dur-short) var(--md-ease);
     }
+    /* Añadimos CSS para asegurar que visualmente siempre sea mayúscula */
+    #nombreUsuario {
+      text-transform: uppercase;
+    }
+    
     .md-field input::placeholder { opacity: 0; }
     .md-field input:hover { border-color: var(--md-on-surface); }
-.md-field input:focus {
-  border-color: var(--md-primary);
-  border-width: 2px;
-  padding-left: 47px; padding-right: 15px;
-}
-/* Aplicamos un redondeo mayor específicamente al campo de nombre */
-#nombre {
-  border-radius: var(--md-shape-md);
-}
-.md-field:focus-within .leading-icon .ms { color: var(--md-primary); }
+    .md-field input:focus { border-color: var(--md-primary); border-width: 2px; padding-left: 47px; padding-right: 15px; }
+    .md-field:focus-within .leading-icon .ms { color: var(--md-primary); }
 
-.md-field .trailing-error {
-      position: absolute; right: 16px; top: 50%;
-      transform: translateY(-50%);
-      color: var(--md-error);
-      pointer-events: none; opacity: 0;
-      transition: opacity var(--md-dur-short) var(--md-ease);
+    .md-field .trailing-error {
+      position: absolute; right: 16px; top: 50%; transform: translateY(-50%);
+      color: var(--md-error); pointer-events: none; opacity: 0; transition: opacity var(--md-dur-short) var(--md-ease);
     }
-    .md-field.has-error input { border-color: var(--md-error) !important; border-width: 2px; }
+    .md-field.has-error input { border-color: var(--md-error) !important; border-width: 2px; padding-right: 47px; }
     .md-field.has-error label { color: var(--md-error) !important; }
     .md-field.has-error .leading-icon .ms { color: var(--md-error); }
     .md-field.has-error .trailing-error { opacity: 1; }
-    
-    .md-field .support-text {
-      font-size: .75rem; color: var(--md-on-surface-variant);
-      padding: 6px 16px 0; line-height: 1.33;
-    }
-    .md-field.has-error .support-text { color: var(--md-error); }
 
     /* ── Sliders Refinados M3 ── */
     .slider-block { display: flex; flex-direction: column; width: 100%; }
-    
-    .slider-label-row {
-      display: flex; align-items: center; justify-content: space-between;
-      margin-bottom: 4px;
-    }
-    .slider-label-text {
-      font-size: .875rem; font-weight: 500;
-      color: var(--md-on-surface);
-      display: flex; align-items: center; gap: 6px;
-    }
-    /* Estilo añadido para igualar el color de los iconos de los sliders con el de Valoración Funcional */
-    .slider-label-text .ms {
-      color: var(--md-primary);
-    }
-    .slider-desc {
-      font-size: .75rem; color: var(--md-on-surface-variant);
-      margin-bottom: 12px; line-height: 1.4;
-    }
+    .slider-label-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+    .slider-label-text { font-size: .875rem; font-weight: 500; color: var(--md-on-surface); display: flex; align-items: center; gap: 6px; }
+    .slider-label-text .ms { color: var(--md-primary); }
+    .slider-desc { font-size: .75rem; color: var(--md-on-surface-variant); margin-bottom: 12px; line-height: 1.4; }
 
-    /* Chips de Valor Semánticos (Contornos eliminados) */
     .val-chip {
-      font-size: .8125rem; font-weight: 600;
-      font-family: var(--md-font);
-      padding: 4px 12px;
-      border-radius: var(--md-shape-sm);
-      min-width: 44px; text-align: center;
-      background: var(--md-surface-container-high);
-      color: var(--md-on-surface-variant);
-      border: none;
+      font-size: .8125rem; font-weight: 600; font-family: var(--md-font);
+      padding: 4px 12px; border-radius: var(--md-shape-sm); min-width: 44px; text-align: center;
+      background: var(--md-surface-container-high); color: var(--md-on-surface-variant);
       transition: all var(--md-dur-short) var(--md-ease);
     }
     .val-chip.low  { background: var(--md-pain-low-bg);  color: var(--md-pain-low); }
     .val-chip.mid  { background: var(--md-pain-mid-bg);  color: var(--md-pain-mid); }
     .val-chip.high { background: var(--md-pain-high-bg); color: var(--md-pain-high); }
 
-    .slider-wrap {
-      position: relative; 
-      padding: 14px 0;
-      display: flex; align-items: center;
-    }
-
-    /* Thumb Label (Globo flotante M3 real de 28px de altura) */
+    .slider-wrap { position: relative; padding: 14px 0; display: flex; align-items: center; }
     .slider-thumb-label {
-      position: absolute;
-      top: -22px;
-      left: 0%;
-      transform: translateX(-50%) scale(0);
-      transform-origin: center bottom;
-      background: var(--md-primary);
-      color: var(--md-on-primary);
-      font-size: .75rem; font-weight: 500;
-      height: 28px; min-width: 28px;
-      padding: 0 8px;
-      display: inline-flex; align-items: center; justify-content: center;
-      border-radius: var(--md-shape-full);
-      pointer-events: none;
-      transition: transform 120ms cubic-bezier(0.2, 0, 0, 1.2), left 60ms linear;
-      z-index: 5;
+      position: absolute; top: -22px; left: 0%; transform: translateX(-50%) scale(0); transform-origin: center bottom;
+      background: var(--md-primary); color: var(--md-on-primary);
+      font-size: .75rem; font-weight: 500; height: 28px; min-width: 28px; padding: 0 8px;
+      display: inline-flex; align-items: center; justify-content: center; border-radius: var(--md-shape-full);
+      pointer-events: none; transition: transform 120ms cubic-bezier(0.2, 0, 0, 1.2), left 60ms linear; z-index: 5;
     }
     .slider-thumb-label.show { transform: translateX(-50%) scale(1); }
 
-    /* Rediseño de la barra e interactores nativos estilo M3 */
     .m3-range {
-      -webkit-appearance: none; appearance: none;
-      width: 100%; height: 4px;
-      background: var(--md-surface-container-highest); 
-      cursor: pointer; outline: none;
-      border-radius: var(--md-shape-full);
-      position: relative; z-index: 2;
-      transition: height var(--md-dur-short) var(--md-ease);
+      -webkit-appearance: none; appearance: none; width: 100%; height: 4px;
+      background: var(--md-surface-container-highest); cursor: pointer; outline: none;
+      border-radius: var(--md-shape-full); position: relative; z-index: 2; transition: height var(--md-dur-short) var(--md-ease);
     }
     .m3-range:hover { height: 6px; }
-    
     .m3-range::-webkit-slider-thumb {
-      -webkit-appearance: none; appearance: none;
-      width: 20px; height: 20px;
-      border-radius: 50%;
-      background: var(--md-primary);
-      box-shadow: 0 0 0 0 rgba(11, 87, 208, 0);
-      transition: box-shadow var(--md-dur-short) var(--md-ease),
-                  background var(--md-dur-short) var(--md-ease),
-                  transform var(--md-dur-short) var(--md-ease);
-      border: none;
+      -webkit-appearance: none; appearance: none; width: 20px; height: 20px; border-radius: 50%;
+      background: var(--md-primary); box-shadow: 0 0 0 0 rgba(11, 87, 208, 0);
+      transition: box-shadow var(--md-dur-short) var(--md-ease), background var(--md-dur-short) var(--md-ease), transform var(--md-dur-short) var(--md-ease); border: none;
     }
     .m3-range::-moz-range-thumb {
-      width: 20px; height: 20px; border: none;
-      border-radius: 50%;
-      background: var(--md-primary);
-      transition: box-shadow var(--md-dur-short) var(--md-ease);
+      width: 20px; height: 20px; border: none; border-radius: 50%; background: var(--md-primary); transition: box-shadow var(--md-dur-short) var(--md-ease);
     }
-    
-    /* Estado Fantasma / Unset para el valor clínico -1 */
-    .m3-range.unset::-webkit-slider-thumb {
-      background: var(--md-surface-container-lowest);
-      border: 2px solid var(--md-outline);
-    }
-    .m3-range.unset::-moz-range-thumb {
-      background: var(--md-surface-container-lowest);
-      border: 2px solid var(--md-outline);
-    }
-
+    .m3-range.unset::-webkit-slider-thumb { background: var(--md-surface-container-lowest); border: 2px solid var(--md-outline); }
+    .m3-range.unset::-moz-range-thumb { background: var(--md-surface-container-lowest); border: 2px solid var(--md-outline); }
     .m3-range:hover::-webkit-slider-thumb { box-shadow: 0 0 0 10px rgba(11, 87, 208, 0.08); }
     .m3-range:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 12px rgba(11, 87, 208, 0.12); }
     .m3-range:active::-webkit-slider-thumb { box-shadow: 0 0 0 14px rgba(11, 87, 208, 0.16); transform: scale(0.9); }
 
-    .slider-ticks {
-      display: flex; justify-content: space-between;
-      padding: 0 2px; margin-top: 4px;
-    }
-    .slider-tick {
-      font-size: .75rem; color: var(--md-on-surface-variant);
-    }
+    .slider-ticks { display: flex; justify-content: space-between; padding: 0 2px; margin-top: 4px; }
+    .slider-tick { font-size: .75rem; color: var(--md-on-surface-variant); }
 
     /* ── Sub-cards M3 Elevación Tonal Estática (No Interactivas) ── */
-    .sub-card {
-      background: var(--md-surface-container-low);
-      border: none;
-      border-radius: var(--md-shape-lg);
-      padding: 1.5rem;
-      cursor: default;
-    }
-
-    .sub-card-title {
-      font-size: 1rem; font-weight: 500;
-      color: var(--md-on-surface);
-      display: flex; align-items: center; gap: 8px;
-      margin-bottom: 1.25rem;
-    }
+    .sub-card { background: var(--md-surface-container-low); border: none; border-radius: var(--md-shape-lg); padding: 1.5rem; cursor: default; }
+    .sub-card-title { font-size: 1rem; font-weight: 500; color: var(--md-on-surface); display: flex; align-items: center; gap: 8px; margin-bottom: 1.25rem; }
     .sub-card-title .ms { color: var(--md-primary); }
-    
-    .sub-card-footer {
-      font-size: .75rem; color: var(--md-on-surface-variant);
-      text-align: center; margin-top: 1.25rem;
-      padding-top: 1rem;
-      border-top: 1px solid var(--md-surface-container-highest);
-    }
+    .sub-card-footer { font-size: .75rem; color: var(--md-on-surface-variant); text-align: center; margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid var(--md-surface-container-highest); }
     .sliders-stack { display: flex; flex-direction: column; gap: 1.25rem; }
 
-    /* ── Analgésicos description pill (Contorno eliminado) ── */
+    /* ── Analgésicos description pill ── */
     .analg-desc {
-      font-size: .875rem; font-weight: 500;
-      text-align: center;
-      padding: .875rem 1rem;
-      border-radius: var(--md-shape-sm);
-      margin-top: 1rem;
-      transition: all var(--md-dur-short) var(--md-ease);
-      background: var(--md-surface-container);
-      color: var(--md-on-surface-variant);
-      border: none;
+      font-size: .875rem; font-weight: 500; text-align: center; padding: .875rem 1rem;
+      border-radius: var(--md-shape-sm); margin-top: 1rem; transition: all var(--md-dur-short) var(--md-ease);
+      background: var(--md-surface-container); color: var(--md-on-surface-variant); border: none;
     }
 
     /* ── Resumen colapsable M3 ── */
     .summary-toggle {
-      width: 100%;
-      background: var(--md-surface-container-low);
-      border: none;
-      border-radius: var(--md-shape-md);
-      padding: 1rem 1.25rem;
-      display: flex; align-items: center; justify-content: space-between;
-      cursor: pointer;
-      font-family: var(--md-font);
-      font-size: .9375rem; font-weight: 500;
-      color: var(--md-on-surface);
-      margin-bottom: 1rem;
-      transition: background var(--md-dur-short) var(--md-ease);
+      width: 100%; background: var(--md-surface-container-low); border: none; border-radius: var(--md-shape-md);
+      padding: 1rem 1.25rem; display: flex; align-items: center; justify-content: space-between; cursor: pointer;
+      font-family: var(--md-font); font-size: .9375rem; font-weight: 500; color: var(--md-on-surface);
+      margin-bottom: 1rem; transition: background var(--md-dur-short) var(--md-ease);
     }
     .summary-toggle:hover { background: var(--md-surface-container); }
-    .summary-toggle .ms-chevron {
-      color: var(--md-on-surface-variant);
-      transition: transform var(--md-dur-med) var(--md-ease);
-    }
+    .summary-toggle .ms-chevron { color: var(--md-on-surface-variant); transition: transform var(--md-dur-med) var(--md-ease); }
     .summary-toggle[aria-expanded="true"] .ms-chevron { transform: rotate(180deg); }
     
     .summary-body {
-      display: none;
-      background: var(--md-surface-container-lowest);
-      border: 1px solid var(--md-outline-variant);
-      border-radius: var(--md-shape-md);
-      overflow: hidden;
-      margin-bottom: 1.25rem;
+      display: none; background: var(--md-surface-container-lowest); border: 1px solid var(--md-outline-variant);
+      border-radius: var(--md-shape-md); overflow: hidden; margin-bottom: 1.25rem;
       animation: md-fade-up var(--md-dur-med) var(--md-ease) both;
     }
     .summary-body.open { display: block; }
-    .summary-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-    }
-    .summary-item {
-      padding: 1rem 1.25rem;
-      border-right: 1px solid var(--md-surface-container-highest);
-      border-bottom: 1px solid var(--md-surface-container-highest);
-    }
-    .summary-item__label {
-      font-size: .75rem; color: var(--md-on-surface-variant);
-      letter-spacing: .02em; margin-bottom: 4px;
-    }
-    .summary-item__val {
-      font-size: 1.125rem; font-weight: 600;
-      color: var(--md-on-surface);
-    }
+    .summary-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
+    .summary-item { padding: 1rem 1.25rem; border-right: 1px solid var(--md-surface-container-highest); border-bottom: 1px solid var(--md-surface-container-highest); }
+    .summary-item__label { font-size: .75rem; color: var(--md-on-surface-variant); letter-spacing: .02em; margin-bottom: 4px; }
+    .summary-item__val { font-size: 1.125rem; font-weight: 600; color: var(--md-on-surface); }
     .summary-item__val.low  { color: var(--md-pain-low); }
     .summary-item__val.mid  { color: var(--md-pain-mid); }
     .summary-item__val.high { color: var(--md-pain-high); }
 
     /* ── Submit section M3 ── */
     .submit-section {
-      padding: 2.5rem 2.25rem;
-      background: var(--md-surface-container-lowest);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 1.25rem;
-      text-align: center;
+      padding: 2.5rem 2.25rem; background: var(--md-surface-container-lowest);
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.25rem; text-align: center;
     }
-
-    /* M3 Filled Tonal Button Normativo */
     .btn-primary {
-      display: inline-flex; align-items: center; justify-content: center;
-      gap: .5rem;
-      padding: 0 2rem; height: 40px;
-      background: var(--md-primary-container);
-      color: var(--md-on-primary-container);
-      border: none;
-      border-radius: var(--md-shape-full);
-      font-family: var(--md-font);
-      font-size: .875rem; font-weight: 500;
-      letter-spacing: .01em;
-      cursor: pointer;
-      position: relative; overflow: hidden;
-      transition: all var(--md-dur-short) var(--md-ease);
+      display: inline-flex; align-items: center; justify-content: center; gap: .5rem;
+      padding: 0 2rem; height: 40px; background: var(--md-primary-container); color: var(--md-on-primary-container);
+      border: none; border-radius: var(--md-shape-full); font-family: var(--md-font); font-size: .875rem; font-weight: 500;
+      letter-spacing: .01em; cursor: pointer; position: relative; overflow: hidden; transition: all var(--md-dur-short) var(--md-ease);
       width: fit-content;
     }
-    .btn-primary::after {
-      content: ''; position: absolute; inset: 0;
-      background: transparent;
-      transition: background var(--md-dur-short) var(--md-ease);
-    }
-    .btn-primary:hover:not(:disabled) {
-      transform: translateY(-1px);
-      box-shadow: 0px 1px 3px 0px rgba(0,0,0,0.1), 0px 1px 2px 0px rgba(0,0,0,0.06);
-    }
+    .btn-primary::after { content: ''; position: absolute; inset: 0; background: transparent; transition: background var(--md-dur-short) var(--md-ease); }
+    .btn-primary:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0px 1px 3px 0px rgba(0,0,0,0.1), 0px 1px 2px 0px rgba(0,0,0,0.06); }
     .btn-primary:hover:not(:disabled)::after { background: rgba(0, 29, 53, 0.04); }
     .btn-primary:active:not(:disabled) { transform: translateY(0); }
     .btn-primary:active:not(:disabled)::after { background: rgba(0, 29, 53, 0.1); }
-    
-    .btn-primary:disabled {
-      background: rgba(19, 19, 19, 0.12);
-      color: rgba(19, 19, 19, 0.38);
-      cursor: not-allowed;
-    }
+    .btn-primary:disabled { background: rgba(19, 19, 19, 0.12); color: rgba(19, 19, 19, 0.38); cursor: not-allowed; }
     .btn-primary .ms { font-size: 18px; color: var(--md-on-primary-container); }
-
-    .submit-hint {
-      font-size: .75rem; color: var(--md-on-surface-variant);
-      line-height: 1.5; 
-      max-width: 560px;
-    }
+    .submit-hint { font-size: .75rem; color: var(--md-on-surface-variant); line-height: 1.5; max-width: 560px; }
     .submit-hint strong { color: var(--md-primary); }
 
     /* ── Message banner M3 ── */
     .msg-banner {
-      display: none;
-      max-width: 860px;
-      margin: 1rem auto 0;
-      padding: 1rem 1.25rem;
-      border-radius: var(--md-shape-sm);
-      font-size: .875rem; font-weight: 500;
-      align-items: center; gap: 1rem;
-      animation: md-fade-up var(--md-dur-med) var(--md-ease) both;
+      display: none; max-width: 860px; margin: 1rem auto 0; padding: 1rem 1.25rem;
+      border-radius: var(--md-shape-sm); font-size: .875rem; font-weight: 500;
+      align-items: center; gap: 1rem; animation: md-fade-up var(--md-dur-med) var(--md-ease) both;
     }
     .msg-banner.show { display: flex; }
     .msg-banner.success { background: var(--md-pain-low-bg);  color: var(--md-pain-low); }
@@ -655,9 +466,7 @@
 
   <!-- ══ Header ══ -->
   <header class="page-header">
-    <div class="logo-mark">
-      <span class="ms">assignment</span>
-    </div>
+    <div class="logo-mark"><span class="ms">assignment</span></div>
     <div class="header-text">
       <h1>Valoración de Dolor y Función</h1>
       <p>Registra el estado actual del usuario</p>
@@ -672,28 +481,55 @@
   <div class="card">
     <form id="valoracionForm" onsubmit="handleFormSubmit(event)" novalidate>
 
-      <!-- ── SECCIÓN 1: Datos del Paciente ── -->
+      <!-- ── SECCIÓN 1: Datos del Paciente y Tipo de Valoración ── -->
       <div class="card-section">
+        
+        <!-- Tipo de Valoración -->
+        <div style="margin-bottom: 2rem;">
+          <div class="slider-label-text" style="margin-bottom: 8px;">
+            <span class="ms ms-sm">category</span>Tipo de Valoración
+          </div>
+          <div class="segmented-btn">
+             <input type="radio" name="tipoValoracion" id="valInicial" value="Inicial" checked>
+             <label class="seg-label" for="valInicial">Inicial</label>
+             
+             <input type="radio" name="tipoValoracion" id="valSeguimiento" value="Seguimiento">
+             <label class="seg-label" for="valSeguimiento">Seguimiento</label>
+             
+             <input type="radio" name="tipoValoracion" id="valFinal" value="Final">
+             <label class="seg-label" for="valFinal">Final</label>
+          </div>
+        </div>
+
         <div class="section-label">
           <div class="section-label-chip">
-            <span class="ms ms-sm">badge</span>
-            Identificación
+            <span class="ms ms-sm">badge</span>Identificación
           </div>
           <div class="section-divider"></div>
         </div>
 
-        <div class="md-field" id="fieldNombre" style="max-width: 440px">
-          <div class="md-field-inner">
-            <div class="leading-icon"><span class="ms">person</span></div>
-            <input type="text" id="nombre" name="nombre"
-              value=""
-              placeholder=" " required
-              aria-required="true"
-              aria-describedby="nombreSupport">
-            <label for="nombre">Nombre completo</label>
-            <div class="trailing-error" aria-hidden="true"><span class="ms">error</span></div>
+        <div class="grid-3" style="grid-template-columns: 2fr 1fr; gap: 1rem;">
+          
+          <!-- Autocompletado Nombre -->
+          <div class="md-field" id="fieldNombre">
+            <div class="md-field-inner ms-autocomplete-wrapper">
+              <div class="leading-icon"><span class="ms">search</span></div>
+              <input type="text" id="nombreUsuario" name="nombre" placeholder=" " autocomplete="off">
+              <label for="nombreUsuario">Buscar Paciente...</label>
+              <div id="autocomplete-list" class="ms-menu"></div>
+              <div class="trailing-error" aria-hidden="true"><span class="ms">error</span></div>
+            </div>
           </div>
-          <span class="support-text" id="nombreSupport"></span>
+
+          <!-- Teléfono (Solo lectura) -->
+          <div class="md-field">
+            <div class="md-field-inner">
+              <div class="leading-icon"><span class="ms">call</span></div>
+              <input type="text" id="telefonoUsuario" name="telefono" placeholder=" " readonly style="background: var(--md-surface-container-lowest); color: var(--md-on-surface-variant);">
+              <label for="telefonoUsuario">Teléfono</label>
+            </div>
+          </div>
+
         </div>
       </div>
 
@@ -701,8 +537,7 @@
       <div class="card-section">
         <div class="section-label">
           <div class="section-label-chip">
-            <span class="ms ms-sm">vital_signs</span>
-            Escala Dolor (PEG)
+            <span class="ms ms-sm">vital_signs</span>Escala Dolor (PEG)
           </div>
           <div class="section-divider"></div>
         </div>
@@ -713,60 +548,48 @@
             <!-- PEG Dolor -->
             <div class="slider-block">
               <div class="slider-label-row">
-                <span class="slider-label-text">
-                  <span class="ms ms-sm">bolt</span>Intensidad
-                </span>
+                <span class="slider-label-text"><span class="ms ms-sm">bolt</span>Intensidad</span>
                 <span id="pegDolorValue" class="val-chip" role="status" aria-live="polite">—</span>
               </div>
               <p class="slider-desc">Promedio última semana</p>
               <div class="slider-wrap">
                 <div class="slider-thumb-label" id="pegDolorLabel" aria-hidden="true">—</div>
-                <input type="range" id="pegDolor" name="pegDolor" min="-1" max="10" value="-1"
-                  class="m3-range unset" aria-label="Nivel de dolor" aria-valuetext="Sin registrar">
+                <input type="range" id="pegDolor" name="pegDolor" min="-1" max="10" value="-1" class="m3-range unset">
               </div>
               <div class="slider-ticks" aria-hidden="true">
-                <span class="slider-tick">0 (Sin dolor)</span>
-                <span class="slider-tick">10 (Máximo)</span>
+                <span class="slider-tick">0 (Sin dolor)</span><span class="slider-tick">10 (Máximo)</span>
               </div>
             </div>
 
             <!-- PEG Actividad -->
             <div class="slider-block">
               <div class="slider-label-row">
-                <span class="slider-label-text">
-                  <span class="ms ms-sm">directions_run</span>Actividad
-                </span>
+                <span class="slider-label-text"><span class="ms ms-sm">directions_run</span>Actividad</span>
                 <span id="pegActividadValue" class="val-chip" role="status" aria-live="polite">—</span>
               </div>
               <p class="slider-desc">Interferencia en actividad habitual</p>
               <div class="slider-wrap">
                 <div class="slider-thumb-label" id="pegActividadLabel" aria-hidden="true">—</div>
-                <input type="range" id="pegActividad" name="pegActividad" min="-1" max="10" value="-1"
-                  class="m3-range unset" aria-label="Dificultad en actividad" aria-valuetext="Sin registrar">
+                <input type="range" id="pegActividad" name="pegActividad" min="-1" max="10" value="-1" class="m3-range unset">
               </div>
               <div class="slider-ticks" aria-hidden="true">
-                <span class="slider-tick">0 (Nada)</span>
-                <span class="slider-tick">10 (Total)</span>
+                <span class="slider-tick">0 (Nada)</span><span class="slider-tick">10 (Total)</span>
               </div>
             </div>
 
             <!-- PEG Vida -->
             <div class="slider-block">
               <div class="slider-label-row">
-                <span class="slider-label-text">
-                  <span class="ms ms-sm">mood_bad</span>Afectación general
-                </span>
+                <span class="slider-label-text"><span class="ms ms-sm">mood_bad</span>Afectación general</span>
                 <span id="pegVidaValue" class="val-chip" role="status" aria-live="polite">—</span>
               </div>
               <p class="slider-desc">Interferencia en la vida diaria</p>
               <div class="slider-wrap">
                 <div class="slider-thumb-label" id="pegVidaLabel" aria-hidden="true">—</div>
-                <input type="range" id="pegVida" name="pegVida" min="-1" max="10" value="-1"
-                  class="m3-range unset" aria-label="Afectación general" aria-valuetext="Sin registrar">
+                <input type="range" id="pegVida" name="pegVida" min="-1" max="10" value="-1" class="m3-range unset">
               </div>
               <div class="slider-ticks" aria-hidden="true">
-                <span class="slider-tick">0 (Nada)</span>
-                <span class="slider-tick">10 (Total)</span>
+                <span class="slider-tick">0 (Nada)</span><span class="slider-tick">10 (Total)</span>
               </div>
             </div>
 
@@ -778,40 +601,34 @@
       <div class="card-section">
         <div class="section-label">
           <div class="section-label-chip">
-            <span class="ms ms-sm">accessibility_new</span>
-            Valoración Funcional
+            <span class="ms ms-sm">accessibility_new</span>Valoración Funcional
           </div>
           <div class="section-divider"></div>
         </div>
 
         <div class="grid-3">
-
           <!-- Columna -->
-          <div class="sub-card" role="region" aria-labelledby="hdrColumna">
-            <div class="sub-card-title" id="hdrColumna">
-              <span class="ms ms-fill">accessibility_new</span>Columna
-            </div>
+          <div class="sub-card">
+            <div class="sub-card-title"><span class="ms ms-fill">accessibility_new</span>Columna</div>
             <div class="sliders-stack">
               <div class="slider-block">
                 <div class="slider-label-row">
                   <label for="columnaLevantarse" class="slider-label-text">Levantarse de la cama</label>
-                  <span id="columnaLevantarseValue" class="val-chip" role="status" aria-live="polite">—</span>
+                  <span id="columnaLevantarseValue" class="val-chip">—</span>
                 </div>
                 <div class="slider-wrap">
                   <div class="slider-thumb-label" id="columnaLevantarseLabel" aria-hidden="true">—</div>
-                  <input type="range" id="columnaLevantarse" name="columnaLevantarse" min="-1" max="10" value="-1"
-                    class="m3-range unset" aria-label="Levantarse de la cama">
+                  <input type="range" id="columnaLevantarse" name="columnaLevantarse" min="-1" max="10" value="-1" class="m3-range unset">
                 </div>
               </div>
               <div class="slider-block">
                 <div class="slider-label-row">
                   <label for="columnaAgacharse" class="slider-label-text">Agacharse al suelo</label>
-                  <span id="columnaAgacharseValue" class="val-chip" role="status" aria-live="polite">—</span>
+                  <span id="columnaAgacharseValue" class="val-chip">—</span>
                 </div>
                 <div class="slider-wrap">
                   <div class="slider-thumb-label" id="columnaAgacharseLabel" aria-hidden="true">—</div>
-                  <input type="range" id="columnaAgacharse" name="columnaAgacharse" min="-1" max="10" value="-1"
-                    class="m3-range unset" aria-label="Agacharse al suelo">
+                  <input type="range" id="columnaAgacharse" name="columnaAgacharse" min="-1" max="10" value="-1" class="m3-range unset">
                 </div>
               </div>
             </div>
@@ -819,31 +636,27 @@
           </div>
 
           <!-- Miembro Superior -->
-          <div class="sub-card" role="region" aria-labelledby="hdrMS">
-            <div class="sub-card-title" id="hdrMS">
-              <span class="ms ms-fill">pan_tool</span>Miembro Superior
-            </div>
+          <div class="sub-card">
+            <div class="sub-card-title"><span class="ms ms-fill">pan_tool</span>Miembro Superior</div>
             <div class="sliders-stack">
               <div class="slider-block">
                 <div class="slider-label-row">
                   <label for="msVestirse" class="slider-label-text">Vestirse y peinarse</label>
-                  <span id="msVestirseValue" class="val-chip" role="status" aria-live="polite">—</span>
+                  <span id="msVestirseValue" class="val-chip">—</span>
                 </div>
                 <div class="slider-wrap">
                   <div class="slider-thumb-label" id="msVestirseLabel" aria-hidden="true">—</div>
-                  <input type="range" id="msVestirse" name="msVestirse" min="-1" max="10" value="-1"
-                    class="m3-range unset" aria-label="Vestirse y peinarse">
+                  <input type="range" id="msVestirse" name="msVestirse" min="-1" max="10" value="-1" class="m3-range unset">
                 </div>
               </div>
               <div class="slider-block">
                 <div class="slider-label-row">
                   <label for="msAlcanzar" class="slider-label-text">Alcanzar objetos altos</label>
-                  <span id="msAlcanzarValue" class="val-chip" role="status" aria-live="polite">—</span>
+                  <span id="msAlcanzarValue" class="val-chip">—</span>
                 </div>
                 <div class="slider-wrap">
                   <div class="slider-thumb-label" id="msAlcanzarLabel" aria-hidden="true">—</div>
-                  <input type="range" id="msAlcanzar" name="msAlcanzar" min="-1" max="10" value="-1"
-                    class="m3-range unset" aria-label="Alcanzar objetos altos">
+                  <input type="range" id="msAlcanzar" name="msAlcanzar" min="-1" max="10" value="-1" class="m3-range unset">
                 </div>
               </div>
             </div>
@@ -851,48 +664,42 @@
           </div>
 
           <!-- Miembro Inferior -->
-          <div class="sub-card" role="region" aria-labelledby="hdrMI">
-            <div class="sub-card-title" id="hdrMI">
-              <span class="ms ms-fill">directions_walk</span>Miembro Inferior
-            </div>
+          <div class="sub-card">
+            <div class="sub-card-title"><span class="ms ms-fill">directions_walk</span>Miembro Inferior</div>
             <div class="sliders-stack">
               <div class="slider-block">
                 <div class="slider-label-row">
                   <label for="miCaminar" class="slider-label-text">Caminar 10 minutos a ritmo normal</label>
-                  <span id="miCaminarValue" class="val-chip" role="status" aria-live="polite">—</span>
+                  <span id="miCaminarValue" class="val-chip">—</span>
                 </div>
                 <div class="slider-wrap">
                   <div class="slider-thumb-label" id="miCaminarLabel" aria-hidden="true">—</div>
-                  <input type="range" id="miCaminar" name="miCaminar" min="-1" max="10" value="-1"
-                    class="m3-range unset" aria-label="Caminar 10 metros">
+                  <input type="range" id="miCaminar" name="miCaminar" min="-1" max="10" value="-1" class="m3-range unset">
                 </div>
               </div>
               <div class="slider-block">
                 <div class="slider-label-row">
                   <label for="miEscaleras" class="slider-label-text">Subir/bajar escaleras</label>
-                  <span id="miEscalerasValue" class="val-chip" role="status" aria-live="polite">—</span>
+                  <span id="miEscalerasValue" class="val-chip">—</span>
                 </div>
                 <div class="slider-wrap">
                   <div class="slider-thumb-label" id="miEscalerasLabel" aria-hidden="true">—</div>
-                  <input type="range" id="miEscaleras" name="miEscaleras" min="-1" max="10" value="-1"
-                    class="m3-range unset" aria-label="Subir y bajar escaleras">
+                  <input type="range" id="miEscaleras" name="miEscaleras" min="-1" max="10" value="-1" class="m3-range unset">
                 </div>
               </div>
               <div class="slider-block">
                 <div class="slider-label-row">
                   <label for="miSilla" class="slider-label-text">Levantarse de silla</label>
-                  <span id="miSillaValue" class="val-chip" role="status" aria-live="polite">—</span>
+                  <span id="miSillaValue" class="val-chip">—</span>
                 </div>
                 <div class="slider-wrap">
                   <div class="slider-thumb-label" id="miSillaLabel" aria-hidden="true">—</div>
-                  <input type="range" id="miSilla" name="miSilla" min="-1" max="10" value="-1"
-                    class="m3-range unset" aria-label="Levantarse de la silla">
+                  <input type="range" id="miSilla" name="miSilla" min="-1" max="10" value="-1" class="m3-range unset">
                 </div>
               </div>
             </div>
             <p class="sub-card-footer">0 = Incapaz · 10 = Sin dificultad</p>
           </div>
-
         </div>
       </div>
 
@@ -900,56 +707,56 @@
       <div class="card-section">
         <div class="section-label">
           <div class="section-label-chip">
-            <span class="ms ms-sm">pill</span>
-            Consumo de Analgésicos
+            <span class="ms ms-sm">pill</span>Consumo de Analgésicos
           </div>
           <div class="section-divider"></div>
         </div>
 
         <div class="sub-card" style="max-width: 500px; margin: 0 auto;">
           <div class="slider-label-row" style="margin-bottom: 8px">
-            <span class="slider-label-text">
-              <span class="ms ms-sm">prescriptions</span>Frecuencia actual
-            </span>
-            <span id="analgesicosValue" class="val-chip" role="status" aria-live="polite">—</span>
+            <span class="slider-label-text"><span class="ms ms-sm">prescriptions</span>Frecuencia actual</span>
+            <span id="analgesicosValue" class="val-chip">—</span>
           </div>
           <div class="slider-wrap">
             <div class="slider-thumb-label" id="analgesicosLabel" aria-hidden="true">—</div>
-            <input type="range" id="analgesicos" name="analgesicos" min="-1" max="5" value="-1"
-              class="m3-range unset" aria-label="Frecuencia de consumo">
+            <input type="range" id="analgesicos" name="analgesicos" min="-1" max="5" value="-1" class="m3-range unset">
           </div>
           <div class="slider-ticks" aria-hidden="true">
-            <span class="slider-tick">Ninguno</span>
-            <span class="slider-tick">Varios/día</span>
+            <span class="slider-tick">Ninguno</span><span class="slider-tick">Varios/día</span>
           </div>
-          <div id="analgesicosDescription" class="analg-desc" role="status" aria-live="polite">Sin registrar</div>
+          <div id="analgesicosDescription" class="analg-desc">Sin registrar</div>
         </div>
+      </div>
+
+      <!-- ── SECCIÓN: Notas Clínicas ── -->
+      <div class="card-section">
+        <div class="section-label">
+          <div class="section-label-chip">
+            <span class="ms ms-sm">edit_note</span>Notas de la Valoración
+          </div>
+          <div class="section-divider"></div>
+        </div>
+        <textarea id="notasValoracion" name="notas" class="md-textarea" placeholder="Añade observaciones clínicas, banderas rojas o comentarios adicionales..."></textarea>
       </div>
 
       <!-- ── SECCIÓN 5: Guardar ── -->
       <div class="card-section">
-        
         <button type="button" class="summary-toggle" aria-expanded="false" onclick="toggleSummary(this)">
           <span style="display:flex;align-items:center;gap:8px">
-            <span class="ms ms-fill">fact_check</span>
-            Revisar resumen antes de guardar
+            <span class="ms ms-fill">fact_check</span>Revisar resumen antes de guardar
           </span>
           <span class="ms ms-chevron">expand_more</span>
         </button>
         <div class="summary-body" id="summaryBody">
           <div class="summary-grid" id="summaryGrid"></div>
         </div>
-
       </div>
 
       <div class="submit-section">
         <button type="submit" id="submitButton" class="btn-primary">
-          <span class="ms">save</span>
-          Guardar Valoración
+          <span class="ms">save</span>Guardar Valoración
         </button>
-        <p class="submit-hint">
-          Los valores <strong>(Sin registrar)</strong> no se guardarán.
-        </p>
+        <p class="submit-hint">Los valores <strong>(Sin registrar)</strong> no se guardarán.</p>
       </div>
 
     </form>
@@ -962,41 +769,116 @@
   </div>
 
   <script>
-    /* Safe-guard en caso de que nombreUsuario no esté definido por Apps Script */
-    let nombreUsuario = "";
-    try {
-      /* Comprobación de existencia segura */
-      nombreUsuario = "<?= nombreUsuario ?>";
-      if(nombreUsuario.startsWith("<" + "?=")) {
-        nombreUsuario = ""; // Fallback de desarrollo local
-      }
-    } catch(e) {
-      nombreUsuario = "";
-    }
-    if(nombreUsuario) {
-      document.getElementById('nombre').value = nombreUsuario;
-    }
+    // ── Variables globales Autocompletado ──
+    let allPatientsData = {}; 
+    let allPatientsList = []; 
+    let currentUserName = ""; 
+
+    const nombreUsuarioInput = document.getElementById('nombreUsuario');
+    const telefonoUsuarioInput = document.getElementById('telefonoUsuario');
+    const listContainer = document.getElementById('autocomplete-list');
 
     /* ── Fecha ── */
     document.getElementById('badgeDate').textContent =
       new Date().toLocaleDateString('es-ES', { weekday:'short', day:'numeric', month:'short', year:'numeric' });
 
-    /* ── Paleta cromática M3 (PEG Dolor) ── */
+    /* ── Carga inicial de datos de pacientes y celda activa ── */
+    document.addEventListener("DOMContentLoaded", () => {
+      initSlider('pegDolor',           'pegDolorValue',           'pegDolorLabel',           true);
+      initSlider('pegActividad',       'pegActividadValue',       'pegActividadLabel',       true);
+      initSlider('pegVida',            'pegVidaValue',            'pegVidaLabel',            true);
+      initSlider('columnaLevantarse',  'columnaLevantarseValue',  'columnaLevantarseLabel',  false);
+      initSlider('columnaAgacharse',   'columnaAgacharseValue',   'columnaAgacharseLabel',   false);
+      initSlider('msVestirse',         'msVestirseValue',         'msVestirseLabel',         false);
+      initSlider('msAlcanzar',         'msAlcanzarValue',         'msAlcanzarLabel',         false);
+      initSlider('miCaminar',          'miCaminarValue',          'miCaminarLabel',          false);
+      initSlider('miEscaleras',        'miEscalerasValue',        'miEscalerasLabel',        false);
+      initSlider('miSilla',            'miSillaValue',            'miSillaLabel',            false);
+      initAnalgesicos();
+      updateProgress();
+
+      if (typeof google !== 'undefined' && google.script?.run) {
+        google.script.run
+          .withSuccessHandler(data => {
+            allPatientsData = data.allPatientsData || {};
+            allPatientsList = Object.keys(allPatientsData).sort();
+
+            // Si hay un valor en la celda activa, lo precargamos en MAYÚSCULAS
+            if (data.activeCellValue) {
+              const cellVal = data.activeCellValue.toUpperCase();
+              nombreUsuarioInput.value = cellVal;
+              
+              // Buscamos si existe en la base (comparación sin importar mayúsculas/minúsculas original)
+              const matchKey = allPatientsList.find(n => n.toUpperCase() === cellVal);
+              if (matchKey) {
+                currentUserName = cellVal; 
+                telefonoUsuarioInput.value = allPatientsData[matchKey];
+              } else {
+                // Permitimos el nombre si viene pre-cargado desde la hoja aunque sea nuevo
+                currentUserName = cellVal; 
+              }
+              document.getElementById('fieldNombre').classList.remove('has-error');
+              updateProgress();
+            }
+          })
+          .obtenerPacientesParaAutocompletar();
+      }
+    });
+
+    /* ── Lógica Autocompletado (Forzada a mayúsculas) ── */
+    nombreUsuarioInput.addEventListener('input', function() {
+      const val = this.value.trim().toUpperCase();
+      closeAllLists();
+      
+      if (!val) { 
+        currentUserName = ""; 
+        telefonoUsuarioInput.value = ""; 
+        document.getElementById('fieldNombre').classList.remove('has-error');
+        updateProgress();
+        return; 
+      }
+      
+      const matches = allPatientsList.filter(name => name.toUpperCase().includes(val));
+      if (matches.length === 0) return;
+
+      listContainer.style.display = 'block';
+      matches.slice(0, 6).forEach(match => {
+        const item = document.createElement('div');
+        item.className = 'ms-menu-item';
+        // Mostrar siempre el nombre en mayúsculas en las sugerencias
+        item.innerHTML = `<span class="ms ms-sm" style="margin-right:8px; vertical-align:middle; color:var(--md-primary)">person</span>${match.toUpperCase()}`;
+        // Al hacer click, pasar el original para ubicar el tfno fácilmente en allPatientsData
+        item.addEventListener('click', () => selectPaciente(match));
+        listContainer.appendChild(item);
+      });
+    });
+
+    function selectPaciente(nombre) {
+      // Guardar e inyectar forzosamente en mayúsculas
+      currentUserName = nombre.toUpperCase();
+      nombreUsuarioInput.value = currentUserName;
+      telefonoUsuarioInput.value = allPatientsData[nombre] || "";
+      document.getElementById('fieldNombre').classList.remove('has-error');
+      closeAllLists();
+      updateProgress();
+    }
+
+    function closeAllLists() {
+      listContainer.innerHTML = '';
+      listContainer.style.display = 'none';
+    }
+
+    document.addEventListener('click', (e) => {
+      if (e.target !== nombreUsuarioInput) closeAllLists();
+    });
+
+    /* ── Paleta cromática M3 ── */
     function painClass(v) {
       if (v < 0)  return '';
       if (v <= 3) return 'low';  
       if (v <= 6) return 'mid';  
       return 'high';             
     }
-    function painText(v) {
-      if (v < 0)  return 'Sin registrar';
-      if (v === 0) return 'Sin dolor';
-      if (v <= 3) return `${v} — Leve`;
-      if (v <= 6) return `${v} — Moderado`;
-      return `${v} — Intenso`;
-    }
-
-    /* ── Paleta cromática M3 (Función: Invertida) ── */
     function funcClass(v) {
       if (v < 0)  return '';
       if (v <= 3) return 'high'; 
@@ -1004,12 +886,9 @@
       return 'low';              
     }
 
-    /* ── Lógica del Track Dinámico M3 ── */
+    /* ── Lógica del Track Dinámico ── */
     function updateTrack(slider) {
-      const v   = +slider.value;
-      const min = +slider.min;
-      const max = +slider.max;
-      
+      const v = +slider.value, min = +slider.min, max = +slider.max;
       if (v < 0) {
         slider.style.removeProperty('background');
         slider.classList.add('unset');
@@ -1017,125 +896,77 @@
         const pct = ((v - min) / (max - min)) * 100;
         const colActive = getComputedStyle(document.documentElement).getPropertyValue('--md-primary').trim();
         const colInactive = getComputedStyle(document.documentElement).getPropertyValue('--md-surface-container-highest').trim();
-        
-        slider.style.setProperty('background',
-          `linear-gradient(to right, ${colActive} 0%, ${colActive} ${pct}%, ${colInactive} ${pct}%, ${colInactive} 100%)`, 'important');
+        slider.style.setProperty('background', `linear-gradient(to right, ${colActive} 0%, ${colActive} ${pct}%, ${colInactive} ${pct}%, ${colInactive} 100%)`, 'important');
         slider.classList.remove('unset');
       }
     }
 
-    /* ── Thumb Label Positioning ── */
     function posThumbLabel(slider, labelEl, text) {
-      const v   = +slider.value;
-      const min = +slider.min;
-      const max = +slider.max;
+      const v = +slider.value, min = +slider.min, max = +slider.max;
       const pct = v < 0 ? 0 : (v - min) / (max - min);
       labelEl.style.left = `calc(${pct * 100}% + (${10 - pct * 20}px))`;
       labelEl.textContent = text;
     }
 
-    /* ── Init Universal Sliders ── */
     function initSlider(id, chipId, labelId, isPain) {
-      const s  = document.getElementById(id);
-      const ch = document.getElementById(chipId);
-      const lb = document.getElementById(labelId);
+      const s = document.getElementById(id), ch = document.getElementById(chipId), lb = document.getElementById(labelId);
       if (!s || !ch) return;
-
       function update() {
-        const v    = +s.value;
-        const disp = v < 0 ? '—' : String(v);
+        const v = +s.value, disp = v < 0 ? '—' : String(v);
         ch.textContent = disp;
-        ch.className   = 'val-chip ' + (v < 0 ? '' : (isPain ? painClass(v) : funcClass(v)));
-        s.setAttribute('aria-valuetext', isPain ? painText(v) : (v < 0 ? 'Sin registrar' : disp));
+        ch.className = 'val-chip ' + (v < 0 ? '' : (isPain ? painClass(v) : funcClass(v)));
         updateTrack(s);
         if (lb) posThumbLabel(s, lb, disp);
         updateProgress();
       }
       update();
       s.addEventListener('input', update);
-
       if (lb) {
         const show = () => { lb.classList.add('show'); posThumbLabel(s, lb, +s.value < 0 ? '—' : String(+s.value)); };
         const hide = () => lb.classList.remove('show');
-        s.addEventListener('mousedown', show);
-        s.addEventListener('touchstart', show, { passive: true });
-        s.addEventListener('mouseup', hide);
-        s.addEventListener('touchend', hide);
-        s.addEventListener('focus', show);
-        s.addEventListener('blur', hide);
+        s.addEventListener('mousedown', show); s.addEventListener('touchstart', show, { passive: true });
+        s.addEventListener('mouseup', hide); s.addEventListener('touchend', hide);
+        s.addEventListener('focus', show); s.addEventListener('blur', hide);
       }
     }
 
     /* ── Analgésicos ── */
-    const ANALG_DESC = [
-      'Sin registrar',
-      'Ninguno',
-      'Ocasional (< 1 vez/semana)',
-      'Semanal (1–2 veces/semana)',
-      'Habitual (casi todos los días)',
-      'Diario (1 vez al día)',
-      'Varios al día'
-    ];
-
+    const ANALG_DESC = ['Sin registrar', 'Ninguno', 'Ocasional (< 1 vez/semana)', 'Semanal (1–2 veces/semana)', 'Habitual (casi todos los días)', 'Diario (1 vez al día)', 'Varios al día'];
     function initAnalgesicos() {
-      const s   = document.getElementById('analgesicos');
-      const ch  = document.getElementById('analgesicosValue');
-      const lb  = document.getElementById('analgesicosLabel');
-      const des = document.getElementById('analgesicosDescription');
+      const s = document.getElementById('analgesicos'), ch = document.getElementById('analgesicosValue'), lb = document.getElementById('analgesicosLabel'), des = document.getElementById('analgesicosDescription');
       if (!s) return;
-
       function update() {
-        const v    = +s.value;
-        const disp = v < 0 ? '—' : String(v);
-        const desc = ANALG_DESC[v + 1];
+        const v = +s.value, disp = v < 0 ? '—' : String(v), desc = ANALG_DESC[v + 1];
         ch.textContent = disp;
         
         let colorClass = '';
-        if (v >= 0) {
-          if (v >= 4) colorClass = 'high';
-          else if (v === 3) colorClass = 'mid';
-          else colorClass = 'low';
-        }
-        
+        if (v >= 0) { if (v >= 4) colorClass = 'high'; else if (v === 3) colorClass = 'mid'; else colorClass = 'low'; }
         ch.className = 'val-chip ' + colorClass;
-        s.setAttribute('aria-valuetext', desc);
         des.textContent = desc;
         
-        if (v < 0) {
-          des.style.background = 'var(--md-surface-container)';
-          des.style.color = 'var(--md-on-surface-variant)';
-        } else if (v >= 4) {
-          des.style.background = 'var(--md-pain-high-bg)';
-          des.style.color = 'var(--md-pain-high)';
-        } else if (v === 3) {
-          des.style.background = 'var(--md-analg-warn-bg)';
-          des.style.color = 'var(--md-analg-warn)';
-        } else {
-          des.style.background = 'var(--md-analg-ok-bg)';
-          des.style.color = 'var(--md-analg-ok)';
-        }
+        if (v < 0) { des.style.background = 'var(--md-surface-container)'; des.style.color = 'var(--md-on-surface-variant)'; }
+        else if (v >= 4) { des.style.background = 'var(--md-pain-high-bg)'; des.style.color = 'var(--md-pain-high)'; }
+        else if (v === 3) { des.style.background = 'var(--md-analg-warn-bg)'; des.style.color = 'var(--md-analg-warn)'; }
+        else { des.style.background = 'var(--md-analg-ok-bg)'; des.style.color = 'var(--md-analg-ok)'; }
+        
         updateTrack(s);
         if (lb) posThumbLabel(s, lb, disp);
         updateProgress();
       }
       update();
       s.addEventListener('input', update);
-
       if (lb) {
         const show = () => { lb.classList.add('show'); posThumbLabel(s, lb, +s.value < 0 ? '—' : String(+s.value)); };
         const hide = () => lb.classList.remove('show');
-        s.addEventListener('mousedown', show);
-        s.addEventListener('touchstart', show, { passive: true });
-        s.addEventListener('mouseup', hide);
-        s.addEventListener('touchend', hide);
-        s.addEventListener('focus', show);
-        s.addEventListener('blur', hide);
+        s.addEventListener('mousedown', show); s.addEventListener('touchstart', show, { passive: true });
+        s.addEventListener('mouseup', hide); s.addEventListener('touchend', hide);
+        s.addEventListener('focus', show); s.addEventListener('blur', hide);
       }
     }
 
     /* ── Progress bar ── */
     const SLIDER_SECTIONS = {
-      step1: ['nombre'],
+      step1: ['nombreUsuario'],
       step2: ['pegDolor','pegActividad','pegVida'],
       step3: ['columnaLevantarse','columnaAgacharse','msVestirse','msAlcanzar','miCaminar','miEscaleras','miSilla'],
       step4: ['analgesicos']
@@ -1143,14 +974,11 @@
 
     function updateProgress() {
       let total = 0, done = 0;
-      const nombre = document.getElementById('nombre');
-      total++; if (nombre && nombre.value.trim()) done++;
-
+      total++; if (nombreUsuarioInput && nombreUsuarioInput.value.trim() !== '') done++;
       document.querySelectorAll('input[type="range"]').forEach(s => {
         total++;
         if (+s.value > -1) done++;
       });
-
       const pct = Math.round((done / total) * 100);
       document.getElementById('progressFill').style.width = pct + '%';
       document.getElementById('progressBar').setAttribute('aria-valuenow', pct);
@@ -1178,7 +1006,7 @@
 
     function buildSummary() {
       const items = [
-        { label: 'Paciente',       id: 'nombre',             type: 'text' },
+        { label: 'Paciente',       id: 'nombreUsuario',      type: 'text' },
         { label: 'PEG Dolor',      id: 'pegDolor',           type: 'pain' },
         { label: 'PEG Actividad',  id: 'pegActividad',       type: 'pain' },
         { label: 'PEG Vida',       id: 'pegVida',            type: 'pain' },
@@ -1203,74 +1031,53 @@
         else disp = raw < 0 ? '—' : String(raw);
 
         const cls = raw >= 0 ? (item.type === 'pain' ? painClass(raw) : (item.type === 'func' ? funcClass(raw) : '')) : '';
-
         const div = document.createElement('div');
         div.className = 'summary-item';
-        div.innerHTML = `<div class="summary-item__label">${item.label}</div>
-                         <div class="summary-item__val ${cls}">${disp}</div>`;
+        div.innerHTML = `<div class="summary-item__label">${item.label}</div><div class="summary-item__val ${cls}">${disp}</div>`;
         grid.appendChild(div);
       });
     }
 
-    /* ── Validación ── */
-    document.getElementById('nombre').addEventListener('input', () => {
-      const field = document.getElementById('fieldNombre');
-      if (document.getElementById('nombre').value.trim())
-        field.classList.remove('has-error');
-      updateProgress();
-    });
-
-    /* ── Init ── */
-    document.addEventListener('DOMContentLoaded', () => {
-      initSlider('pegDolor',           'pegDolorValue',           'pegDolorLabel',           true);
-      initSlider('pegActividad',       'pegActividadValue',       'pegActividadLabel',       true);
-      initSlider('pegVida',            'pegVidaValue',            'pegVidaLabel',            true);
-      initSlider('columnaLevantarse',  'columnaLevantarseValue',  'columnaLevantarseLabel',  false);
-      initSlider('columnaAgacharse',   'columnaAgacharseValue',   'columnaAgacharseLabel',   false);
-      initSlider('msVestirse',         'msVestirseValue',         'msVestirseLabel',         false);
-      initSlider('msAlcanzar',         'msAlcanzarValue',         'msAlcanzarLabel',         false);
-      initSlider('miCaminar',          'miCaminarValue',          'miCaminarLabel',          false);
-      initSlider('miEscaleras',        'miEscalerasValue',        'miEscalerasLabel',        false);
-      initSlider('miSilla',            'miSillaValue',            'miSillaLabel',            false);
-      initAnalgesicos();
-      updateProgress();
-    });
-
-    /* ── Integración Apps Script ── */
+    /* ── Integración Apps Script y Envío ── */
     function handleFormSubmit(event) {
       event.preventDefault();
-      const form        = document.getElementById('valoracionForm');
+      
       const fieldNombre = document.getElementById('fieldNombre');
-      const nombreEl    = document.getElementById('nombre');
+      // Forzar también a mayúsculas antes de la comprobación
+      const nombreNormalizado = nombreUsuarioInput.value.trim().replace(/\s+/g, ' ').toUpperCase();
 
-      if (!nombreEl.value.trim()) {
+      // Validar si seleccionó del listado y coincide (o si viene pre-cargado es válido)
+      if (!currentUserName || nombreNormalizado !== currentUserName) {
+        showMessage('error', 'error', 'Por favor, busca y selecciona un paciente válido del listado.');
         fieldNombre.classList.add('has-error');
-        nombreEl.focus();
+        nombreUsuarioInput.focus();
         return;
       }
       fieldNombre.classList.remove('has-error');
 
+      const form = document.getElementById('valoracionForm');
       const formData = new FormData(form);
       const data = {};
       formData.forEach((value, key) => data[key] = value);
 
-      const savedNombre = data['nombre'];
+      // Usar nombre normalizado validado (en MAYÚSCULAS)
+      data['nombre'] = nombreNormalizado;
 
+      // Transformar rangos "-1" a nulls para el backend y parsear el resto
       for (const key in data) {
-        if (key === 'nombre') continue;
+        if (key === 'nombre' || key === 'tipoValoracion' || key === 'telefono' || key === 'notas') continue;
         data[key] = data[key] === '-1' ? '' : parseFloat(data[key]);
       }
 
       const btn = document.getElementById('submitButton');
       btn.disabled = true;
       btn.innerHTML = `<span class="ms spinner">refresh</span> Guardando...`;
-
       hideMessage();
 
       if (typeof google === 'undefined' || !google.script?.run) {
         setTimeout(() => {
-          showMessage('error', 'error', 'API de Apps Script no disponible en previsualización local (guardado simulado correctamente).');
-          console.log("Datos que se enviarían a procesarValoracion en producción:", data);
+          showMessage('error', 'error', 'Apps Script no disponible en vista previa. (Simulado ok).');
+          console.log("Datos:", data);
           resetBtn();
         }, 1200);
         return;
@@ -1280,11 +1087,12 @@
         .withSuccessHandler(result => {
           showMessage('success', 'check_circle', result || 'Valoración guardada correctamente.');
           form.reset();
-          if (savedNombre) nombreEl.value = savedNombre;
+          currentUserName = "";
+          telefonoUsuarioInput.value = "";
           resetAllSliders();
           updateProgress();
           resetBtn();
-          setTimeout(() => google.script.host.close(), 1500);
+          setTimeout(() => google.script.host.close(), 1800);
         })
         .withFailureHandler(error => {
           showMessage('error', 'error', 'Error: ' + error.message);
@@ -1318,19 +1126,13 @@
     }
 
     function showMessage(type, icon, text) {
-      const box  = document.getElementById('messageBox');
-      const ico  = document.getElementById('messageIcon');
-      const txt  = document.getElementById('messageText');
+      const box = document.getElementById('messageBox'), ico = document.getElementById('messageIcon'), txt = document.getElementById('messageText');
       box.className = `msg-banner show ${type}`;
-      ico.textContent = icon;
-      ico.style.fontVariationSettings = "'FILL' 1";
+      ico.textContent = icon; ico.style.fontVariationSettings = "'FILL' 1";
       txt.textContent = text;
       box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
-    function hideMessage() {
-      document.getElementById('messageBox').className = 'msg-banner';
-    }
+    function hideMessage() { document.getElementById('messageBox').className = 'msg-banner'; }
   </script>
-
 </body>
 </html>

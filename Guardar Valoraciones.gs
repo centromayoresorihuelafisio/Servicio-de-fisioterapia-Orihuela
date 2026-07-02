@@ -1,6 +1,81 @@
 /**
- * Procesa los datos del formulario de valoración, calcula los promedios
- * de las secciones funcionales y los guarda en la hoja de cálculo.
+ * Abre la interfaz de usuario para el formulario de valoración.
+ */
+function abrirFormularioValoracion() {
+  const ui = SpreadsheetApp.getUi();
+  const tmpl = HtmlService.createTemplateFromFile('Valoracion');
+  
+  const html = tmpl.evaluate()
+      .setWidth(800)
+      .setHeight(850);
+      
+  ui.showModalDialog(html, ' ');
+}
+
+/**
+ * Obtiene todos los pacientes de la Base de Datos Maestra para el autocompletado,
+ * y además obtiene el valor de la celda activa para precargarlo.
+ */
+function obtenerPacientesParaAutocompletar() {
+  const HOJA_MAESTRA = "Base de Datos Maestra";
+  const COLUMNA_NOMBRE = 2;   // Columna B (Nombre)
+  const COLUMNA_TELEFONO = 4; // Columna D (Teléfono)
+  
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    
+    // 1. Obtener el valor de la celda activa
+    let activeCellValue = "";
+    try {
+      const activeCell = ss.getActiveCell();
+      if (activeCell) {
+        activeCellValue = activeCell.getValue().toString().trim().toUpperCase();
+      }
+    } catch(e) {
+      // Si hay un error obteniendo la celda, continuamos
+    }
+
+    const sheet = ss.getSheetByName(HOJA_MAESTRA);
+    if (!sheet) return { allPatientsData: {}, activeCellValue: activeCellValue };
+
+    const lastRow = sheet.getLastRow();
+    const allPatientsData = {}; 
+    
+    if (lastRow > 1) {
+      const allDataRange = sheet.getRange(2, COLUMNA_NOMBRE, lastRow - 1, COLUMNA_TELEFONO - COLUMNA_NOMBRE + 1);
+      const allData = allDataRange.getValues(); 
+      
+      allData.forEach(row => {
+        const name = row[0] ? row[0].toString().trim() : '';
+        const phone = row[row.length - 1] ? row[row.length - 1].toString().trim() : '';
+        
+        if (name) {
+          allPatientsData[name] = phone;
+        }
+      });
+    }
+    
+    // 2. Devolvemos los datos junto con el valor de la celda activa
+    return { allPatientsData: allPatientsData, activeCellValue: activeCellValue };
+    
+  } catch (e) {
+    Logger.log("Error en autocompletado: " + e.message);
+    return { allPatientsData: {}, activeCellValue: "", error: e.message };
+  }
+}
+
+/**
+ * Convierte un texto a Formato Mayúscula (Ej: "juan pérez" -> "JUAN PÉREZ")
+ * Modificado según los nuevos requerimientos.
+ */
+function normalizarFormatoNombre(texto) {
+  if (!texto) return '';
+  return texto.toString().trim().toUpperCase();
+}
+
+/**
+ * Procesa los datos del formulario de valoración y los guarda.
+ * Calcula los promedios de las secciones funcionales.
  * @param {object} data El objeto con los datos del formulario.
  * @returns {string} Un mensaje de éxito o fracaso.
  */
@@ -8,79 +83,74 @@ function procesarValoracion(data) {
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const sheet = ss.getSheetByName("Valoraciones");
-    if (!sheet) {
-      throw new Error("No se encontró la hoja 'Valoraciones'.");
-    }
+    if (!sheet) throw new Error("No se encontró la hoja 'Valoraciones'.");
 
     /**
-     * Calcula el promedio de un array de valores, ignorando null, undefined y NaN.
-     * Devuelve null si no hay valores válidos.
-     * @param {Array} values Array de valores (puede contener null, undefined o NaN).
-     * @returns {number|null} El promedio redondeado o null.
+     * Calcula el promedio de un array de valores.
+     * Al filtrar null, undefined y NaN, si una categoría no es valorada, 
+     * el array queda vacío (length === 0) y devuelve null, evitando promediar falsamente con 0.
      */
     const safeAverage = (values) => {
       const validValues = values.filter(v => v !== null && v !== undefined && !isNaN(v));
       if (validValues.length === 0) return null;
       const sum = validValues.reduce((acc, current) => acc + current, 0);
-      return Math.round(sum / validValues.length);
+      // Calcula el promedio y lo redondea a un decimal.
+      return Math.round((sum / validValues.length) * 10) / 10; 
     };
 
-    // --- PROCESAMIENTO DE DATOS ---
+    // 1. Normalización Capa 2 (Servidor) - Ahora en mayúsculas siempre
+    const nombreFinal = normalizarFormatoNombre(data.nombre);
+    if (!nombreFinal) throw new Error("Nombre de paciente inválido.");
 
-    // Convertir valores PEG y Analgésicos. Si es NaN (no valorado), se guarda null.
-    const pegDolor     = parseFloat(data.pegDolor);
-    const pegActividad = parseFloat(data.pegActividad);
-    const pegVida      = parseFloat(data.pegVida);
-    const analgesicos  = parseInt(data.analgesicos, 10);
+    const tipoValoracion = data.tipoValoracion || "Inicial";
+    const telefono = data.telefono || "";
+    const notas = data.notas ? data.notas.trim() : "";
 
-    const pegDolorOutput     = isNaN(pegDolor)     ? null : pegDolor;
-    const pegActividadOutput = isNaN(pegActividad) ? null : pegActividad;
-    const pegVidaOutput      = isNaN(pegVida)      ? null : pegVida;
-    const analgesicosOutput  = isNaN(analgesicos)  ? null : analgesicos;
+    // 2. Parseo de datos clínicos
+    const parseOrNull = (val) => (val === "" || val === null || isNaN(parseFloat(val))) ? null : parseFloat(val);
+    
+    const pegDolorOutput     = parseOrNull(data.pegDolor);
+    const pegActividadOutput = parseOrNull(data.pegActividad);
+    const pegVidaOutput      = parseOrNull(data.pegVida);
+    const analgesicosOutput  = parseOrNull(data.analgesicos);
 
-    // 1. Calcular la media de cada sección funcional
-    const mediaColumna = safeAverage([
-      parseFloat(data.columnaLevantarse),
-      parseFloat(data.columnaAgacharse),
-    ]);
+    // 3. Cálculo de sub-escalas funcionales
+    const mediaColumna = safeAverage([parseOrNull(data.columnaLevantarse), parseOrNull(data.columnaAgacharse)]);
+    const mediaMS = safeAverage([parseOrNull(data.msVestirse), parseOrNull(data.msAlcanzar)]);
+    const mediaMI = safeAverage([parseOrNull(data.miCaminar), parseOrNull(data.miEscaleras), parseOrNull(data.miSilla)]);
 
-    const mediaMS = safeAverage([
-      parseFloat(data.msVestirse),
-      parseFloat(data.msAlcanzar),
-    ]);
-
-    const mediaMI = safeAverage([
-      parseFloat(data.miCaminar),
-      parseFloat(data.miEscaleras),
-      parseFloat(data.miSilla),
-    ]);
-
-    // 2. Calcular la Función Global (FG) promediando solo las secciones valoradas.
-    //    safeAverage ya ignora los null internamente, no hace falta filtrar antes.
+    // 4. Cálculo de Función Global (Ignora limpiamente las regiones sin valorar)
     const mediaFG = safeAverage([mediaColumna, mediaMS, mediaMI]);
 
-    // 3. Preparar la fila para la hoja de cálculo
+    const hoy = new Date();
+    const fechaSolo = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
+
+    // 5. Preparar fila (Ajusta el orden según las columnas físicas de tu Google Sheets)
     const filaDatos = [
-      new Date().toLocaleDateString('es-ES'),
-      data.nombre,
-      pegDolorOutput,
-      pegActividadOutput,
-      pegVidaOutput,
-      mediaColumna,
-      mediaMS,
-      mediaMI,
-      mediaFG,
-      analgesicosOutput,
+      fechaSolo,           // Fecha como objeto nativo
+      tipoValoracion,       // Tipo (Inicial, Seguimiento, Final)
+      nombreFinal,          // Nombre Normalizado
+      telefono,             // Teléfono
+      pegDolorOutput,       // PEG Dolor
+      pegActividadOutput,   // PEG Actividad
+      pegVidaOutput,        // PEG Vida
+      mediaColumna,         // Media Columna
+      mediaMS,              // Media MS
+      mediaMI,              // Media MI
+      mediaFG,              // Función Global
+      analgesicosOutput,    // Analgésicos
+      notas                 // Notas Clínicas
     ];
 
     sheet.appendRow(filaDatos);
-    return "Valoración guardada con éxito.";
+    return `Valoración de tipo '${tipoValoracion}' guardada con éxito.`;
 
   } catch (e) {
     Logger.log("Error al procesar valoración: " + e.message);
-    throw new Error("Error al guardar la valoración: " + e.message);
+    throw new Error("Error al guardar: " + e.message);
   }
 }
+
 /**
  * Función de testeo de errores de cálculo
  */
@@ -89,28 +159,26 @@ function testProcesarValoracion() {
     {
       nombre: "Caso 1 – Todo valorado",
       data: {
-        nombre: "Paciente A",
+        nombre: "paciente a", tipoValoracion: "Inicial", telefono: "123",
         pegDolor: "7", pegActividad: "5", pegVida: "6",
         columnaLevantarse: "4", columnaAgacharse: "6",
         msVestirse: "3", msAlcanzar: "5",
         miCaminar: "4", miEscaleras: "6", miSilla: "2",
-        analgesicos: "2",
+        analgesicos: "2", notas: "Nota test"
       },
-      // mediaColumna=5, mediaMS=4, mediaMI=4 → mediaFG=4
-      esperado: { mediaColumna: 5, mediaMS: 4, mediaMI: 4, mediaFG: 4 },
+      esperado: { mediaColumna: 5, mediaMS: 4, mediaMI: 4, mediaFG: 4.3 }, // 13/3 = 4.333 -> 4.3
     },
     {
       nombre: "Caso 2 – Columna no valorada",
       data: {
-        nombre: "Paciente B",
+        nombre: "PACIENTE B", tipoValoracion: "Seguimiento", telefono: "",
         pegDolor: "", pegActividad: "", pegVida: "",
-        columnaLevantarse: "", columnaAgacharse: "",  // <-- sin valorar
+        columnaLevantarse: "", columnaAgacharse: "",
         msVestirse: "6", msAlcanzar: "4",
         miCaminar: "8", miEscaleras: "6", miSilla: "4",
-        analgesicos: "",
+        analgesicos: "", notas: ""
       },
-      // mediaColumna=null, mediaMS=5, mediaMI=6 → mediaFG=6 (solo MS y MI)
-      esperado: { mediaColumna: null, mediaMS: 5, mediaMI: 6, mediaFG: 6 },
+      esperado: { mediaColumna: null, mediaMS: 5, mediaMI: 6, mediaFG: 5.5 }, // 11/2 = 5.5
     },
     {
       nombre: "Caso 3 – Nada valorado",
@@ -120,28 +188,27 @@ function testProcesarValoracion() {
         columnaLevantarse: "", columnaAgacharse: "",
         msVestirse: "", msAlcanzar: "",
         miCaminar: "", miEscaleras: "", miSilla: "",
-        analgesicos: "",
+        analgesicos: "", notas: ""
       },
-      // Todo null → mediaFG debe ser null, no 0
       esperado: { mediaColumna: null, mediaMS: null, mediaMI: null, mediaFG: null },
     },
   ];
 
-  // Replicar la lógica de safeAverage aquí para poder testearla de forma aislada
   const safeAverage = (values) => {
     const validValues = values.filter(v => v !== null && v !== undefined && !isNaN(v));
     if (validValues.length === 0) return null;
     const sum = validValues.reduce((acc, current) => acc + current, 0);
-    return Math.round(sum / validValues.length);
+    return Math.round((sum / validValues.length) * 10) / 10;
   };
+  const parseOrNull = (val) => (val === "" || val === null || isNaN(parseFloat(val))) ? null : parseFloat(val);
 
   let todosCorrecto = true;
 
   casos.forEach(caso => {
     const d = caso.data;
-    const mediaColumna = safeAverage([parseFloat(d.columnaLevantarse), parseFloat(d.columnaAgacharse)]);
-    const mediaMS      = safeAverage([parseFloat(d.msVestirse), parseFloat(d.msAlcanzar)]);
-    const mediaMI      = safeAverage([parseFloat(d.miCaminar), parseFloat(d.miEscaleras), parseFloat(d.miSilla)]);
+    const mediaColumna = safeAverage([parseOrNull(d.columnaLevantarse), parseOrNull(d.columnaAgacharse)]);
+    const mediaMS      = safeAverage([parseOrNull(d.msVestirse), parseOrNull(d.msAlcanzar)]);
+    const mediaMI      = safeAverage([parseOrNull(d.miCaminar), parseOrNull(d.miEscaleras), parseOrNull(d.miSilla)]);
     const mediaFG      = safeAverage([mediaColumna, mediaMS, mediaMI]);
 
     const resultados = { mediaColumna, mediaMS, mediaMI, mediaFG };
