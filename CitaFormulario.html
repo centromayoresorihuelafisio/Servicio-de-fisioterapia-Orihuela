@@ -826,17 +826,33 @@
       updateSaveButtonState();
     }
 
+    // ── Normalizador de nombre (igual que en el formulario de inscripción) ──
+    function sanitizeName(input) {
+      let v = input.value.toUpperCase()
+        .replace(/[ÁÀÄÂÃ]/g,'A').replace(/[ÉÈËÊ]/g,'E')
+        .replace(/[ÍÌÏÎ]/g,'I').replace(/[ÓÒÖÔÕ]/g,'O')
+        .replace(/[ÚÙÜÛ]/g,'U').replace(/[ÝŸ]/g,'Y')
+        .replace(/[^A-ZÑ ]/g,'');
+      input.value = v;
+    }
+
+    // ── Quita tildes solo para comparar (no toca lo que ves en pantalla) ──
+    function stripAccents(str) {
+      return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    }
+
     nombreUsuarioInput.addEventListener('input', function () {
-      const val = this.value.toLowerCase();
-      autocompleteList.innerHTML = '';
-      currentUserName = '';
-      
-      if (!val) {
-        autocompleteList.classList.remove('open');
-        return;
-      }
-      
-      const filtered = allPatientsList.filter(n => n.toLowerCase().includes(val));
+    sanitizeName(this);
+    const val = stripAccents(this.value.toLowerCase());
+    autocompleteList.innerHTML = '';
+    currentUserName = '';
+    
+    if (!val) {
+      autocompleteList.classList.remove('open');
+      return;
+    }
+  
+  const filtered = allPatientsList.filter(n => stripAccents(n.toLowerCase()).includes(val));
       if(filtered.length > 0) {
         autocompleteList.classList.add('open');
       } else {
@@ -893,7 +909,7 @@
             mostrarFeedback(`Cita para: <strong>${name}</strong>`, true);
           } else {
             currentUserName = '';
-            const msg = name === 'HEADER_ROW' ? '🛑 Fila de cabecera seleccionada. Por favor, selecciona un paciente de la lista.' : 'Selecciona un paciente para registrar su cita.';
+            const msg = name === 'HEADER_ROW' ? '🛑 Por favor, selecciona un paciente de la lista.' : 'Selecciona un paciente para registrar su cita.';
             mostrarFeedback(msg, false);
           }
           updateSaveButtonState();

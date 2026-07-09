@@ -110,7 +110,7 @@ function normalizarFormatoNombre(texto) {
  * Elimina la función obtenerHojaAgenda de "Eventos.gs" tras pegar esto.
  */
 function obtenerHojaAgenda() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = getSS();
   const sheets = ss.getSheets();
   const today = new Date();
   const month = today.getMonth() + 1; // 1-12

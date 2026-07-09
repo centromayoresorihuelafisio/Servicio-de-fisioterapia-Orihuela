@@ -4,13 +4,12 @@
  */
 function obtenerNombreDeFilaActiva() {
   const HOJA_MAESTRA = "Base de Datos Maestra";
-  
-  // Confirma que las columnas son B (2) para Nombre y D (4) para Teléfono
   const COLUMNA_NOMBRE = 2; 
   const COLUMNA_TELEFONO = 4; 
   
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    // Lista completa de pacientes: da igual el origen, usamos getSS()
+    const ss = getSS();
     const sheet = ss.getSheetByName(HOJA_MAESTRA);
     
     if (!sheet) {
@@ -22,9 +21,8 @@ function obtenerNombreDeFilaActiva() {
       };
     }
 
-    // 1. --- Lógica para obtener TODOS los pacientes y sus teléfonos ---
     const lastRow = sheet.getLastRow();
-    const allPatientsData = {}; // Mapa: Nombre -> Teléfono
+    const allPatientsData = {};
     
     if (lastRow > 1) {
         const allDataRange = sheet.getRange(2, COLUMNA_NOMBRE, lastRow - 1, COLUMNA_TELEFONO - COLUMNA_NOMBRE + 1);
@@ -33,28 +31,35 @@ function obtenerNombreDeFilaActiva() {
         allData.forEach(row => {
             const name = row[0] ? row[0].toString().trim() : '';
             const phone = row[COLUMNA_TELEFONO - COLUMNA_NOMBRE] ? row[COLUMNA_TELEFONO - COLUMNA_NOMBRE].toString().trim() : '';
-
             if (name.length > 0) {
                 allPatientsData[name] = phone; 
             }
         });
     }
-        // 2. --- Lógica para obtener el paciente de la fila activa ---
-    const activeRow = sheet.getActiveRange().getRow();
 
-    if (activeRow === 1) {
-      return { name: "HEADER_ROW", phone: "", allPatientsData: allPatientsData }; 
-    }
+    // Autorelleno por fila activa: SOLO existe a través de getActiveSpreadsheet(),
+    // nunca a través de openById()/getSS(), aunque sea la misma hoja.
+    try {
+      const activeSS = SpreadsheetApp.getActiveSpreadsheet();
+      const activeSheetMaestra = activeSS.getSheetByName(HOJA_MAESTRA);
+      const activeRow = activeSheetMaestra.getActiveRange().getRow();
 
-    const dataRange = sheet.getRange(activeRow, COLUMNA_NOMBRE, 1, COLUMNA_TELEFONO - COLUMNA_NOMBRE + 1);
-    const data = dataRange.getValues()[0]; 
+      if (activeRow === 1) {
+        return { name: "HEADER_ROW", phone: "", allPatientsData: allPatientsData }; 
+      }
 
-    const nombre = data[0].toString().trim();
-    const telefono = (data[COLUMNA_TELEFONO - COLUMNA_NOMBRE] || "").toString().trim();
+      const dataRange = activeSheetMaestra.getRange(activeRow, COLUMNA_NOMBRE, 1, COLUMNA_TELEFONO - COLUMNA_NOMBRE + 1);
+      const data = dataRange.getValues()[0]; 
+      const nombre = data[0].toString().trim();
+      const telefono = (data[COLUMNA_TELEFONO - COLUMNA_NOMBRE] || "").toString().trim();
 
-    if (nombre.length > 0) {
-      return { name: nombre, phone: telefono, allPatientsData: allPatientsData };
-    } else {
+      if (nombre.length > 0) {
+        return { name: nombre, phone: telefono, allPatientsData: allPatientsData };
+      }
+      return { name: "NOT_FOUND", phone: "", allPatientsData: allPatientsData };
+
+    } catch (innerError) {
+      // Sin sesión activa (contexto Web App) → sin autorelleno, con lista completa
       return { name: "NOT_FOUND", phone: "", allPatientsData: allPatientsData };
     }
 
@@ -108,39 +113,14 @@ function getTodayKey(timeZone) {
     return Utilities.formatDate(today, timeZone, 'dd/MM/yyyy'); 
 }
 
-function obtenerHojaAgenda() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheets = ss.getSheets();
-  const today = new Date();
-  const month = today.getMonth() + 1; // 1-12
 
-  let cursoInicio, cursoFin;
-
-  if (month >= 9) { // Septiembre - Diciembre
-    cursoInicio = today.getFullYear();
-    cursoFin = cursoInicio + 1;
-  } else { // Enero - Julio
-    cursoFin = today.getFullYear();
-    cursoInicio = cursoFin - 1;
-  }
-
-  const regex = new RegExp(`^Agenda\\s+${cursoInicio}-${cursoFin}$`);
-
-  for (let i = 0; i < sheets.length; i++) {
-    if (regex.test(sheets[i].getName())) {
-      return sheets[i];
-    }
-  }
-
-  throw new Error(`No se encontró una hoja de Agenda para el curso ${cursoInicio}-${cursoFin}.`);
-}
 /**
  * Lee la agenda y extrae las semanas, días y huecos disponibles.
  * VERSIÓN 11.2: Detección ultra-robusta de huecos vacíos.
  */
 function obtenerSemanasYHuecos() {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = getSS();
     // Usamos la constante o el nombre directo
     const sheet = obtenerHojaAgenda();
 
@@ -242,7 +222,7 @@ function obtenerSemanasYHuecos() {
 
 function actualizarEstadoPaciente(userName, newStatus) {
     try {
-        const ss = SpreadsheetApp.getActiveSpreadsheet();
+        const ss = getSS();
         const sheet = ss.getSheetByName(HOJA_MAESTRA_NOMBRE);
         if (!sheet) return false;
 
@@ -280,7 +260,7 @@ function guardarCitasMultiples(formData) {
     return { success: false, message: "No se seleccionó ningún hueco." };
   }
 
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = getSS();
   const sheet = ss.getSheetByName(NOMBRE_HOJA_AGENDA);
   
   if (!sheet) {

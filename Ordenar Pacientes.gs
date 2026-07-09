@@ -5,7 +5,7 @@
  */
 
 function ordenarPacientes() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = getSS();
   const sheet = ss.getSheetByName("Base de Datos Maestra");
   
   // 1. Obtención de datos masiva (Una sola llamada)
