@@ -22,17 +22,18 @@ function obtenerPacientesParaAutocompletar() {
   const COLUMNA_TELEFONO = 4; // Columna D (Teléfono)
   
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = getSS(); // Lista completa: funciona igual desde cualquier contexto
     
-    // 1. Obtener el valor de la celda activa
+    // Valor de la celda activa: SOLO existe con sesión de usuario real (menú)
     let activeCellValue = "";
     try {
-      const activeCell = ss.getActiveCell();
+      const activeSS = SpreadsheetApp.getActiveSpreadsheet();
+      const activeCell = activeSS.getActiveCell();
       if (activeCell) {
         activeCellValue = activeCell.getValue().toString().trim().toUpperCase();
       }
     } catch(e) {
-      // Si hay un error obteniendo la celda, continuamos
+      // Sin sesión activa (Web App) → seguimos sin celda precargada, sin problema
     }
 
     const sheet = ss.getSheetByName(HOJA_MAESTRA);
@@ -55,7 +56,6 @@ function obtenerPacientesParaAutocompletar() {
       });
     }
     
-    // 2. Devolvemos los datos junto con el valor de la celda activa
     return { allPatientsData: allPatientsData, activeCellValue: activeCellValue };
     
   } catch (e) {
@@ -81,7 +81,7 @@ function normalizarFormatoNombre(texto) {
  */
 function procesarValoracion(data) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = getSS();
     const sheet = ss.getSheetByName("Valoraciones");
     if (!sheet) throw new Error("No se encontró la hoja 'Valoraciones'.");
 
