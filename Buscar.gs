@@ -1,16 +1,4 @@
 /**
- * Normaliza el texto eliminando acentos (tildes) y convirtiéndolo a minúsculas.
- * @param {string} text El texto a normalizar.
- * @return {string} El texto normalizado.
- */
-function normalizarTexto(text) {
-  if (!text) return '';
-  const lowerText = String(text).toLowerCase();
-  // Elimina acentos/tildes y caracteres diacríticos
-  return lowerText.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-}
-
-/**
  * Muestra un cuadro de diálogo nativo de Google Sheets al usuario para que ingrese el término de búsqueda.
  */
 function mostrarDialogoBusqueda() {

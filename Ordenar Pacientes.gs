@@ -108,26 +108,3 @@ function ordenarPacientes() {
 
   ss.toast("Usuarios ordenados correctamente", "✅ Completado", 6);
 }
-
-/**
- * Función auxiliar para procesar diversos formatos de fecha.
- */
-function parseFecha(valor) {
-  if (!valor && valor !== 0) return null;
-  if (Object.prototype.toString.call(valor) === "[object Date]" && !isNaN(valor)) {
-    return valor;
-  }
-  if (typeof valor === "number") {
-    return new Date(Math.round((valor - 25569) * 86400 * 1000));
-  }
-  if (typeof valor === "string") {
-    var partes = valor.split("/");
-    if (partes.length === 3) {
-      var dia = parseInt(partes[0], 10);
-      var mes = parseInt(partes[1], 10) - 1;
-      var año = parseInt(partes[2], 10);
-      return new Date(año, mes, dia);
-    }
-  }
-  return null;
-}

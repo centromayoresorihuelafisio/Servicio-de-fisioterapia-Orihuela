@@ -156,14 +156,3 @@ function sincronizarEventos() {
     else console.error(error);
   }
 }
-
-/**
- * Función auxiliar para localizar la hoja de agenda.
- */
-function obtenerHojaAgenda() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const hojas = ss.getSheets();
-  const hoja = hojas.find(h => h.getName().includes("Agenda"));
-  if (!hoja) throw new Error("No se encontró la hoja 'Agenda'.");
-  return hoja;
-}
