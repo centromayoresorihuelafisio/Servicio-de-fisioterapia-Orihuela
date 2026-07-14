@@ -63,7 +63,7 @@ function abrirChatWhatsapp() {
 
   // 4. Traer la plantilla guardada desde propiedades
   const scriptProperties = PropertiesService.getScriptProperties();
-  const plantillaMensaje = scriptProperties.getProperty('WHATSAPP_MESSAGE') || "Hola {{nombre}}, soy Fabio, el fisioterapeuta del centro de mayores.";
+  const plantillaMensaje = scriptProperties.getProperty(PROP_KEYS.WHATSAPP_MESSAGE) || "Hola {{nombre}}, soy Fabio, el fisioterapeuta del centro de mayores.";
   
   // Reemplazo dinámico global de la etiqueta {{nombre}} por el nombre procesado
   const msjFinal = plantillaMensaje.replace(/{{nombre}}/g, primerNombre);

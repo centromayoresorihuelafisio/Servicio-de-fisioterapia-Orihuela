@@ -1,6 +1,3 @@
-// ================================================================================
-// ARCHIVO: Config.gs
-// ================================================================================
 /**
  * Configuración centralizada de nombres de hoja usados en todo el proyecto.
  * Antes "Base de Datos Maestra" estaba escrito como texto literal en más de
@@ -16,4 +13,17 @@ const SHEETS = {
   MAESTRA: "Base de Datos Maestra",
   VALORACIONES: "Valoraciones",
   EVENTOS: "Eventos"
+};
+
+/**
+ * Claves de PropertiesService (Script Properties) usadas para la configuración
+ * ajustable desde el menú ⚙️ (ver PanelAdmin.gs). Antes cada clave estaba escrita
+ * como texto literal por separado en PanelAdmin.gs y en el archivo que la
+ * consume (Historia Clínica.gs / Whatsapp.gs); un typo en una de las dos copias
+ * rompería la lectura sin ningún aviso. Ahora hay una única fuente por clave.
+ */
+const PROP_KEYS = {
+  DOC_TEMPLATE_ID: "DOC_TEMPLATE_ID",
+  DRIVE_FOLDER_ID: "DRIVE_FOLDER_ID",
+  WHATSAPP_MESSAGE: "WHATSAPP_MESSAGE"
 };

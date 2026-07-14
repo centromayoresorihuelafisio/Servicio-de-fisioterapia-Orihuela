@@ -4,7 +4,7 @@
 function configurarPlantillaHC() {
   const ui = SpreadsheetApp.getUi();
   const scriptProperties = PropertiesService.getScriptProperties();
-  const currentTemplate = scriptProperties.getProperty('DOC_TEMPLATE_ID') || '';
+  const currentTemplate = scriptProperties.getProperty(PROP_KEYS.DOC_TEMPLATE_ID) || '';
   
   const promptTemplate = ui.prompt(
     '⚙️ Configurar: Plantilla HC',
@@ -16,7 +16,7 @@ function configurarPlantillaHC() {
   if (promptTemplate.getSelectedButton() === ui.Button.OK) {
     const nuevoTemplateId = promptTemplate.getResponseText().trim();
     if (nuevoTemplateId !== '') {
-      scriptProperties.setProperty('DOC_TEMPLATE_ID', nuevoTemplateId);
+      scriptProperties.setProperty(PROP_KEYS.DOC_TEMPLATE_ID, nuevoTemplateId);
       SpreadsheetApp.getActiveSpreadsheet().toast("✅ Plantilla de Google Docs actualizada.", "Configuración");
     }
   }
@@ -28,7 +28,7 @@ function configurarPlantillaHC() {
 function configurarCarpetaDrive() {
   const ui = SpreadsheetApp.getUi();
   const scriptProperties = PropertiesService.getScriptProperties();
-  const currentFolder = scriptProperties.getProperty('DRIVE_FOLDER_ID') || '';
+  const currentFolder = scriptProperties.getProperty(PROP_KEYS.DRIVE_FOLDER_ID) || '';
   
   const promptFolder = ui.prompt(
     '⚙️ Configurar: Carpeta Drive',
@@ -40,7 +40,7 @@ function configurarCarpetaDrive() {
   if (promptFolder.getSelectedButton() === ui.Button.OK) {
     const nuevaFolderId = promptFolder.getResponseText().trim();
     if (nuevaFolderId !== '') {
-      scriptProperties.setProperty('DRIVE_FOLDER_ID', nuevaFolderId);
+      scriptProperties.setProperty(PROP_KEYS.DRIVE_FOLDER_ID, nuevaFolderId);
       SpreadsheetApp.getActiveSpreadsheet().toast("✅ Carpeta de Google Drive actualizada.", "Configuración");
     }
   }
@@ -52,7 +52,7 @@ function configurarCarpetaDrive() {
 function configurarMensajeWhatsapp() {
   const ui = SpreadsheetApp.getUi();
   const scriptProperties = PropertiesService.getScriptProperties();
-  const currentWhatsapp = scriptProperties.getProperty('WHATSAPP_MESSAGE') || 'Hola, soy Fabio...';
+  const currentWhatsapp = scriptProperties.getProperty(PROP_KEYS.WHATSAPP_MESSAGE) || 'Hola, soy Fabio...';
   
   const promptWhatsapp = ui.prompt(
     '⚙️ Configurar: Mensaje de WhatsApp',
@@ -64,7 +64,7 @@ function configurarMensajeWhatsapp() {
   if (promptWhatsapp.getSelectedButton() === ui.Button.OK) {
     const nuevoMsj = promptWhatsapp.getResponseText().trim();
     if (nuevoMsj !== '') {
-      scriptProperties.setProperty('WHATSAPP_MESSAGE', nuevoMsj);
+      scriptProperties.setProperty(PROP_KEYS.WHATSAPP_MESSAGE, nuevoMsj);
       SpreadsheetApp.getActiveSpreadsheet().toast("✅ Mensaje de WhatsApp actualizado.", "Configuración");
     }
   }

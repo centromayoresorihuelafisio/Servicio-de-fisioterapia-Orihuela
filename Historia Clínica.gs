@@ -8,8 +8,8 @@ function generarHistoriaClinica() {
   if (!sheet) { ui.alert("Error: La hoja 'Base de Datos Maestra' no existe."); return; }
 
   const scriptProperties = PropertiesService.getScriptProperties();
-  const templateId = scriptProperties.getProperty('DOC_TEMPLATE_ID');
-  const folderId = scriptProperties.getProperty('DRIVE_FOLDER_ID');
+  const templateId = scriptProperties.getProperty(PROP_KEYS.DOC_TEMPLATE_ID);
+  const folderId = scriptProperties.getProperty(PROP_KEYS.DRIVE_FOLDER_ID);
 
   // Validación de seguridad para evitar que falle el script si están vacíos
   if (!templateId || !folderId) {
