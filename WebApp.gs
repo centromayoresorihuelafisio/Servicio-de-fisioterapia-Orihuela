@@ -108,7 +108,7 @@ function construirIndiceWeb() {
  * ninguna fila/celda "activa" (eso no existe fuera del editor de la hoja).
  */
 function obtenerListaPacientesWeb() {
-  const HOJA_MAESTRA = "Base de Datos Maestra";
+  const HOJA_MAESTRA = SHEETS.MAESTRA;
   const COLUMNA_NOMBRE = 2;   // Columna B
   const COLUMNA_TELEFONO = 4; // Columna D
 

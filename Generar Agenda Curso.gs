@@ -90,7 +90,7 @@ function generarAgendaCurso() {
   const ruleAsistencia = SpreadsheetApp.newDataValidation().requireValueInList(opcionesAsistencia).setAllowInvalid(false).build();
   
   let ruleUser = null;
-  const dbSheet = ss.getSheetByName("Base de Datos Maestra");
+  const dbSheet = ss.getSheetByName(SHEETS.MAESTRA);
   if (dbSheet && dbSheet.getLastRow() > 1) {
     ruleUser = SpreadsheetApp.newDataValidation().requireValueInRange(dbSheet.getRange(2, 2, dbSheet.getLastRow() - 1, 1), true).build();
   }

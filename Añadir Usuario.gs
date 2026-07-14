@@ -15,7 +15,7 @@ function guardarPaciente(datos) {
   Logger.log('*** INICIO DE LA FUNCIÓN guardarPaciente ***');
 
   const ss = getSS()
-  const hoja = ss.getSheetByName('Base de Datos Maestra'); // Asegúrate de que este nombre sea EXACTO
+  const hoja = ss.getSheetByName(SHEETS.MAESTRA); // Asegúrate de que este nombre sea EXACTO
 
   if (!hoja) {
     // Devolver un objeto de error en lugar de lanzar una excepción
@@ -161,7 +161,7 @@ function crearContactoGoogle(nombre, telefono) {
 function generarHistoriaClinicaRegistroUsuario(patientData) {
   try {
     const ss = getSS()
-    const sheet = ss.getSheetByName("Base de Datos Maestra");
+    const sheet = ss.getSheetByName(SHEETS.MAESTRA);
     if (!sheet) {
       return { success: false, message: "Error: La hoja 'Base de Datos Maestra' no existe." };
     }

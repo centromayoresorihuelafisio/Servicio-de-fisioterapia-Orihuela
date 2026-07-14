@@ -85,7 +85,7 @@ function actualizarFechaAltaEnDoc(docUrl) {
 function darDeAltaPaciente() {
   const ui = SpreadsheetApp.getUi();
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName("Base de Datos Maestra");
+  const sheet = ss.getSheetByName(SHEETS.MAESTRA);
   
   const activeRow = sheet.getActiveRange().getRow();
 

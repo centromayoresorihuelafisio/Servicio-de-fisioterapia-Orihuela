@@ -39,5 +39,6 @@ function onOpen() {
     .addItem('1️⃣ Cambiar Plantilla Historia Clínica', 'configurarPlantillaHC')
     .addItem('2️⃣ Cambiar Carpeta Destino Drive', 'configurarCarpetaDrive')
     .addItem('3️⃣ Cambiar Mensaje WhatsApp', 'configurarMensajeWhatsapp')
+    .addItem('⬇️ Exportar Código', 'exportarProyectoAUnicoArchivo')
     .addToUi();
  }

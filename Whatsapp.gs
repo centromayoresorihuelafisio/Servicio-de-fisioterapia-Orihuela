@@ -1,6 +1,6 @@
 function abrirChatWhatsapp() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const hoja = ss.getSheetByName("Base de Datos Maestra");
+  const hoja = ss.getSheetByName(SHEETS.MAESTRA);
   
   if (!hoja) {
     SpreadsheetApp.getUi().alert("Error: No se encontró la hoja 'Base de Datos Maestra'");

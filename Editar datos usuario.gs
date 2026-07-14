@@ -3,7 +3,7 @@
  */
 function abrirModalEdicion() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName("Base de Datos Maestra");
+  const sheet = ss.getSheetByName(SHEETS.MAESTRA);
   const cell = sheet.getActiveCell();
   const rowIdx = cell.getRow();
   
@@ -41,7 +41,7 @@ function abrirModalEdicion() {
  */
 function actualizarPaciente(updatedData, rowIdx) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName("Base de Datos Maestra");
+  const sheet = ss.getSheetByName(SHEETS.MAESTRA);
   const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
   
   const newRowValues = headers.map((header, index) => {

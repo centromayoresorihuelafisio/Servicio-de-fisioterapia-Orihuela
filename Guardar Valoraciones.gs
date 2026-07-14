@@ -17,7 +17,7 @@ function abrirFormularioValoracion() {
  * y además obtiene el valor de la celda activa para precargarlo.
  */
 function obtenerPacientesParaAutocompletar() {
-  const HOJA_MAESTRA = "Base de Datos Maestra";
+  const HOJA_MAESTRA = SHEETS.MAESTRA;
   const COLUMNA_NOMBRE = 2;   // Columna B (Nombre)
   const COLUMNA_TELEFONO = 4; // Columna D (Teléfono)
   
@@ -76,7 +76,7 @@ function obtenerPacientesParaAutocompletar() {
 function procesarValoracion(data) {
   try {
     const ss = getSS();
-    const sheet = ss.getSheetByName("Valoraciones");
+    const sheet = ss.getSheetByName(SHEETS.VALORACIONES);
     if (!sheet) throw new Error("No se encontró la hoja 'Valoraciones'.");
 
     /**

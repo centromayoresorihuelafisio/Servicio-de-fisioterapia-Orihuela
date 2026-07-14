@@ -4,7 +4,7 @@
 function generarHistoriaClinica() {
   const ui = SpreadsheetApp.getUi();
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName("Base de Datos Maestra");
+  const sheet = ss.getSheetByName(SHEETS.MAESTRA);
   if (!sheet) { ui.alert("Error: La hoja 'Base de Datos Maestra' no existe."); return; }
 
   const scriptProperties = PropertiesService.getScriptProperties();

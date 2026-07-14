@@ -3,7 +3,7 @@
  * de la hoja maestra para rellenar el desplegable.
  */
 function obtenerNombreDeFilaActiva() {
-  const HOJA_MAESTRA = "Base de Datos Maestra";
+  const HOJA_MAESTRA = SHEETS.MAESTRA;
   const COLUMNA_NOMBRE = 2; 
   const COLUMNA_TELEFONO = 4; 
   
@@ -80,7 +80,6 @@ const COLUMNA_NOTAS = 10;  // Columna J (Notas en Agenda)
 const COLUMNA_HC_AGENDA = 9; // Columna I (Historia Clínica en Agenda - Ajustar si es otra)
 const NUM_SEMANAS_A_CARGAR = 49; 
 
-const HOJA_MAESTRA_NOMBRE = "Base de Datos Maestra";
 const COLUMNA_NOMBRE_MAESTRA = 2; // Columna B
 const COLUMNA_ESTADO_MAESTRA = 8; // Columna H
 
@@ -223,7 +222,7 @@ function obtenerSemanasYHuecos() {
 function actualizarEstadoPaciente(userName, newStatus) {
     try {
         const ss = getSS();
-        const sheet = ss.getSheetByName(HOJA_MAESTRA_NOMBRE);
+        const sheet = ss.getSheetByName(SHEETS.MAESTRA);
         if (!sheet) return false;
 
         const lastRow = sheet.getLastRow();
@@ -323,5 +322,3 @@ function guardarCitasMultiples(formData) {
     return { success: false, message: "No se pudo guardar ninguna cita: " + failureMessages.join('; ') };
   }
 }
-
-

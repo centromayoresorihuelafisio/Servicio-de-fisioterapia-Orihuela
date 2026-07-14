@@ -147,7 +147,7 @@ function obtenerHojaAgenda() {
  * Elimina la función cargarMapaHistoriasClinicas de "Cita.gs" tras pegar esto.
  */
 function cargarMapaHistoriasClinicas(ss) {
-  const HOJA_MAESTRA = "Base de Datos Maestra";
+  const HOJA_MAESTRA = SHEETS.MAESTRA;
   const sheetMaestra = ss.getSheetByName(HOJA_MAESTRA);
 
   if (!sheetMaestra) {

@@ -23,10 +23,10 @@ function mostrarFormularioEvento() {
  */
 function guardarEventoDesdeForm(datos) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  let sheetEventos = ss.getSheetByName("Eventos");
+  let sheetEventos = ss.getSheetByName(SHEETS.EVENTOS);
   
   if (!sheetEventos) {
-    sheetEventos = ss.insertSheet("Eventos");
+    sheetEventos = ss.insertSheet(SHEETS.EVENTOS);
     // Nuevo orden solicitado: Fecha, Tipo, Evento
     sheetEventos.appendRow(["Fecha", "Tipo", "Evento"]);
     sheetEventos.getRange(1, 1, 1, 3).setFontWeight("bold").setBackground("#F1F5F9");
@@ -65,7 +65,7 @@ function sincronizarEventos() {
   
   try {
     const sheetAgenda = obtenerHojaAgenda();
-    const sheetEventos = ss.getSheetByName("Eventos");
+    const sheetEventos = ss.getSheetByName(SHEETS.EVENTOS);
 
     if (!sheetEventos) return;
 

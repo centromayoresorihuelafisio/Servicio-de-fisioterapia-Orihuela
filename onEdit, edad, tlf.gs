@@ -60,7 +60,7 @@ function onEdit(e) {
     }
 
     const ss = SpreadsheetApp.getActiveSpreadsheet();
-    const sheetBD = ss.getSheetByName("Base de Datos Maestra");
+    const sheetBD = ss.getSheetByName(SHEETS.MAESTRA);
     if (!sheetBD) return;
 
     const lastRowBD = sheetBD.getLastRow();
