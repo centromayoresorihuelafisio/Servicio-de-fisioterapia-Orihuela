@@ -149,17 +149,8 @@ function verificarExistenciaContacto(nombre, telefono, listaGoogle) {
   return false;
 }
 
-/**
- * Limpia y estandariza cadenas de texto para hacer comparaciones tolerantes (minúsculas, sin acentos).
- */
-function normalizarTexto(texto) {
-  if (!texto) return '';
-  return texto
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "") // Elimina acentos/diacríticos
-    .trim();
-}
+// NOTA: normalizarTexto() se centralizó en Utils.gs (14/07/2026) para eliminar la
+// definición duplicada que existía aquí. Ver Utils.gs — misma lógica, fuente única.
 
 /**
  * Normaliza los números de teléfono eliminando espacios, guiones o códigos de país comunes

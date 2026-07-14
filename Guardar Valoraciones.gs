@@ -64,14 +64,8 @@ function obtenerPacientesParaAutocompletar() {
   }
 }
 
-/**
- * Convierte un texto a Formato Mayúscula (Ej: "juan pérez" -> "JUAN PÉREZ")
- * Modificado según los nuevos requerimientos.
- */
-function normalizarFormatoNombre(texto) {
-  if (!texto) return '';
-  return texto.toString().trim().toUpperCase();
-}
+// NOTA: normalizarFormatoNombre() se centralizó en Utils.gs (14/07/2026) para
+// eliminar la definición duplicada que existía aquí. Ver Utils.gs — misma lógica, fuente única.
 
 /**
  * Procesa los datos del formulario de valoración y los guarda.

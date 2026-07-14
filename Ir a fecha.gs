@@ -1,67 +1,5 @@
-/**
- * Función de utilidad para parsear fechas desde diferentes formatos de Sheets.
- * Es necesaria para que irAFechaActual y buscarYNavegar funcionen correctamente.
- * @param {any} valor El valor de la celda.
- * @return {Date|null} Objeto Date o null.
- */
-function parseFecha(valor) {
-  if (!valor && valor !== 0) return null;
-  
-  // 1. Si ya es un objeto Date válido (el caso más probable para sus celdas de fecha)
-  if (Object.prototype.toString.call(valor) === "[object Date]" && !isNaN(valor)) {
-    const d = new Date(valor.getTime());
-    // Normalizar a medianoche (00:00:00)
-    d.setHours(0, 0, 0, 0);
-    return d;
-  }
-  
-  // 2. Si es un string que parece una fecha (e.g., "13/11/2025" o "13/11/25")
-  if (typeof valor === "string") {
-    // Intentamos extraer un patrón dd/MM/yyyy o dd/MM/yy al inicio del string
-    const match = valor.match(/^(\d{1,2}\/\d{1,2}\/\d{2,4})/);
-    let datePart = valor;
-    
-    if (match) {
-        datePart = match[1];
-    } 
-    
-    var partes = datePart.split("/");
-    if (partes.length === 3) {
-      var dia = parseInt(partes[0], 10);
-      var mes = parseInt(partes[1], 10) - 1; // Meses en Date son 0-indexados
-      var año = parseInt(partes[2], 10);
-      
-      // Ajuste de año corto (ej. 25 -> 2025)
-      if (año < 100) {
-        const currentYear = new Date().getFullYear();
-        // Asume que años de 00-49 son 2000s, y 50-99 son 1900s (por si acaso)
-        año = año < 50 ? 2000 + año : 1900 + año; 
-        // Si el año resultante es demasiado lejano (más de 10 años en el futuro), se ajusta heurísticamente.
-        if (año > currentYear + 10) {
-            año -= 100;
-        }
-      }
-      
-      // Creamos la fecha y la normalizamos a 00:00:00
-      const d = new Date(año, mes, dia);
-      d.setHours(0, 0, 0, 0);
-      
-      // Verificación de validez adicional (a veces Date() puede crear fechas inválidas)
-      if (d.getFullYear() === año && d.getMonth() === mes && d.getDate() === dia) {
-          return d;
-      }
-    }
-  }
-  
-  // 3. Si es un número (formato serial de Sheets)
-  if (typeof valor === "number" && valor > 1000) { // Un número mayor a 1000 es casi seguro un serial de fecha
-      const d = new Date(Math.round((valor - 25569) * 86400 * 1000));
-      d.setHours(0, 0, 0, 0);
-      return d;
-  }
-  
-  return null;
-}
+// NOTA: parseFecha() se centralizó en Utils.gs (14/07/2026) para eliminar la
+// definición duplicada que existía aquí. Ver Utils.gs — misma lógica, fuente única.
 
 /**
  * Calcula el nombre de la hoja de Agenda basándose en el curso académico actual.
@@ -293,5 +231,3 @@ function fechaSeleccionada(dateString) {
   // Llamamos a la lógica principal de navegación.
   buscarYNavegar(targetDate, false);
 }
-
-
