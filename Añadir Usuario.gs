@@ -64,7 +64,7 @@ function guardarPaciente(datos) {
   try {
     // --- LÓGICA: Encontrar la primera fila vacía en la columna 'Nombre' (Columna B) ---
     // Obtener todos los valores de la columna 'Nombre' (Columna B) a partir de la fila 2
-    const columnaNombre = hoja.getRange(2, encabezados.indexOf('Nombre') + 1, hoja.getLastRow()).getValues();
+    const columnaNombre = hoja.getRange(2, encabezados.indexOf(COLUMNAS.MAESTRA.NOMBRE) + 1, hoja.getLastRow()).getValues();
     let filaVacia = -1;
 
     for (let i = 0; i < columnaNombre.length; i++) {
@@ -226,9 +226,9 @@ function generarHistoriaClinicaRegistroUsuario(patientData) {
     // 3. Buscar la fila que acabamos de guardar en la hoja "Base de Datos Maestra"
     // Buscaremos de abajo hacia arriba (más rápido para registros recientes)
     const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0].map(h => h.toString().trim().toLowerCase());
-    const dniColIndex = headers.indexOf('dni');
-    const nombreColIndex = headers.indexOf('nombre');
-    const histColIndex = headers.indexOf('historia clínica');
+    const dniColIndex = headers.indexOf(COLUMNAS.MAESTRA.DNI.toLowerCase());
+    const nombreColIndex = headers.indexOf(COLUMNAS.MAESTRA.NOMBRE.toLowerCase());
+    const histColIndex = headers.indexOf(COLUMNAS.MAESTRA.HISTORIA_CLINICA.toLowerCase());
 
     if (histColIndex !== -1) {
       const dataRange = sheet.getDataRange();

@@ -36,8 +36,8 @@ function prepararJornada() {
   const richTextValues = dataRange.getRichTextValues();
 
   const headers = displayValues[0];
-  const colTimeIndex = headers.findIndex(h => h.toString().trim() === 'Hora');
-  const colHCIndex = headers.findIndex(h => h.toString().trim() === 'Historia clínica');
+  const colTimeIndex = headers.findIndex(h => h.toString().trim() === COLUMNAS.AGENDA.HORA);
+  const colHCIndex = headers.findIndex(h => h.toString().trim() === COLUMNAS.AGENDA.HISTORIA_CLINICA);
 
   if (colTimeIndex === -1 || colHCIndex === -1) {
     ui.alert("Error", `En la hoja "${cursoNombre}" no se encontraron las columnas 'Hora' o 'Historia clínica'.`, ui.ButtonSet.OK);

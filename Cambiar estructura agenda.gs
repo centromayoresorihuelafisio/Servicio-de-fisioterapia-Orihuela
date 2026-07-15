@@ -12,7 +12,7 @@
 function modificarEstructuraViernes() {
   // --- CONFIGURACIÓN ---
   const NOMBRE_HOJA = "Copia de Agenda 2025-2026";
-  const NOMBRE_HOJA_BD = "Base de Datos Maestra"; 
+  const NOMBRE_HOJA_BD = SHEETS.MAESTRA;
   const COLUMNA_FECHA = 1;  // Columna A (Fecha)
   const COLUMNA_DIA = 2;    // Columna B (Día)
   const HORA_COLUMNA = 3;   // Columna C (Hora)

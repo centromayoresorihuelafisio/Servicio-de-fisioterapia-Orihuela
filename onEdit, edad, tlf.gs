@@ -17,8 +17,8 @@ function onEdit(e) {
   // ==========================
   if (fila > 1) { 
     var encabezados = hoja.getRange(1, 1, 1, hoja.getLastColumn()).getValues()[0];
-    var colNacimiento = encabezados.indexOf("Fecha nacimiento") + 1;
-    var colEdad = encabezados.indexOf("Edad") + 1;
+    var colNacimiento = encabezados.indexOf(COLUMNAS.MAESTRA.FECHA_NACIMIENTO) + 1;
+    var colEdad = encabezados.indexOf(COLUMNAS.MAESTRA.EDAD) + 1;
 
     if (colNacimiento !== 0 && colEdad !== 0 && col === colNacimiento) {
       var fechaNacimiento = e.range.getValue(); 
@@ -46,7 +46,7 @@ function onEdit(e) {
   if (sheetName.startsWith('Agenda') && col === 4 && fila > 1) {
     // Identificamos las columnas de destino en Agenda
     const encabezadosAgenda = hoja.getRange(1, 1, 1, hoja.getLastColumn()).getValues()[0];
-    const colHCAgenda = encabezadosAgenda.indexOf('Historia clínica') + 1;
+    const colHCAgenda = encabezadosAgenda.indexOf(COLUMNAS.AGENDA.HISTORIA_CLINICA) + 1;
     const colTelfAgenda = 5; // Columna E según tu código original
 
     const celdaTelefono = hoja.getRange(fila, colTelfAgenda);
@@ -69,9 +69,9 @@ function onEdit(e) {
     // --- BÚSQUEDA DINÁMICA EN MAESTRA ---
     // Obtenemos encabezados de Maestra para saber dónde está cada cosa
     const headersBD = sheetBD.getRange(1, 1, 1, sheetBD.getLastColumn()).getValues()[0];
-    const idxNombreBD = headersBD.indexOf('Nombre');
-    const idxTelfBD = headersBD.indexOf('Teléfono'); // Ajustar si el nombre es distinto
-    const idxHCBD = headersBD.indexOf('Historia clínica');
+    const idxNombreBD = headersBD.indexOf(COLUMNAS.MAESTRA.NOMBRE);
+    const idxTelfBD = headersBD.indexOf(COLUMNAS.MAESTRA.TELEFONO); // Ajustar si el nombre es distinto
+    const idxHCBD = headersBD.indexOf(COLUMNAS.MAESTRA.HISTORIA_CLINICA);
 
     // Leemos los valores y los RichText (para los enlaces)
     const dataBD = sheetBD.getRange(2, 1, lastRowBD - 1, headersBD.length).getValues();

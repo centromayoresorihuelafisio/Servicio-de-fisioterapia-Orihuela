@@ -32,13 +32,13 @@ function generarHistoriaClinica() {
   const patientData = {};
   headers.forEach((header, index) => { patientData[header.toLowerCase()] = data[index]; });
 
-  const nombre = patientData['nombre'] || '';
-  const dni = patientData['dni'] || '';
-  const edad = patientData['edad'] || '';
-  const telefono1 = patientData['teléfono 1'] || '';
-  const telefono2 = patientData['teléfono 2'] || '';
-  let fechaInscripcion = patientData['fecha inscripción'] || patientData['fecha_inscripción'] || '';
-  let fechaNacimiento = patientData['fecha nacimiento'] || patientData['fecha_nacimiento'] || '';
+  const nombre = patientData[COLUMNAS.MAESTRA.NOMBRE.toLowerCase()] || '';
+  const dni = patientData[COLUMNAS.MAESTRA.DNI.toLowerCase()] || '';
+  const edad = patientData[COLUMNAS.MAESTRA.EDAD.toLowerCase()] || '';
+  const telefono1 = patientData[COLUMNAS.MAESTRA.TELEFONO_1.toLowerCase()] || '';
+  const telefono2 = patientData[COLUMNAS.MAESTRA.TELEFONO_2.toLowerCase()] || '';
+  let fechaInscripcion = patientData[COLUMNAS.MAESTRA.FECHA_INSCRIPCION.toLowerCase()] || patientData['fecha_inscripción'] || '';
+  let fechaNacimiento = patientData[COLUMNAS.MAESTRA.FECHA_NACIMIENTO.toLowerCase()] || patientData['fecha_nacimiento'] || '';
 
   Logger.log('Raw fechas:', fechaInscripcion, fechaNacimiento);
 
@@ -79,7 +79,7 @@ function generarHistoriaClinica() {
   newDoc.saveAndClose();
 
   const newDocUrl = newDoc.getUrl();
-  const colIndex = headers.findIndex(h => h.toLowerCase() === 'historia clínica');
+  const colIndex = headers.findIndex(h => h.toLowerCase() === COLUMNAS.MAESTRA.HISTORIA_CLINICA.toLowerCase());
   if (colIndex !== -1) {
     const richText = SpreadsheetApp.newRichTextValue().setText("Ver Historia Clínica").setLinkUrl(newDocUrl).build();
     sheet.getRange(rowIndex, colIndex + 1).setRichTextValue(richText);

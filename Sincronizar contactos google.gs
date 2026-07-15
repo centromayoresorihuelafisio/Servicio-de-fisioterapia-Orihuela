@@ -21,8 +21,8 @@ function sincronizarContactosGoogle() {
   }
 
   const encabezados = hoja.getRange(1, 1, 1, hoja.getLastColumn()).getValues()[0];
-  const indiceNombre = encabezados.indexOf('Nombre');
-  const indiceTelefono = encabezados.indexOf('telefono1'); // Mapeado a la columna del formulario
+  const indiceNombre = encabezados.indexOf(COLUMNAS.MAESTRA.NOMBRE);
+  const indiceTelefono = encabezados.indexOf(COLUMNAS.MAESTRA.TELEFONO_FORM); // Mapeado a la columna del formulario
 
   if (indiceNombre === -1) {
     SpreadsheetApp.getUi().alert('Error: No se encontró la columna "Nombre" en la primera fila de la hoja.');

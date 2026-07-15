@@ -27,3 +27,39 @@ const PROP_KEYS = {
   DRIVE_FOLDER_ID: "DRIVE_FOLDER_ID",
   WHATSAPP_MESSAGE: "WHATSAPP_MESSAGE"
 };
+
+/**
+ * Nombres de columna (cabeceras de la fila 1) de cada hoja. Se centralizan TODAS
+ * las cabeceras usadas en el código, aunque solo aparezcan en un único archivo:
+ * así, si algún día renombras una columna en Sheets, solo tienes que tocar este
+ * archivo, sin tener que localizar primero qué función concreta la usaba.
+ */
+const COLUMNAS = {
+  MAESTRA: {
+    NOMBRE: "Nombre",
+    DNI: "DNI",
+    FECHA_NACIMIENTO: "Fecha nacimiento",
+    EDAD: "Edad",
+    ESTADO: "Estado",
+    HISTORIA_CLINICA: "Historia clínica",
+    FECHA_INSCRIPCION: "Fecha inscripción",
+    TELEFONO: "Teléfono",       // OJO: no confirmado — ver nota en onEdit edad tlf.gs
+    TELEFONO_1: "Teléfono 1",
+    TELEFONO_2: "Teléfono 2",
+    // Cabecera "sin espacio/sin acento" que usa Sincronizar contactos google.gs
+    // como primer intento antes de caer al buscador difuso de variantes.
+    TELEFONO_FORM: "telefono1"
+  },
+  AGENDA: {
+    FECHA: "Fecha",
+    DIA: "Día",
+    HORA: "Hora",
+    USUARIO: "Usuario",
+    TELEFONO: "Teléfono",
+    SESION: "Sesión",
+    ASISTENCIA: "Asistencia",
+    ID_EVENTO_CALENDAR: "ID Evento Calendar",
+    NOTAS: "Notas",
+    HISTORIA_CLINICA: "Historia clínica"
+  }
+};

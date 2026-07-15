@@ -4,8 +4,8 @@ function recalcularEdades() {
 
   // Buscar encabezados
   var encabezados = hoja.getRange(1, 1, 1, hoja.getLastColumn()).getValues()[0];
-  var colNacimiento = encabezados.indexOf("Fecha nacimiento") + 1;
-  var colEdad = encabezados.indexOf("Edad") + 1;
+  var colNacimiento = encabezados.indexOf(COLUMNAS.MAESTRA.FECHA_NACIMIENTO) + 1;
+  var colEdad = encabezados.indexOf(COLUMNAS.MAESTRA.EDAD) + 1;
 
   if (colNacimiento === 0 || colEdad === 0) return;
 

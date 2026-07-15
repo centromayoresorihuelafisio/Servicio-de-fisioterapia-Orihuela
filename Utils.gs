@@ -161,8 +161,8 @@ function cargarMapaHistoriasClinicas(ss) {
   if (values.length < 2) return null;
 
   const headers = values[0].map(h => h.toString().trim());
-  const colNombre = headers.indexOf('Nombre');
-  const colHC = headers.indexOf('Historia clínica');
+  const colNombre = headers.indexOf(COLUMNAS.MAESTRA.NOMBRE);
+  const colHC = headers.indexOf(COLUMNAS.MAESTRA.HISTORIA_CLINICA);
 
   if (colNombre === -1 || colHC === -1) {
     throw new Error("Columnas 'Nombre' o 'Historia clínica' no halladas en la Maestra.");
@@ -226,9 +226,9 @@ function insertarEnlaceHistoriaClinica() {
 
     // 2. Determinar los índices de columna por nombre
     const COL_INDICES = {
-      HORA: headersAgenda.findIndex(h => h.toString().trim() === 'Hora') + 1,
-      USUARIO: headersAgenda.findIndex(h => h.toString().trim() === 'Usuario') + 1,
-      HC_CLINICA: headersAgenda.findIndex(h => h.toString().trim() === 'Historia clínica') + 1
+      HORA: headersAgenda.findIndex(h => h.toString().trim() === COLUMNAS.AGENDA.HORA) + 1,
+      USUARIO: headersAgenda.findIndex(h => h.toString().trim() === COLUMNAS.AGENDA.USUARIO) + 1,
+      HC_CLINICA: headersAgenda.findIndex(h => h.toString().trim() === COLUMNAS.AGENDA.HISTORIA_CLINICA) + 1
     };
 
     if (COL_INDICES.HORA === 0 || COL_INDICES.USUARIO === 0 || COL_INDICES.HC_CLINICA === 0) {

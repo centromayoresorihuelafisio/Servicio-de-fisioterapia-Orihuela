@@ -31,7 +31,7 @@ function mostrarDialogoBusqueda() {
  */
 function ejecutarBusquedaCombinada(searchTerm) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheetName = "Base de Datos Maestra";
+  const sheetName = SHEETS.MAESTRA;
   const sheet = ss.getSheetByName(sheetName);
   const cleanSearchTerm = searchTerm.trim();
   
@@ -49,11 +49,11 @@ function ejecutarBusquedaCombinada(searchTerm) {
   
   // Identificar las columnas de búsqueda
   const colIndices = {
-    nombre: headers.indexOf(normalizarTexto('Nombre')),
-    dni: headers.indexOf(normalizarTexto('DNI')),
-    tel1: headers.indexOf(normalizarTexto('Teléfono 1')),
-    tel2: headers.indexOf(normalizarTexto('Teléfono 2')),
-    estado: headers.indexOf(normalizarTexto('Estado')),
+    nombre: headers.indexOf(normalizarTexto(COLUMNAS.MAESTRA.NOMBRE)),
+    dni: headers.indexOf(normalizarTexto(COLUMNAS.MAESTRA.DNI)),
+    tel1: headers.indexOf(normalizarTexto(COLUMNAS.MAESTRA.TELEFONO_1)),
+    tel2: headers.indexOf(normalizarTexto(COLUMNAS.MAESTRA.TELEFONO_2)),
+    estado: headers.indexOf(normalizarTexto(COLUMNAS.MAESTRA.ESTADO)),
   };
   
   // Columna Nombre es crucial para la selección y el mensaje

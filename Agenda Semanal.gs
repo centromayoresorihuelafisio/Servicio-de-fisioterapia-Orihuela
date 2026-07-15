@@ -100,15 +100,15 @@ function getWeekData(startDateTimestamp) {
 
   const headers = values[0];
   const colIndices = {
-    fecha: headers.indexOf("Fecha"),
-    dia: headers.indexOf("Día"),
-    hora: headers.indexOf("Hora"),
-    usuario: headers.indexOf("Usuario"),
-    telefono: headers.indexOf("Teléfono"),
-    sesion: headers.indexOf("Sesión"),
-    asistencia: headers.indexOf("Asistencia"),
-    idEventoCalendar: headers.indexOf("ID Evento Calendar"),
-    notas: headers.indexOf("Notas")
+    fecha: headers.indexOf(COLUMNAS.AGENDA.FECHA),
+    dia: headers.indexOf(COLUMNAS.AGENDA.DIA),
+    hora: headers.indexOf(COLUMNAS.AGENDA.HORA),
+    usuario: headers.indexOf(COLUMNAS.AGENDA.USUARIO),
+    telefono: headers.indexOf(COLUMNAS.AGENDA.TELEFONO),
+    sesion: headers.indexOf(COLUMNAS.AGENDA.SESION),
+    asistencia: headers.indexOf(COLUMNAS.AGENDA.ASISTENCIA),
+    idEventoCalendar: headers.indexOf(COLUMNAS.AGENDA.ID_EVENTO_CALENDAR),
+    notas: headers.indexOf(COLUMNAS.AGENDA.NOTAS)
   };
 
   for (const key in colIndices) {
