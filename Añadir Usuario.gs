@@ -166,9 +166,16 @@ function generarHistoriaClinicaRegistroUsuario(patientData) {
       return { success: false, message: "Error: La hoja 'Base de Datos Maestra' no existe." };
     }
 
-    // Identificadores de plantilla y carpeta de destino (IDs proporcionados por el usuario)
-    const templateId = '1xNuxllwhqTI4_hSRwUfSp4PF4je-XTTJSdoNjYEUVjA';
-    const folderId = '1L5aoSeaEy3BD3C_Ladk2kfgHLsMDg0Sa';
+    // Identificadores de plantilla y carpeta de destino: misma configuración que
+    // usa el menú 🧍 → Añadir Historia Clínica (⚙️ Config), para que ambas vías
+    // de generación usen siempre la misma plantilla.
+    const scriptProperties = PropertiesService.getScriptProperties();
+    const templateId = scriptProperties.getProperty(PROP_KEYS.DOC_TEMPLATE_ID);
+    const folderId = scriptProperties.getProperty(PROP_KEYS.DRIVE_FOLDER_ID);
+
+    if (!templateId || !folderId) {
+      return { success: false, message: 'Falta configurar el ID de la Plantilla o de la Carpeta de Destino. Ve al menú ⚙️ Config y actualiza los valores.' };
+    }
 
     // Extracción de variables desde el objeto recibido del formulario
     const nombre = patientData['Nombre'] || '';

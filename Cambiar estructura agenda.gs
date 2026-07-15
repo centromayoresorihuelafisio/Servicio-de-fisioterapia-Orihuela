@@ -13,11 +13,11 @@ function modificarEstructuraViernes() {
   // --- CONFIGURACIÓN ---
   const NOMBRE_HOJA = "Copia de Agenda 2025-2026";
   const NOMBRE_HOJA_BD = SHEETS.MAESTRA;
-  const COLUMNA_FECHA = 1;  // Columna A (Fecha)
-  const COLUMNA_DIA = 2;    // Columna B (Día)
-  const HORA_COLUMNA = 3;   // Columna C (Hora)
-  const COLUMNA_USUARIO = 4; // Columna D (Usuario)
-  const COLUMNA_ASISTENCIA = 7; // Columna G (Asistencia)
+  const COLUMNA_FECHA = COLUMNAS_NUM.AGENDA.FECHA;  // Columna A (Fecha)
+  const COLUMNA_DIA = COLUMNAS_NUM.AGENDA.DIA;    // Columna B (Día)
+  const HORA_COLUMNA = COLUMNAS_NUM.AGENDA.HORA;   // Columna C (Hora)
+  const COLUMNA_USUARIO = COLUMNAS_NUM.AGENDA.USUARIO; // Columna D (Usuario)
+  const COLUMNA_ASISTENCIA = COLUMNAS_NUM.AGENDA.ASISTENCIA; // Columna G (Asistencia)
 
   // --- LÍMITE DE FECHA (01/11/2025) ---
   const START_DATE_STRING = "01/11/2025";

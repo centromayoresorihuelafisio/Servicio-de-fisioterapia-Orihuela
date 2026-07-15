@@ -63,3 +63,34 @@ const COLUMNAS = {
     HISTORIA_CLINICA: "Historia clínica"
   }
 };
+
+/**
+ * Posición numérica (1 = columna A) de las mismas columnas de arriba, para el
+ * código que accede por número de columna en vez de buscar por nombre de
+ * cabecera. Igual que con COLUMNAS: se incluyen aunque solo se usen en un
+ * único archivo, para tener un solo sitio que tocar si la hoja cambia de
+ * estructura.
+ *
+ * TELEFONO y SESION de AGENDA no los usa ningún archivo activo ahora mismo
+ * (eran constantes declaradas en Cita.gs sin ninguna referencia real) — se
+ * dejan aquí documentadas como referencia de la estructura real de la hoja,
+ * por si las necesitas más adelante.
+ */
+const COLUMNAS_NUM = {
+  MAESTRA: {
+    NOMBRE: 2,
+    TELEFONO: 4,
+    ESTADO: 8
+  },
+  AGENDA: {
+    FECHA: 1,
+    DIA: 2,
+    HORA: 3,
+    USUARIO: 4,
+    TELEFONO: 5,
+    SESION: 6,
+    ASISTENCIA: 7,
+    HISTORIA_CLINICA: 9,
+    NOTAS: 10
+  }
+};

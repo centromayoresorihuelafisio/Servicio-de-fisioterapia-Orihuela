@@ -109,8 +109,8 @@ function construirIndiceWeb() {
  */
 function obtenerListaPacientesWeb() {
   const HOJA_MAESTRA = SHEETS.MAESTRA;
-  const COLUMNA_NOMBRE = 2;   // Columna B
-  const COLUMNA_TELEFONO = 4; // Columna D
+  const COLUMNA_NOMBRE = COLUMNAS_NUM.MAESTRA.NOMBRE;   // Columna B
+  const COLUMNA_TELEFONO = COLUMNAS_NUM.MAESTRA.TELEFONO; // Columna D
 
   try {
     const ss = getSS();

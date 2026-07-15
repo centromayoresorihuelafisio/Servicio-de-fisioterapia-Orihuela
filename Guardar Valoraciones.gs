@@ -18,8 +18,8 @@ function abrirFormularioValoracion() {
  */
 function obtenerPacientesParaAutocompletar() {
   const HOJA_MAESTRA = SHEETS.MAESTRA;
-  const COLUMNA_NOMBRE = 2;   // Columna B (Nombre)
-  const COLUMNA_TELEFONO = 4; // Columna D (Teléfono)
+  const COLUMNA_NOMBRE = COLUMNAS_NUM.MAESTRA.NOMBRE;   // Columna B (Nombre)
+  const COLUMNA_TELEFONO = COLUMNAS_NUM.MAESTRA.TELEFONO; // Columna D (Teléfono)
   
   try {
     const ss = getSS(); // Lista completa: funciona igual desde cualquier contexto

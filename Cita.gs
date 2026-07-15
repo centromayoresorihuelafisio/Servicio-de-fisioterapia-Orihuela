@@ -4,8 +4,8 @@
  */
 function obtenerNombreDeFilaActiva() {
   const HOJA_MAESTRA = SHEETS.MAESTRA;
-  const COLUMNA_NOMBRE = 2; 
-  const COLUMNA_TELEFONO = 4; 
+  const COLUMNA_NOMBRE = COLUMNAS_NUM.MAESTRA.NOMBRE;
+  const COLUMNA_TELEFONO = COLUMNAS_NUM.MAESTRA.TELEFONO;
   
   try {
     // Lista completa de pacientes: da igual el origen, usamos getSS()
@@ -73,15 +73,7 @@ function obtenerNombreDeFilaActiva() {
  * Configuración de la Agenda
  */
 const NOMBRE_HOJA_AGENDA = "Agenda 2025-2026"; 
-const COLUMNA_USUARIO = 4; // Columna D (Nombre del paciente en Agenda)
-const COLUMNA_TELEFONO_AGENDA = 5; // Columna E (Teléfono en Agenda)
-const COLUMNA_SESION = 6;  // Columna F (Nº Sesión en Agenda)
-const COLUMNA_NOTAS = 10;  // Columna J (Notas en Agenda)
-const COLUMNA_HC_AGENDA = 9; // Columna I (Historia Clínica en Agenda - Ajustar si es otra)
 const NUM_SEMANAS_A_CARGAR = 49; 
-
-const COLUMNA_NOMBRE_MAESTRA = 2; // Columna B
-const COLUMNA_ESTADO_MAESTRA = 8; // Columna H
 
 /**
  * Muestra el diálogo modal con el formulario HTML.
@@ -228,7 +220,7 @@ function actualizarEstadoPaciente(userName, newStatus) {
         const lastRow = sheet.getLastRow();
         if (lastRow < 2) return false;
 
-        const names = sheet.getRange(2, COLUMNA_NOMBRE_MAESTRA, lastRow - 1, 1).getValues();
+        const names = sheet.getRange(2, COLUMNAS_NUM.MAESTRA.NOMBRE, lastRow - 1, 1).getValues();
         let targetRow = -1;
 
         for (let i = 0; i < names.length; i++) {
@@ -239,7 +231,7 @@ function actualizarEstadoPaciente(userName, newStatus) {
         }
 
         if (targetRow > 0) {
-            sheet.getRange(targetRow, COLUMNA_ESTADO_MAESTRA).setValue(newStatus);
+            sheet.getRange(targetRow, COLUMNAS_NUM.MAESTRA.ESTADO).setValue(newStatus);
             return true;
         }
         return false;
@@ -282,7 +274,7 @@ function guardarCitasMultiples(formData) {
       const targetRow = hueco.row;
       let sessionToWrite = isNumericSession ? String(sessionBase + index) : numSesion; 
 
-      const rangeFull = sheet.getRange(targetRow, COLUMNA_USUARIO, 1, COLUMNA_NOTAS - COLUMNA_USUARIO + 1);
+      const rangeFull = sheet.getRange(targetRow, COLUMNAS_NUM.AGENDA.USUARIO, 1, COLUMNAS_NUM.AGENDA.NOTAS - COLUMNAS_NUM.AGENDA.USUARIO + 1);
       const existingUser = rangeFull.getCell(1, 1).getValue().toString().trim();
       
       if (existingUser.length > 0) {
@@ -301,7 +293,7 @@ function guardarCitasMultiples(formData) {
           .setText("Ver Historia Clínica")
           .setLinkUrl(enlaceInfo.url)
           .build();
-        sheet.getRange(targetRow, COLUMNA_HC_AGENDA).setRichTextValue(richTextValue);
+        sheet.getRange(targetRow, COLUMNAS_NUM.AGENDA.HISTORIA_CLINICA).setRichTextValue(richTextValue);
       }
       
       successCount++;
