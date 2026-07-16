@@ -666,6 +666,9 @@
     const autocompleteList   = document.getElementById('autocomplete-list');
     const telefonoUsuarioInput = document.getElementById('telefonoUsuario');
 
+    // Paciente ya elegido desde la Base de Datos Web (viene de ?paciente=...).
+    // Vacío cuando se abre desde el menú de Sheets o el índice de la Web App.
+    var PACIENTE_PRESELECCIONADO = <?!= JSON.stringify(pacientePreseleccionado || '') ?>;
     // ── Datos de Estado ──
     let semanasData      = [];
     let currentWeekIndex = 0;
@@ -897,11 +900,19 @@
 
       google.script.run
         .withSuccessHandler(data => {
-          const name  = data.name  || 'NOT_FOUND';
-          const phone = data.phone || '';
+          let name  = data.name  || 'NOT_FOUND';
+          let phone = data.phone || '';
           allPatientsData = data.allPatientsData || {};
+
+          // Sin sesión de Sheets (Web App) no hay "fila activa": si venimos de la
+          // Base de Datos con un paciente ya elegido, lo usamos en su lugar.
+          if (PACIENTE_PRESELECCIONADO && allPatientsData[PACIENTE_PRESELECCIONADO] !== undefined) {
+            name = PACIENTE_PRESELECCIONADO;
+            phone = allPatientsData[PACIENTE_PRESELECCIONADO];
+          }
+
           renderPatientSelect(Object.keys(allPatientsData), name);
-          
+
           if (name && name !== 'HEADER_ROW' && name !== 'NOT_FOUND') {
             currentUserName  = name;
             currentUserPhone = phone;

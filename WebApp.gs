@@ -40,31 +40,33 @@ const PAGINAS_WEB = {
 function doGet(e) {
   const page = e && e.parameter && e.parameter.page;
 
-  // Sin ?page= → índice de navegación
   if (!page) {
     return construirIndiceWeb();
   }
 
-  // Caso especial: edición de un paciente concreto, identificado por su fila
-  // real en la Maestra (?page=editarPaciente&fila=N). No es un archivo estático
-  // de PAGINAS_WEB porque necesita datos server-side antes de servirse, igual
-  // que abrirModalEdicion() desde el menú, pero por número de fila en vez de
-  // celda activa (que no existe fuera del editor de la hoja).
   if (page === 'editarPaciente') {
     return servirFormularioEdicionWeb(e.parameter.fila, e.parameter.embed === '1');
   }
 
   const config = PAGINAS_WEB[page];
   if (!config) {
-    return construirIndiceWeb(); // parámetro desconocido → volvemos al índice
+    return construirIndiceWeb();
   }
 
-  // BaseDatosWeb necesita la URL absoluta de despliegue para construir el
-  // enlace "Editar" de cada fila — un href relativo (?page=editarPaciente...)
-  // no resuelve bien dentro del iframe en el que Google sirve la Web App.
   if (page === 'baseDatos') {
     const template = HtmlService.createTemplateFromFile(config.archivo);
     template.baseUrl = ScriptApp.getService().getUrl();
+    return template.evaluate()
+      .setTitle(config.titulo)
+      .addMetaTag('viewport', 'width=device-width, initial-scale=1');
+  }
+
+  // 'citas' y 'valoracion' aceptan un paciente ya elegido desde la tabla de
+  // la Base de Datos (?paciente=NOMBRE), para no tener que volver a buscarlo
+  // como haría el menú con la fila activa (que no existe en la Web App).
+  if (page === 'citas' || page === 'valoracion') {
+    const template = HtmlService.createTemplateFromFile(config.archivo);
+    template.pacientePreseleccionado = e.parameter.paciente || '';
     return template.evaluate()
       .setTitle(config.titulo)
       .addMetaTag('viewport', 'width=device-width, initial-scale=1');

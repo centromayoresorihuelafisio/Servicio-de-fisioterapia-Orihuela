@@ -86,18 +86,44 @@ function darDeAltaPaciente() {
   const ui = SpreadsheetApp.getUi();
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName(SHEETS.MAESTRA);
-  
-  const activeRow = sheet.getActiveRange().getRow();
 
+  const activeRow = sheet.getActiveRange().getRow();
   if (activeRow === 1) {
     ui.alert("Por favor, selecciona una fila de paciente para dar de alta.");
     return;
   }
 
-  // --- Búsqueda de índices robusta con sinónimos ---
+  const resultado = _ejecutarAltaEnFila(sheet, activeRow);
+  ui.alert(resultado.message);
+  if (resultado.success) ordenarPacientes();
+}
+
+/**
+ * Versión web-safe: da de alta al paciente de `fila`, para usar desde el
+ * botón "Dar de Alta" de la Base de Datos Web.
+ */
+function darDeAltaPacienteWeb(fila) {
+  const rowIdx = parseInt(fila, 10);
+  const ss = getSS();
+  const sheet = ss.getSheetByName(SHEETS.MAESTRA);
+  if (!sheet) return { success: false, message: "No se encontró la hoja 'Base de Datos Maestra'." };
+  if (!rowIdx || rowIdx < 2) return { success: false, message: "Fila de paciente no válida." };
+
+  const resultado = _ejecutarAltaEnFila(sheet, rowIdx);
+  if (resultado.success) ordenarPacientes();
+  return resultado;
+}
+
+/**
+ * Lógica compartida (antes dentro de darDeAltaPaciente): busca columnas por
+ * sinónimos, valida el estado actual, actualiza Estado/Tipo de Ingreso/Fechas
+ * y, si es posible, escribe la fecha de alta en el documento de Historia
+ * Clínica enlazado. Devuelve { success, message } en vez de usar ui.alert,
+ * para poder reutilizarse tanto desde el menú como desde la Web App.
+ */
+function _ejecutarAltaEnFila(sheet, activeRow) {
   const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-  
-  // Función de limpieza
+
   function clean(text) {
     return String(text || "")
       .trim()
@@ -108,7 +134,6 @@ function darDeAltaPaciente() {
       .replace(/columna/g, "");
   }
 
-  // Lista de sinónimos aceptados por columna
   const synonyms = {
     estado: ["estado", "status"],
     tipoIngreso: ["tipo de ingreso", "ingreso", "alta", "origen"],
@@ -117,7 +142,6 @@ function darDeAltaPaciente() {
     historiaClinica: ["historia clínica", "historia", "enlace"],
   };
 
-  // Función que encuentra el índice de un grupo de sinónimos
   function findColumnIndex(targets) {
     return headers.findIndex(header => {
       const cleanHeader = clean(header);
@@ -125,112 +149,64 @@ function darDeAltaPaciente() {
     });
   }
 
-  // Usar la función para cada columna
   const estadoCol = findColumnIndex(synonyms.estado);
   const tipoIngresoCol = findColumnIndex(synonyms.tipoIngreso);
   const fechaInscripcionCol = findColumnIndex(synonyms.fechaInscripcion);
   const ultimaVisitaCol = findColumnIndex(synonyms.ultimaVisita);
   const historiaClinicaCol = findColumnIndex(synonyms.historiaClinica);
 
-  // Validar si se encontraron las columnas necesarias
   if (estadoCol === -1 || tipoIngresoCol === -1) {
-    ui.alert("Error: No se encontraron las columnas requeridas: 'Estado' o 'Tipo de Ingreso'. Por favor, verifica los encabezados.");
-    return;
+    return { success: false, message: "Error: No se encontraron las columnas requeridas: 'Estado' o 'Tipo de Ingreso'. Por favor, verifica los encabezados." };
   }
-  
-  const isDocUpdatePossible = (historiaClinicaCol !== -1);
-  // --- Fin de la búsqueda de índices ---
 
-  // Obtiene el rango de las celdas de estado y tipo de ingreso
+  const isDocUpdatePossible = (historiaClinicaCol !== -1);
+
   const estadoRange = sheet.getRange(activeRow, estadoCol + 1);
   const tipoIngresoRange = sheet.getRange(activeRow, tipoIngresoCol + 1);
-  
-  // 1. Verifica el estado actual
+
   const estadoActual = estadoRange.getValue();
   if (estadoActual === "✔️ Alta") {
-    ui.alert("El paciente ya está dado de alta.");
-    return;
+    return { success: false, message: "El paciente ya está dado de alta." };
   }
-  
-  // Obtiene los rangos de las fechas que deben modificarse (si existen)
+
   const fechaInscripcionRange = (fechaInscripcionCol !== -1) ? sheet.getRange(activeRow, fechaInscripcionCol + 1) : null;
   const ultimaVisitaRange = (ultimaVisitaCol !== -1) ? sheet.getRange(activeRow, ultimaVisitaCol + 1) : null;
-  
-  // 2. Realiza las acciones en la hoja de cálculo
-  estadoRange.setValue("✔️ Alta");
-  tipoIngresoRange.setValue(""); // Borrar Tipo de Ingreso
-  
-  // Borrar Fecha inscripción
-  if (fechaInscripcionRange) {
-      fechaInscripcionRange.setValue("");
-  }
 
-  // Actualizar Última visita a la fecha de hoy
+  estadoRange.setValue("✔️ Alta");
+  tipoIngresoRange.setValue("");
+
+  if (fechaInscripcionRange) fechaInscripcionRange.setValue("");
+
   let ultimaVisitaMsg = "";
   if (ultimaVisitaRange) {
-      const today = new Date();
-      ultimaVisitaRange.setValue(today);
-      ultimaVisitaMsg = "La fecha de última visita se ha actualizada.";
+    ultimaVisitaRange.setValue(new Date());
+    ultimaVisitaMsg = "La fecha de última visita se ha actualizada.";
   }
-  
 
   let finalMessage = "✅ Paciente dado de alta correctamente.";
-  if (ultimaVisitaMsg) {
-      finalMessage += "\n" + ultimaVisitaMsg;
-  }
+  if (ultimaVisitaMsg) finalMessage += "\n" + ultimaVisitaMsg;
 
-  // 3. Realiza la acción en Google Docs
   if (isDocUpdatePossible) {
     const historiaClinicaRange = sheet.getRange(activeRow, historiaClinicaCol + 1);
-    
     let docUrl = "";
-    
-    // --- INICIO DEBUGGING LOGS ---
-    Logger.log("--- DEBUG URL EXTRACTION ---");
-    Logger.log("Active Row: " + activeRow);
-    Logger.log("Column Index (1-based): " + (historiaClinicaCol + 1));
-    Logger.log("Cell Value: " + historiaClinicaRange.getValue());
-    
-    // 1. PRIORIDAD: RICH TEXT VALUE (CELDAS CREADAS POR generarHistoriaClinica)
-    try {
-        const richText = historiaClinicaRange.getRichTextValue();
-        if (richText) {
-          // *** CORRECCIÓN CRÍTICA: getLinkUrl() SIN ARGUMENTOS ***
-          const linkUrl = richText.getLinkUrl(); 
-          if (linkUrl) {
-            docUrl = linkUrl;
-            Logger.log("URL found via RichTextValue (CORRECTED): " + docUrl);
-          } else {
-            Logger.log("RichTextValue found, but getLinkUrl() returned null.");
-          }
-        } else {
-          Logger.log("RichTextValue is null (not Rich Text formatted).");
-        }
-    } catch(e) {
-      Logger.log("Error al intentar RichTextValue: " + e);
-    }
 
-    // 2. RESPALDO A FÓRMULA o TEXTO PLANO
+    try {
+      const richText = historiaClinicaRange.getRichTextValue();
+      if (richText) {
+        const linkUrl = richText.getLinkUrl();
+        if (linkUrl) docUrl = linkUrl;
+      }
+    } catch (e) { /* no era rich text */ }
+
     if (!docUrl) {
-        const formula = historiaClinicaRange.getFormula();
-        Logger.log("Formula: " + formula);
-        
-        if (formula.startsWith('=HIPERVINCULO')) {
-            // Es una fórmula =HIPERVINCULO(...)
-            // Busca el patrón de URL entre comillas, aceptando ; o , como separador
-            const match = formula.match(/=HIPERVINCULO\s*\(\s*\"(.*?)\"\s*[;,]/i);
-            if (match && match[1]) {
-                docUrl = match[1];
-                Logger.log("URL found via Formula: " + docUrl);
-            }
-        } else if (typeof historiaClinicaRange.getValue() === 'string' && historiaClinicaRange.getValue().startsWith('http')) {
-            // Opción de respaldo: Es una URL escrita directamente como texto.
-             docUrl = historiaClinicaRange.getValue();
-             Logger.log("URL found via Plain Text: " + docUrl);
-        }
+      const formula = historiaClinicaRange.getFormula();
+      if (formula.startsWith('=HIPERVINCULO')) {
+        const match = formula.match(/=HIPERVINCULO\s*\(\s*\"(.*?)\"\s*[;,]/i);
+        if (match && match[1]) docUrl = match[1];
+      } else if (typeof historiaClinicaRange.getValue() === 'string' && historiaClinicaRange.getValue().startsWith('http')) {
+        docUrl = historiaClinicaRange.getValue();
+      }
     }
-    Logger.log("Final docUrl: " + docUrl);
-    // --- FIN DEBUGGING LOGS ---
 
     if (docUrl) {
       const docResult = actualizarFechaAltaEnDoc(docUrl);
@@ -240,7 +216,5 @@ function darDeAltaPaciente() {
     }
   }
 
-  ui.alert(finalMessage);
-
-  ordenarPacientes(); 
+  return { success: true, message: finalMessage };
 }

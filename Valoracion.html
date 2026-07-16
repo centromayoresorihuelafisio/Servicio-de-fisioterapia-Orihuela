@@ -769,6 +769,10 @@
   </div>
 
   <script>
+    // Paciente ya elegido desde la Base de Datos Web (viene de ?paciente=...).
+    // Vacío cuando se abre desde el menú de Sheets o el índice de la Web App.
+    var PACIENTE_PRESELECCIONADO = <?!= JSON.stringify(pacientePreseleccionado || '') ?>;
+
     // ── Variables globales Autocompletado ──
     let allPatientsData = {}; 
     let allPatientsList = []; 
@@ -803,9 +807,12 @@
             allPatientsData = data.allPatientsData || {};
             allPatientsList = Object.keys(allPatientsData).sort();
 
-            // Si hay un valor en la celda activa, lo precargamos en MAYÚSCULAS
-            if (data.activeCellValue) {
-              const cellVal = data.activeCellValue.toUpperCase();
+            // Si hay un valor en la celda activa, lo precargamos en MAYÚSCULAS.
+            // Sin sesión de Sheets (Web App) no hay "celda activa": si venimos
+            // de la Base de Datos con un paciente ya elegido, usamos ese.
+            const valorPrecargado = data.activeCellValue || PACIENTE_PRESELECCIONADO;
+            if (valorPrecargado) {
+              const cellVal = valorPrecargado.toUpperCase();
               nombreUsuarioInput.value = cellVal;
               
               // Buscamos si existe en la base (comparación sin importar mayúsculas/minúsculas original)
