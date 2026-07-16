@@ -33,7 +33,8 @@ function getSS() {
 const PAGINAS_WEB = {
   citas:         { archivo: 'CitaFormulario',              titulo: 'Agenda de Citas',   icono: '📅' },
   nuevoPaciente: { archivo: 'Formulario Añadir Usuario',    titulo: 'Nuevo Paciente',    icono: '🧍' },
-  valoracion:    { archivo: 'Valoracion',                   titulo: 'Valoración',        icono: '📋' }
+  valoracion:    { archivo: 'Valoracion',                   titulo: 'Valoración',        icono: '📋' },
+  baseDatos:     { archivo: 'BaseDatosWeb',                 titulo: 'Base de Datos',     icono: '🗂️' }
 };
 
 function doGet(e) {
@@ -44,13 +45,69 @@ function doGet(e) {
     return construirIndiceWeb();
   }
 
+  // Caso especial: edición de un paciente concreto, identificado por su fila
+  // real en la Maestra (?page=editarPaciente&fila=N). No es un archivo estático
+  // de PAGINAS_WEB porque necesita datos server-side antes de servirse, igual
+  // que abrirModalEdicion() desde el menú, pero por número de fila en vez de
+  // celda activa (que no existe fuera del editor de la hoja).
+  if (page === 'editarPaciente') {
+    return servirFormularioEdicionWeb(e.parameter.fila);
+  }
+
   const config = PAGINAS_WEB[page];
   if (!config) {
     return construirIndiceWeb(); // parámetro desconocido → volvemos al índice
   }
 
+  // BaseDatosWeb necesita la URL absoluta de despliegue para construir el
+  // enlace "Editar" de cada fila — un href relativo (?page=editarPaciente...)
+  // no resuelve bien dentro del iframe en el que Google sirve la Web App.
+  if (page === 'baseDatos') {
+    const template = HtmlService.createTemplateFromFile(config.archivo);
+    template.baseUrl = ScriptApp.getService().getUrl();
+    return template.evaluate()
+      .setTitle(config.titulo)
+      .addMetaTag('viewport', 'width=device-width, initial-scale=1');
+  }
+
   return HtmlService.createHtmlOutputFromFile(config.archivo)
     .setTitle(config.titulo)
+    .addMetaTag('viewport', 'width=device-width, initial-scale=1');
+}
+
+/**
+ * Sirve FormularioEdicion.html precargado con los datos de la fila indicada,
+ * para poder editar un paciente desde la tabla de la Web App sin pasar por
+ * el editor de la hoja. Reutiliza exactamente el mismo formulario/lógica de
+ * guardado que ya usa el menú 🧍 → Editar.
+ */
+function servirFormularioEdicionWeb(filaParam) {
+  const rowIdx = parseInt(filaParam, 10);
+
+  if (!rowIdx || rowIdx < 2) {
+    return HtmlService.createHtmlOutput('Falta indicar un paciente válido (parámetro "fila"). Vuelve a la <a href="' + ScriptApp.getService().getUrl() + '?page=baseDatos">Base de Datos</a>.');
+  }
+
+  const ss = getSS();
+  const sheet = ss.getSheetByName(SHEETS.MAESTRA);
+  if (!sheet) {
+    return HtmlService.createHtmlOutput(`Error: no se encontró la hoja "${SHEETS.MAESTRA}".`);
+  }
+  if (rowIdx > sheet.getLastRow()) {
+    return HtmlService.createHtmlOutput('Ese paciente ya no existe en esa fila. Vuelve a la <a href="' + ScriptApp.getService().getUrl() + '?page=baseDatos">Base de Datos</a> y prueba de nuevo.');
+  }
+
+  const { headers, rowData } = prepararDatosFilaParaEdicion(sheet, rowIdx);
+
+  const template = HtmlService.createTemplateFromFile('FormularioEdicion');
+  template.headers = headers;
+  template.rowData = rowData;
+  template.rowIdx = rowIdx;
+  template.esWebApp = true;
+  template.baseUrl = ScriptApp.getService().getUrl();
+
+  return template.evaluate()
+    .setTitle('Editar Paciente')
     .addMetaTag('viewport', 'width=device-width, initial-scale=1');
 }
 

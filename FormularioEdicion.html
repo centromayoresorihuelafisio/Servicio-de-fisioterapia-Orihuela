@@ -871,7 +871,7 @@
 
     <!-- Action bar -->
     <div class="action-bar">
-      <button type="button" class="btn btn-ghost" onclick="google.script.host.close()">
+      <button type="button" class="btn btn-ghost" onclick="cerrarFormulario()">
         <span class="material-symbols-outlined text-[18px]">close</span>
         Cerrar
       </button>
@@ -911,6 +911,17 @@
 
     <script>
       var rowIdx = <?= rowIdx ?>;
+      var esWebApp = <?= esWebApp ? 'true' : 'false' ?>;
+
+      // En el modal de Sheets, "cerrar" es cerrar el diálogo. En la Web App no
+      // hay diálogo que cerrar — en su lugar, volvemos a la tabla de pacientes.
+      function cerrarFormulario() {
+        if (esWebApp) {
+          window.top.location.href = '<?= baseUrl ?>?page=baseDatos';
+        } else {
+          google.script.host.close();
+        }
+      }
 
       function syncFloated(inp) {
         var label = inp.parentElement.querySelector('label.field-label');
@@ -1091,7 +1102,7 @@
         btn.disabled = true;
 
         google.script.run
-          .withSuccessHandler(function() { google.script.host.close(); })
+          .withSuccessHandler(function() { cerrarFormulario(); })
           .withFailureHandler(function(err) {
             alert('Error al guardar: ' + err);
             btn.innerHTML = '<span class="material-symbols-outlined text-[18px]">check_circle</span> Confirmar y Guardar';

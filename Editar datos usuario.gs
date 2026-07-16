@@ -1,4 +1,24 @@
 /**
+ * Lee una fila de la Maestra y la deja lista para el formulario de edición
+ * (cabeceras + valores, con las fechas convertidas a "yyyy-MM-dd" para que
+ * los <input type="date"> las reconozcan). La usan tanto abrirModalEdicion()
+ * (desde el menú) como el router de la Web App (desde la tabla de pacientes).
+ */
+function prepararDatosFilaParaEdicion(sheet, rowIdx) {
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  const rowData = sheet.getRange(rowIdx, 1, 1, sheet.getLastColumn()).getValues()[0];
+
+  const formattedData = rowData.map((value) => {
+    if (Object.prototype.toString.call(value) === '[object Date]') {
+      return Utilities.formatDate(value, Session.getScriptTimeZone(), "yyyy-MM-dd");
+    }
+    return value;
+  });
+
+  return { headers: headers, rowData: formattedData };
+}
+
+/**
  * Abre el diálogo modal para editar el paciente de la fila activa.
  */
 function abrirModalEdicion() {
@@ -12,21 +32,14 @@ function abrirModalEdicion() {
     return;
   }
 
-  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-  const rowData = sheet.getRange(rowIdx, 1, 1, sheet.getLastColumn()).getValues()[0];
-
-  // Formatear fechas para que el input type="date" las reconozca (YYYY-MM-DD)
-  const formattedData = rowData.map((value, index) => {
-    if (Object.prototype.toString.call(value) === '[object Date]') {
-      return Utilities.formatDate(value, Session.getScriptTimeZone(), "yyyy-MM-dd");
-    }
-    return value;
-  });
+  const { headers, rowData } = prepararDatosFilaParaEdicion(sheet, rowIdx);
 
   const template = HtmlService.createTemplateFromFile('FormularioEdicion');
   template.headers = headers;
-  template.rowData = formattedData;
+  template.rowData = rowData;
   template.rowIdx = rowIdx;
+  template.esWebApp = false;
+  template.baseUrl = '';
 
   const html = template.evaluate()
     .setWidth(550)
@@ -40,7 +53,7 @@ function abrirModalEdicion() {
  * Procesa la actualización de los datos en la hoja de cálculo.
  */
 function actualizarPaciente(updatedData, rowIdx) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = getSS();
   const sheet = ss.getSheetByName(SHEETS.MAESTRA);
   const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
   

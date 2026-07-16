@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <base target="_top">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Base de Datos</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600&family=Roboto+Mono:wght@400;500&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
+
+    <style>
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+      :root {
+        --md-primary:          #2b5c75;
+        --md-primary-dark:     #1d3f52;
+        --md-primary-light:    #e0f1fc;
+        --md-primary-container:#c9e4f5;
+        --md-on-primary:       #ffffff;
+
+        --md-success:          #137333;
+        --md-success-bg:       #e6f4ea;
+        --md-error:            #c5221f;
+        --md-error-bg:         #fce8e6;
+        --md-warning:          #f29900;
+        --md-warning-bg:       #fef7e0;
+
+        --md-bg:               #f8f9fa;
+        --md-surface:          #ffffff;
+        --md-surface-variant:  #f1f3f4;
+        --md-outline:          #dadce0;
+
+        --md-on-surface:       #202124;
+        --md-on-surface-med:   #5f6368;
+        --md-on-surface-low:   #80868b;
+
+        --radius-sm: 4px;
+        --radius-md: 8px;
+        --radius-pill: 50px;
+
+        --font: 'Google Sans', 'Segoe UI', Arial, sans-serif;
+        --transition: 150ms cubic-bezier(.2,0,0,1);
+      }
+
+      html, body { height: 100%; }
+      body {
+        font-family: var(--font);
+        background: var(--md-bg);
+        color: var(--md-on-surface);
+        display: flex;
+        flex-direction: column;
+        font-size: 13px;
+      }
+
+      header.top {
+        background: var(--md-surface);
+        border-bottom: 1px solid var(--md-outline);
+        padding: .75rem 1rem;
+        flex-shrink: 0;
+      }
+      header.top h1 {
+        font-size: 1.05rem;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: .5rem;
+        margin-bottom: .6rem;
+      }
+      header.top .contador {
+        font-size: .78rem;
+        color: var(--md-on-surface-med);
+        font-weight: 400;
+      }
+
+      .controles {
+        display: flex;
+        gap: .5rem;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .buscador {
+        display: flex;
+        align-items: center;
+        gap: .4rem;
+        background: var(--md-surface-variant);
+        border-radius: var(--radius-pill);
+        padding: .4rem .8rem;
+        flex: 1;
+        min-width: 200px;
+      }
+      .buscador input {
+        border: none;
+        outline: none;
+        flex: 1;
+        font-size: .85rem;
+        font-family: var(--font);
+        background: transparent;
+      }
+      .buscador .material-symbols-outlined { color: var(--md-on-surface-low); font-size: 18px; }
+
+      .filtros { display: flex; gap: .35rem; flex-wrap: wrap; }
+      .chip {
+        border: 1px solid var(--md-outline);
+        background: var(--md-surface);
+        border-radius: var(--radius-pill);
+        padding: .3rem .75rem;
+        font-size: .75rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: var(--transition);
+        color: var(--md-on-surface-med);
+        user-select: none;
+        white-space: nowrap;
+      }
+      .chip.activo { background: var(--md-primary-container); border-color: var(--md-primary); color: var(--md-primary-dark); }
+
+      .tabla-wrap {
+        flex: 1;
+        overflow: auto;
+      }
+      table {
+        border-collapse: collapse;
+        width: 100%;
+        min-width: 900px;
+      }
+      thead th {
+        position: sticky;
+        top: 0;
+        background: var(--md-surface-variant);
+        color: var(--md-on-surface-med);
+        font-size: .68rem;
+        text-transform: uppercase;
+        letter-spacing: .02em;
+        font-weight: 600;
+        text-align: left;
+        padding: .5rem .6rem;
+        border-bottom: 1px solid var(--md-outline);
+        white-space: nowrap;
+        z-index: 2;
+      }
+      thead th:first-child, tbody td:first-child {
+        position: sticky;
+        left: 0;
+        background: var(--md-surface-variant);
+        z-index: 3;
+        box-shadow: 1px 0 0 var(--md-outline);
+      }
+      tbody td:first-child { background: var(--md-surface); z-index: 1; }
+      tbody tr:nth-child(even) td:first-child { background: #fbfbfc; }
+
+      tbody tr:nth-child(even) { background: #fbfbfc; }
+      tbody tr:hover { background: var(--md-primary-light); }
+      tbody tr:hover td:first-child { background: var(--md-primary-light); }
+
+      tbody td {
+        padding: .45rem .6rem;
+        border-bottom: 1px solid var(--md-outline);
+        white-space: nowrap;
+        max-width: 220px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      td.nombre { font-weight: 600; }
+      td.vacio { color: var(--md-on-surface-low); font-style: italic; }
+
+      .badge {
+        font-size: .68rem;
+        font-weight: 600;
+        padding: .15rem .55rem;
+        border-radius: var(--radius-pill);
+        white-space: nowrap;
+      }
+      .badge.ok     { background: var(--md-success-bg); color: var(--md-success); }
+      .badge.warn   { background: var(--md-warning-bg); color: var(--md-warning); }
+      .badge.neutro { background: var(--md-surface-variant); color: var(--md-on-surface-med); }
+
+      td a.link-hc {
+        color: var(--md-primary);
+        text-decoration: none;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        gap: .2rem;
+      }
+      td a.link-hc:hover { text-decoration: underline; }
+
+      .col-acciones { position: sticky; right: 0; background: var(--md-surface); box-shadow: -1px 0 0 var(--md-outline); }
+      thead th.col-acciones { background: var(--md-surface-variant); }
+      tbody tr:nth-child(even) .col-acciones { background: #fbfbfc; }
+      tbody tr:hover .col-acciones { background: var(--md-primary-light); }
+
+      .btn-editar {
+        display: inline-flex;
+        align-items: center;
+        gap: .25rem;
+        background: var(--md-primary);
+        color: var(--md-on-primary);
+        border: none;
+        border-radius: var(--radius-pill);
+        padding: .3rem .7rem;
+        font-size: .75rem;
+        font-weight: 500;
+        text-decoration: none;
+        white-space: nowrap;
+      }
+
+      .estado-vacio, .estado-carga {
+        text-align: center;
+        color: var(--md-on-surface-med);
+        padding: 3rem 1rem;
+        font-size: .9rem;
+      }
+      .estado-carga .material-symbols-outlined {
+        font-size: 28px;
+        animation: spin 1s linear infinite;
+        display: block;
+        margin: 0 auto .5rem;
+        color: var(--md-primary);
+      }
+      @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+  </head>
+  <body>
+    <header class="top">
+      <h1>🗂️ Base de Datos <span class="contador" id="contador"></span></h1>
+      <div class="controles">
+        <div class="buscador">
+          <span class="material-symbols-outlined">search</span>
+          <input type="text" id="inputBusqueda" placeholder="Buscar por nombre, DNI o teléfono…">
+        </div>
+        <div class="filtros" id="filtrosEstado"></div>
+      </div>
+    </header>
+
+    <div class="tabla-wrap" id="tablaWrap">
+      <div class="estado-carga">
+        <span class="material-symbols-outlined">progress_activity</span>
+        Cargando pacientes…
+      </div>
+    </div>
+
+    <script>
+      var BASE_URL = '<?= baseUrl ?>';
+      var TODOS = [];
+      var HEADERS = [];
+      var filtroEstado = null;
+      var COL_HISTORIA = null;
+
+      function cargar() {
+        google.script.run
+          .withSuccessHandler(function(res) {
+            if (res.error) { mostrarError(res.error); return; }
+            HEADERS = res.headers || [];
+            TODOS = res.pacientes || [];
+            COL_HISTORIA = HEADERS.find(function(h) { return h.toLowerCase().indexOf('historia') !== -1; });
+            construirFiltrosEstado();
+            render();
+          })
+          .withFailureHandler(mostrarError)
+          .obtenerBaseDatosCompletaWeb();
+      }
+
+      function mostrarError(err) {
+        document.getElementById('tablaWrap').innerHTML =
+          '<div class="estado-vacio">⚠️ No se pudo cargar la base de datos.<br>' + (err && err.message ? err.message : err) + '</div>';
+      }
+
+      function normalizar(txt) {
+        return (txt || '').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+      }
+
+      function construirFiltrosEstado() {
+        var cont = document.getElementById('filtrosEstado');
+        var valores = {};
+        TODOS.forEach(function(p) {
+          var e = (p['Estado'] || '').toString().trim();
+          if (e) valores[e] = true;
+        });
+        var lista = Object.keys(valores).sort();
+
+        var html = '<div class="chip activo" data-estado="">Todos</div>';
+        lista.forEach(function(estado) {
+          html += '<div class="chip" data-estado="' + estado.replace(/"/g, '&quot;') + '">' + estado + '</div>';
+        });
+        cont.innerHTML = html;
+
+        cont.querySelectorAll('.chip').forEach(function(chip) {
+          chip.addEventListener('click', function() {
+            cont.querySelectorAll('.chip').forEach(function(c) { c.classList.remove('activo'); });
+            chip.classList.add('activo');
+            filtroEstado = chip.getAttribute('data-estado') || null;
+            render();
+          });
+        });
+      }
+
+      function badgeClaseParaEstado(estado) {
+        var e = normalizar(estado);
+        if (e.indexOf('activo') !== -1 || e.indexOf('alta') !== -1) return 'ok';
+        if (e.indexOf('espera') !== -1 || e.indexOf('pendiente') !== -1 || e.indexOf('contactar') !== -1) return 'warn';
+        return 'neutro';
+      }
+
+      function esUrl(valor) {
+        return typeof valor === 'string' && /^https?:\/\//i.test(valor.trim());
+      }
+
+      function escapar(txt) { return (txt + '').replace(/</g, '&lt;'); }
+
+      function renderCelda(header, valor) {
+        var vacio = valor === '' || valor === null || valor === undefined;
+
+        if (header === 'Nombre') {
+          return '<td class="nombre">' + (vacio ? '—' : escapar(valor)) + '</td>';
+        }
+        if (header === 'Estado') {
+          return '<td>' + (vacio ? '—' : '<span class="badge ' + badgeClaseParaEstado(valor) + '">' + escapar(valor) + '</span>') + '</td>';
+        }
+        if (header === COL_HISTORIA) {
+          if (vacio) return '<td class="vacio">Sin enlace</td>';
+          return esUrl(valor)
+            ? '<td><a class="link-hc" href="' + valor + '" target="_blank" rel="noopener"><span class="material-symbols-outlined text-[15px]">description</span>Abrir</a></td>'
+            : '<td>' + escapar(valor) + '</td>';
+        }
+        return '<td class="' + (vacio ? 'vacio' : '') + '">' + (vacio ? '—' : escapar(valor)) + '</td>';
+      }
+
+      function render() {
+        var termino = normalizar(document.getElementById('inputBusqueda').value);
+
+        var filtrados = TODOS.filter(function(p) {
+          if (filtroEstado && (p['Estado'] || '').toString().trim() !== filtroEstado) return false;
+          if (!termino) return true;
+          var campos = [p['Nombre'], p['DNI'], p['Teléfono 1'], p['Teléfono 2']];
+          return campos.some(function(c) { return normalizar(c).indexOf(termino) !== -1; });
+        });
+
+        document.getElementById('contador').textContent = filtrados.length + ' de ' + TODOS.length;
+
+        var cont = document.getElementById('tablaWrap');
+        if (filtrados.length === 0) {
+          cont.innerHTML = '<div class="estado-vacio">No se encontró ningún paciente con ese criterio.</div>';
+          return;
+        }
+
+        var thead = '<thead><tr>' +
+          HEADERS.map(function(h) { return '<th>' + h + '</th>'; }).join('') +
+          '<th class="col-acciones">Acciones</th>' +
+          '</tr></thead>';
+
+        var tbody = '<tbody>' + filtrados.map(function(p) {
+          var celdas = HEADERS.map(function(h) { return renderCelda(h, p[h]); }).join('');
+          var editUrl = BASE_URL + '?page=editarPaciente&fila=' + p._fila;
+          return '<tr>' + celdas +
+            '<td class="col-acciones"><a class="btn-editar" href="' + editUrl + '">' +
+              '<span class="material-symbols-outlined text-[14px]">edit</span>Editar' +
+            '</a></td>' +
+          '</tr>';
+        }).join('') + '</tbody>';
+
+        cont.innerHTML = '<table>' + thead + tbody + '</table>';
+      }
+
+      document.getElementById('inputBusqueda').addEventListener('input', render);
+
+      cargar();
+    </script>
+  </body>
+</html>
