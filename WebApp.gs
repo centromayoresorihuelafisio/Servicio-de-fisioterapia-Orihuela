@@ -51,7 +51,7 @@ function doGet(e) {
   // que abrirModalEdicion() desde el menú, pero por número de fila en vez de
   // celda activa (que no existe fuera del editor de la hoja).
   if (page === 'editarPaciente') {
-    return servirFormularioEdicionWeb(e.parameter.fila);
+    return servirFormularioEdicionWeb(e.parameter.fila, e.parameter.embed === '1');
   }
 
   const config = PAGINAS_WEB[page];
@@ -81,7 +81,7 @@ function doGet(e) {
  * el editor de la hoja. Reutiliza exactamente el mismo formulario/lógica de
  * guardado que ya usa el menú 🧍 → Editar.
  */
-function servirFormularioEdicionWeb(filaParam) {
+function servirFormularioEdicionWeb(filaParam, enVentanaEmergente) {
   const rowIdx = parseInt(filaParam, 10);
 
   if (!rowIdx || rowIdx < 2) {
@@ -104,6 +104,7 @@ function servirFormularioEdicionWeb(filaParam) {
   template.rowData = rowData;
   template.rowIdx = rowIdx;
   template.esWebApp = true;
+  template.enVentanaEmergente = !!enVentanaEmergente;
   template.baseUrl = ScriptApp.getService().getUrl();
 
   return template.evaluate()

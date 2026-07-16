@@ -66,163 +66,137 @@
         gap: .5rem;
         margin-bottom: .6rem;
       }
-      header.top .contador {
-        font-size: .78rem;
-        color: var(--md-on-surface-med);
-        font-weight: 400;
-      }
+      header.top .contador { font-size: .78rem; color: var(--md-on-surface-med); font-weight: 400; }
 
-      .controles {
+      .barra-herramientas {
         display: flex;
-        gap: .5rem;
+        gap: .4rem;
         flex-wrap: wrap;
         align-items: center;
+        margin-bottom: .6rem;
+        padding-bottom: .6rem;
+        border-bottom: 1px solid var(--md-outline);
       }
-      .buscador {
+      .btn-toolbar {
+        display: inline-flex;
+        align-items: center;
+        gap: .3rem;
+        background: var(--md-surface);
+        border: 1px solid var(--md-outline);
+        color: var(--md-on-surface);
+        border-radius: var(--radius-pill);
+        padding: .35rem .8rem;
+        font-size: .8rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: var(--transition);
+        font-family: var(--font);
+      }
+      .btn-toolbar:hover { background: var(--md-surface-variant); }
+      .btn-toolbar.primario { background: var(--md-primary); border-color: var(--md-primary); color: var(--md-on-primary); }
+      .btn-toolbar.primario:hover { background: var(--md-primary-dark); }
+      .btn-toolbar:disabled { opacity: .45; cursor: not-allowed; }
+      .btn-toolbar .material-symbols-outlined { font-size: 17px; }
+
+      .seleccion-info {
+        font-size: .78rem;
+        color: var(--md-on-surface-med);
+        margin-left: auto;
         display: flex;
         align-items: center;
         gap: .4rem;
-        background: var(--md-surface-variant);
-        border-radius: var(--radius-pill);
-        padding: .4rem .8rem;
-        flex: 1;
-        min-width: 200px;
       }
-      .buscador input {
-        border: none;
-        outline: none;
-        flex: 1;
-        font-size: .85rem;
-        font-family: var(--font);
-        background: transparent;
+      .seleccion-info strong { color: var(--md-primary-dark); }
+      .seleccion-info .btn-quitar {
+        cursor: pointer;
+        color: var(--md-on-surface-low);
+        font-size: 16px;
+        line-height: 1;
       }
+
+      .controles { display: flex; gap: .5rem; flex-wrap: wrap; align-items: center; }
+      .buscador {
+        display: flex; align-items: center; gap: .4rem;
+        background: var(--md-surface-variant); border-radius: var(--radius-pill);
+        padding: .4rem .8rem; flex: 1; min-width: 200px;
+      }
+      .buscador input { border: none; outline: none; flex: 1; font-size: .85rem; font-family: var(--font); background: transparent; }
       .buscador .material-symbols-outlined { color: var(--md-on-surface-low); font-size: 18px; }
 
       .filtros { display: flex; gap: .35rem; flex-wrap: wrap; }
       .chip {
-        border: 1px solid var(--md-outline);
-        background: var(--md-surface);
-        border-radius: var(--radius-pill);
-        padding: .3rem .75rem;
-        font-size: .75rem;
-        font-weight: 500;
-        cursor: pointer;
-        transition: var(--transition);
-        color: var(--md-on-surface-med);
-        user-select: none;
-        white-space: nowrap;
+        border: 1px solid var(--md-outline); background: var(--md-surface); border-radius: var(--radius-pill);
+        padding: .3rem .75rem; font-size: .75rem; font-weight: 500; cursor: pointer;
+        transition: var(--transition); color: var(--md-on-surface-med); user-select: none; white-space: nowrap;
       }
       .chip.activo { background: var(--md-primary-container); border-color: var(--md-primary); color: var(--md-primary-dark); }
 
-      .tabla-wrap {
-        flex: 1;
-        overflow: auto;
-      }
-      table {
-        border-collapse: collapse;
-        width: 100%;
-        min-width: 900px;
-      }
+      .tabla-wrap { flex: 1; overflow: auto; }
+      table { border-collapse: collapse; width: 100%; min-width: 900px; }
       thead th {
-        position: sticky;
-        top: 0;
-        background: var(--md-surface-variant);
-        color: var(--md-on-surface-med);
-        font-size: .68rem;
-        text-transform: uppercase;
-        letter-spacing: .02em;
-        font-weight: 600;
-        text-align: left;
-        padding: .5rem .6rem;
-        border-bottom: 1px solid var(--md-outline);
-        white-space: nowrap;
-        z-index: 2;
+        position: sticky; top: 0; background: var(--md-surface-variant); color: var(--md-on-surface-med);
+        font-size: .68rem; text-transform: uppercase; letter-spacing: .02em; font-weight: 600; text-align: left;
+        padding: .5rem .6rem; border-bottom: 1px solid var(--md-outline); white-space: nowrap; z-index: 2;
       }
       thead th:first-child, tbody td:first-child {
-        position: sticky;
-        left: 0;
-        background: var(--md-surface-variant);
-        z-index: 3;
-        box-shadow: 1px 0 0 var(--md-outline);
+        position: sticky; left: 0; background: var(--md-surface-variant); z-index: 3; box-shadow: 1px 0 0 var(--md-outline);
       }
       tbody td:first-child { background: var(--md-surface); z-index: 1; }
       tbody tr:nth-child(even) td:first-child { background: #fbfbfc; }
-
       tbody tr:nth-child(even) { background: #fbfbfc; }
       tbody tr:hover { background: var(--md-primary-light); }
       tbody tr:hover td:first-child { background: var(--md-primary-light); }
+      tbody tr.seleccionada { background: var(--md-primary-container) !important; }
+      tbody tr.seleccionada td:first-child { background: var(--md-primary-container) !important; }
+      tbody tr { cursor: pointer; }
 
-      tbody td {
-        padding: .45rem .6rem;
-        border-bottom: 1px solid var(--md-outline);
-        white-space: nowrap;
-        max-width: 220px;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
+      tbody td { padding: .45rem .6rem; border-bottom: 1px solid var(--md-outline); white-space: nowrap; max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
       td.nombre { font-weight: 600; }
       td.vacio { color: var(--md-on-surface-low); font-style: italic; }
 
-      .badge {
-        font-size: .68rem;
-        font-weight: 600;
-        padding: .15rem .55rem;
-        border-radius: var(--radius-pill);
-        white-space: nowrap;
-      }
+      .badge { font-size: .68rem; font-weight: 600; padding: .15rem .55rem; border-radius: var(--radius-pill); white-space: nowrap; }
       .badge.ok     { background: var(--md-success-bg); color: var(--md-success); }
       .badge.warn   { background: var(--md-warning-bg); color: var(--md-warning); }
       .badge.neutro { background: var(--md-surface-variant); color: var(--md-on-surface-med); }
 
-      td a.link-hc {
-        color: var(--md-primary);
-        text-decoration: none;
-        font-weight: 500;
-        display: inline-flex;
-        align-items: center;
-        gap: .2rem;
-      }
+      td a.link-hc { color: var(--md-primary); text-decoration: none; font-weight: 500; display: inline-flex; align-items: center; gap: .2rem; }
       td a.link-hc:hover { text-decoration: underline; }
 
       .col-acciones { position: sticky; right: 0; background: var(--md-surface); box-shadow: -1px 0 0 var(--md-outline); }
       thead th.col-acciones { background: var(--md-surface-variant); }
       tbody tr:nth-child(even) .col-acciones { background: #fbfbfc; }
       tbody tr:hover .col-acciones { background: var(--md-primary-light); }
+      tbody tr.seleccionada .col-acciones { background: var(--md-primary-container) !important; }
 
       .btn-editar {
-        display: inline-flex;
-        align-items: center;
-        gap: .25rem;
-        background: var(--md-primary);
-        color: var(--md-on-primary);
-        border: none;
-        border-radius: var(--radius-pill);
-        padding: .3rem .7rem;
-        font-size: .75rem;
-        font-weight: 500;
-        text-decoration: none;
-        white-space: nowrap;
+        display: inline-flex; align-items: center; gap: .25rem; background: var(--md-primary); color: var(--md-on-primary);
+        border: none; border-radius: var(--radius-pill); padding: .3rem .7rem; font-size: .75rem; font-weight: 500;
+        cursor: pointer; white-space: nowrap; font-family: var(--font);
       }
 
-      .estado-vacio, .estado-carga {
-        text-align: center;
-        color: var(--md-on-surface-med);
-        padding: 3rem 1rem;
-        font-size: .9rem;
-      }
-      .estado-carga .material-symbols-outlined {
-        font-size: 28px;
-        animation: spin 1s linear infinite;
-        display: block;
-        margin: 0 auto .5rem;
-        color: var(--md-primary);
-      }
+      .estado-vacio, .estado-carga { text-align: center; color: var(--md-on-surface-med); padding: 3rem 1rem; font-size: .9rem; }
+      .estado-carga .material-symbols-outlined { font-size: 28px; animation: spin 1s linear infinite; display: block; margin: 0 auto .5rem; color: var(--md-primary); }
       @keyframes spin { to { transform: rotate(360deg); } }
     </style>
   </head>
   <body>
     <header class="top">
       <h1>🗂️ Base de Datos <span class="contador" id="contador"></span></h1>
+
+      <div class="barra-herramientas">
+        <button class="btn-toolbar primario" id="btnNuevoPaciente">
+          <span class="material-symbols-outlined">person_add</span> Nuevo Paciente
+        </button>
+        <button class="btn-toolbar" id="btnOrdenar">
+          <span class="material-symbols-outlined">sort</span> Ordenar Pacientes
+        </button>
+
+        <div class="seleccion-info" id="seleccionInfo" style="display:none;">
+          Seleccionado: <strong id="nombreSeleccionado"></strong>
+          <span class="material-symbols-outlined btn-quitar" id="btnQuitarSeleccion" title="Quitar selección">close</span>
+        </div>
+      </div>
+
       <div class="controles">
         <div class="buscador">
           <span class="material-symbols-outlined">search</span>
@@ -245,7 +219,9 @@
       var HEADERS = [];
       var filtroEstado = null;
       var COL_HISTORIA = null;
+      var pacienteSeleccionado = null; // { _fila, Nombre, ... } o null
 
+      // ---------- Carga de datos ----------
       function cargar() {
         google.script.run
           .withSuccessHandler(function(res) {
@@ -269,6 +245,7 @@
         return (txt || '').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
       }
 
+      // ---------- Filtros ----------
       function construirFiltrosEstado() {
         var cont = document.getElementById('filtrosEstado');
         var valores = {};
@@ -301,30 +278,23 @@
         return 'neutro';
       }
 
-      function esUrl(valor) {
-        return typeof valor === 'string' && /^https?:\/\//i.test(valor.trim());
-      }
-
+      function esUrl(valor) { return typeof valor === 'string' && /^https?:\/\//i.test(valor.trim()); }
       function escapar(txt) { return (txt + '').replace(/</g, '&lt;'); }
 
       function renderCelda(header, valor) {
         var vacio = valor === '' || valor === null || valor === undefined;
-
-        if (header === 'Nombre') {
-          return '<td class="nombre">' + (vacio ? '—' : escapar(valor)) + '</td>';
-        }
-        if (header === 'Estado') {
-          return '<td>' + (vacio ? '—' : '<span class="badge ' + badgeClaseParaEstado(valor) + '">' + escapar(valor) + '</span>') + '</td>';
-        }
+        if (header === 'Nombre') return '<td class="nombre">' + (vacio ? '—' : escapar(valor)) + '</td>';
+        if (header === 'Estado') return '<td>' + (vacio ? '—' : '<span class="badge ' + badgeClaseParaEstado(valor) + '">' + escapar(valor) + '</span>') + '</td>';
         if (header === COL_HISTORIA) {
           if (vacio) return '<td class="vacio">Sin enlace</td>';
           return esUrl(valor)
-            ? '<td><a class="link-hc" href="' + valor + '" target="_blank" rel="noopener"><span class="material-symbols-outlined text-[15px]">description</span>Abrir</a></td>'
+            ? '<td><a class="link-hc" href="' + valor + '" target="_blank" rel="noopener" onclick="event.stopPropagation()"><span class="material-symbols-outlined text-[15px]">description</span>Abrir</a></td>'
             : '<td>' + escapar(valor) + '</td>';
         }
         return '<td class="' + (vacio ? 'vacio' : '') + '">' + (vacio ? '—' : escapar(valor)) + '</td>';
       }
 
+      // ---------- Render tabla ----------
       function render() {
         var termino = normalizar(document.getElementById('inputBusqueda').value);
 
@@ -343,23 +313,125 @@
           return;
         }
 
-        var thead = '<thead><tr>' +
-          HEADERS.map(function(h) { return '<th>' + h + '</th>'; }).join('') +
-          '<th class="col-acciones">Acciones</th>' +
-          '</tr></thead>';
+        var thead = '<thead><tr>' + HEADERS.map(function(h) { return '<th>' + h + '</th>'; }).join('') + '<th class="col-acciones">Acciones</th></tr></thead>';
 
         var tbody = '<tbody>' + filtrados.map(function(p) {
           var celdas = HEADERS.map(function(h) { return renderCelda(h, p[h]); }).join('');
-          var editUrl = BASE_URL + '?page=editarPaciente&fila=' + p._fila;
-          return '<tr>' + celdas +
-            '<td class="col-acciones"><a class="btn-editar" href="' + editUrl + '">' +
-              '<span class="material-symbols-outlined text-[14px]">edit</span>Editar' +
-            '</a></td>' +
+          var sel = pacienteSeleccionado && pacienteSeleccionado._fila === p._fila;
+          return '<tr data-fila="' + p._fila + '" class="' + (sel ? 'seleccionada' : '') + '">' + celdas +
+            '<td class="col-acciones"><button type="button" class="btn-editar" onclick="event.stopPropagation(); abrirVentanaEmergente(\'editarPaciente&fila=' + p._fila + '\');">' +
+              '<span class="material-symbols-outlined text-[14px]">edit</span>Editar</button></td>' +
           '</tr>';
         }).join('') + '</tbody>';
 
         cont.innerHTML = '<table>' + thead + tbody + '</table>';
+
+        // Click en la fila = seleccionar (para las acciones que llegarán después)
+        cont.querySelectorAll('tbody tr').forEach(function(tr) {
+          tr.addEventListener('click', function() {
+            var fila = parseInt(tr.getAttribute('data-fila'), 10);
+            seleccionarFila(fila);
+          });
+        });
       }
+
+      // ---------- Selección de fila ----------
+      function seleccionarFila(fila) {
+        if (pacienteSeleccionado && pacienteSeleccionado._fila === fila) {
+          quitarSeleccion();
+          return;
+        }
+        pacienteSeleccionado = TODOS.find(function(p) { return p._fila === fila; }) || null;
+        actualizarUiSeleccion();
+      }
+
+      function quitarSeleccion() {
+        pacienteSeleccionado = null;
+        actualizarUiSeleccion();
+      }
+
+      function actualizarUiSeleccion() {
+        var info = document.getElementById('seleccionInfo');
+        if (pacienteSeleccionado) {
+          info.style.display = 'flex';
+          document.getElementById('nombreSeleccionado').textContent = pacienteSeleccionado['Nombre'] || '';
+        } else {
+          info.style.display = 'none';
+        }
+        document.querySelectorAll('tbody tr').forEach(function(tr) {
+          var fila = parseInt(tr.getAttribute('data-fila'), 10);
+          tr.classList.toggle('seleccionada', !!(pacienteSeleccionado && pacienteSeleccionado._fila === fila));
+        });
+      }
+
+      document.getElementById('btnQuitarSeleccion').addEventListener('click', function(e) {
+        e.stopPropagation();
+        quitarSeleccion();
+      });
+
+      // ---------- Ventana emergente (edición y alta de paciente) ----------
+      // Las Web Apps de Apps Script no se pueden embeber en un <iframe>
+      // (Google lo bloquea), así que usamos una ventana real con window.open.
+      var ventanaActiva = null;
+      var sondeoCierre = null;
+
+      function abrirVentanaEmergente(rutaConParametros) {
+        var esEdicion = rutaConParametros.indexOf('editarPaciente') === 0;
+        var embedParam = esEdicion ? '&embed=1' : '';
+        var url = BASE_URL + '?page=' + rutaConParametros + embedParam;
+
+        ventanaActiva = window.open(url, 'ventanaPaciente', 'width=650,height=800,resizable=yes,scrollbars=yes');
+
+        if (!ventanaActiva) {
+          alert('El navegador ha bloqueado la ventana emergente. Permite las ventanas emergentes para esta página e inténtalo de nuevo.');
+          return;
+        }
+
+        // Red de seguridad: si la ventana se cierra sin avisar por postMessage
+        // (p. ej. el formulario de Nuevo Paciente, que aún no lo hace), al
+        // detectar que se cerró refrescamos la tabla igualmente.
+        if (sondeoCierre) clearInterval(sondeoCierre);
+        sondeoCierre = setInterval(function() {
+          if (ventanaActiva && ventanaActiva.closed) {
+            clearInterval(sondeoCierre);
+            sondeoCierre = null;
+            cargar();
+          }
+        }, 500);
+      }
+
+      // El formulario de edición avisa por postMessage al guardar o cerrar,
+      // para refrescar al instante sin esperar al sondeo de arriba.
+      window.addEventListener('message', function(e) {
+        if (e.data && e.data.tipo === 'cerrarEdicionPaciente') {
+          if (sondeoCierre) { clearInterval(sondeoCierre); sondeoCierre = null; }
+          if (e.data.guardado) cargar();
+        }
+      });
+
+      // ---------- Barra de herramientas ----------
+      document.getElementById('btnNuevoPaciente').addEventListener('click', function() {
+        abrirVentanaEmergente('nuevoPaciente');
+      });
+
+      document.getElementById('btnOrdenar').addEventListener('click', function() {
+        var btn = document.getElementById('btnOrdenar');
+        var textoOriginal = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="material-symbols-outlined">progress_activity</span> Ordenando…';
+        google.script.run
+          .withSuccessHandler(function() {
+            btn.disabled = false;
+            btn.innerHTML = textoOriginal;
+            cargar();
+          })
+          .withFailureHandler(function(err) {
+            btn.disabled = false;
+            btn.innerHTML = textoOriginal;
+            alert('Error al ordenar: ' + err);
+          })
+          .ordenarPacientes();
+      });
 
       document.getElementById('inputBusqueda').addEventListener('input', render);
 

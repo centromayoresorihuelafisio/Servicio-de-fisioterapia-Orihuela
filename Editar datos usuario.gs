@@ -40,6 +40,7 @@ function abrirModalEdicion() {
   template.rowIdx = rowIdx;
   template.esWebApp = false;
   template.baseUrl = '';
+  template.enVentanaEmergente = false;
 
   const html = template.evaluate()
     .setWidth(550)

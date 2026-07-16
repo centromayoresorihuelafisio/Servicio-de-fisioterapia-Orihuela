@@ -912,11 +912,24 @@
     <script>
       var rowIdx = <?= rowIdx ?>;
       var esWebApp = <?= esWebApp ? 'true' : 'false' ?>;
+      var enVentanaEmergente = <?= enVentanaEmergente ? 'true' : 'false' ?>;
 
-      // En el modal de Sheets, "cerrar" es cerrar el diálogo. En la Web App no
-      // hay diálogo que cerrar — en su lugar, volvemos a la tabla de pacientes.
-      function cerrarFormulario() {
-        if (esWebApp) {
+      // Tres contextos posibles en los que puede vivir este formulario:
+      // 1. Modal de Sheets (menú 🧍 → Editar)              → cerrar el diálogo.
+      // 2. Web App como página independiente (pestaña)      → volver a la tabla.
+      // 3. Web App en ventana emergente (window.open desde
+      //    la tabla de la Web App)                          → avisar a la
+      //    ventana que la abrió y cerrarse a sí misma con window.close().
+      // NOTA: las URLs de Apps Script Web App no se pueden embeber en un
+      // <iframe> (Google lo bloquea), así que la opción 3 usa una ventana
+      // real (window.open), nunca un iframe.
+      function cerrarFormulario(guardado) {
+        if (enVentanaEmergente) {
+          if (window.opener) {
+            window.opener.postMessage({ tipo: 'cerrarEdicionPaciente', guardado: !!guardado }, '*');
+          }
+          window.close();
+        } else if (esWebApp) {
           window.top.location.href = '<?= baseUrl ?>?page=baseDatos';
         } else {
           google.script.host.close();
@@ -1102,7 +1115,7 @@
         btn.disabled = true;
 
         google.script.run
-          .withSuccessHandler(function() { cerrarFormulario(); })
+          .withSuccessHandler(function() { cerrarFormulario(true); })
           .withFailureHandler(function(err) {
             alert('Error al guardar: ' + err);
             btn.innerHTML = '<span class="material-symbols-outlined text-[18px]">check_circle</span> Confirmar y Guardar';
