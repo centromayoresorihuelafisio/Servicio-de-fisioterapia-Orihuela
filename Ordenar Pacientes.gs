@@ -7,28 +7,30 @@
 function ordenarPacientes() {
   const ss = getSS();
   const sheet = ss.getSheetByName(SHEETS.MAESTRA);
-  
-  // 1. Obtención de datos masiva (Una sola llamada)
+
+  // Obtención de datos masiva, incluyendo el Rich Text (imprescindible para
+  // no perder el hipervínculo de "Historia clínica" al reordenar filas).
   const range = sheet.getDataRange();
   const data = range.getValues();
-  
-  // Validar si hay datos más allá de los encabezados
+  const richTextData = range.getRichTextValues();
+
   if (data.length <= 1) {
     ss.toast("No hay datos de pacientes para ordenar.", "Aviso", 5);
     return;
   }
 
-  const headers = data[0].map(h => h.toString().trim().toLowerCase());
+  const headersLower = data[0].map(h => h.toString().trim().toLowerCase());
 
   function findColumnIndex(headers, keyword) {
     return headers.findIndex(h => h.includes(keyword));
   }
 
-  const idxEstado = findColumnIndex(headers, "estado");
-  const idxIngreso = findColumnIndex(headers, "ingreso");
-  const idxGravedad = findColumnIndex(headers, "gravedad");
-  const idxUltimaVisita = findColumnIndex(headers, "última");
-  const idxFechaInscripcion = findColumnIndex(headers, "inscripción");
+  const idxEstado = findColumnIndex(headersLower, "estado");
+  const idxIngreso = findColumnIndex(headersLower, "ingreso");
+  const idxGravedad = findColumnIndex(headersLower, "gravedad");
+  const idxUltimaVisita = findColumnIndex(headersLower, "última");
+  const idxFechaInscripcion = findColumnIndex(headersLower, "inscripción");
+  const idxHistoria = findColumnIndex(headersLower, "historia");
 
   if (idxEstado === -1 || idxIngreso === -1 || idxGravedad === -1 || idxUltimaVisita === -1 || idxFechaInscripcion === -1) {
     Logger.log("No se encontraron todas las columnas necesarias");
@@ -37,18 +39,15 @@ function ordenarPacientes() {
   }
 
   const now = new Date();
-  // Array para almacenar los scores y escribirlos de una sola vez
-  // El tamaño debe ser igual a las filas de datos (data.length - 1)
-  let scoresArray = [];
 
-  // 2. Procesamiento lógico en memoria (Sin tocar la hoja)
+  // Cálculo de scores en memoria; los guardamos ya en la propia matriz
+  // `data` (columna 1) para no necesitar una escritura aparte.
   for (let i = 1; i < data.length; i++) {
     const row = data[i];
     const estadoRaw = row[idxEstado];
-    
-    // VALIDACIÓN: Si la fila está vacía en la columna estado, score 0 o saltar
+
     if (!estadoRaw || estadoRaw.toString().trim() === "") {
-      scoresArray.push([null]); // No asignamos puntaje a filas vacías
+      row[0] = 0;
       continue;
     }
 
@@ -88,22 +87,31 @@ function ordenarPacientes() {
       score += diffDays2 * 0.01;
     }
 
-    // Guardamos el resultado con formato de 2 decimales
-    scoresArray.push([Number(score.toFixed(2))]);
+    row[0] = Number(score.toFixed(2));
   }
 
-  // 3. Escritura masiva de scores (Una sola llamada)
-  if (scoresArray.length > 0) {
-    const scoreRange = sheet.getRange(2, 1, scoresArray.length, 1);
-    scoreRange.setNumberFormat("0.00");
-    scoreRange.setValues(scoresArray);
-  }
+  // Ordenamos un array de ÍNDICES de fila (en vez de usar Range.sort()
+  // directamente sobre la hoja): así podemos reconstruir juntos los valores
+  // Y el Rich Text de "Historia clínica" en el nuevo orden. Range.sort()
+  // pierde ese hipervínculo al reordenar filas — es un bug conocido de
+  // Apps Script, no depende de cómo se generó el enlace.
+  const indices = [];
+  for (let i = 1; i < data.length; i++) indices.push(i);
+  indices.sort((a, b) => data[b][0] - data[a][0]);
 
-  // 4. Ordenamiento final
-  const lastRow = sheet.getLastRow();
-  if (lastRow > 1) {
-    sheet.getRange(2, 1, lastRow - 1, sheet.getLastColumn())
-         .sort({column: 1, ascending: false});
+  const newValues = indices.map(i => data[i]);
+  const numFilas = data.length - 1;
+  const lastCol = sheet.getLastColumn();
+
+  // Escritura masiva de los valores ya reordenados.
+  sheet.getRange(2, 1, numFilas, lastCol).setValues(newValues);
+  sheet.getRange(2, 1, numFilas, 1).setNumberFormat("0.00");
+
+  // Reaplicamos el Rich Text de "Historia clínica" en su nuevo orden — el
+  // setValues anterior lo habría aplanado a texto plano.
+  if (idxHistoria !== -1) {
+    const newRichText = indices.map(i => [richTextData[i][idxHistoria]]);
+    sheet.getRange(2, idxHistoria + 1, numFilas, 1).setRichTextValues(newRichText);
   }
 
   ss.toast("Usuarios ordenados correctamente", "✅ Completado", 6);
