@@ -98,6 +98,7 @@
       .btn-toolbar.primario { background: var(--md-primary); border-color: var(--md-primary); color: var(--md-on-primary); }
       .btn-toolbar.primario:hover { background: var(--md-primary-dark); }
       .btn-toolbar:disabled { opacity: .45; cursor: not-allowed; }
+      .btn-toolbar.activo { background: var(--md-primary-light); border-color: var(--md-primary); color: var(--md-primary-dark); }
       .btn-toolbar .material-symbols-outlined { font-size: 17px; }
       .btn-toolbar.btn-nav { padding: .35rem .55rem; }
 
@@ -130,32 +131,55 @@
       .buscador .material-symbols-outlined { color: var(--md-on-surface-low); font-size: 18px; }
 
       .tabla-wrap { flex: 1; overflow: auto; }
-      table { border-collapse: collapse; width: 100%; min-width: 900px; }
+      table { border-collapse: collapse; width: 100%; min-width: 900px; table-layout: fixed; }
       thead th {
         position: sticky; top: 0; background: var(--md-surface-variant); color: var(--md-on-surface-med);
         font-size: .68rem; text-transform: uppercase; letter-spacing: .02em; font-weight: 600; text-align: left;
         padding: .4rem .6rem; border-bottom: 1px solid var(--md-outline); white-space: nowrap; z-index: 2;
       }
       thead th:nth-child(1), tbody td:nth-child(1) {
-        position: sticky; left: 0; width: 88px; min-width: 88px; max-width: 88px;
+        position: sticky; left: 0; width: 60px; min-width: 60px; max-width: 60px;
         background: var(--md-surface-variant); z-index: 3; box-shadow: 1px 0 0 var(--md-outline);
       }
       tbody td:nth-child(1) { background: var(--md-surface); z-index: 1; }
       thead th:nth-child(2), tbody td:nth-child(2) {
-        position: sticky; left: 88px; width: 76px; min-width: 76px; max-width: 76px;
+        position: sticky; left: 60px; width: 210px; min-width: 210px; max-width: 210px;
         background: var(--md-surface-variant); z-index: 3; box-shadow: 1px 0 0 var(--md-outline);
       }
       tbody td:nth-child(2) { background: var(--md-surface); z-index: 1; }
+      /* Teléfono, Sesión, Asistencia, Historia clínica: anchos ajustados a su
+         contenido real. Notas se deja sin ancho fijo para que se quede con
+         todo el espacio sobrante (table-layout: fixed reparte así lo que no
+         está explícitamente asignado). */
+      thead th:nth-child(3), tbody td:nth-child(3) { width: 112px; }
+      thead th:nth-child(4), tbody td:nth-child(4) { width: 64px; }
+      thead th:nth-child(5), tbody td:nth-child(5) { width: 110px; }
+      thead th:nth-child(6), tbody td:nth-child(6) { width: 110px; }
 
-      /* Filas estrechas con alternancia de color, como en la hoja de Sheets */
-      tbody tr:nth-child(even) { background: #fbfbfc; }
-      tbody tr:nth-child(even) td:nth-child(1), tbody tr:nth-child(even) td:nth-child(2) { background: #fbfbfc; }
+      /* Filas estrechas con alternancia de color, como en la hoja de Sheets.
+         Se aplica por clase (no nth-child) porque las filas de cabecera de
+         día intercaladas en la tabla romperían la paridad par/impar. */
+      tbody tr.fila-par { background: #fbfbfc; }
+      tbody tr.fila-par td:nth-child(1), tbody tr.fila-par td:nth-child(2) { background: #fbfbfc; }
 
       /* Línea divisoria sutil entre el turno de mañana y el de tarde */
       tbody tr.divisor-turno td { border-top: 2px solid var(--md-outline); }
 
+      /* Hueco libre (hora real sin paciente asignado): más discreto que una
+         cita real, para que a simple vista destaquen las citas confirmadas. */
+      tbody tr.fila-hueco td { color: var(--md-on-surface-low); }
+      tbody tr.fila-hueco td.hueco-libre { font-style: italic; }
+
+      /* Cabecera de grupo por día: sustituye a repetir Fecha/Día en cada fila */
+      tbody tr.fila-dia td {
+        position: static !important; width: auto !important; min-width: 0 !important; max-width: none !important;
+        background: var(--md-primary-light) !important; color: var(--md-primary-dark);
+        font-weight: 600; font-size: .78rem; text-transform: capitalize;
+        padding: .4rem .6rem; border-bottom: 1px solid var(--md-outline); white-space: normal;
+      }
+
       tbody td { padding: .32rem .6rem; border-bottom: 1px solid var(--md-outline); white-space: nowrap; max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
-      td.fecha { font-weight: 600; }
+      td.hora { font-weight: 600; }
       td.vacio { color: var(--md-on-surface-low); font-style: italic; }
 
       td a.link-hc { color: var(--md-primary); text-decoration: none; font-weight: 500; display: inline-flex; align-items: center; gap: .2rem; }
@@ -193,6 +217,9 @@
           <span class="material-symbols-outlined">search</span>
           <input type="text" id="inputBusqueda" placeholder="Buscar por paciente, sesión o notas…">
         </div>
+        <button class="btn-toolbar" id="btnHuecos">
+          <span class="material-symbols-outlined">event_available</span> Mostrar huecos libres
+        </button>
       </div>
     </header>
 
@@ -210,10 +237,16 @@
       // Cambia este valor si tu corte de turno no es a las 14:00.
       var HORA_CORTE_TARDE = '14:00';
 
-      var HEADERS = [];
+      // Columnas que la hoja de Sheets tiene pero no queremos mostrar en esta
+      // vista (comparación normalizada: sin mayúsculas ni acentos).
+      var COLUMNAS_OCULTAS = ['fecha', 'dia', 'id evento calendar'];
+
+      var HEADERS = [];        // todas las columnas que manda el servidor
+      var HEADERS_VISIBLES = []; // HEADERS sin Fecha/Día/ID Evento Calendar
       var CITAS = [];
       var COL_HISTORIA = null;
       var semanaActual = null; // lunes de la semana mostrada, "yyyy-MM-dd"
+      var mostrarHuecos = false; // huecos horarios sin paciente asignado
 
       // ---------- Carga de datos ----------
       function cargar(fechaISO) {
@@ -224,6 +257,7 @@
           .withSuccessHandler(function(res) {
             if (res.error) { mostrarError(res.error); return; }
             HEADERS = res.headers || [];
+            HEADERS_VISIBLES = HEADERS.filter(function(h) { return COLUMNAS_OCULTAS.indexOf(normalizar(h)) === -1; });
             CITAS = res.citas || [];
             COL_HISTORIA = HEADERS.find(function(h) { return h.toLowerCase().indexOf('historia') !== -1; });
 
@@ -252,7 +286,7 @@
 
       function renderCelda(header, valor) {
         var vacio = valor === '' || valor === null || valor === undefined;
-        if (header === 'Fecha') return '<td class="fecha">' + (vacio ? '—' : escapar(valor)) + '</td>';
+        if (header === 'Hora') return '<td class="hora">' + (vacio ? '—' : escapar(valor)) + '</td>';
         if (header === COL_HISTORIA) {
           if (vacio) return '<td class="vacio">Sin enlace</td>';
           return esUrl(valor)
@@ -267,12 +301,14 @@
         var termino = normalizar(document.getElementById('inputBusqueda').value);
 
         var filtradas = CITAS.filter(function(c) {
+          if (!mostrarHuecos && c._hueco) return false;
           if (!termino) return true;
           var campos = [c['Usuario'], c['Notas'], c['Sesión']];
           return campos.some(function(v) { return normalizar(v).indexOf(termino) !== -1; });
         });
 
-        document.getElementById('contador').textContent = filtradas.length + (filtradas.length === 1 ? ' cita' : ' citas');
+        var numCitas = filtradas.filter(function(c) { return !c._hueco; }).length;
+        document.getElementById('contador').textContent = numCitas + (numCitas === 1 ? ' cita' : ' citas');
 
         var cont = document.getElementById('tablaWrap');
         if (filtradas.length === 0) {
@@ -280,20 +316,48 @@
           return;
         }
 
-        var thead = '<thead><tr>' + HEADERS.map(function(h) { return '<th>' + h + '</th>'; }).join('') + '</tr></thead>';
+        var thead = '<thead><tr>' + HEADERS_VISIBLES.map(function(h) { return '<th>' + h + '</th>'; }).join('') + '</tr></thead>';
 
-        var diaAnterior = null;
-        var mananaAnterior = null;
+        // Agrupamos las citas (ya vienen ordenadas cronológicamente del
+        // servidor) por día, para mostrar la Fecha y el Día una sola vez por
+        // grupo en vez de repetirlos en cada fila.
+        var grupos = [];
+        filtradas.forEach(function(c) {
+          var ultimo = grupos[grupos.length - 1];
+          if (!ultimo || ultimo.fechaISO !== c._fechaISO) {
+            grupos.push({ fechaISO: c._fechaISO, dia: c['Día'], fecha: c['Fecha'], citas: [c] });
+          } else {
+            ultimo.citas.push(c);
+          }
+        });
 
-        var tbody = '<tbody>' + filtradas.map(function(c) {
-          var celdas = HEADERS.map(function(h) { return renderCelda(h, c[h]); }).join('');
-          var esManana = (c['Hora'] || '') < HORA_CORTE_TARDE;
+        var contadorFila = 0;
 
-          var divisor = (diaAnterior === c._fechaISO && mananaAnterior === true && esManana === false);
-          diaAnterior = c._fechaISO;
-          mananaAnterior = esManana;
+        var tbody = '<tbody>' + grupos.map(function(g) {
+          var etiquetaDia = (g.dia ? escapar(g.dia) + ' · ' : '') + escapar(g.fecha);
+          var cabecera = '<tr class="fila-dia"><td colspan="' + HEADERS_VISIBLES.length + '">' + etiquetaDia + '</td></tr>';
 
-          return '<tr class="' + (divisor ? 'divisor-turno' : '') + '">' + celdas + '</tr>';
+          var mananaAnterior = null;
+
+          var filasDia = g.citas.map(function(c) {
+            var celdas = HEADERS_VISIBLES.map(function(h) {
+              if (c._hueco && h === 'Usuario') return '<td class="hueco-libre">Disponible</td>';
+              return renderCelda(h, c[h]);
+            }).join('');
+            var esManana = (c['Hora'] || '') < HORA_CORTE_TARDE;
+            var divisor = (mananaAnterior === true && esManana === false);
+            mananaAnterior = esManana;
+
+            var clases = [];
+            if (divisor) clases.push('divisor-turno');
+            if (c._hueco) clases.push('fila-hueco');
+            if (contadorFila % 2 === 1) clases.push('fila-par');
+            contadorFila++;
+
+            return '<tr class="' + clases.join(' ') + '">' + celdas + '</tr>';
+          }).join('');
+
+          return cabecera + filasDia;
         }).join('') + '</tbody>';
 
         cont.innerHTML = '<table>' + thead + tbody + '</table>';
@@ -331,6 +395,20 @@
       });
 
       document.getElementById('inputBusqueda').addEventListener('input', render);
+
+      document.getElementById('btnHuecos').addEventListener('click', function() {
+        mostrarHuecos = !mostrarHuecos;
+        actualizarBotonHuecos();
+        render();
+      });
+
+      function actualizarBotonHuecos() {
+        var btn = document.getElementById('btnHuecos');
+        btn.innerHTML = mostrarHuecos
+          ? '<span class="material-symbols-outlined">event_busy</span> Ocultar huecos libres'
+          : '<span class="material-symbols-outlined">event_available</span> Mostrar huecos libres';
+        btn.classList.toggle('activo', mostrarHuecos);
+      }
 
       cargar();
     </script>

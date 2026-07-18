@@ -52,6 +52,7 @@ function obtenerAgendaSemanaWeb(fechaISO) {
     const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(h => h.toString().trim());
     const colFecha = headers.indexOf(COLUMNAS.AGENDA.FECHA);
     const colHora = headers.indexOf(COLUMNAS.AGENDA.HORA);
+    const colUsuario = headers.indexOf(COLUMNAS.AGENDA.USUARIO);
     const colHC = headers.indexOf(COLUMNAS.AGENDA.HISTORIA_CLINICA);
 
     if (colFecha === -1) {
@@ -70,9 +71,22 @@ function obtenerAgendaSemanaWeb(fechaISO) {
       if (!(fecha instanceof Date)) continue;
       if (fecha < lunes || fecha > viernes) continue;
 
+      // Las etiquetas de sección de la plantilla visual ("SEMANA", "MAÑANA",
+      // "TARDE") y los huecos sin ninguna hora asignada nunca son un hueco
+      // horario real: se detectan porque su celda de Hora no contiene un
+      // valor de hora (Sheets guarda las horas como objetos Date). Esas se
+      // descartan siempre. Un hueco horario real pero SIN paciente (p.ej.
+      // "08:00" vacío) sí se conserva — se marca con _hueco para que el
+      // cliente pueda mostrarlo u ocultarlo con el botón "Mostrar huecos".
+      if (colHora !== -1 && !(row[colHora] instanceof Date)) continue;
+
+      const usuarioRaw = colUsuario !== -1 ? row[colUsuario] : null;
+      const tieneReserva = !!(usuarioRaw && usuarioRaw.toString().trim() !== '');
+
       const cita = {
         _fechaISO: Utilities.formatDate(fecha, tz, 'yyyy-MM-dd'),
-        _horaOrden: ''
+        _horaOrden: '',
+        _hueco: !tieneReserva
       };
 
       headers.forEach((h, colIdx) => {
