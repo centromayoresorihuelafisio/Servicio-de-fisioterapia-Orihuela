@@ -24,6 +24,8 @@
         --md-error-bg:         #fce8e6;
         --md-warning:          #f29900;
         --md-warning-bg:       #fef7e0;
+        --md-purple:           #8430ce;
+        --md-purple-bg:        #f3e8fd;
 
         --md-bg:               #f8f9fa;
         --md-surface:          #ffffff;
@@ -148,8 +150,16 @@
         background: var(--md-surface-variant); z-index: 3; box-shadow: 1px 0 0 var(--md-outline);
       }
       tbody td:nth-child(2) { background: var(--md-surface); z-index: 1; }
-      tbody tr:nth-child(even) td:nth-child(1), tbody tr:nth-child(even) td:nth-child(2) { background: #fbfbfc; }
-      tbody tr:nth-child(even) { background: #fbfbfc; }
+      tbody tr.fila-activo      { background: var(--md-success-bg); }
+      tbody tr.fila-espera      { background: var(--md-warning-bg); }
+      tbody tr.fila-contactara  { background: var(--md-error-bg); }
+      tbody tr.fila-alta        { background: var(--md-purple-bg); }
+      tbody tr.fila-no-responde { background: var(--md-surface-variant); }
+      tbody tr.fila-activo td:nth-child(1), tbody tr.fila-activo td:nth-child(2)           { background: var(--md-success-bg); }
+      tbody tr.fila-espera td:nth-child(1), tbody tr.fila-espera td:nth-child(2)           { background: var(--md-warning-bg); }
+      tbody tr.fila-contactara td:nth-child(1), tbody tr.fila-contactara td:nth-child(2)   { background: var(--md-error-bg); }
+      tbody tr.fila-alta td:nth-child(1), tbody tr.fila-alta td:nth-child(2)               { background: var(--md-purple-bg); }
+      tbody tr.fila-no-responde td:nth-child(1), tbody tr.fila-no-responde td:nth-child(2) { background: var(--md-surface-variant); }
       tbody tr:hover { background: var(--md-primary-light); }
       tbody tr:hover td:nth-child(1), tbody tr:hover td:nth-child(2) { background: var(--md-primary-light); }
       tbody tr.seleccionada { background: var(--md-primary-container) !important; }
@@ -160,10 +170,12 @@
       td.nombre { font-weight: 600; }
       td.vacio { color: var(--md-on-surface-low); font-style: italic; }
 
-      .badge { font-size: .68rem; font-weight: 600; padding: .15rem .55rem; border-radius: var(--radius-pill); white-space: nowrap; }
-      .badge.ok     { background: var(--md-success-bg); color: var(--md-success); }
-      .badge.warn   { background: var(--md-warning-bg); color: var(--md-warning); }
-      .badge.neutro { background: var(--md-surface-variant); color: var(--md-on-surface-med); }
+      .badge { font-size: .68rem; font-weight: 600; padding: .15rem .55rem; border-radius: var(--radius-pill); white-space: nowrap; background: var(--md-surface-variant); color: var(--md-on-surface-med); }
+      .badge.activo      { background: var(--md-success-bg); color: var(--md-success); }
+      .badge.espera      { background: var(--md-warning-bg); color: var(--md-warning); }
+      .badge.contactara  { background: var(--md-error-bg); color: var(--md-error); }
+      .badge.alta        { background: var(--md-purple-bg); color: var(--md-purple); }
+      .badge.no-responde { background: var(--md-surface-variant); color: var(--md-on-surface-med); }
 
       td a.link-hc { color: var(--md-primary); text-decoration: none; font-weight: 500; display: inline-flex; align-items: center; gap: .2rem; }
       td a.link-hc:hover { text-decoration: underline; }
@@ -322,11 +334,14 @@
         });
       }
 
-      function badgeClaseParaEstado(estado) {
+      function claseParaEstado(estado) {
         var e = normalizar(estado);
-        if (e.indexOf('activo') !== -1 || e.indexOf('alta') !== -1) return 'ok';
-        if (e.indexOf('espera') !== -1 || e.indexOf('pendiente') !== -1 || e.indexOf('contactar') !== -1) return 'warn';
-        return 'neutro';
+        if (e.indexOf('activo') !== -1) return 'activo';
+        if (e.indexOf('espera') !== -1) return 'espera';
+        if (e.indexOf('contactar') !== -1) return 'contactara';
+        if (e.indexOf('alta') !== -1) return 'alta';
+        if (e.indexOf('responde') !== -1) return 'no-responde';
+        return '';
       }
 
       function esUrl(valor) { return typeof valor === 'string' && /^https?:\/\//i.test(valor.trim()); }
@@ -335,7 +350,7 @@
       function renderCelda(header, valor) {
         var vacio = valor === '' || valor === null || valor === undefined;
         if (header === 'Nombre') return '<td class="nombre">' + (vacio ? '—' : escapar(valor)) + '</td>';
-        if (header === 'Estado') return '<td>' + (vacio ? '—' : '<span class="badge ' + badgeClaseParaEstado(valor) + '">' + escapar(valor) + '</span>') + '</td>';
+        if (header === 'Estado') return '<td>' + (vacio ? '—' : '<span class="badge ' + claseParaEstado(valor) + '">' + escapar(valor) + '</span>') + '</td>';
         if (header === COL_HISTORIA) {
           if (vacio) return '<td class="vacio">Sin enlace</td>';
           return esUrl(valor)
@@ -369,7 +384,9 @@
         var tbody = '<tbody>' + filtrados.map(function(p) {
           var celdas = HEADERS.map(function(h) { return renderCelda(h, p[h]); }).join('');
           var sel = pacienteSeleccionado && pacienteSeleccionado._fila === p._fila;
-          return '<tr data-fila="' + p._fila + '" class="' + (sel ? 'seleccionada' : '') + '">' + celdas + '</tr>';
+          var clsFila = claseParaEstado(p['Estado']) ? 'fila-' + claseParaEstado(p['Estado']) : '';
+          var clases = clsFila + (sel ? ' seleccionada' : '');
+          return '<tr data-fila="' + p._fila + '" class="' + clases + '">' + celdas + '</tr>';
         }).join('') + '</tbody>';
 
         cont.innerHTML = '<table>' + thead + tbody + '</table>';
