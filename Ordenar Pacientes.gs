@@ -1,9 +1,3 @@
-/**
- * @fileordenar_pacientes.gs
- * @description Optimización de ordenamiento de pacientes para evitar filas extra y mejorar rendimiento.
- * @mentor Scriptor Master
- */
-
 function ordenarPacientes() {
   const ss = getSS();
   const sheet = ss.getSheetByName(SHEETS.MAESTRA);
@@ -47,7 +41,7 @@ function ordenarPacientes() {
     const estadoRaw = row[idxEstado];
 
     if (!estadoRaw || estadoRaw.toString().trim() === "") {
-      row[0] = 0;
+      row[0] = null;
       continue;
     }
 
