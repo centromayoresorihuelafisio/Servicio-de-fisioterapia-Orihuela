@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <base target="_top">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agenda</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600&family=Roboto+Mono:wght@400;500&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
+
+    <style>
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+      :root {
+        --md-primary:          #2b5c75;
+        --md-primary-dark:     #1d3f52;
+        --md-primary-light:    #e0f1fc;
+        --md-primary-container:#c9e4f5;
+        --md-on-primary:       #ffffff;
+
+        --md-success:          #137333;
+        --md-success-bg:       #e6f4ea;
+        --md-error:            #c5221f;
+        --md-error-bg:         #fce8e6;
+        --md-warning:          #f29900;
+        --md-warning-bg:       #fef7e0;
+        --md-purple:           #8430ce;
+        --md-purple-bg:        #f3e8fd;
+
+        --md-bg:               #f8f9fa;
+        --md-surface:          #ffffff;
+        --md-surface-variant:  #f1f3f4;
+        --md-outline:          #dadce0;
+
+        --md-on-surface:       #202124;
+        --md-on-surface-med:   #5f6368;
+        --md-on-surface-low:   #80868b;
+
+        --radius-sm: 4px;
+        --radius-md: 8px;
+        --radius-pill: 50px;
+
+        --font: 'Google Sans', 'Segoe UI', Arial, sans-serif;
+        --transition: 150ms cubic-bezier(.2,0,0,1);
+      }
+
+      html, body { height: 100%; }
+      body {
+        font-family: var(--font);
+        background: var(--md-bg);
+        color: var(--md-on-surface);
+        display: flex;
+        flex-direction: column;
+        font-size: 13px;
+      }
+
+      header.top {
+        background: var(--md-surface);
+        border-bottom: 1px solid var(--md-outline);
+        padding: .75rem 1rem;
+        flex-shrink: 0;
+      }
+      header.top h1 {
+        font-size: 1.05rem;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: .5rem;
+        margin-bottom: .6rem;
+      }
+      header.top .contador { font-size: .78rem; color: var(--md-on-surface-med); font-weight: 400; }
+
+      .barra-herramientas {
+        display: flex;
+        gap: .4rem;
+        flex-wrap: wrap;
+        align-items: center;
+        margin-bottom: .6rem;
+        padding-bottom: .6rem;
+        border-bottom: 1px solid var(--md-outline);
+      }
+      .btn-toolbar {
+        display: inline-flex;
+        align-items: center;
+        gap: .3rem;
+        background: var(--md-surface);
+        border: 1px solid var(--md-outline);
+        color: var(--md-on-surface);
+        border-radius: var(--radius-pill);
+        padding: .35rem .8rem;
+        font-size: .8rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: var(--transition);
+        font-family: var(--font);
+      }
+      .btn-toolbar:hover { background: var(--md-surface-variant); }
+      .btn-toolbar.primario { background: var(--md-primary); border-color: var(--md-primary); color: var(--md-on-primary); }
+      .btn-toolbar.primario:hover { background: var(--md-primary-dark); }
+      .btn-toolbar:disabled { opacity: .45; cursor: not-allowed; }
+      .btn-toolbar .material-symbols-outlined { font-size: 17px; }
+      .btn-toolbar.btn-nav { padding: .35rem .55rem; }
+
+      .etiqueta-semana {
+        font-size: .85rem;
+        font-weight: 600;
+        color: var(--md-on-surface);
+        white-space: nowrap;
+        padding: 0 .3rem;
+        text-transform: capitalize;
+      }
+
+      .selector-semana {
+        display: flex; align-items: center; gap: .3rem;
+        background: var(--md-surface-variant); border-radius: var(--radius-pill);
+        padding: .3rem .7rem; margin-left: auto;
+      }
+      .selector-semana .material-symbols-outlined { color: var(--md-on-surface-low); font-size: 18px; }
+      .selector-semana input {
+        border: none; outline: none; background: transparent; font-family: var(--font); font-size: .8rem; color: var(--md-on-surface);
+      }
+
+      .controles { display: flex; gap: .5rem; flex-wrap: wrap; align-items: center; }
+      .buscador {
+        display: flex; align-items: center; gap: .4rem;
+        background: var(--md-surface-variant); border-radius: var(--radius-pill);
+        padding: .4rem .8rem; flex: 1; min-width: 200px;
+      }
+      .buscador input { border: none; outline: none; flex: 1; font-size: .85rem; font-family: var(--font); background: transparent; }
+      .buscador .material-symbols-outlined { color: var(--md-on-surface-low); font-size: 18px; }
+
+      .tabla-wrap { flex: 1; overflow: auto; }
+      table { border-collapse: collapse; width: 100%; min-width: 900px; }
+      thead th {
+        position: sticky; top: 0; background: var(--md-surface-variant); color: var(--md-on-surface-med);
+        font-size: .68rem; text-transform: uppercase; letter-spacing: .02em; font-weight: 600; text-align: left;
+        padding: .4rem .6rem; border-bottom: 1px solid var(--md-outline); white-space: nowrap; z-index: 2;
+      }
+      thead th:nth-child(1), tbody td:nth-child(1) {
+        position: sticky; left: 0; width: 88px; min-width: 88px; max-width: 88px;
+        background: var(--md-surface-variant); z-index: 3; box-shadow: 1px 0 0 var(--md-outline);
+      }
+      tbody td:nth-child(1) { background: var(--md-surface); z-index: 1; }
+      thead th:nth-child(2), tbody td:nth-child(2) {
+        position: sticky; left: 88px; width: 76px; min-width: 76px; max-width: 76px;
+        background: var(--md-surface-variant); z-index: 3; box-shadow: 1px 0 0 var(--md-outline);
+      }
+      tbody td:nth-child(2) { background: var(--md-surface); z-index: 1; }
+
+      /* Filas estrechas con alternancia de color, como en la hoja de Sheets */
+      tbody tr:nth-child(even) { background: #fbfbfc; }
+      tbody tr:nth-child(even) td:nth-child(1), tbody tr:nth-child(even) td:nth-child(2) { background: #fbfbfc; }
+
+      /* Línea divisoria sutil entre el turno de mañana y el de tarde */
+      tbody tr.divisor-turno td { border-top: 2px solid var(--md-outline); }
+
+      tbody td { padding: .32rem .6rem; border-bottom: 1px solid var(--md-outline); white-space: nowrap; max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
+      td.fecha { font-weight: 600; }
+      td.vacio { color: var(--md-on-surface-low); font-style: italic; }
+
+      td a.link-hc { color: var(--md-primary); text-decoration: none; font-weight: 500; display: inline-flex; align-items: center; gap: .2rem; }
+      td a.link-hc:hover { text-decoration: underline; }
+
+      .estado-vacio, .estado-carga { text-align: center; color: var(--md-on-surface-med); padding: 3rem 1rem; font-size: .9rem; }
+      .estado-carga .material-symbols-outlined { font-size: 28px; animation: spin 1s linear infinite; display: block; margin: 0 auto .5rem; color: var(--md-primary); }
+      @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+  </head>
+  <body>
+    <header class="top">
+      <h1>🗓️ Agenda <span class="contador" id="contador"></span></h1>
+
+      <div class="barra-herramientas">
+        <button class="btn-toolbar btn-nav" id="btnSemanaAnterior" title="Semana anterior">
+          <span class="material-symbols-outlined">chevron_left</span>
+        </button>
+        <button class="btn-toolbar" id="btnHoy">
+          <span class="material-symbols-outlined">today</span> Hoy
+        </button>
+        <button class="btn-toolbar btn-nav" id="btnSemanaSiguiente" title="Semana siguiente">
+          <span class="material-symbols-outlined">chevron_right</span>
+        </button>
+        <span class="etiqueta-semana" id="etiquetaSemana"></span>
+
+        <div class="selector-semana">
+          <span class="material-symbols-outlined">calendar_month</span>
+          <input type="date" id="inputSemana" title="Ir a la semana que contiene esta fecha">
+        </div>
+      </div>
+
+      <div class="controles">
+        <div class="buscador">
+          <span class="material-symbols-outlined">search</span>
+          <input type="text" id="inputBusqueda" placeholder="Buscar por paciente, sesión o notas…">
+        </div>
+      </div>
+    </header>
+
+    <div class="tabla-wrap" id="tablaWrap">
+      <div class="estado-carga">
+        <span class="material-symbols-outlined">progress_activity</span>
+        Cargando agenda…
+      </div>
+    </div>
+
+    <script>
+      // Hora a partir de la cual una cita se considera "de tarde" para la
+      // línea divisoria entre turnos. Formato "HH:mm" (comparación de texto,
+      // válida porque el servidor siempre manda la hora con dos dígitos).
+      // Cambia este valor si tu corte de turno no es a las 14:00.
+      var HORA_CORTE_TARDE = '14:00';
+
+      var HEADERS = [];
+      var CITAS = [];
+      var COL_HISTORIA = null;
+      var semanaActual = null; // lunes de la semana mostrada, "yyyy-MM-dd"
+
+      // ---------- Carga de datos ----------
+      function cargar(fechaISO) {
+        document.getElementById('tablaWrap').innerHTML =
+          '<div class="estado-carga"><span class="material-symbols-outlined">progress_activity</span>Cargando agenda…</div>';
+
+        google.script.run
+          .withSuccessHandler(function(res) {
+            if (res.error) { mostrarError(res.error); return; }
+            HEADERS = res.headers || [];
+            CITAS = res.citas || [];
+            COL_HISTORIA = HEADERS.find(function(h) { return h.toLowerCase().indexOf('historia') !== -1; });
+
+            if (res.semana) {
+              semanaActual = res.semana.lunes;
+              document.getElementById('etiquetaSemana').textContent = res.semana.etiqueta;
+              document.getElementById('inputSemana').value = res.semana.lunes;
+            }
+            render();
+          })
+          .withFailureHandler(mostrarError)
+          .obtenerAgendaSemanaWeb(fechaISO || null);
+      }
+
+      function mostrarError(err) {
+        document.getElementById('tablaWrap').innerHTML =
+          '<div class="estado-vacio">⚠️ No se pudo cargar la agenda.<br>' + (err && err.message ? err.message : err) + '</div>';
+      }
+
+      function normalizar(txt) {
+        return (txt || '').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+      }
+
+      function esUrl(valor) { return typeof valor === 'string' && /^https?:\/\//i.test(valor.trim()); }
+      function escapar(txt) { return (txt + '').replace(/</g, '&lt;'); }
+
+      function renderCelda(header, valor) {
+        var vacio = valor === '' || valor === null || valor === undefined;
+        if (header === 'Fecha') return '<td class="fecha">' + (vacio ? '—' : escapar(valor)) + '</td>';
+        if (header === COL_HISTORIA) {
+          if (vacio) return '<td class="vacio">Sin enlace</td>';
+          return esUrl(valor)
+            ? '<td><a class="link-hc" href="' + valor + '" target="_blank" rel="noopener"><span class="material-symbols-outlined text-[15px]">description</span>Abrir</a></td>'
+            : '<td>' + escapar(valor) + '</td>';
+        }
+        return '<td class="' + (vacio ? 'vacio' : '') + '">' + (vacio ? '—' : escapar(valor)) + '</td>';
+      }
+
+      // ---------- Render tabla ----------
+      function render() {
+        var termino = normalizar(document.getElementById('inputBusqueda').value);
+
+        var filtradas = CITAS.filter(function(c) {
+          if (!termino) return true;
+          var campos = [c['Usuario'], c['Notas'], c['Sesión']];
+          return campos.some(function(v) { return normalizar(v).indexOf(termino) !== -1; });
+        });
+
+        document.getElementById('contador').textContent = filtradas.length + (filtradas.length === 1 ? ' cita' : ' citas');
+
+        var cont = document.getElementById('tablaWrap');
+        if (filtradas.length === 0) {
+          cont.innerHTML = '<div class="estado-vacio">No hay ninguna cita que coincida en esta semana.</div>';
+          return;
+        }
+
+        var thead = '<thead><tr>' + HEADERS.map(function(h) { return '<th>' + h + '</th>'; }).join('') + '</tr></thead>';
+
+        var diaAnterior = null;
+        var mananaAnterior = null;
+
+        var tbody = '<tbody>' + filtradas.map(function(c) {
+          var celdas = HEADERS.map(function(h) { return renderCelda(h, c[h]); }).join('');
+          var esManana = (c['Hora'] || '') < HORA_CORTE_TARDE;
+
+          var divisor = (diaAnterior === c._fechaISO && mananaAnterior === true && esManana === false);
+          diaAnterior = c._fechaISO;
+          mananaAnterior = esManana;
+
+          return '<tr class="' + (divisor ? 'divisor-turno' : '') + '">' + celdas + '</tr>';
+        }).join('') + '</tbody>';
+
+        cont.innerHTML = '<table>' + thead + tbody + '</table>';
+      }
+
+      // ---------- Navegación de semana ----------
+      function hoyISO() { return formatoISO(new Date()); }
+
+      function formatoISO(d) {
+        var m = (d.getMonth() + 1).toString().padStart(2, '0');
+        var day = d.getDate().toString().padStart(2, '0');
+        return d.getFullYear() + '-' + m + '-' + day;
+      }
+
+      document.getElementById('btnSemanaAnterior').addEventListener('click', function() {
+        var partes = semanaActual.split('-').map(Number);
+        var d = new Date(partes[0], partes[1] - 1, partes[2]);
+        d.setDate(d.getDate() - 7);
+        cargar(formatoISO(d));
+      });
+
+      document.getElementById('btnSemanaSiguiente').addEventListener('click', function() {
+        var partes = semanaActual.split('-').map(Number);
+        var d = new Date(partes[0], partes[1] - 1, partes[2]);
+        d.setDate(d.getDate() + 7);
+        cargar(formatoISO(d));
+      });
+
+      document.getElementById('btnHoy').addEventListener('click', function() {
+        cargar(hoyISO());
+      });
+
+      document.getElementById('inputSemana').addEventListener('change', function(e) {
+        if (e.target.value) cargar(e.target.value);
+      });
+
+      document.getElementById('inputBusqueda').addEventListener('input', render);
+
+      cargar();
+    </script>
+  </body>
+</html>

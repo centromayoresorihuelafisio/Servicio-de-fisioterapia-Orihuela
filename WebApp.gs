@@ -1,4 +1,3 @@
-// ================================================================================
 // ARCHIVO: WebApp.gs
 // Punto de entrada para acceder a formularios desde fuera de la hoja de cálculo.
 // Despliegue: Implementar > Nueva implementación > Aplicación web
@@ -34,25 +33,35 @@ const PAGINAS_WEB = {
   citas:         { archivo: 'CitaFormulario',              titulo: 'Agenda de Citas',   icono: '📅' },
   nuevoPaciente: { archivo: 'Formulario Añadir Usuario',    titulo: 'Nuevo Paciente',    icono: '🧍' },
   valoracion:    { archivo: 'Valoracion',                   titulo: 'Valoración',        icono: '📋' },
-  baseDatos:     { archivo: 'BaseDatosWeb',                 titulo: 'Base de Datos',     icono: '🗂️' }
+  baseDatos:     { archivo: 'BaseDatosWeb',                 titulo: 'Base de Datos',     icono: '🗂️' },
+  agenda:        { archivo: 'AgendaWeb',                    titulo: 'Agenda',            icono: '🗓️' }
 };
 
 function doGet(e) {
   const page = e && e.parameter && e.parameter.page;
 
+  // Sin ?page= → índice de navegación
   if (!page) {
     return construirIndiceWeb();
   }
 
+  // Caso especial: edición de un paciente concreto, identificado por su fila
+  // real en la Maestra (?page=editarPaciente&fila=N). No es un archivo estático
+  // de PAGINAS_WEB porque necesita datos server-side antes de servirse, igual
+  // que abrirModalEdicion() desde el menú, pero por número de fila en vez de
+  // celda activa (que no existe fuera del editor de la hoja).
   if (page === 'editarPaciente') {
     return servirFormularioEdicionWeb(e.parameter.fila, e.parameter.embed === '1');
   }
 
   const config = PAGINAS_WEB[page];
   if (!config) {
-    return construirIndiceWeb();
+    return construirIndiceWeb(); // parámetro desconocido → volvemos al índice
   }
 
+  // BaseDatosWeb necesita la URL absoluta de despliegue para construir el
+  // enlace "Editar" de cada fila — un href relativo (?page=editarPaciente...)
+  // no resuelve bien dentro del iframe en el que Google sirve la Web App.
   if (page === 'baseDatos') {
     const template = HtmlService.createTemplateFromFile(config.archivo);
     template.baseUrl = ScriptApp.getService().getUrl();

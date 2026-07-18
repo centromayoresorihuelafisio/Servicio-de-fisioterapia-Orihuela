@@ -137,6 +137,31 @@ function obtenerHojaAgenda() {
 }
 
 /**
+ * Extrae la URL de un enlace de Historia Clínica de una celda, sin importar
+ * cómo se guardó: como Rich Text (formato usado por generarHistoriaClinica,
+ * guardarCitasMultiples e insertarEnlaceHistoriaClinica), como fórmula
+ * =HIPERVINCULO()/=HYPERLINK() (por si alguna celda antigua la tuviera así),
+ * o como texto plano con una URL. Devuelve '' si no hay ningún enlace válido.
+ *
+ * Se usa en cargarMapaHistoriasClinicas, obtenerBaseDatosCompletaWeb y
+ * _ejecutarAltaEnFila para no duplicar esta lógica en varios sitios.
+ */
+function extraerUrlHistoriaClinica(valorCelda, richTextCell, formula) {
+  if (richTextCell) {
+    const linkUrl = richTextCell.getLinkUrl();
+    if (linkUrl) return linkUrl;
+  }
+  if (formula) {
+    const match = formula.match(/(?:HIPERVINCULO|HYPERLINK)\s*\(\s*"(.*?)"\s*[;,]/i);
+    if (match && match[1]) return match[1];
+  }
+  if (typeof valorCelda === 'string' && valorCelda.trim().toLowerCase().startsWith('http')) {
+    return valorCelda.trim();
+  }
+  return '';
+}
+
+/**
  * Construye un mapa { nombrePacienteEnMinuscula: { url: enlaceHistoriaClinica } }
  * leyendo la hoja "Base de Datos Maestra". Comprueba null de forma defensiva
  * antes de leer getLinkUrl() para no lanzar excepción con celdas vacías.
@@ -157,6 +182,7 @@ function cargarMapaHistoriasClinicas(ss) {
   const dataRange = sheetMaestra.getDataRange();
   const values = dataRange.getValues();
   const richTextValues = dataRange.getRichTextValues();
+  const formulas = dataRange.getFormulas();
 
   if (values.length < 2) return null;
 
@@ -174,16 +200,7 @@ function cargarMapaHistoriasClinicas(ss) {
     const nombre = values[i][colNombre] ? values[i][colNombre].toString().trim() : '';
     if (!nombre) continue;
 
-    const richTextCell = richTextValues[i][colHC];
-    let url = richTextCell ? richTextCell.getLinkUrl() : null;
-
-    if (!url) {
-      const cellValue = values[i][colHC] ? values[i][colHC].toString().trim() : '';
-      if (cellValue.toLowerCase().startsWith("http")) {
-        url = cellValue;
-      }
-    }
-
+    const url = extraerUrlHistoriaClinica(values[i][colHC], richTextValues[i][colHC], formulas[i][colHC]);
     if (url) {
       mapa[nombre.toLowerCase()] = { url: url };
     }
