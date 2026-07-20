@@ -103,13 +103,17 @@
       .btn-toolbar.btn-nav { padding: .35rem .55rem; }
 
       .etiqueta-semana {
-        font-size: .85rem;
+        font-size: .8rem;
         font-weight: 600;
-        color: var(--md-on-surface);
+        color: var(--md-primary-dark);
         white-space: nowrap;
-        padding: 0 .3rem;
         text-transform: capitalize;
+        background: var(--md-primary-light);
+        border-radius: var(--radius-pill);
+        padding: .3rem .8rem;
       }
+
+      .etiqueta-ayuda { font-size: .78rem; color: var(--md-on-surface-low); white-space: nowrap; padding: 0 .2rem; }
 
       .selector-semana {
         display: flex; align-items: center; gap: .3rem;
@@ -155,6 +159,7 @@
       thead th:nth-child(4), tbody td:nth-child(4) { width: 64px; }
       thead th:nth-child(5), tbody td:nth-child(5) { width: 110px; }
       thead th:nth-child(6), tbody td:nth-child(6) { width: 110px; }
+      thead th:nth-child(8), tbody td:nth-child(8) { width: 44px; text-align: center; }
 
       /* Filas estrechas con alternancia de color, como en la hoja de Sheets.
          Se aplica por clase (no nth-child) porque las filas de cabecera de
@@ -162,13 +167,23 @@
       tbody tr.fila-par { background: #fbfbfc; }
       tbody tr.fila-par td:nth-child(1), tbody tr.fila-par td:nth-child(2) { background: #fbfbfc; }
 
-      /* Línea divisoria sutil entre el turno de mañana y el de tarde */
-      tbody tr.divisor-turno td { border-top: 2px solid var(--md-outline); }
+      /* Fila-etiqueta de cambio de turno (mañana -> tarde): mismo lenguaje
+         visual que la cabecera de día, para que el corte se vea de un
+         vistazo en vez de un simple borde sutil. */
+      tbody tr.fila-turno td {
+        position: static !important; width: auto !important; min-width: 0 !important; max-width: none !important;
+        background: var(--md-warning-bg) !important; color: var(--md-warning);
+        font-weight: 700; font-size: .68rem; text-transform: uppercase; letter-spacing: .04em;
+        padding: .3rem .6rem; border-top: 1px solid var(--md-outline); border-bottom: 1px solid var(--md-outline);
+      }
 
       /* Hueco libre (hora real sin paciente asignado): más discreto que una
          cita real, para que a simple vista destaquen las citas confirmadas. */
       tbody tr.fila-hueco td { color: var(--md-on-surface-low); }
       tbody tr.fila-hueco td.hueco-libre { font-style: italic; }
+
+      /* Selección de cita (mismo patrón que la Base de Datos) */
+      tbody tr.seleccionada td { background: var(--md-primary-container) !important; }
 
       /* Cabecera de grupo por día: sustituye a repetir Fecha/Día en cada fila */
       tbody tr.fila-dia td {
@@ -185,9 +200,63 @@
       td a.link-hc { color: var(--md-primary); text-decoration: none; font-weight: 500; display: inline-flex; align-items: center; gap: .2rem; }
       td a.link-hc:hover { text-decoration: underline; }
 
+      /* Edición en línea */
+      td.editable { cursor: pointer; }
+      td.editable:hover { background: var(--md-primary-light) !important; }
+      td.editando { padding: .18rem .3rem; overflow: visible; position: relative; }
+      /* Indicador de autoguardado: aparece a la derecha del campo mientras
+         se está editando, sin necesidad de salir de la celda para saber si
+         se ha guardado. */
+      .estado-guardado {
+        position: absolute; right: 5px; top: 50%; transform: translateY(-50%);
+        font-size: .8rem; font-weight: 700; pointer-events: none;
+      }
+      .estado-guardado.progreso { color: var(--md-on-surface-low); font-weight: 400; }
+      .estado-guardado.ok { color: var(--md-success); }
+      .estado-guardado.fallo { color: var(--md-error); }
+      .input-celda {
+        width: 100%; font-family: var(--font); font-size: .8rem; color: var(--md-on-surface);
+        border: 1px solid var(--md-primary); border-radius: var(--radius-sm); padding: .2rem .35rem;
+        background: var(--md-surface); outline: none;
+      }
+      .btn-borrar-fila {
+        display: inline-flex; align-items: center; justify-content: center;
+        width: 24px; height: 24px; border-radius: 50%; border: none; background: transparent;
+        color: var(--md-on-surface-low); cursor: pointer; transition: var(--transition);
+      }
+      .btn-borrar-fila:hover { background: var(--md-error-bg); color: var(--md-error); }
+      .btn-borrar-fila .material-symbols-outlined { font-size: 17px; }
+
       .estado-vacio, .estado-carga { text-align: center; color: var(--md-on-surface-med); padding: 3rem 1rem; font-size: .9rem; }
       .estado-carga .material-symbols-outlined { font-size: 28px; animation: spin 1s linear infinite; display: block; margin: 0 auto .5rem; color: var(--md-primary); }
       @keyframes spin { to { transform: rotate(360deg); } }
+
+      /* ---------- Modal propio (sustituye a alert()/confirm() nativos) ---------- */
+      .modal-overlay {
+        display: none;
+        position: fixed; inset: 0;
+        background: rgba(32,33,36,.5);
+        align-items: center; justify-content: center;
+        z-index: 1000;
+        padding: 1rem;
+      }
+      .modal-overlay.visible { display: flex; }
+      .modal-box {
+        background: var(--md-surface);
+        border-radius: var(--radius-md);
+        padding: 1.25rem 1.5rem;
+        max-width: 360px;
+        width: 100%;
+        box-shadow: 0 4px 20px rgba(0,0,0,.25);
+      }
+      .modal-mensaje {
+        font-size: .88rem;
+        color: var(--md-on-surface);
+        white-space: pre-line;
+        line-height: 1.45;
+        margin-bottom: 1.15rem;
+      }
+      .modal-botones { display: flex; justify-content: flex-end; gap: .5rem; }
     </style>
   </head>
   <body>
@@ -212,21 +281,63 @@
         </div>
       </div>
 
+      <div class="barra-herramientas">
+        <button class="btn-toolbar" id="btnJornada" title="Abre las Historias Clínicas del turno actual de hoy">
+          <span class="material-symbols-outlined">today</span> Preparar Jornada
+        </button>
+        <span class="etiqueta-ayuda" id="contadorSeleccion" style="font-weight:600; color:var(--md-primary-dark);"></span>
+        <button class="btn-toolbar" id="btnQuitarSeleccion" style="display:none;" title="Quitar selección">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+        <button class="btn-toolbar" id="btnValoracion" disabled>
+          <span class="material-symbols-outlined">assignment</span> Valoración
+        </button>
+        <button class="btn-toolbar" id="btnWhatsapp" disabled>
+          <span class="material-symbols-outlined">chat</span> WhatsApp
+        </button>
+        <button class="btn-toolbar" id="btnCopiarCita" disabled title="Copia la(s) cita(s) seleccionada(s) al siguiente día alterno (L/M→+2, M/J→+5, V→+7)">
+          <span class="material-symbols-outlined">content_copy</span> Siguiente cita
+        </button>
+        <button class="btn-toolbar" id="btnCopiarCita2" disabled title="Copia la(s) cita(s) seleccionada(s) a las dos siguientes fechas alternas (pacientes de doble sesión semanal)">
+          <span class="material-symbols-outlined">library_add</span> Siguientes 2 citas
+        </button>
+        <button class="btn-toolbar" id="btnCopiarSemana" title="Copia miércoles y jueves (doble sesión) y viernes (simple) a la semana siguiente, sin necesidad de seleccionar nada">
+          <span class="material-symbols-outlined">event_repeat</span> Copiar Semana
+        </button>
+        <button class="btn-toolbar" id="btnEliminarCitas" disabled title="Libera la(s) cita(s) seleccionada(s) (borra paciente, teléfono, sesión, asistencia, notas e historia clínica)">
+          <span class="material-symbols-outlined">delete</span> Eliminar
+        </button>
+      </div>
+
       <div class="controles">
         <div class="buscador">
           <span class="material-symbols-outlined">search</span>
           <input type="text" id="inputBusqueda" placeholder="Buscar por paciente, sesión o notas…">
         </div>
         <button class="btn-toolbar" id="btnHuecos">
-          <span class="material-symbols-outlined">event_available</span> Mostrar huecos libres
+          <span class="material-symbols-outlined">event_available</span> Mostrar citas disponibles
         </button>
       </div>
     </header>
+
+    <datalist id="listaPacientes"></datalist>
 
     <div class="tabla-wrap" id="tablaWrap">
       <div class="estado-carga">
         <span class="material-symbols-outlined">progress_activity</span>
         Cargando agenda…
+      </div>
+    </div>
+
+    <!-- Modal propio: sustituye a los alert()/confirm() nativos del navegador,
+         que en la Web App muestran el dominio interno de Google (feo y confuso). -->
+    <div class="modal-overlay" id="modalOverlay">
+      <div class="modal-box">
+        <p class="modal-mensaje" id="modalMensaje"></p>
+        <div class="modal-botones">
+          <button class="btn-toolbar" id="modalBtnCancelar">Cancelar</button>
+          <button class="btn-toolbar primario" id="modalBtnAceptar">Aceptar</button>
+        </div>
       </div>
     </div>
 
@@ -236,6 +347,9 @@
       // válida porque el servidor siempre manda la hora con dos dígitos).
       // Cambia este valor si tu corte de turno no es a las 14:00.
       var HORA_CORTE_TARDE = '14:00';
+
+      var BASE_URL = '<?= baseUrl ?>';
+      var filasSeleccionadas = new Set(); // números de fila (Agenda) seleccionados
 
       // Columnas que la hoja de Sheets tiene pero no queremos mostrar en esta
       // vista (comparación normalizada: sin mayúsculas ni acentos).
@@ -247,6 +361,19 @@
       var COL_HISTORIA = null;
       var semanaActual = null; // lunes de la semana mostrada, "yyyy-MM-dd"
       var mostrarHuecos = false; // huecos horarios sin paciente asignado
+      var OPCIONES_ASISTENCIA = []; // opciones del desplegable, leídas de Sheets
+      var NOMBRES_PACIENTES = [];   // para el autocompletado al asignar un hueco
+
+      function cargarListaPacientes() {
+        google.script.run
+          .withSuccessHandler(function(res) {
+            NOMBRES_PACIENTES = Object.keys(res.allPatientsData || {});
+            document.getElementById('listaPacientes').innerHTML =
+              NOMBRES_PACIENTES.map(function(n) { return '<option value="' + escapar(n) + '">'; }).join('');
+          })
+          .withFailureHandler(function() { /* no crítico: el autocompletado simplemente no sugerirá nombres */ })
+          .obtenerListaPacientesWeb();
+      }
 
       // ---------- Carga de datos ----------
       function cargar(fechaISO) {
@@ -259,6 +386,7 @@
             HEADERS = res.headers || [];
             HEADERS_VISIBLES = HEADERS.filter(function(h) { return COLUMNAS_OCULTAS.indexOf(normalizar(h)) === -1; });
             CITAS = res.citas || [];
+            OPCIONES_ASISTENCIA = res.opcionesAsistencia || [];
             COL_HISTORIA = HEADERS.find(function(h) { return h.toLowerCase().indexOf('historia') !== -1; });
 
             if (res.semana) {
@@ -284,15 +412,32 @@
       function esUrl(valor) { return typeof valor === 'string' && /^https?:\/\//i.test(valor.trim()); }
       function escapar(txt) { return (txt + '').replace(/</g, '&lt;'); }
 
-      function renderCelda(header, valor) {
+      // Campos editables sueltos (Asistencia/Notas/Sesión) solo en citas
+      // reales — en un hueco libre no tiene sentido editar esto, la única
+      // acción posible ahí es escribir el nombre del paciente.
+      var CAMPOS_EDITABLES = ['Asistencia', 'Notas', 'Sesión'];
+
+      function renderCelda(header, valor, fila, esHueco) {
         var vacio = valor === '' || valor === null || valor === undefined;
+
         if (header === 'Hora') return '<td class="hora">' + (vacio ? '—' : escapar(valor)) + '</td>';
+
+        if (header === 'Usuario' && esHueco) {
+          return '<td class="editable hueco-libre" data-campo="Usuario" data-fila="' + fila + '" data-valor="">Disponible</td>';
+        }
+
         if (header === COL_HISTORIA) {
           if (vacio) return '<td class="vacio">Sin enlace</td>';
           return esUrl(valor)
             ? '<td><a class="link-hc" href="' + valor + '" target="_blank" rel="noopener"><span class="material-symbols-outlined text-[15px]">description</span>Abrir</a></td>'
             : '<td>' + escapar(valor) + '</td>';
         }
+
+        if (!esHueco && CAMPOS_EDITABLES.indexOf(header) !== -1) {
+          var valorAttr = vacio ? '' : (valor + '').replace(/"/g, '&quot;');
+          return '<td class="editable' + (vacio ? ' vacio' : '') + '" data-campo="' + header + '" data-fila="' + fila + '" data-valor="' + valorAttr + '">' + (vacio ? '—' : escapar(valor)) + '</td>';
+        }
+
         return '<td class="' + (vacio ? 'vacio' : '') + '">' + (vacio ? '—' : escapar(valor)) + '</td>';
       }
 
@@ -316,7 +461,8 @@
           return;
         }
 
-        var thead = '<thead><tr>' + HEADERS_VISIBLES.map(function(h) { return '<th>' + h + '</th>'; }).join('') + '</tr></thead>';
+        var numColumnas = HEADERS_VISIBLES.length + 1; // +1 por la columna de Acciones
+        var thead = '<thead><tr>' + HEADERS_VISIBLES.map(function(h) { return '<th>' + h + '</th>'; }).join('') + '<th></th></tr></thead>';
 
         // Agrupamos las citas (ya vienen ordenadas cronológicamente del
         // servidor) por día, para mostrar la Fecha y el Día una sola vez por
@@ -335,26 +481,34 @@
 
         var tbody = '<tbody>' + grupos.map(function(g) {
           var etiquetaDia = (g.dia ? escapar(g.dia) + ' · ' : '') + escapar(g.fecha);
-          var cabecera = '<tr class="fila-dia"><td colspan="' + HEADERS_VISIBLES.length + '">' + etiquetaDia + '</td></tr>';
+          var cabecera = '<tr class="fila-dia"><td colspan="' + numColumnas + '">' + etiquetaDia + '</td></tr>';
 
           var mananaAnterior = null;
 
           var filasDia = g.citas.map(function(c) {
-            var celdas = HEADERS_VISIBLES.map(function(h) {
-              if (c._hueco && h === 'Usuario') return '<td class="hueco-libre">Disponible</td>';
-              return renderCelda(h, c[h]);
-            }).join('');
+            var celdas = HEADERS_VISIBLES.map(function(h) { return renderCelda(h, c[h], c._fila, c._hueco); }).join('');
+            var celdaAcciones = c._hueco
+              ? '<td></td>'
+              : '<td><button type="button" class="btn-borrar-fila" data-fila="' + c._fila + '" title="Liberar este hueco (borra todos los datos de la cita)"><span class="material-symbols-outlined">delete</span></button></td>';
+
             var esManana = (c['Hora'] || '') < HORA_CORTE_TARDE;
             var divisor = (mananaAnterior === true && esManana === false);
             mananaAnterior = esManana;
 
+            // Cambio de turno: fila-etiqueta bien visible en vez de un
+            // simple borde, para que el corte mañana/tarde se note de un
+            // vistazo (igual que ya se hace con la cabecera de cada día).
+            var filaEtiquetaTurno = divisor
+              ? '<tr class="fila-turno"><td colspan="' + numColumnas + '">Turno de tarde</td></tr>'
+              : '';
+
             var clases = [];
-            if (divisor) clases.push('divisor-turno');
             if (c._hueco) clases.push('fila-hueco');
             if (contadorFila % 2 === 1) clases.push('fila-par');
+            if (filasSeleccionadas.has(c._fila)) clases.push('seleccionada');
             contadorFila++;
 
-            return '<tr class="' + clases.join(' ') + '">' + celdas + '</tr>';
+            return filaEtiquetaTurno + '<tr class="' + clases.join(' ') + '" data-fila="' + c._fila + '">' + celdas + celdaAcciones + '</tr>';
           }).join('');
 
           return cabecera + filasDia;
@@ -362,6 +516,436 @@
 
         cont.innerHTML = '<table>' + thead + tbody + '</table>';
       }
+
+      // ---------- Modal propio (sustituye a alert()/confirm()) ----------
+      function mostrarDialogo(mensaje, conCancelar) {
+        return new Promise(function(resolve) {
+          var overlay = document.getElementById('modalOverlay');
+          var btnCancelar = document.getElementById('modalBtnCancelar');
+          var btnAceptar = document.getElementById('modalBtnAceptar');
+          document.getElementById('modalMensaje').textContent = mensaje;
+          btnCancelar.style.display = conCancelar ? 'inline-flex' : 'none';
+          overlay.classList.add('visible');
+
+          function limpiar() {
+            overlay.classList.remove('visible');
+            btnAceptar.removeEventListener('click', onAceptar);
+            btnCancelar.removeEventListener('click', onCancelar);
+          }
+          function onAceptar() { limpiar(); resolve(true); }
+          function onCancelar() { limpiar(); resolve(false); }
+
+          btnAceptar.addEventListener('click', onAceptar);
+          btnCancelar.addEventListener('click', onCancelar);
+        });
+      }
+      function mostrarAviso(mensaje) { return mostrarDialogo(mensaje, false); }
+      function mostrarConfirm(mensaje) { return mostrarDialogo(mensaje, true); }
+
+      // ---------- Edición en línea ----------
+      function activarEdicion(td) {
+        var campo = td.dataset.campo;
+        var fila = td.dataset.fila;
+        var valorActual = td.dataset.valor || '';
+
+        td.classList.add('editando');
+
+        if (campo === 'Asistencia') {
+          var opciones = '<option value="">—</option>' + OPCIONES_ASISTENCIA.map(function(op) {
+            return '<option value="' + escapar(op) + '"' + (op === valorActual ? ' selected' : '') + '>' + escapar(op) + '</option>';
+          }).join('');
+          td.innerHTML = '<select class="input-celda">' + opciones + '</select>';
+          var select = td.querySelector('select');
+          select.focus();
+          select.addEventListener('change', function() { guardarCampo(fila, campo, select.value); });
+          select.addEventListener('blur', function() {
+            setTimeout(function() { if (td.classList.contains('editando')) render(); }, 150);
+          });
+          return;
+        }
+
+        if (campo === 'Usuario') {
+          td.innerHTML = '<input class="input-celda" list="listaPacientes" type="text" placeholder="Nombre del paciente…">';
+          var inputNombre = td.querySelector('input');
+          inputNombre.focus();
+          inputNombre.addEventListener('keydown', function(ev) {
+            if (ev.key === 'Enter') inputNombre.blur();
+            if (ev.key === 'Escape') render();
+          });
+          inputNombre.addEventListener('blur', function() {
+            var nombre = inputNombre.value.trim();
+            if (!nombre) { render(); return; }
+            asignarPaciente(fila, nombre);
+          });
+          return;
+        }
+
+        // Notas y Sesión: texto libre. Autoguardado tras una breve pausa al
+        // escribir (no hace falta salir del campo ni pulsar Enter), con un
+        // pequeño indicador de estado a la derecha. Enter guarda al momento
+        // y sale del campo; Escape cancela el guardado pendiente y descarta
+        // los cambios sin confirmar (los ya autoguardados no se deshacen,
+        // igual que en Sheets o Docs).
+        td.innerHTML = '<input class="input-celda" type="text" value="' + escapar(valorActual) + '">';
+        var input = td.querySelector('input');
+        input.focus();
+        input.select();
+
+        var autoguardadoPendiente = null;
+
+        input.addEventListener('input', function() {
+          if (autoguardadoPendiente) clearTimeout(autoguardadoPendiente);
+          autoguardadoPendiente = setTimeout(function() {
+            autoguardadoPendiente = null;
+            guardarCampoSilencioso(fila, campo, input.value, td);
+          }, 700);
+        });
+
+        input.addEventListener('keydown', function(ev) {
+          if (ev.key === 'Enter') {
+            if (autoguardadoPendiente) { clearTimeout(autoguardadoPendiente); autoguardadoPendiente = null; }
+            input.blur();
+          }
+          if (ev.key === 'Escape') {
+            if (autoguardadoPendiente) { clearTimeout(autoguardadoPendiente); autoguardadoPendiente = null; }
+            render();
+          }
+        });
+        input.addEventListener('blur', function() {
+          if (autoguardadoPendiente) { clearTimeout(autoguardadoPendiente); autoguardadoPendiente = null; }
+          guardarCampo(fila, campo, input.value);
+        });
+      }
+
+      // Indicador visual (…/✓/⚠) dentro de la celda que se está editando,
+      // para que el autoguardado se note sin tener que salir del campo.
+      function mostrarEstadoGuardado(td, estado) {
+        if (!td || !td.classList.contains('editando')) return; // ya se cerró la edición, no la tocamos
+        var marca = td.querySelector('.estado-guardado');
+        if (!marca) {
+          marca = document.createElement('span');
+          marca.className = 'estado-guardado';
+          td.appendChild(marca);
+        }
+        if (estado === 'progreso') {
+          marca.className = 'estado-guardado progreso';
+          marca.textContent = '…';
+          marca.title = 'Guardando…';
+        } else if (estado === 'ok') {
+          marca.className = 'estado-guardado ok';
+          marca.textContent = '✓';
+          marca.title = 'Guardado';
+          setTimeout(function() { if (marca) marca.textContent = ''; }, 1200);
+        } else {
+          marca.className = 'estado-guardado fallo';
+          marca.textContent = '⚠';
+          marca.title = 'No se pudo guardar';
+        }
+      }
+
+      // Guardado en segundo plano mientras se sigue editando: NO repinta la
+      // tabla entera (eso haría perder el foco y el cursor a media escritura),
+      // solo actualiza los datos en memoria y el indicador visual de la celda.
+      function guardarCampoSilencioso(fila, campo, valor, td) {
+        mostrarEstadoGuardado(td, 'progreso');
+        google.script.run
+          .withSuccessHandler(function(res) {
+            var cita = CITAS.find(function(c) { return c._fila == fila; });
+            if (cita) cita[campo] = valor;
+            mostrarEstadoGuardado(td, res.success ? 'ok' : 'fallo');
+          })
+          .withFailureHandler(function() { mostrarEstadoGuardado(td, 'fallo'); })
+          .actualizarCampoAgendaWeb(fila, campo, valor);
+      }
+
+      function guardarCampo(fila, campo, valor) {
+        google.script.run
+          .withSuccessHandler(function(res) {
+            if (!res.success) { mostrarAviso(res.message || 'No se pudo guardar el cambio.'); render(); return; }
+            // Parche local: actualizamos solo esta cita en memoria y volvemos
+            // a pintar la tabla sin volver a pedirle al servidor toda la
+            // semana (eso es lo que hacía lento cada edición).
+            var cita = CITAS.find(function(c) { return c._fila == fila; });
+            if (cita) cita[campo] = valor;
+            render();
+          })
+          .withFailureHandler(function(err) {
+            mostrarAviso('Error al guardar: ' + err);
+            render();
+          })
+          .actualizarCampoAgendaWeb(fila, campo, valor);
+      }
+
+      function asignarPaciente(fila, nombre) {
+        google.script.run
+          .withSuccessHandler(function(res) {
+            if (!res.success) { mostrarAviso(res.message || 'No se pudo asignar el paciente.'); render(); return; }
+            var cita = CITAS.find(function(c) { return c._fila == fila; });
+            if (cita) {
+              cita['Usuario'] = res.usuario;
+              cita['Teléfono'] = res.telefono;
+              if (COL_HISTORIA) cita[COL_HISTORIA] = res.historiaClinica;
+              cita._hueco = false;
+            }
+            render();
+          })
+          .withFailureHandler(function(err) {
+            mostrarAviso('Error al asignar el paciente: ' + err);
+            render();
+          })
+          .asignarPacienteHuecoWeb(fila, nombre);
+      }
+
+      async function manejarBorrarFila(fila) {
+        var confirmado = await mostrarConfirm('¿Eliminar cita? Se borrarán los datos de la cita');
+        if (!confirmado) return;
+
+        google.script.run
+          .withSuccessHandler(function(res) {
+            if (!res.success) { mostrarAviso(res.message || 'No se pudo liberar el hueco.'); render(); return; }
+            var cita = CITAS.find(function(c) { return c._fila == fila; });
+            if (cita) {
+              cita['Usuario'] = '';
+              cita['Teléfono'] = '';
+              cita['Sesión'] = '';
+              cita['Asistencia'] = '';
+              cita['ID Evento Calendar'] = '';
+              if (COL_HISTORIA) cita[COL_HISTORIA] = '';
+              cita['Notas'] = '';
+              cita._hueco = true;
+            }
+            render();
+            actualizarBotonesSeleccion();
+          })
+          .withFailureHandler(function(err) {
+            mostrarAviso('Error: ' + err);
+            render();
+          })
+          .eliminarDatosFilaAgendaWeb(fila);
+      }
+
+      // ---------- Eliminar varias citas a la vez (selección múltiple) ----------
+      async function manejarEliminarSeleccionadas() {
+        var sel = citasSeleccionadas();
+        if (sel.length === 0) return;
+
+        var mensaje = '¿Eliminar cita? Se borrarán los datos de la cita';
+        var confirmado = await mostrarConfirm(mensaje);
+        if (!confirmado) return;
+
+        var filas = sel.map(function(c) { return c._fila; });
+        google.script.run
+          .withSuccessHandler(function(res) {
+            if (!res.success) { mostrarAviso(res.message || 'No se pudieron eliminar las citas.'); return; }
+            mostrarAviso(res.message);
+            quitarSeleccion();
+            cargar(semanaActual);
+          })
+          .withFailureHandler(function(err) { mostrarAviso('Error: ' + err); })
+          .eliminarVariasCitasWeb(filas);
+      }
+
+      document.getElementById('btnEliminarCitas').addEventListener('click', manejarEliminarSeleccionadas);
+
+      // ---------- Selección múltiple de citas (mismo patrón que la Base de
+      // Datos, pero el clic AÑADE o QUITA de la selección en vez de
+      // reemplazarla — Copiar Siguiente Cita / ×2 pueden actuar sobre varias
+      // a la vez). ----------
+      var BOTONES_UNA_SOLA = ['btnValoracion', 'btnWhatsapp'].map(function(id) { return document.getElementById(id); });
+      var BOTONES_UNA_O_MAS = ['btnCopiarCita', 'btnCopiarCita2', 'btnEliminarCitas'].map(function(id) { return document.getElementById(id); });
+
+      function citasSeleccionadas() {
+        return CITAS.filter(function(c) { return filasSeleccionadas.has(c._fila) && !c._hueco; });
+      }
+
+      function alternarSeleccionFila(cita) {
+        if (filasSeleccionadas.has(cita._fila)) filasSeleccionadas.delete(cita._fila);
+        else filasSeleccionadas.add(cita._fila);
+        render();
+        actualizarBotonesSeleccion();
+      }
+
+      function quitarSeleccion() {
+        filasSeleccionadas.clear();
+        render();
+        actualizarBotonesSeleccion();
+      }
+
+      function actualizarBotonesSeleccion() {
+        var n = citasSeleccionadas().length;
+        BOTONES_UNA_SOLA.forEach(function(btn) { btn.disabled = (n !== 1); });
+        BOTONES_UNA_O_MAS.forEach(function(btn) { btn.disabled = (n === 0); });
+
+        var contador = document.getElementById('contadorSeleccion');
+        contador.textContent = n > 0 ? (n + (n === 1 ? ' cita seleccionada' : ' citas seleccionadas')) : '';
+        document.getElementById('btnQuitarSeleccion').style.display = n > 0 ? 'inline-flex' : 'none';
+      }
+
+      document.getElementById('btnQuitarSeleccion').addEventListener('click', quitarSeleccion);
+
+      document.getElementById('tablaWrap').addEventListener('click', function(e) {
+        if (e.target.closest('td.editando')) return; // no seleccionar mientras se edita una celda
+
+        var tdEditable = e.target.closest('td.editable');
+        if (tdEditable && !tdEditable.classList.contains('editando')) {
+          activarEdicion(tdEditable);
+          return;
+        }
+        var btnBorrar = e.target.closest('.btn-borrar-fila');
+        if (btnBorrar) {
+          manejarBorrarFila(btnBorrar.dataset.fila);
+          return;
+        }
+        var tr = e.target.closest('tr[data-fila]');
+        if (tr) {
+          var cita = CITAS.find(function(c) { return c._fila == tr.dataset.fila; });
+          if (cita) alternarSeleccionFila(cita);
+        }
+      });
+
+      // ---------- Preparar Jornada (abre las Historias Clínicas del turno de hoy) ----------
+      function mostrarLanzadorHCs(urls, turno) {
+        var overlay = document.getElementById('modalOverlay');
+        var btnCancelar = document.getElementById('modalBtnCancelar');
+        var btnAceptar = document.getElementById('modalBtnAceptar');
+
+        document.getElementById('modalMensaje').textContent =
+          'Se van a abrir ' + urls.length + (urls.length === 1 ? ' pestaña' : ' pestañas') +
+          ' de Historia Clínica del turno de ' + turno + '. Si el navegador bloquea las ventanas emergentes, permite los popups de este sitio y vuelve a intentarlo.';
+        btnCancelar.style.display = 'inline-flex';
+        btnAceptar.textContent = 'Abrir Historias Clínicas';
+        overlay.classList.add('visible');
+
+        function limpiar() {
+          overlay.classList.remove('visible');
+          btnAceptar.textContent = 'Aceptar';
+          btnAceptar.removeEventListener('click', onAbrir);
+          btnCancelar.removeEventListener('click', onCancelar);
+        }
+        // Abrimos las ventanas DENTRO del propio clic de este botón (no tras
+        // un await) para que cuenten como gesto directo del usuario y el
+        // navegador no las bloquee.
+        function onAbrir() { urls.forEach(function(url) { window.open(url, '_blank'); }); limpiar(); }
+        function onCancelar() { limpiar(); }
+
+        btnAceptar.addEventListener('click', onAbrir);
+        btnCancelar.addEventListener('click', onCancelar);
+      }
+
+      document.getElementById('btnJornada').addEventListener('click', function() {
+        google.script.run
+          .withSuccessHandler(function(res) {
+            if (res.error) { mostrarAviso(res.error); return; }
+            if (!res.urls || res.urls.length === 0) {
+              mostrarAviso('No hay citas con Historia Clínica para el turno de ' + res.turno + ' de hoy.');
+              return;
+            }
+            mostrarLanzadorHCs(res.urls, res.turno);
+          })
+          .withFailureHandler(function(err) { mostrarAviso('Error: ' + err); })
+          .obtenerEnlacesJornadaWeb();
+      });
+
+      // ---------- Valoración (abre la ventana emergente ya existente; solo con 1 cita seleccionada) ----------
+      document.getElementById('btnValoracion').addEventListener('click', function() {
+        var sel = citasSeleccionadas();
+        if (sel.length !== 1) return;
+        var url = BASE_URL + '?page=valoracion&paciente=' + encodeURIComponent(sel[0]['Usuario']);
+        window.open(url, 'ventanaValoracionAgenda', 'width=850,height=900');
+      });
+
+      // ---------- WhatsApp (solo con 1 cita seleccionada) ----------
+      document.getElementById('btnWhatsapp').addEventListener('click', function() {
+        var sel = citasSeleccionadas();
+        if (sel.length !== 1) return;
+
+        // Abrimos la ventana en el propio clic (síncrono) para que el
+        // navegador no la bloquee; la rellenamos en cuanto llega la URL.
+        var ventana = window.open('', '_blank');
+
+        google.script.run
+          .withSuccessHandler(function(res) {
+            if (res.success) {
+              if (ventana) ventana.location.href = res.url;
+            } else {
+              if (ventana) ventana.close();
+              mostrarAviso(res.message);
+            }
+          })
+          .withFailureHandler(function(err) {
+            if (ventana) ventana.close();
+            mostrarAviso('Error al abrir WhatsApp: ' + err);
+          })
+          .generarUrlWhatsappParaAgendaWeb(sel[0]._fila);
+      });
+
+      // ---------- Copiar Siguiente Cita / ×2 (una o varias citas a la vez) ----------
+      async function manejarCopiarSeleccionadas(doble, forzar) {
+        var sel = citasSeleccionadas();
+        if (sel.length === 0) return;
+        var items = sel.map(function(c) { return { fila: c._fila, doble: doble }; });
+
+        google.script.run
+          .withSuccessHandler(async function(res) {
+            if (res.ocupado && !forzar) {
+              var confirmado = await mostrarConfirm(res.message);
+              if (confirmado) manejarCopiarSeleccionadas(doble, true);
+              return;
+            }
+            if (!res.success) { mostrarAviso(res.message || 'No se pudo copiar.'); return; }
+            mostrarAviso(res.message);
+            quitarSeleccion();
+            cargar(semanaActual);
+          })
+          .withFailureHandler(function(err) { mostrarAviso('Error: ' + err); })
+          .copiarVariasCitasWeb(items, !!forzar);
+      }
+
+      document.getElementById('btnCopiarCita').addEventListener('click', function() { manejarCopiarSeleccionadas(false, false); });
+      document.getElementById('btnCopiarCita2').addEventListener('click', function() { manejarCopiarSeleccionadas(true, false); });
+
+      // ---------- Copiar Semana: miércoles y jueves (doble sesión) + viernes
+      // (simple) de la semana que se está viendo → puebla toda la semana
+      // siguiente sin tener que seleccionar nada a mano. No usa la selección
+      // en absoluto; recorre CITAS directamente. ----------
+      function diaSemanaDeCita(c) {
+        var partes = c._fechaISO.split('-').map(Number);
+        return new Date(partes[0], partes[1] - 1, partes[2]).getDay(); // 0=Dom … 6=Sáb
+      }
+
+      async function manejarCopiarSemana(forzar) {
+        var items = CITAS
+          .filter(function(c) {
+            if (c._hueco) return false;
+            var dia = diaSemanaDeCita(c);
+            return dia === 3 || dia === 4 || dia === 5; // miércoles, jueves, viernes
+          })
+          .map(function(c) {
+            var dia = diaSemanaDeCita(c);
+            return { fila: c._fila, doble: (dia === 3 || dia === 4) };
+          });
+
+        if (items.length === 0) {
+          mostrarAviso('No hay citas de miércoles, jueves o viernes en esta semana para copiar.');
+          return;
+        }
+
+        google.script.run
+          .withSuccessHandler(async function(res) {
+            if (res.ocupado && !forzar) {
+              var confirmado = await mostrarConfirm(res.message);
+              if (confirmado) manejarCopiarSemana(true);
+              return;
+            }
+            if (!res.success) { mostrarAviso(res.message || 'No se pudo copiar la semana.'); return; }
+            mostrarAviso(res.message);
+            cargar(semanaActual);
+          })
+          .withFailureHandler(function(err) { mostrarAviso('Error: ' + err); })
+          .copiarVariasCitasWeb(items, !!forzar);
+      }
+
+      document.getElementById('btnCopiarSemana').addEventListener('click', function() { manejarCopiarSemana(false); });
 
       // ---------- Navegación de semana ----------
       function hoyISO() { return formatoISO(new Date()); }
@@ -405,12 +989,13 @@
       function actualizarBotonHuecos() {
         var btn = document.getElementById('btnHuecos');
         btn.innerHTML = mostrarHuecos
-          ? '<span class="material-symbols-outlined">event_busy</span> Ocultar huecos libres'
-          : '<span class="material-symbols-outlined">event_available</span> Mostrar huecos libres';
+          ? '<span class="material-symbols-outlined">event_busy</span> Ocultar citas disponibles'
+          : '<span class="material-symbols-outlined">event_available</span> Mostrar citas disponibles';
         btn.classList.toggle('activo', mostrarHuecos);
       }
 
       cargar();
+      cargarListaPacientes();
     </script>
   </body>
 </html>

@@ -59,10 +59,11 @@ function doGet(e) {
     return construirIndiceWeb(); // parámetro desconocido → volvemos al índice
   }
 
-  // BaseDatosWeb necesita la URL absoluta de despliegue para construir el
-  // enlace "Editar" de cada fila — un href relativo (?page=editarPaciente...)
-  // no resuelve bien dentro del iframe en el que Google sirve la Web App.
-  if (page === 'baseDatos') {
+  // BaseDatosWeb y AgendaWeb necesitan la URL absoluta de despliegue para
+  // abrir ventanas emergentes propias (editar, valoración...) — un href
+  // relativo no resuelve bien dentro del iframe en el que Google sirve la
+  // Web App.
+  if (page === 'baseDatos' || page === 'agenda') {
     const template = HtmlService.createTemplateFromFile(config.archivo);
     template.baseUrl = ScriptApp.getService().getUrl();
     return template.evaluate()

@@ -1,4 +1,3 @@
-// ================================================================================
 // ARCHIVO: Utils.gs
 // Funciones compartidas y consolidadas (antes duplicadas en varios archivos).
 // Creado el 2026-07-09 para eliminar colisiones de nombres en Apps Script.
@@ -111,7 +110,6 @@ function normalizarFormatoNombre(texto) {
  */
 function obtenerHojaAgenda() {
   const ss = getSS();
-  const sheets = ss.getSheets();
   const today = new Date();
   const month = today.getMonth() + 1; // 1-12
 
@@ -125,7 +123,24 @@ function obtenerHojaAgenda() {
     cursoInicio = cursoFin - 1;
   }
 
+  // OPTIMIZACIÓN DE RENDIMIENTO: esta función se llama en CADA carga de la
+  // Agenda Web, cada cambio de semana y cada edición de un dato (Asistencia,
+  // Notas, Sesión, asignar paciente...). Antes, cada una de esas llamadas
+  // hacía ss.getSheets(), que recorre y crea un objeto Sheet para TODAS las
+  // pestañas del libro (Base de Datos Maestra, cada Agenda de cada curso,
+  // etc.) solo para tirar casi todas y quedarnos con una. Con muchas
+  // pestañas eso se nota en cada clic. Ahora se pide directamente la hoja
+  // por su nombre exacto (getSheetByName), que es una búsqueda directa sin
+  // tener que instanciar el resto de pestañas.
+  const nombreEsperado = `Agenda ${cursoInicio}-${cursoFin}`;
+  const hojaDirecta = ss.getSheetByName(nombreEsperado);
+  if (hojaDirecta) return hojaDirecta;
+
+  // Respaldo: si el nombre real tiene espacios distintos a uno solo (p.ej.
+  // "Agenda  2025-2026" con doble espacio), la búsqueda exacta de arriba no
+  // la encuentra. Solo en ese caso recurrimos al escaneo completo de antes.
   const regex = new RegExp(`^Agenda\\s+${cursoInicio}-${cursoFin}$`);
+  const sheets = ss.getSheets();
 
   for (let i = 0; i < sheets.length; i++) {
     if (regex.test(sheets[i].getName())) {
