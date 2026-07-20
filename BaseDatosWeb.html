@@ -36,6 +36,8 @@
         --md-on-surface-med:   #5f6368;
         --md-on-surface-low:   #80868b;
 
+        --tabs-bg:             #e7eff6;
+
         --radius-sm: 4px;
         --radius-md: 8px;
         --radius-pill: 50px;
@@ -210,9 +212,31 @@
         margin-bottom: 1.15rem;
       }
       .modal-botones { display: flex; justify-content: flex-end; gap: .5rem; }
+
+      /* Pestañas para alternar entre Agenda y Base de Datos. Son enlaces
+         normales (navegación con recarga) porque las Web Apps de Apps
+         Script no se pueden embeber en un iframe (Google lo bloquea) — por
+         eso el formulario de edición de esta misma página usa window.open()
+         en vez de un iframe (ver abrirVentanaEmergente más abajo). */
+      nav.tabs-cambio {
+        display: flex; gap: .25rem; flex-shrink: 0;
+        background: var(--tabs-bg); padding: .5rem .75rem 0;
+      }
+      nav.tabs-cambio a.tab-cambio {
+        display: inline-flex; align-items: center; gap: .35rem;
+        background: transparent; color: rgba(255,255,255,.7); text-decoration: none;
+        font-family: var(--font); font-weight: 600; font-size: .82rem;
+        padding: .5rem 1rem; border-radius: 10px 10px 0 0; transition: var(--transition);
+      }
+      nav.tabs-cambio a.tab-cambio:hover { color: #fff; background: rgba(255,255,255,.08); }
+      nav.tabs-cambio a.tab-cambio.activo { background: var(--md-bg); color: var(--md-primary-dark); cursor: default; }
     </style>
   </head>
   <body>
+    <nav class="tabs-cambio">
+      <a class="tab-cambio" href="<?= baseUrl ?>?page=agenda" target="_top">🗓️ Agenda</a>
+      <a class="tab-cambio activo" href="<?= baseUrl ?>?page=baseDatos" target="_top">🗂️ Base de Datos</a>
+    </nav>
     <header class="top">
       <h1>🗂️ Base de Datos <span class="contador" id="contador"></span></h1>
 
