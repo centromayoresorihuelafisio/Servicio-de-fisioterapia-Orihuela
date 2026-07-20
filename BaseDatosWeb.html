@@ -97,8 +97,8 @@
         font-family: var(--font);
       }
       .btn-toolbar:hover { background: var(--md-surface-variant); }
-      .btn-toolbar.primario { background: var(--md-primary); border-color: var(--md-primary); color: var(--md-on-primary); }
-      .btn-toolbar.primario:hover { background: var(--md-primary-dark); }
+      .btn-toolbar.primario { background: #c2e7ff; border-color: #c2e7ff; color: #004a77; }
+      .btn-toolbar.primario:hover { background: #a8d9f9; border-color: #a8d9f9; }
       .btn-toolbar:disabled { opacity: .45; cursor: not-allowed; }
       .btn-toolbar .material-symbols-outlined { font-size: 17px; }
 
@@ -220,16 +220,17 @@
          en vez de un iframe (ver abrirVentanaEmergente más abajo). */
       nav.tabs-cambio {
         display: flex; gap: .25rem; flex-shrink: 0;
-        background: var(--tabs-bg); padding: .5rem .75rem 0;
+        background: #f8fafd; padding: .5rem .75rem 0;
+        border-bottom: 1px solid var(--md-outline);
       }
       nav.tabs-cambio a.tab-cambio {
         display: inline-flex; align-items: center; gap: .35rem;
-        background: transparent; color: rgba(255,255,255,.7); text-decoration: none;
+        background: transparent; color: #004a77; text-decoration: none;
         font-family: var(--font); font-weight: 600; font-size: .82rem;
-        padding: .5rem 1rem; border-radius: 10px 10px 0 0; transition: var(--transition);
+        padding: .5rem 1rem; border-radius: 8px 8px 0 0; transition: var(--transition);
       }
-      nav.tabs-cambio a.tab-cambio:hover { color: #fff; background: rgba(255,255,255,.08); }
-      nav.tabs-cambio a.tab-cambio.activo { background: var(--md-bg); color: var(--md-primary-dark); cursor: default; }
+      nav.tabs-cambio a.tab-cambio:hover { background: rgba(0,74,119, .05); }
+      nav.tabs-cambio a.tab-cambio.activo { background: #c2e7ff; color: #004a77; cursor: default; }
     </style>
   </head>
   <body>
