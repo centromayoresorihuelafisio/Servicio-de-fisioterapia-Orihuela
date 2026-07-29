@@ -34,12 +34,12 @@
 
         --md-on-surface:       #202124;
         --md-on-surface-med:   #5f6368;
-    --md-on-surface-low:   #80868b;
+        --md-on-surface-low:   #80868b;
 
-    --tabs-bg:             #f8fafd;
+        --tabs-bg:             #e7eff6;
 
-    --radius-sm: 4px;
-    --radius-md: 8px;
+        --radius-sm: 4px;
+        --radius-md: 8px;
         --radius-pill: 50px;
 
         --font: 'Google Sans', 'Segoe UI', Arial, sans-serif;
@@ -97,8 +97,8 @@
         font-family: var(--font);
       }
       .btn-toolbar:hover { background: var(--md-surface-variant); }
-      .btn-toolbar.primario { background: var(--md-primary); border-color: var(--md-primary); color: var(--md-on-primary); }
-      .btn-toolbar.primario:hover { background: var(--md-primary-dark); }
+      .btn-toolbar.primario { background: #c2e7ff; border-color: #c2e7ff; color: #004a77; }
+      .btn-toolbar.primario:hover { background: #a8d9f9; border-color: #a8d9f9; }
       .btn-toolbar:disabled { opacity: .45; cursor: not-allowed; }
       .btn-toolbar.activo { background: var(--md-primary-light); border-color: var(--md-primary); color: var(--md-primary-dark); }
       .btn-toolbar .material-symbols-outlined { font-size: 17px; }
@@ -261,27 +261,27 @@
       .modal-botones { display: flex; justify-content: flex-end; gap: .5rem; }
 
       /* Pestañas para alternar entre Agenda y Base de Datos. Son enlaces
-     normales (navegación con recarga) porque las Web Apps de Apps
-     Script no se pueden embeber en un iframe (Google lo bloquea) — ver
-     el mismo comentario en BaseDatosWeb.html, donde por eso se usa
-     window.open() en vez de un iframe para el formulario de edición. */
-  nav.tabs-cambio {
-    display: flex; gap: .25rem; flex-shrink: 0;
-    background: var(--tabs-bg); padding: .5rem .75rem 0;
-    border-bottom: 1px solid var(--md-outline);
-  }
-  nav.tabs-cambio a.tab-cambio {
-    display: inline-flex; align-items: center; gap: .35rem;
-    background: transparent; color: #004a77; text-decoration: none;
-    font-family: var(--font); font-weight: 600; font-size: .82rem;
-    padding: .5rem 1rem; border-radius: 10px 10px 0 0; transition: var(--transition);
-  }
-  nav.tabs-cambio a.tab-cambio:hover { background: rgba(0, 74, 119, 0.08); }
-  nav.tabs-cambio a.tab-cambio.activo { background: #c2e7ff; color: #004a77; cursor: default; }
-</style>
-</head>
-<body>
-<nav class="tabs-cambio">
+         normales (navegación con recarga) porque las Web Apps de Apps
+         Script no se pueden embeber en un iframe (Google lo bloquea) — ver
+         el mismo comentario en BaseDatosWeb.html, donde por eso se usa
+         window.open() en vez de un iframe para el formulario de edición. */
+      nav.tabs-cambio {
+        display: flex; gap: .25rem; flex-shrink: 0;
+        background: #f8fafd; padding: .5rem .75rem 0;
+        border-bottom: 1px solid var(--md-outline);
+      }
+      nav.tabs-cambio a.tab-cambio {
+        display: inline-flex; align-items: center; gap: .35rem;
+        background: transparent; color: #004a77; text-decoration: none;
+        font-family: var(--font); font-weight: 600; font-size: .82rem;
+        padding: .5rem 1rem; border-radius: 8px 8px 0 0; transition: var(--transition);
+      }
+      nav.tabs-cambio a.tab-cambio:hover { background: rgba(0,74,119, .05); }
+      nav.tabs-cambio a.tab-cambio.activo { background: #c2e7ff; color: #004a77; cursor: default; }
+    </style>
+  </head>
+  <body>
+    <nav class="tabs-cambio">
       <a class="tab-cambio activo" href="<?= baseUrl ?>?page=agenda" target="_top">🗓️ Agenda</a>
       <a class="tab-cambio" href="<?= baseUrl ?>?page=baseDatos" target="_top">🗂️ Base de Datos</a>
     </nav>
