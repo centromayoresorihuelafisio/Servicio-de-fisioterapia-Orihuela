@@ -109,7 +109,7 @@
       .cuerpo { flex: 1; display: flex; flex-direction: column; min-height: 0; }
 
       .tabla-wrap { flex: 1; overflow: auto; min-height: 0; }
-      table { border-collapse: collapse; width: 100%; min-width: 760px; }
+      table { border-collapse: collapse; width: 100%; min-width: 1360px; }
       thead th {
         position: sticky; top: 0; background: var(--md-surface-variant); color: var(--md-on-surface-med);
         font-size: .68rem; text-transform: uppercase; letter-spacing: .02em; font-weight: 600; text-align: left;
@@ -128,6 +128,7 @@
       tbody td { padding: .45rem .6rem; border-bottom: 1px solid var(--md-outline); white-space: nowrap; }
       td.nombre { font-weight: 600; }
       td.vacio { color: var(--md-on-surface-low); font-style: italic; }
+      td.notas { max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
 
       .badge { font-size: .72rem; font-weight: 600; padding: .15rem .55rem; border-radius: var(--radius-pill); white-space: nowrap; }
       .badge.sev-ok    { background: var(--md-success-bg); color: var(--md-success); }
@@ -167,11 +168,11 @@
       }
       .btn-cerrar-detalle:hover { background: var(--md-surface-variant); color: var(--md-on-surface); }
 
-      .grafica-evolucion { width: 100%; height: 130px; display: block; margin-bottom: .9rem; }
-      .linea-grafica { stroke: var(--md-primary); stroke-width: 2; }
+      .grafica-evolucion { display: block; margin-bottom: .9rem; max-width: 100%; }
+      .linea-grafica { stroke: var(--md-primary); stroke-width: 2.5; }
       .guia-grafica { stroke: var(--md-outline); stroke-width: 1; stroke-dasharray: 2,2; }
-      .etiqueta-grafica { font-size: 8px; fill: var(--md-on-surface-low); font-family: var(--font); }
-      .punto-grafica { stroke: #fff; stroke-width: 1; }
+      .etiqueta-grafica { font-size: 11px; fill: var(--md-on-surface-low); font-family: var(--font); }
+      .punto-grafica { stroke: #fff; stroke-width: 1.5; }
       .punto-grafica.sev-ok    { fill: var(--md-success); }
       .punto-grafica.sev-medio { fill: var(--md-warning); }
       .punto-grafica.sev-alto  { fill: var(--md-error); }
@@ -269,6 +270,9 @@
               <option value="pegDolor">PEG Dolor</option>
               <option value="pegActividad">PEG Actividad</option>
               <option value="pegVida">PEG Vida</option>
+              <option value="mediaColumna">Columna</option>
+              <option value="mediaMS">Miembro Superior</option>
+              <option value="mediaMI">Miembro Inferior</option>
             </select>
           </div>
           <span class="material-symbols-outlined btn-cerrar-detalle" id="btnCerrarDetalle" title="Cerrar detalle">close</span>
@@ -281,7 +285,8 @@
             <thead>
               <tr>
                 <th>Fecha</th><th>Tipo</th><th>PEG Dolor</th><th>PEG Actividad</th><th>PEG Vida</th>
-                <th>Función Global</th><th>Analgésicos</th><th>Notas</th>
+                <th>Columna</th><th>M. Superior</th><th>M. Inferior</th><th>Función Global</th>
+                <th>Analgésicos</th><th>Notas</th>
               </tr>
             </thead>
             <tbody id="cuerpoHistorial"></tbody>
@@ -335,15 +340,42 @@
 
       function escapar(txt) { return (txt + '').replace(/</g, '&lt;'); }
 
-      // ---------- Píldoras de severidad (0-3 leve, 4-6 moderado, 7-10 alto) ----------
-      function claseSeveridad(valor) {
+      // ---------- Píldoras de severidad ----------
+      // OJO: la dirección del color depende del tipo de escala (confirmado
+      // en Valoracion.html, funciones painClass/funcClass/analgesicos):
+      // - PEG Dolor/Actividad/Vida: 0-10, ALTO = MALO (dolor/interferencia).
+      // - Columna/M.Superior/M.Inferior/Función Global: 0-10, ALTO = BUENO
+      //   (son escalas de capacidad funcional, al revés que el dolor).
+      // - Analgésicos: 0-5, ALTO = MALO (más consumo).
+      function claseSeveridadDolor(valor) {
         if (valor <= 3) return 'sev-ok';
         if (valor <= 6) return 'sev-medio';
         return 'sev-alto';
       }
-      function renderPill(valor) {
+      function claseSeveridadFuncion(valor) {
+        if (valor <= 3) return 'sev-alto';
+        if (valor <= 7) return 'sev-medio';
+        return 'sev-ok';
+      }
+      function claseSeveridadAnalgesicos(valor) {
+        if (valor <= 2) return 'sev-ok';
+        if (valor === 3) return 'sev-medio';
+        return 'sev-alto';
+      }
+      var TIPO_METRICA = {
+        pegDolor: 'dolor', pegActividad: 'dolor', pegVida: 'dolor',
+        mediaColumna: 'funcion', mediaMS: 'funcion', mediaMI: 'funcion', funcionGlobal: 'funcion',
+        analgesicos: 'analg'
+      };
+      function claseSeveridad(valor, campo) {
+        var tipo = TIPO_METRICA[campo] || 'dolor';
+        if (tipo === 'funcion') return claseSeveridadFuncion(valor);
+        if (tipo === 'analg') return claseSeveridadAnalgesicos(valor);
+        return claseSeveridadDolor(valor);
+      }
+      function renderPill(valor, campo) {
         if (valor === null || valor === undefined) return '<span class="badge sev-vacio">—</span>';
-        return '<span class="badge ' + claseSeveridad(valor) + '">' + valor + '</span>';
+        return '<span class="badge ' + claseSeveridad(valor, campo) + '">' + valor + '</span>';
       }
 
       function formatearFechaCorta(fechaISO) {
@@ -367,7 +399,8 @@
 
         var thead = '<thead><tr>' +
           '<th>Paciente</th><th>Última valoración</th><th>Tipo</th><th>PEG Dolor</th>' +
-          '<th>PEG Actividad</th><th>PEG Vida</th><th>Función Global</th><th>Nº</th>' +
+          '<th>PEG Actividad</th><th>PEG Vida</th><th>Columna</th><th>M. Superior</th><th>M. Inferior</th>' +
+          '<th>Función Global</th><th>Analgésicos</th><th>Notas</th><th>Nº</th>' +
           '</tr></thead>';
 
         var tbody = '<tbody>' + filtrados.map(function(p) {
@@ -377,10 +410,15 @@
             '<td class="nombre">' + escapar(p.nombre) + '</td>' +
             '<td>' + formatearFechaCorta(u.fecha) + '</td>' +
             '<td>' + (u.tipo ? escapar(u.tipo) : '<span class="vacio">—</span>') + '</td>' +
-            '<td>' + renderPill(u.pegDolor) + '</td>' +
-            '<td>' + renderPill(u.pegActividad) + '</td>' +
-            '<td>' + renderPill(u.pegVida) + '</td>' +
-            '<td>' + renderPill(u.funcionGlobal) + '</td>' +
+            '<td>' + renderPill(u.pegDolor, 'pegDolor') + '</td>' +
+            '<td>' + renderPill(u.pegActividad, 'pegActividad') + '</td>' +
+            '<td>' + renderPill(u.pegVida, 'pegVida') + '</td>' +
+            '<td>' + renderPill(u.mediaColumna, 'mediaColumna') + '</td>' +
+            '<td>' + renderPill(u.mediaMS, 'mediaMS') + '</td>' +
+            '<td>' + renderPill(u.mediaMI, 'mediaMI') + '</td>' +
+            '<td>' + renderPill(u.funcionGlobal, 'funcionGlobal') + '</td>' +
+            '<td>' + renderPill(u.analgesicos, 'analgesicos') + '</td>' +
+            '<td class="notas' + (u.notas ? '' : ' vacio') + '" title="' + escapar(u.notas || '') + '">' + (u.notas ? escapar(u.notas) : '—') + '</td>' +
             '<td>' + p.numValoraciones + '</td>' +
             '</tr>';
         }).join('') + '</tbody>';
