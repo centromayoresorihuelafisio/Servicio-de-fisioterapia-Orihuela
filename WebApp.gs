@@ -34,7 +34,8 @@ const PAGINAS_WEB = {
   nuevoPaciente: { archivo: 'Formulario Añadir Usuario',    titulo: 'Nuevo Paciente',    icono: '🧍' },
   valoracion:    { archivo: 'Valoracion',                   titulo: 'Valoración',        icono: '📋' },
   baseDatos:     { archivo: 'BaseDatosWeb',                 titulo: 'Base de Datos',     icono: '🗂️' },
-  agenda:        { archivo: 'AgendaWeb',                    titulo: 'Agenda',            icono: '🗓️' }
+  agenda:        { archivo: 'AgendaWeb',                    titulo: 'Agenda',            icono: '🗓️' },
+  valoraciones:  { archivo: 'ValoracionesWeb',              titulo: 'Valoraciones',      icono: '📈' }
 };
 
 function doGet(e) {
@@ -59,11 +60,11 @@ function doGet(e) {
     return construirIndiceWeb(); // parámetro desconocido → volvemos al índice
   }
 
-  // BaseDatosWeb y AgendaWeb necesitan la URL absoluta de despliegue para
-  // abrir ventanas emergentes propias (editar, valoración...) — un href
-  // relativo no resuelve bien dentro del iframe en el que Google sirve la
-  // Web App.
-  if (page === 'baseDatos' || page === 'agenda') {
+  // BaseDatosWeb, AgendaWeb y ValoracionesWeb necesitan la URL absoluta de
+  // despliegue para abrir ventanas emergentes propias (editar, valoración...)
+  // y para los enlaces de las pestañas — un href relativo no resuelve bien
+  // dentro del iframe en el que Google sirve la Web App.
+  if (page === 'baseDatos' || page === 'agenda' || page === 'valoraciones') {
     const template = HtmlService.createTemplateFromFile(config.archivo);
     template.baseUrl = ScriptApp.getService().getUrl();
     return template.evaluate()

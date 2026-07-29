@@ -92,5 +92,24 @@ const COLUMNAS_NUM = {
     ASISTENCIA: 7,
     HISTORIA_CLINICA: 9,
     NOTAS: 10
+  },
+  // Orden posicional exacto con el que procesarValoracion() (Guardar
+  // Valoraciones.gs) escribe cada fila con appendRow — esa función no busca
+  // por cabecera, así que aquí seguimos la misma convención en vez de
+  // inventar nombres de cabecera que no podemos confirmar.
+  VALORACIONES: {
+    FECHA: 1,
+    TIPO: 2,
+    NOMBRE: 3,
+    TELEFONO: 4,
+    PEG_DOLOR: 5,
+    PEG_ACTIVIDAD: 6,
+    PEG_VIDA: 7,
+    MEDIA_COLUMNA: 8,
+    MEDIA_MS: 9,
+    MEDIA_MI: 10,
+    FUNCION_GLOBAL: 11,
+    ANALGESICOS: 12,
+    NOTAS: 13
   }
 };

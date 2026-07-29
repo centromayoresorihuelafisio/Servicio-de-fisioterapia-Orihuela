@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <base target="_top">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Valoraciones</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600&family=Roboto+Mono:wght@400;500&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
+
+    <style>
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+      :root {
+        --md-primary:          #2b5c75;
+        --md-primary-dark:     #1d3f52;
+        --md-primary-light:    #e0f1fc;
+        --md-primary-container:#c9e4f5;
+        --md-on-primary:       #ffffff;
+
+        --md-success:          #137333;
+        --md-success-bg:       #e6f4ea;
+        --md-error:            #c5221f;
+        --md-error-bg:         #fce8e6;
+        --md-warning:          #f29900;
+        --md-warning-bg:       #fef7e0;
+        --md-purple:           #8430ce;
+        --md-purple-bg:        #f3e8fd;
+
+        --md-bg:               #f8f9fa;
+        --md-surface:          #ffffff;
+        --md-surface-variant:  #f1f3f4;
+        --md-outline:          #dadce0;
+
+        --md-on-surface:       #202124;
+        --md-on-surface-med:   #5f6368;
+        --md-on-surface-low:   #80868b;
+
+        --tabs-bg:             #e7eff6;
+
+        --radius-sm: 4px;
+        --radius-md: 8px;
+        --radius-pill: 50px;
+
+        --font: 'Google Sans', 'Segoe UI', Arial, sans-serif;
+        --transition: 150ms cubic-bezier(.2,0,0,1);
+      }
+
+      html, body { height: 100%; }
+      body {
+        font-family: var(--font);
+        background: var(--md-bg);
+        color: var(--md-on-surface);
+        display: flex;
+        flex-direction: column;
+        font-size: 13px;
+      }
+
+      header.top {
+        background: var(--md-surface);
+        border-bottom: 1px solid var(--md-outline);
+        padding: .75rem 1rem;
+        flex-shrink: 0;
+      }
+      header.top h1 {
+        font-size: 1.05rem;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: .5rem;
+        margin-bottom: .6rem;
+      }
+      header.top .contador { font-size: .78rem; color: var(--md-on-surface-med); font-weight: 400; }
+
+      .barra-herramientas {
+        display: flex;
+        gap: .4rem;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .btn-toolbar {
+        display: inline-flex;
+        align-items: center;
+        gap: .3rem;
+        background: var(--md-surface);
+        border: 1px solid var(--md-outline);
+        color: var(--md-on-surface);
+        border-radius: var(--radius-pill);
+        padding: .35rem .8rem;
+        font-size: .8rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: var(--transition);
+        font-family: var(--font);
+      }
+      .btn-toolbar:hover { background: var(--md-surface-variant); }
+      .btn-toolbar.primario { background: #c2e7ff; border-color: #c2e7ff; color: #004a77; }
+      .btn-toolbar.primario:hover { background: #a8d9f9; border-color: #a8d9f9; }
+      .btn-toolbar .material-symbols-outlined { font-size: 17px; }
+
+      .buscador {
+        display: flex; align-items: center; gap: .4rem;
+        background: var(--md-surface-variant); border-radius: var(--radius-pill);
+        padding: .4rem .8rem; flex: 1; min-width: 200px;
+      }
+      .buscador input { border: none; outline: none; flex: 1; font-size: .85rem; font-family: var(--font); background: transparent; }
+      .buscador .material-symbols-outlined { color: var(--md-on-surface-low); font-size: 18px; }
+
+      .cuerpo { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+
+      .tabla-wrap { flex: 1; overflow: auto; min-height: 0; }
+      table { border-collapse: collapse; width: 100%; min-width: 760px; }
+      thead th {
+        position: sticky; top: 0; background: var(--md-surface-variant); color: var(--md-on-surface-med);
+        font-size: .68rem; text-transform: uppercase; letter-spacing: .02em; font-weight: 600; text-align: left;
+        padding: .5rem .6rem; border-bottom: 1px solid var(--md-outline); white-space: nowrap; z-index: 2;
+      }
+      thead th:nth-child(1), tbody td:nth-child(1) {
+        position: sticky; left: 0;
+        background: var(--md-surface-variant); z-index: 3; box-shadow: 1px 0 0 var(--md-outline);
+      }
+      tbody td:nth-child(1) { background: var(--md-surface); z-index: 1; }
+      tbody tr:hover { background: var(--md-primary-light); }
+      tbody tr:hover td:nth-child(1) { background: var(--md-primary-light); }
+      tbody tr.seleccionada { background: var(--md-primary-container) !important; }
+      tbody tr.seleccionada td:nth-child(1) { background: var(--md-primary-container) !important; }
+      tbody tr { cursor: pointer; }
+      tbody td { padding: .45rem .6rem; border-bottom: 1px solid var(--md-outline); white-space: nowrap; }
+      td.nombre { font-weight: 600; }
+      td.vacio { color: var(--md-on-surface-low); font-style: italic; }
+
+      .badge { font-size: .72rem; font-weight: 600; padding: .15rem .55rem; border-radius: var(--radius-pill); white-space: nowrap; }
+      .badge.sev-ok    { background: var(--md-success-bg); color: var(--md-success); }
+      .badge.sev-medio { background: var(--md-warning-bg); color: var(--md-warning); }
+      .badge.sev-alto  { background: var(--md-error-bg);   color: var(--md-error); }
+      .badge.sev-vacio { background: var(--md-surface-variant); color: var(--md-on-surface-low); }
+
+      .estado-vacio, .estado-carga { text-align: center; color: var(--md-on-surface-med); padding: 3rem 1rem; font-size: .9rem; }
+      .estado-carga .material-symbols-outlined { font-size: 28px; animation: spin 1s linear infinite; display: block; margin: 0 auto .5rem; color: var(--md-primary); }
+      @keyframes spin { to { transform: rotate(360deg); } }
+
+      /* ---------- Panel de detalle (historial + gráfica) ---------- */
+      .panel-detalle {
+        display: none;
+        flex: 0 0 44%;
+        min-height: 0;
+        border-top: 2px solid var(--md-outline);
+        background: var(--md-surface);
+        overflow: auto;
+        padding: .9rem 1rem 1.2rem;
+      }
+      .panel-detalle.visible { display: block; }
+      .detalle-cabecera {
+        display: flex; align-items: flex-start; justify-content: space-between; gap: .75rem;
+        margin-bottom: .7rem; flex-wrap: wrap;
+      }
+      .detalle-cabecera h2 { font-size: .98rem; font-weight: 600; }
+      .detalle-telefono { font-size: .78rem; color: var(--md-on-surface-med); }
+      .detalle-selector-metrica { display: flex; align-items: center; gap: .4rem; font-size: .78rem; color: var(--md-on-surface-med); margin-left: auto; }
+      .detalle-selector-metrica select {
+        font-family: var(--font); font-size: .78rem; border: 1px solid var(--md-outline);
+        border-radius: var(--radius-sm); padding: .25rem .5rem; background: var(--md-surface);
+      }
+      .btn-cerrar-detalle {
+        cursor: pointer; color: var(--md-on-surface-low); font-size: 20px; line-height: 1;
+        border-radius: 50%; padding: .15rem;
+      }
+      .btn-cerrar-detalle:hover { background: var(--md-surface-variant); color: var(--md-on-surface); }
+
+      .grafica-evolucion { width: 100%; height: 130px; display: block; margin-bottom: .9rem; }
+      .linea-grafica { stroke: var(--md-primary); stroke-width: 2; }
+      .guia-grafica { stroke: var(--md-outline); stroke-width: 1; stroke-dasharray: 2,2; }
+      .etiqueta-grafica { font-size: 8px; fill: var(--md-on-surface-low); font-family: var(--font); }
+      .punto-grafica { stroke: #fff; stroke-width: 1; }
+      .punto-grafica.sev-ok    { fill: var(--md-success); }
+      .punto-grafica.sev-medio { fill: var(--md-warning); }
+      .punto-grafica.sev-alto  { fill: var(--md-error); }
+      .sin-datos-grafica { color: var(--md-on-surface-low); font-size: .82rem; font-style: italic; margin-bottom: .9rem; }
+
+      .tabla-historial-wrap { overflow-x: auto; }
+      table.tabla-historial { border-collapse: collapse; width: 100%; min-width: 640px; }
+      table.tabla-historial thead th {
+        position: static; background: var(--md-surface-variant); color: var(--md-on-surface-med);
+        font-size: .66rem; text-transform: uppercase; letter-spacing: .02em; font-weight: 600; text-align: left;
+        padding: .4rem .55rem; border-bottom: 1px solid var(--md-outline); white-space: nowrap;
+      }
+      table.tabla-historial tbody td { padding: .4rem .55rem; border-bottom: 1px solid var(--md-outline); font-size: .8rem; }
+      table.tabla-historial tbody td.notas { white-space: normal; color: var(--md-on-surface-med); max-width: 240px; }
+
+      /* ---------- Modal propio (sustituye a alert()/confirm() nativos) ---------- */
+      .modal-overlay {
+        display: none;
+        position: fixed; inset: 0;
+        background: rgba(32,33,36,.5);
+        align-items: center; justify-content: center;
+        z-index: 1000;
+        padding: 1rem;
+      }
+      .modal-overlay.visible { display: flex; }
+      .modal-box {
+        background: var(--md-surface);
+        border-radius: var(--radius-md);
+        padding: 1.25rem 1.5rem;
+        max-width: 360px;
+        width: 100%;
+        box-shadow: 0 4px 20px rgba(0,0,0,.25);
+      }
+      .modal-mensaje { font-size: .88rem; color: var(--md-on-surface); white-space: pre-line; line-height: 1.45; margin-bottom: 1.15rem; }
+      .modal-botones { display: flex; justify-content: flex-end; gap: .5rem; }
+
+      /* Pestañas para alternar entre Agenda, Base de Datos y Valoraciones. Son
+         enlaces normales (navegación con recarga) porque las Web Apps de Apps
+         Script no se pueden embeber en un iframe (Google lo bloquea) — por
+         eso el formulario de Nueva Valoración se abre con window.open() en
+         vez de con un iframe (ver abrirFormularioValoracion más abajo). */
+      nav.tabs-cambio {
+        display: flex; gap: .25rem; flex-shrink: 0;
+        background: #f8fafd; padding: .5rem .75rem 0;
+        border-bottom: 1px solid var(--md-outline);
+      }
+      nav.tabs-cambio a.tab-cambio {
+        display: inline-flex; align-items: center; gap: .35rem;
+        background: transparent; color: #004a77; text-decoration: none;
+        font-family: var(--font); font-weight: 600; font-size: .82rem;
+        padding: .5rem 1rem; border-radius: 8px 8px 0 0; transition: var(--transition);
+      }
+      nav.tabs-cambio a.tab-cambio:hover { background: rgba(0,74,119, .05); }
+      nav.tabs-cambio a.tab-cambio.activo { background: #c2e7ff; color: #004a77; cursor: default; }
+    </style>
+  </head>
+  <body>
+    <nav class="tabs-cambio">
+      <a class="tab-cambio" href="<?= baseUrl ?>?page=agenda" target="_top">🗓️ Agenda</a>
+      <a class="tab-cambio" href="<?= baseUrl ?>?page=baseDatos" target="_top">🗂️ Base de Datos</a>
+      <a class="tab-cambio activo" href="<?= baseUrl ?>?page=valoraciones" target="_top">📈 Valoraciones</a>
+    </nav>
+    <header class="top">
+      <h1>📈 Valoraciones <span class="contador" id="contador"></span></h1>
+
+      <div class="barra-herramientas">
+        <div class="buscador">
+          <span class="material-symbols-outlined">search</span>
+          <input type="text" id="inputBusqueda" placeholder="Buscar por paciente…">
+        </div>
+        <button class="btn-toolbar primario" id="btnNuevaValoracion">
+          <span class="material-symbols-outlined">assignment</span> Nueva Valoración
+        </button>
+      </div>
+    </header>
+
+    <div class="cuerpo">
+      <div class="tabla-wrap" id="tablaWrap">
+        <div class="estado-carga">
+          <span class="material-symbols-outlined">progress_activity</span>
+          Cargando valoraciones…
+        </div>
+      </div>
+
+      <div class="panel-detalle" id="panelDetalle">
+        <div class="detalle-cabecera">
+          <div>
+            <h2 id="detalleNombre"></h2>
+            <span class="detalle-telefono" id="detalleTelefono"></span>
+          </div>
+          <div class="detalle-selector-metrica">
+            <label for="selectorMetrica">Gráfica</label>
+            <select id="selectorMetrica">
+              <option value="funcionGlobal">Función Global</option>
+              <option value="pegDolor">PEG Dolor</option>
+              <option value="pegActividad">PEG Actividad</option>
+              <option value="pegVida">PEG Vida</option>
+            </select>
+          </div>
+          <span class="material-symbols-outlined btn-cerrar-detalle" id="btnCerrarDetalle" title="Cerrar detalle">close</span>
+        </div>
+
+        <div id="contenedorGrafica"></div>
+
+        <div class="tabla-historial-wrap">
+          <table class="tabla-historial">
+            <thead>
+              <tr>
+                <th>Fecha</th><th>Tipo</th><th>PEG Dolor</th><th>PEG Actividad</th><th>PEG Vida</th>
+                <th>Función Global</th><th>Analgésicos</th><th>Notas</th>
+              </tr>
+            </thead>
+            <tbody id="cuerpoHistorial"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal propio: sustituye a los alert()/confirm() nativos del navegador,
+         que en la Web App muestran el dominio interno de Google (feo y confuso). -->
+    <div class="modal-overlay" id="modalOverlay">
+      <div class="modal-box">
+        <p class="modal-mensaje" id="modalMensaje"></p>
+        <div class="modal-botones">
+          <button class="btn-toolbar" id="modalBtnCancelar">Cancelar</button>
+          <button class="btn-toolbar primario" id="modalBtnAceptar">Aceptar</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      var BASE_URL = '<?= baseUrl ?>';
+      var PACIENTES = [];
+      var pacienteSeleccionado = null; // nombre (string) o null
+      var metricaActual = 'funcionGlobal';
+
+      // ---------- Carga de datos ----------
+      function cargar() {
+        google.script.run
+          .withSuccessHandler(function(res) {
+            if (res.error) { mostrarError(res.error); return; }
+            PACIENTES = res.pacientes || [];
+            render();
+            // Si había un paciente con el detalle abierto, lo refrescamos con
+            // los datos nuevos (p.ej. tras guardar una valoración) en vez de
+            // cerrarlo, para no perder el sitio.
+            if (pacienteSeleccionado) mostrarDetalle(pacienteSeleccionado);
+          })
+          .withFailureHandler(mostrarError)
+          .obtenerValoracionesWeb();
+      }
+
+      function mostrarError(err) {
+        document.getElementById('tablaWrap').innerHTML =
+          '<div class="estado-vacio">⚠️ No se pudieron cargar las valoraciones.<br>' + (err && err.message ? err.message : err) + '</div>';
+      }
+
+      function normalizar(txt) {
+        return (txt || '').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+      }
+
+      function escapar(txt) { return (txt + '').replace(/</g, '&lt;'); }
+
+      // ---------- Píldoras de severidad (0-3 leve, 4-6 moderado, 7-10 alto) ----------
+      function claseSeveridad(valor) {
+        if (valor <= 3) return 'sev-ok';
+        if (valor <= 6) return 'sev-medio';
+        return 'sev-alto';
+      }
+      function renderPill(valor) {
+        if (valor === null || valor === undefined) return '<span class="badge sev-vacio">—</span>';
+        return '<span class="badge ' + claseSeveridad(valor) + '">' + valor + '</span>';
+      }
+
+      function formatearFechaCorta(fechaISO) {
+        if (!fechaISO) return '—';
+        var partes = fechaISO.split('-'); // yyyy-MM-dd
+        return partes[2] + '/' + partes[1] + '/' + partes[0].slice(2);
+      }
+
+      // ---------- Render tabla principal ----------
+      function render() {
+        var termino = normalizar(document.getElementById('inputBusqueda').value);
+        var filtrados = PACIENTES.filter(function(p) { return !termino || normalizar(p.nombre).indexOf(termino) !== -1; });
+
+        document.getElementById('contador').textContent = filtrados.length + ' de ' + PACIENTES.length;
+
+        var cont = document.getElementById('tablaWrap');
+        if (filtrados.length === 0) {
+          cont.innerHTML = '<div class="estado-vacio">No se encontró ningún paciente con ese criterio.</div>';
+          return;
+        }
+
+        var thead = '<thead><tr>' +
+          '<th>Paciente</th><th>Última valoración</th><th>Tipo</th><th>PEG Dolor</th>' +
+          '<th>PEG Actividad</th><th>PEG Vida</th><th>Función Global</th><th>Nº</th>' +
+          '</tr></thead>';
+
+        var tbody = '<tbody>' + filtrados.map(function(p) {
+          var u = p.ultima;
+          var sel = pacienteSeleccionado === p.nombre;
+          return '<tr data-nombre="' + escapar(p.nombre) + '" class="' + (sel ? 'seleccionada' : '') + '">' +
+            '<td class="nombre">' + escapar(p.nombre) + '</td>' +
+            '<td>' + formatearFechaCorta(u.fecha) + '</td>' +
+            '<td>' + (u.tipo ? escapar(u.tipo) : '<span class="vacio">—</span>') + '</td>' +
+            '<td>' + renderPill(u.pegDolor) + '</td>' +
+            '<td>' + renderPill(u.pegActividad) + '</td>' +
+            '<td>' + renderPill(u.pegVida) + '</td>' +
+            '<td>' + renderPill(u.funcionGlobal) + '</td>' +
+            '<td>' + p.numValoraciones + '</td>' +
+            '</tr>';
+        }).join('') + '</tbody>';
+
+        cont.innerHTML = '<table>' + thead + tbody + '</table>';
+
+        cont.querySelectorAll('tbody tr').forEach(function(tr) {
+          tr.addEventListener('click', function() {
+            var nombre = tr.getAttribute('data-nombre');
+            if (pacienteSeleccionado === nombre) {
+              cerrarDetalle();
+            } else {
+              mostrarDetalle(nombre);
+            }
+          });
+        });
+      }
+
+      // ---------- Panel de detalle (historial + gráfica) ----------
+      function mostrarDetalle(nombre) {
+        var p = PACIENTES.find(function(x) { return x.nombre === nombre; });
+        if (!p) { cerrarDetalle(); return; }
+
+        pacienteSeleccionado = nombre;
+        document.getElementById('panelDetalle').classList.add('visible');
+        document.getElementById('detalleNombre').textContent = p.nombre;
+        document.getElementById('detalleTelefono').textContent = p.telefono || 'Sin teléfono';
+
+        renderGrafica(p.historial);
+        renderTablaHistorial(p.historial);
+
+        // Refleja la selección en la tabla principal sin tener que re-renderizarla entera.
+        document.querySelectorAll('#tablaWrap tbody tr').forEach(function(tr) {
+          tr.classList.toggle('seleccionada', tr.getAttribute('data-nombre') === nombre);
+        });
+      }
+
+      function cerrarDetalle() {
+        pacienteSeleccionado = null;
+        document.getElementById('panelDetalle').classList.remove('visible');
+        document.querySelectorAll('#tablaWrap tbody tr').forEach(function(tr) { tr.classList.remove('seleccionada'); });
+      }
+
+      document.getElementById('btnCerrarDetalle').addEventListener('click', cerrarDetalle);
+
+      document.getElementById('selectorMetrica').addEventListener('change', function() {
+        metricaActual = this.value;
+        if (pacienteSeleccionado) {
+          var p = PACIENTES.find(function(x) { return x.nombre === pacienteSeleccionado; });
+          if (p) renderGrafica(p.historial);
+        }
+      });
+
+      // ---------- Gráfica de evolución (SVG, sin librerías externas) ----------
+      function renderGrafica(historial) {
+        var cont = document.getElementById('contenedorGrafica');
+        var W = 480, H = 130, padL = 22, padR = 12, padT = 10, padB = 18;
+
+        var puntos = [];
+        historial.forEach(function(h, i) {
+          var v = h[metricaActual];
+          if (v !== null && v !== undefined) puntos.push({ i: i, v: v, fecha: h.fecha, tipo: h.tipo });
+        });
+
+        if (puntos.length === 0) {
+          cont.innerHTML = '<p class="sin-datos-grafica">Sin datos suficientes para graficar esta métrica.</p>';
+          return;
+        }
+
+        var n = historial.length;
+        var escalaX = function(i) { return n <= 1 ? (padL + (W - padL - padR) / 2) : padL + (i / (n - 1)) * (W - padL - padR); };
+        var escalaY = function(v) { return padT + (1 - v / 10) * (H - padT - padB); };
+
+        var lineaPath = puntos.map(function(p, idx) {
+          return (idx === 0 ? 'M' : 'L') + escalaX(p.i).toFixed(1) + ',' + escalaY(p.v).toFixed(1);
+        }).join(' ');
+
+        var circulos = puntos.map(function(p) {
+          return '<circle cx="' + escalaX(p.i).toFixed(1) + '" cy="' + escalaY(p.v).toFixed(1) + '" r="3.5" class="punto-grafica ' + claseSeveridad(p.v) + '">' +
+            '<title>' + formatearFechaCorta(p.fecha) + ' (' + escapar(p.tipo) + '): ' + p.v + '</title></circle>';
+        }).join('');
+
+        var guias = [0, 5, 10].map(function(v) {
+          var y = escalaY(v).toFixed(1);
+          return '<line x1="' + padL + '" x2="' + (W - padR) + '" y1="' + y + '" y2="' + y + '" class="guia-grafica" />' +
+            '<text x="2" y="' + (parseFloat(y) + 3) + '" class="etiqueta-grafica">' + v + '</text>';
+        }).join('');
+
+        var etiquetaInicio = '<text x="' + padL + '" y="' + (H - 4) + '" class="etiqueta-grafica">' + formatearFechaCorta(historial[0].fecha) + '</text>';
+        var etiquetaFin = '<text x="' + (W - padR) + '" y="' + (H - 4) + '" class="etiqueta-grafica" text-anchor="end">' + formatearFechaCorta(historial[historial.length - 1].fecha) + '</text>';
+
+        cont.innerHTML = '<svg viewBox="0 0 ' + W + ' ' + H + '" class="grafica-evolucion" preserveAspectRatio="none">' +
+          guias + '<path d="' + lineaPath + '" class="linea-grafica" fill="none" />' + circulos + etiquetaInicio + etiquetaFin + '</svg>';
+      }
+
+      // ---------- Tabla de historial completo ----------
+      function renderTablaHistorial(historial) {
+        var filas = historial.slice().reverse(); // más reciente arriba
+        document.getElementById('cuerpoHistorial').innerHTML = filas.map(function(h) {
+          return '<tr>' +
+            '<td>' + formatearFechaCorta(h.fecha) + '</td>' +
+            '<td>' + (h.tipo ? escapar(h.tipo) : '—') + '</td>' +
+            '<td>' + renderPill(h.pegDolor) + '</td>' +
+            '<td>' + renderPill(h.pegActividad) + '</td>' +
+            '<td>' + renderPill(h.pegVida) + '</td>' +
+            '<td>' + renderPill(h.funcionGlobal) + '</td>' +
+            '<td>' + (h.analgesicos === null || h.analgesicos === undefined ? '—' : h.analgesicos) + '</td>' +
+            '<td class="notas">' + (h.notas ? escapar(h.notas) : '—') + '</td>' +
+            '</tr>';
+        }).join('');
+      }
+
+      // ---------- Modal propio (sustituye a alert()/confirm()) ----------
+      function mostrarDialogo(mensaje, conCancelar) {
+        return new Promise(function(resolve) {
+          var overlay = document.getElementById('modalOverlay');
+          var btnCancelar = document.getElementById('modalBtnCancelar');
+          var btnAceptar = document.getElementById('modalBtnAceptar');
+          document.getElementById('modalMensaje').textContent = mensaje;
+          btnCancelar.style.display = conCancelar ? 'inline-flex' : 'none';
+          overlay.classList.add('visible');
+
+          function limpiar() {
+            overlay.classList.remove('visible');
+            btnAceptar.removeEventListener('click', onAceptar);
+            btnCancelar.removeEventListener('click', onCancelar);
+          }
+          function onAceptar() { limpiar(); resolve(true); }
+          function onCancelar() { limpiar(); resolve(false); }
+
+          btnAceptar.addEventListener('click', onAceptar);
+          btnCancelar.addEventListener('click', onCancelar);
+        });
+      }
+      function mostrarAviso(mensaje) { return mostrarDialogo(mensaje, false); }
+
+      // ---------- Nueva Valoración (ventana emergente) ----------
+      // Las Web Apps de Apps Script no se pueden embeber en un <iframe>
+      // (Google lo bloquea), así que usamos una ventana real con window.open,
+      // igual que hace Base de Datos para Editar/Cita/Valoración.
+      var ventanaActiva = null;
+      var sondeoCierre = null;
+
+      document.getElementById('btnNuevaValoracion').addEventListener('click', function() {
+        var ruta = 'valoracion' + (pacienteSeleccionado ? '&paciente=' + encodeURIComponent(pacienteSeleccionado) : '');
+        var url = BASE_URL + '?page=' + ruta;
+
+        ventanaActiva = window.open(url, 'ventanaValoracion', 'width=650,height=800,resizable=yes,scrollbars=yes');
+
+        if (!ventanaActiva) {
+          mostrarAviso('El navegador ha bloqueado la ventana emergente. Permite las ventanas emergentes para esta página e inténtalo de nuevo.');
+          return;
+        }
+
+        // El formulario de Valoración no avisa al cerrarse (no hace postMessage
+        // ni usa localStorage), así que detectamos el cierre por sondeo y
+        // refrescamos la tabla — puede que se haya guardado una valoración nueva.
+        if (sondeoCierre) clearInterval(sondeoCierre);
+        sondeoCierre = setInterval(function() {
+          if (ventanaActiva && ventanaActiva.closed) {
+            clearInterval(sondeoCierre);
+            sondeoCierre = null;
+            cargar();
+          }
+        }, 500);
+      });
+
+      document.getElementById('inputBusqueda').addEventListener('input', render);
+
+      cargar();
+    </script>
+  </body>
+</html>
