@@ -1070,7 +1070,7 @@
     </div>
     <div class="header-text">
       <h1>Registro de Nuevo Usuario</h1>
-      <p>Completa el formulario para registrar un nuevo usuario en el sistema</p>
+      <p>Servicio de Fisioterapia</p>
     </div>
     <div class="badge-date">
       <span class="ms ms-sm">calendar_today</span>
@@ -1101,7 +1101,7 @@
               <label for="nombre">Nombre completo <span class="req">*</span></label>
               <div class="trailing-error" aria-hidden="true"><span class="ms">error</span></div>
             </div>
-            <span class="support-text" id="nombre-support">Se formatea automáticamente en mayúsculas sin acentos.</span>
+            <span class="support-text" id="nombre-support"></span>
           </div>
 
           <div class="md-field">
@@ -1111,7 +1111,7 @@
               <label for="dni">Identificación (DNI / SIP)</label>
               <div class="trailing-error" aria-hidden="true"><span class="ms">error</span></div>
             </div>
-            <span class="support-text">NIF, NIE o número de tarjeta SIP.</span>
+            <span class="support-text"></span>
           </div>
 
           <div class="md-field">
@@ -1121,7 +1121,7 @@
               <label for="fechaInscripcion" class="floated">Fecha de inscripción <span class="req">*</span></label>
               <div class="trailing-error" aria-hidden="true"><span class="ms">error</span></div>
             </div>
-            <span class="support-text">Fecha de entrada al sistema.</span>
+            <span class="support-text"></span>
           </div>
 
           <div class="md-field">
@@ -1131,7 +1131,7 @@
               <label for="fechaNacimiento" class="floated">Fecha de nacimiento</label>
               <div class="trailing-error" aria-hidden="true"><span class="ms">error</span></div>
             </div>
-            <span class="support-text">Opcional. Facilita cálculo de edad.</span>
+            <span class="support-text"></span>
           </div>
 
         </div>
@@ -1156,7 +1156,6 @@
               <label for="telefono1">Teléfono principal</label>
               <div class="trailing-error" aria-hidden="true"><span class="ms">error</span></div>
             </div>
-            <span class="support-text">Formato: 600 123 456.</span>
           </div>
 
           <div class="md-field">
@@ -1166,7 +1165,7 @@
               <label for="telefono2">Teléfono secundario</label>
               <div class="trailing-error" aria-hidden="true"><span class="ms">error</span></div>
             </div>
-            <span class="support-text">Opcional. Contacto alternativo.</span>
+            <span class="support-text"></span>
           </div>
 
           <!-- Estado convertido a dropdown MD3 custom de selección única -->
@@ -1355,9 +1354,9 @@
           <div class="md-field-inner" style="align-items:flex-start;">
             <div class="leading-icon" style="top:20px;transform:none;"><span class="ms">notes</span></div>
             <textarea id="observaciones" name="Observaciones" rows="4" placeholder=" "></textarea>
-            <label for="observaciones">Notas clínicas adicionales</label>
+            <label for="observaciones">Notas adicionales</label>
           </div>
-          <span class="support-text">Antecedentes relevantes, alergias, observaciones del fisioterapeuta…</span>
+          <span class="support-text"></span>
         </div>
 
         <!-- Toggles de opciones adicionales -->
@@ -1446,12 +1445,14 @@
       el.addEventListener('input',  () => syncDateLabel(el));
     });
 
-    // ── Phone formatter ──
+    // ── Phone formatter (formato unificado: 123 45 67 89) ──
     function formatPhone(input) {
-      let v = input.value.replace(/\D/g, '').slice(0,9);
-      if (v.length > 6) v = v.replace(/(\d{3})(\d{3})(\d{3})/, '$1 $2 $3');
-      else if (v.length > 3) v = v.replace(/(\d{3})(\d+)/, '$1 $2');
-      input.value = v;
+        let d = input.value.replace(/\D/g, '').slice(0, 9);
+        let f = d.slice(0, 3);
+        if (d.length > 3) f += ' ' + d.slice(3, 5);
+        if (d.length > 5) f += ' ' + d.slice(5, 7);
+        if (d.length > 7) f += ' ' + d.slice(7, 9);
+        input.value = f;
     }
 
     // ── Name sanitizer ──
