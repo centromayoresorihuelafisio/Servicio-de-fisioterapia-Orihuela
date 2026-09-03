@@ -57,7 +57,16 @@ function actualizarPaciente(updatedData, rowIdx) {
   const ss = getSS();
   const sheet = ss.getSheetByName(SHEETS.MAESTRA);
   const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-  
+
+  // Capturamos el Rich Text (hipervínculo) de "Historia clínica" ANTES de
+  // tocar la fila. setValues() más abajo aplana toda la fila a texto plano,
+  // así que si no lo guardamos aquí y lo restauramos después, el enlace
+  // "Ver Historia Clínica" se pierde aunque el texto se conserve.
+  const idxHistoria = headers.findIndex(h => h.toLowerCase().includes("historia"));
+  const richTextHistoria = idxHistoria !== -1
+    ? sheet.getRange(rowIdx, idxHistoria + 1).getRichTextValue()
+    : null;
+
   const newRowValues = headers.map((header, index) => {
     // Mantener valor original para ID e Historia Clínica (seguridad extra)
     if (index === 0 || header.toLowerCase().includes("historia")) {
@@ -77,6 +86,12 @@ function actualizarPaciente(updatedData, rowIdx) {
   });
 
   sheet.getRange(rowIdx, 1, 1, newRowValues.length).setValues([newRowValues]);
+
+  // Restauramos el hipervínculo que el setValues() de arriba acaba de aplanar.
+  if (richTextHistoria) {
+    sheet.getRange(rowIdx, idxHistoria + 1).setRichTextValue(richTextHistoria);
+  }
+
   ss.toast("Datos actualizados y guardados en la hoja.", "Éxito ✅", 4);
   return true;
 }
