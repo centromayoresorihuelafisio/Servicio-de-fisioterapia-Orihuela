@@ -101,6 +101,8 @@
       .btn-toolbar.primario:hover { background: #a8d9f9; border-color: #a8d9f9; }
       .btn-toolbar:disabled { opacity: .45; cursor: not-allowed; }
       .btn-toolbar .material-symbols-outlined { font-size: 17px; }
+      .btn-toolbar.icono-solo { padding: .35rem; }
+      .btn-toolbar.destructivo:hover:not(:disabled) { background: var(--md-error-bg); border-color: var(--md-error); color: var(--md-error); }
 
       .seleccion-info {
         font-size: .78rem;
@@ -235,8 +237,8 @@
   </head>
   <body>
     <nav class="tabs-cambio">
-      <a class="tab-cambio" href="<?= baseUrl ?>?page=agenda" target="_top">🗓️ Agenda</a>
       <a class="tab-cambio activo" href="<?= baseUrl ?>?page=baseDatos" target="_top">🗂️ Base de Datos</a>
+      <a class="tab-cambio" href="<?= baseUrl ?>?page=agenda" target="_top">🗓️ Agenda</a>
       <a class="tab-cambio" href="<?= baseUrl ?>?page=valoraciones" target="_top">📈 Valoraciones</a>
     </nav>
     <header class="top">
@@ -244,13 +246,16 @@
 
       <div class="barra-herramientas">
         <button class="btn-toolbar primario" id="btnNuevoPaciente">
-          <span class="material-symbols-outlined">person_add</span> Nuevo Paciente
+          <span class="material-symbols-outlined">person_add</span> Nuevo Usuario
         </button>
         <button class="btn-toolbar" id="btnOrdenar">
-          <span class="material-symbols-outlined">sort</span> Ordenar Pacientes
+          <span class="material-symbols-outlined">sort</span> Ordenar Usuarios
         </button>
         <button class="btn-toolbar" id="btnEditar" disabled>
           <span class="material-symbols-outlined">edit</span> Editar
+        </button>
+        <button class="btn-toolbar icono-solo destructivo" id="btnEliminarUsuario" disabled title="Eliminar usuario">
+          <span class="material-symbols-outlined">delete</span>
         </button>
         <button class="btn-toolbar" id="btnAlta" disabled>
           <span class="material-symbols-outlined">how_to_reg</span> Dar de Alta
@@ -286,7 +291,7 @@
     <div class="tabla-wrap" id="tablaWrap">
       <div class="estado-carga">
         <span class="material-symbols-outlined">progress_activity</span>
-        Cargando pacientes…
+        Cargando usuarios…
       </div>
     </div>
 
@@ -401,7 +406,7 @@
 
         var cont = document.getElementById('tablaWrap');
         if (filtrados.length === 0) {
-          cont.innerHTML = '<div class="estado-vacio">No se encontró ningún paciente con ese criterio.</div>';
+          cont.innerHTML = '<div class="estado-vacio">No se encontró ningún usuario con ese criterio.</div>';
           return;
         }
 
@@ -441,7 +446,7 @@
         actualizarUiSeleccion();
       }
 
-      var BOTONES_PACIENTE = ['btnEditar','btnAlta','btnHistoria','btnWhatsapp','btnCita','btnValoracion']
+      var BOTONES_PACIENTE = ['btnEditar','btnEliminarUsuario','btnAlta','btnHistoria','btnWhatsapp','btnCita','btnValoracion']
         .map(function(id) { return document.getElementById(id); });
 
       function actualizarUiSeleccion() {
@@ -563,6 +568,29 @@
             mostrarAviso('Error al ordenar: ' + err);
           })
           .ordenarPacientes();
+      });
+
+      // ---------- Eliminar usuario ----------
+      document.getElementById('btnEliminarUsuario').addEventListener('click', async function() {
+        if (!pacienteSeleccionado) return;
+        var confirmado = await mostrarConfirm('¿Eliminar a ' + pacienteSeleccionado['Nombre'] + '? Se borrará toda su ficha.');
+        if (!confirmado) return;
+
+        var btn = this;
+        btn.disabled = true;
+
+        google.script.run
+          .withSuccessHandler(function(res) {
+            btn.disabled = !pacienteSeleccionado;
+            if (!res.success) { mostrarAviso(res.message || 'No se pudo eliminar el usuario.'); return; }
+            quitarSeleccion();
+            cargar();
+          })
+          .withFailureHandler(function(err) {
+            btn.disabled = !pacienteSeleccionado;
+            mostrarAviso('Error al eliminar: ' + err);
+          })
+          .eliminarPacienteWeb(pacienteSeleccionado._fila);
       });
 
       // ---------- Dar de alta ----------

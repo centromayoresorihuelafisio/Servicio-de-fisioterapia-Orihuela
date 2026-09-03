@@ -282,8 +282,8 @@
   </head>
   <body>
     <nav class="tabs-cambio">
-      <a class="tab-cambio activo" href="<?= baseUrl ?>?page=agenda" target="_top">🗓️ Agenda</a>
       <a class="tab-cambio" href="<?= baseUrl ?>?page=baseDatos" target="_top">🗂️ Base de Datos</a>
+      <a class="tab-cambio activo" href="<?= baseUrl ?>?page=agenda" target="_top">🗓️ Agenda</a>
       <a class="tab-cambio" href="<?= baseUrl ?>?page=valoraciones" target="_top">📈 Valoraciones</a>
     </nav>
     <header class="top">
@@ -324,13 +324,13 @@
         <button class="btn-toolbar" id="btnCopiarCita" disabled title="Copia la(s) cita(s) seleccionada(s) al siguiente día alterno (L/M→+2, M/J→+5, V→+7)">
           <span class="material-symbols-outlined">content_copy</span> Siguiente cita
         </button>
-        <button class="btn-toolbar" id="btnCopiarCita2" disabled title="Copia la(s) cita(s) seleccionada(s) a las dos siguientes fechas alternas (pacientes de doble sesión semanal)">
+        <button class="btn-toolbar" id="btnCopiarCita2" disabled title="Copia la(s) cita(s) seleccionada(s) a las dos siguientes fechas alternas (usuarios de doble sesión semanal)">
           <span class="material-symbols-outlined">library_add</span> Siguientes 2 citas
         </button>
         <button class="btn-toolbar" id="btnCopiarSemana" title="Copia miércoles y jueves (doble sesión) y viernes (simple) a la semana siguiente, sin necesidad de seleccionar nada">
           <span class="material-symbols-outlined">event_repeat</span> Copiar Semana
         </button>
-        <button class="btn-toolbar" id="btnEliminarCitas" disabled title="Libera la(s) cita(s) seleccionada(s) (borra paciente, teléfono, sesión, asistencia, notas e historia clínica)">
+        <button class="btn-toolbar" id="btnEliminarCitas" disabled title="Libera la(s) cita(s) seleccionada(s) (borra usuario, teléfono, sesión, asistencia, notas e historia clínica)">
           <span class="material-symbols-outlined">delete</span> Eliminar
         </button>
       </div>
@@ -338,7 +338,7 @@
       <div class="controles">
         <div class="buscador">
           <span class="material-symbols-outlined">search</span>
-          <input type="text" id="inputBusqueda" placeholder="Buscar por paciente, sesión o notas…">
+          <input type="text" id="inputBusqueda" placeholder="Buscar por usuario, sesión o notas…">
         </div>
         <button class="btn-toolbar" id="btnHuecos">
           <span class="material-symbols-outlined">event_available</span> Mostrar citas disponibles
@@ -591,7 +591,7 @@
         }
 
         if (campo === 'Usuario') {
-          td.innerHTML = '<input class="input-celda" list="listaPacientes" type="text" placeholder="Nombre del paciente…">';
+          td.innerHTML = '<input class="input-celda" list="listaPacientes" type="text" placeholder="Nombre del usuario…">';
           var inputNombre = td.querySelector('input');
           inputNombre.focus();
           inputNombre.addEventListener('keydown', function(ev) {
@@ -705,7 +705,7 @@
       function asignarPaciente(fila, nombre) {
         google.script.run
           .withSuccessHandler(function(res) {
-            if (!res.success) { mostrarAviso(res.message || 'No se pudo asignar el paciente.'); render(); return; }
+            if (!res.success) { mostrarAviso(res.message || 'No se pudo asignar el usuario.'); render(); return; }
             var cita = CITAS.find(function(c) { return c._fila == fila; });
             if (cita) {
               cita['Usuario'] = res.usuario;
@@ -716,7 +716,7 @@
             render();
           })
           .withFailureHandler(function(err) {
-            mostrarAviso('Error al asignar el paciente: ' + err);
+            mostrarAviso('Error al asignar el usuario: ' + err);
             render();
           })
           .asignarPacienteHuecoWeb(fila, nombre);

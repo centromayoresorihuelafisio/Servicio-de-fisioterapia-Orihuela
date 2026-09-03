@@ -99,9 +99,17 @@ function guardarPaciente(datos) {
     // Extraemos el valor del toggle de añadir a contactos (enviado desde JS)
     const anadirContacto = datos.anadirContacto;
 
-    // Evaluamos si el usuario dejó marcado el toggle antes de ejecutar la acción
+    // Evaluamos si el usuario dejó marcado el toggle antes de ejecutar la acción.
+    // OJO: antes crearContactoGoogle() no devolvía nada, así que un fallo (de
+    // cuota, de permisos, de la API en sí) quedaba solo en el registro de
+    // ejecuciones de Apps Script — invisible desde este formulario. Ahora si
+    // falla, se añade un aviso al mensaje que sí ves en pantalla al guardar.
+    let avisoContacto = '';
     if (anadirContacto && nombreContacto) {
-      crearContactoGoogle(nombreContacto, telefonoContacto);
+      const resultadoContacto = crearContactoGoogle(nombreContacto, telefonoContacto);
+      if (!resultadoContacto.success) {
+        avisoContacto = ' Aviso: no se pudo crear el contacto en Google (' + resultadoContacto.message + ').';
+      }
     } else if (!anadirContacto) {
       Logger.log('Info: Creación de contacto omitida por elección del usuario en el formulario.');
     } else {
@@ -109,7 +117,7 @@ function guardarPaciente(datos) {
     }
 
     Logger.log('Fila añadida correctamente a la hoja en la fila ' + filaVacia);
-    return { success: true, message: "Paciente guardado correctamente." }; // Devuelve un objeto de éxito
+    return { success: true, message: "Paciente guardado correctamente." + avisoContacto }; // Devuelve un objeto de éxito
   } catch (e) {
     Logger.log('ERROR al añadir la fila: ' + e.message);
     return { success: false, message: 'Error al guardar el paciente: ' + e.message }; // Devuelve un objeto de error
@@ -120,6 +128,10 @@ function guardarPaciente(datos) {
  * Crea un contacto en Google Contacts utilizando el servicio avanzado People API v1.
  * * @param {string} nombre El nombre del paciente.
  * @param {string} telefono El teléfono del paciente.
+ * @return {{success: boolean, message: string}} Antes esta función no
+ *   devolvía nada (siempre undefined), así que sincronizarContactosGoogle()
+ *   nunca podía saber si había funcionado o no — ver Sincronizar contactos
+ *   google.gs. Ahora siempre informa de si funcionó y, si no, de por qué.
  */
 function crearContactoGoogle(nombre, telefono) {
   Logger.log('Iniciando proceso de creación de contacto en Google Contacts...');
@@ -144,133 +156,13 @@ function crearContactoGoogle(nombre, telefono) {
     // Llamada al endpoint nativo de People API v1 para la creación del contacto
     const contactoCreado = People.People.createContact(persona);
     Logger.log('Contacto creado con éxito en Google Contacts. ID de Recurso: ' + contactoCreado.resourceName);
+    return { success: true, message: contactoCreado.resourceName };
 
   } catch (e) {
-    // Captura cualquier excepción de cuotas, red o formato sin bloquear el flujo principal del Sheets
+    // Antes esta excepción se tragaba en silencio (solo Logger.log, invisible
+    // fuera del editor de Apps Script). Ahora se propaga hacia quien llame a
+    // esta función, para que el fallo se pueda mostrar de verdad.
     Logger.log('ERROR al crear el contacto en Google Contacts: ' + e.message);
-  }
-}
-
-/**
- * Genera una historia clínica en Google Docs basada en un formato de plantilla
- * para el paciente recién registrado a través del formulario HTML.
- * No depende de la selección manual de filas en la hoja de cálculo.
- * * @param {Object} patientData - Datos del formulario enviados desde el frontend.
- * @return {Object} Respuesta con el estado de la operación y la URL del documento.
- */
-function generarHistoriaClinicaRegistroUsuario(patientData) {
-  try {
-    const ss = getSS()
-    const sheet = ss.getSheetByName(SHEETS.MAESTRA);
-    if (!sheet) {
-      return { success: false, message: "Error: La hoja 'Base de Datos Maestra' no existe." };
-    }
-
-    // Identificadores de plantilla y carpeta de destino: misma configuración que
-    // usa el menú 🧍 → Añadir Historia Clínica (⚙️ Config), para que ambas vías
-    // de generación usen siempre la misma plantilla.
-    const scriptProperties = PropertiesService.getScriptProperties();
-    const templateId = scriptProperties.getProperty(PROP_KEYS.DOC_TEMPLATE_ID);
-    const folderId = scriptProperties.getProperty(PROP_KEYS.DRIVE_FOLDER_ID);
-
-    if (!templateId || !folderId) {
-      return { success: false, message: 'Falta configurar el ID de la Plantilla o de la Carpeta de Destino. Ve al menú ⚙️ Config y actualiza los valores.' };
-    }
-
-    // Extracción de variables desde el objeto recibido del formulario
-    const nombre = patientData['Nombre'] || '';
-    const dni = patientData['DNI'] || '';
-    const telefono1 = patientData['Teléfono 1'] || '';
-    const telefono2 = patientData['Teléfono 2'] || '';
-    
-    // Cálculo automático de la edad si se envió la fecha de nacimiento
-    let edad = '';
-    if (patientData['Fecha nacimiento']) {
-      const fechaNac = new Date(patientData['Fecha nacimiento']);
-      const hoy = new Date();
-      let calculoEdad = hoy.getFullYear() - fechaNac.getFullYear();
-      const mes = hoy.getMonth() - fechaNac.getMonth();
-      // Ajuste si aún no ha cumplido años en el año actual
-      if (mes < 0 || (mes === 0 && hoy.getDate() < fechaNac.getDate())) {
-        calculoEdad--;
-      }
-      edad = calculoEdad >= 0 ? calculoEdad.toString() : '';
-    }
-
-    // Formatear fechas de HTML (formatos YYYY-MM-DD) a formato común (DD/MM/YYYY) para el documento
-    const formatHtmlDate = (dateStr) => {
-      if (!dateStr) return '';
-      const parts = dateStr.split('-');
-      if (parts.length === 3) {
-        return `${parts[2]}/${parts[1]}/${parts[0]}`;
-      }
-      return dateStr;
-    };
-
-    const fechaInscripcion = formatHtmlDate(patientData['Fecha inscripción']);
-    const fechaNacimiento = formatHtmlDate(patientData['Fecha nacimiento']);
-
-    // 1. Duplicar la plantilla en la carpeta de destino de Google Drive
-    const targetFolder = DriveApp.getFolderById(folderId);
-    const newDocName = `HISTORIA CLINICA ${nombre}${dni ? ' ' + dni + '' : ''}`;
-    const newDocFile = DriveApp.getFileById(templateId).makeCopy(newDocName, targetFolder);
-    const newDoc = DocumentApp.openById(newDocFile.getId());
-    const body = newDoc.getBody();
-
-    // 2. Reemplazar los marcadores correspondientes en el cuerpo del documento duplicado
-    body.replaceText('{{nombre}}', nombre);
-    body.replaceText('{{dni}}', dni);
-    body.replaceText('{{edad}}', edad);
-    body.replaceText('{{telefono1}}', telefono1);
-    body.replaceText('{{telefono2}}', telefono2);
-    body.replaceText('{{fechaInscripcion}}', fechaInscripcion);
-    body.replaceText('{{fechaNacimiento}}', fechaNacimiento);
-
-    // Guardar cambios y cerrar edición del documento para confirmar su escritura en Drive
-    newDoc.saveAndClose();
-    const newDocUrl = newDoc.getUrl();
-
-    // 3. Buscar la fila que acabamos de guardar en la hoja "Base de Datos Maestra"
-    // Buscaremos de abajo hacia arriba (más rápido para registros recientes)
-    const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0].map(h => h.toString().trim().toLowerCase());
-    const dniColIndex = headers.indexOf(COLUMNAS.MAESTRA.DNI.toLowerCase());
-    const nombreColIndex = headers.indexOf(COLUMNAS.MAESTRA.NOMBRE.toLowerCase());
-    const histColIndex = headers.indexOf(COLUMNAS.MAESTRA.HISTORIA_CLINICA.toLowerCase());
-
-    if (histColIndex !== -1) {
-      const dataRange = sheet.getDataRange();
-      const dataValues = dataRange.getValues();
-      let targetRow = -1;
-
-      // Escaneo inverso para obtener el último registro de ese paciente
-      for (let i = dataValues.length - 1; i > 0; i--) {
-        const rowDni = dataValues[i][dniColIndex] ? dataValues[i][dniColIndex].toString().trim() : '';
-        const rowNombre = dataValues[i][nombreColIndex] ? dataValues[i][nombreColIndex].toString().trim().toUpperCase() : '';
-
-        // Criterio de búsqueda: Primero por DNI idéntico, y si no tiene DNI por Nombre coincidente
-        if (dni && rowDni === dni.trim()) {
-          targetRow = i + 1;
-          break;
-        } else if (!dni && rowNombre === nombre.trim().toUpperCase()) {
-          targetRow = i + 1;
-          break;
-        }
-      }
-
-      // Si localizamos la fila del registro del paciente, escribimos el enlace
-      if (targetRow !== -1) {
-        const richText = SpreadsheetApp.newRichTextValue()
-          .setText("Ver Historia Clínica")
-          .setLinkUrl(newDocUrl)
-          .build();
-        sheet.getRange(targetRow, histColIndex + 1).setRichTextValue(richText);
-      }
-    }
-
-    return { success: true, url: newDocUrl };
-
-  } catch (error) {
-    Logger.log("Error en generarHistoriaClinicaRegistroUsuario: " + error.message);
-    return { success: false, message: error.message };
+    return { success: false, message: e.message };
   }
 }

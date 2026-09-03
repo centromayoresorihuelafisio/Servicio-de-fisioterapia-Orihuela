@@ -1,3 +1,6 @@
+// ARCHIVO: Base de Datos Web.gs
+// ================================================================================
+
 // ================================================================================
 // ARCHIVO: Base de Datos Web.gs
 // Alimenta la tabla de pacientes de la Web App (?page=baseDatos): una vista de
@@ -38,8 +41,18 @@ function obtenerBaseDatosCompletaWeb() {
 
     const rango = sheet.getRange(2, 1, lastRow - 1, lastCol);
     const data = rango.getValues();
-    const richTextData = rango.getRichTextValues();
     const colHC = headers.indexOf(COLUMNAS.MAESTRA.HISTORIA_CLINICA);
+
+    // OPTIMIZACIÓN DE RENDIMIENTO: antes se pedía getRichTextValues() de TODO
+    // el rango (todas las columnas, todos los pacientes) solo para leer el
+    // enlace de UNA columna (Historia Clínica) — el mismo patrón que hacía
+    // lenta la Agenda al principio. Con muchas columnas de ficha por
+    // paciente, eso son muchas más celdas de las que realmente hacen falta.
+    // Ahora se pide solo la columna de Historia Clínica.
+    let richTextHC = null;
+    if (colHC !== -1) {
+      richTextHC = sheet.getRange(2, colHC + 1, lastRow - 1, 1).getRichTextValues();
+    }
 
     const pacientes = data
       .map((row, i) => {
@@ -50,7 +63,7 @@ function obtenerBaseDatosCompletaWeb() {
           if (colIdx === colHC) {
             // La celda de Historia Clínica es un enlace enriquecido: el texto
             // visible es "Ver Historia Clínica", la URL real va aparte.
-            const richTextCell = richTextData[i][colIdx];
+            const richTextCell = richTextHC ? richTextHC[i][0] : null;
             const url = richTextCell ? richTextCell.getLinkUrl() : null;
             value = url || (value ? value.toString().trim() : '');
           } else if (Object.prototype.toString.call(value) === '[object Date]') {
@@ -68,5 +81,30 @@ function obtenerBaseDatosCompletaWeb() {
   } catch (e) {
     Logger.log("Error en obtenerBaseDatosCompletaWeb: " + e.message);
     return { headers: [], pacientes: [], error: e.message };
+  }
+}
+
+/**
+ * Borra por completo la fila de un paciente en la Maestra (borrado real de
+ * la fila, no solo de su contenido). Es una acción irreversible: no toca las
+ * hojas de Agenda ni Valoraciones, así que si ese paciente tenía citas o
+ * valoraciones seguirán apareciendo ahí con su nombre.
+ */
+function eliminarPacienteWeb(fila) {
+  try {
+    const ss = getSS();
+    const sheet = ss.getSheetByName(SHEETS.MAESTRA);
+    if (!sheet) return { success: false, message: `No se encontró la hoja "${SHEETS.MAESTRA}".` };
+
+    const filaNum = parseInt(fila, 10);
+    if (!filaNum || filaNum < 2 || filaNum > sheet.getLastRow()) {
+      return { success: false, message: 'Fila no válida.' };
+    }
+
+    sheet.deleteRow(filaNum);
+    return { success: true, message: 'Usuario eliminado correctamente.' };
+  } catch (e) {
+    Logger.log('Error en eliminarPacienteWeb: ' + e.message);
+    return { success: false, message: e.message };
   }
 }

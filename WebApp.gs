@@ -31,7 +31,7 @@ function getSS() {
  */
 const PAGINAS_WEB = {
   citas:         { archivo: 'CitaFormulario',              titulo: 'Agenda de Citas',   icono: '📅' },
-  nuevoPaciente: { archivo: 'Formulario Añadir Usuario',    titulo: 'Nuevo Paciente',    icono: '🧍' },
+  nuevoPaciente: { archivo: 'Formulario Añadir Usuario',    titulo: 'Nuevo Usuario',     icono: '🧍' },
   valoracion:    { archivo: 'Valoracion',                   titulo: 'Valoración',        icono: '📋' },
   baseDatos:     { archivo: 'BaseDatosWeb',                 titulo: 'Base de Datos',     icono: '🗂️' },
   agenda:        { archivo: 'AgendaWeb',                    titulo: 'Agenda',            icono: '🗓️' },
@@ -39,12 +39,11 @@ const PAGINAS_WEB = {
 };
 
 function doGet(e) {
-  const page = e && e.parameter && e.parameter.page;
-
-  // Sin ?page= → índice de navegación
-  if (!page) {
-    return construirIndiceWeb();
-  }
+  // Sin ?page= → directamente Base de Datos (el índice de navegación ya no
+  // hace falta ahora que Agenda, Base de Datos y Valoraciones son pestañas
+  // entre las que se puede saltar, y el resto de formularios se abren desde
+  // botones dentro de ellas).
+  const page = (e && e.parameter && e.parameter.page) || 'baseDatos';
 
   // Caso especial: edición de un paciente concreto, identificado por su fila
   // real en la Maestra (?page=editarPaciente&fila=N). No es un archivo estático
@@ -121,7 +120,7 @@ function servirFormularioEdicionWeb(filaParam, enVentanaEmergente) {
   template.baseUrl = ScriptApp.getService().getUrl();
 
   return template.evaluate()
-    .setTitle('Editar Paciente')
+    .setTitle('Editar Usuario')
     .addMetaTag('viewport', 'width=device-width, initial-scale=1');
 }
 

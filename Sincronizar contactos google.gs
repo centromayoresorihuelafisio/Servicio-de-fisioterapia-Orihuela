@@ -6,8 +6,24 @@ function sincronizarContactosGoogle() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   ss.toast("Obteniendo contactos existentes de Google...", "Sincronización", 5);
 
-  const contactosExistentes = obtenerTodosLosContactosGoogle();
-  
+  // OJO: obtenerTodosLosContactosGoogle() se tragaba en silencio cualquier
+  // fallo al listar los contactos (devolvía un array vacío igual si iba bien
+  // que si la API fallaba). Si eso fallaba, aquí se creían "0 contactos
+  // existentes" y se intentaba recrear a TODO el mundo — y si el fallo era
+  // de permisos/API, esa recreación también fallaba, resultando en "0
+  // creados" sin ninguna pista de qué pasó. Ahora se distingue el caso.
+  const resultadoLista = obtenerTodosLosContactosGoogle();
+  if (!resultadoLista.success) {
+    SpreadsheetApp.getUi().alert(
+      'No se pudo conectar con Google Contacts:\n\n' + resultadoLista.message +
+      '\n\nRevisa en el editor de Apps Script que el servicio "People API" esté ' +
+      'habilitado (Servicios) y que la autorización del proyecto sea reciente ' +
+      '(a veces hace falta volver a autorizar tras añadir un servicio nuevo).'
+    );
+    return;
+  }
+  const contactosExistentes = resultadoLista.contactos;
+
   const hoja = ss.getSheetByName(SHEETS.MAESTRA);
   if (!hoja) {
     SpreadsheetApp.getUi().alert('Error: No se encontró la hoja "Base de Datos Maestra".');
@@ -41,6 +57,7 @@ function sincronizarContactosGoogle() {
   
   let creadosCount = 0;
   let omitidosCount = 0;
+  const errores = []; // { nombre, message } — para poder enseñar el motivo real si algo falla
 
   for (let i = 0; i < filas.length; i++) {
     const fila = filas[i];
@@ -54,14 +71,20 @@ function sincronizarContactosGoogle() {
     const existe = verificarExistenciaContacto(nombrePaciente, telefonoPaciente, contactosExistentes);
 
     if (!existe) {
-      const exito = crearContactoGoogle(nombrePaciente, telefonoPaciente);
-      if (exito) {
+      // Antes: 'exito' era siempre undefined porque crearContactoGoogle() no
+      // devolvía nada — este bloque nunca se ejecutaba y el contador de
+      // creados se quedaba siempre a 0, aunque el contacto sí se hubiera
+      // creado (o hubiera fallado, no había forma de saberlo desde aquí).
+      const resultado = crearContactoGoogle(nombrePaciente, telefonoPaciente);
+      if (resultado.success) {
         creadosCount++;
         // Añadimos el nuevo contacto a nuestra lista en memoria para evitar crear duplicados de nombres idénticos en la misma hoja
         contactosExistentes.push({
           nombreNormalizado: normalizarTexto(nombrePaciente),
           telefonos: telefonoPaciente ? [normalizarTelefono(telefonoPaciente)] : []
         });
+      } else {
+        errores.push({ nombre: nombrePaciente, message: resultado.message });
       }
     } else {
       omitidosCount++;
@@ -69,15 +92,26 @@ function sincronizarContactosGoogle() {
   }
 
   // Notificación del resultado final de la sincronización
-  const mensajeFinal = `Sincronización finalizada.\n• Nuevos contactos creados: ${creadosCount}\n• Pacientes ya existentes omitidos: ${omitidosCount}`;
-  ss.toast(mensajeFinal, "Sincronización de Contactos", 10);
+  let mensajeFinal = `Sincronización finalizada.\n• Nuevos contactos creados: ${creadosCount}\n• Pacientes ya existentes omitidos: ${omitidosCount}`;
+  if (errores.length > 0) {
+    mensajeFinal += `\n• Errores: ${errores.length}`;
+    Logger.log('Errores al sincronizar contactos:\n' + errores.map(e => e.nombre + ': ' + e.message).join('\n'));
+    // Con errores, usamos un alert (no un toast, que desaparece solo) para
+    // que el motivo real no pase desapercibido.
+    SpreadsheetApp.getUi().alert(mensajeFinal + '\n\nPrimer error (' + errores[0].nombre + '):\n' + errores[0].message);
+  } else {
+    ss.toast(mensajeFinal, "Sincronización de Contactos", 10);
+  }
   Logger.log(mensajeFinal);
 }
 
 /**
  * Obtiene la lista completa de contactos de Google y estructura sus datos esenciales.
  * Maneja la paginación de manera robusta.
- * * @return {Array<Object>} Lista de contactos mapeada con nombre normalizado y teléfonos.
+ * @return {{success: boolean, contactos: Array<Object>, message: string}}
+ *   Antes devolvía directamente el array y, si la llamada a la API fallaba,
+ *   devolvía un array vacío indistinguible de "no tienes contactos" — el
+ *   fallo quedaba solo en el registro de ejecuciones. Ahora se distingue.
  */
 function obtenerTodosLosContactosGoogle() {
   let contactos = [];
@@ -114,12 +148,13 @@ function obtenerTodosLosContactosGoogle() {
       
       tokenPagina = respuesta.nextPageToken;
     } while (tokenPagina);
-    
+
+    return { success: true, contactos: contactos, message: '' };
+
   } catch (e) {
     Logger.log('Error al obtener los contactos de Google: ' + e.message);
+    return { success: false, contactos: [], message: e.message };
   }
-  
-  return contactos;
 }
 
 /**

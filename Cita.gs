@@ -71,18 +71,28 @@ function obtenerNombreDeFilaActiva() {
 
 /**
  * Configuración de la Agenda
+ * NOTA: el nombre de la hoja de agenda del curso actual ya NO se guarda aquí
+ * como texto fijo (eso causaba que dejara de encontrarla en cuanto cambiaba
+ * el curso). Se calcula dinámicamente con obtenerHojaAgenda() (Utils.gs).
  */
-const NOMBRE_HOJA_AGENDA = "Agenda 2025-2026"; 
 const NUM_SEMANAS_A_CARGAR = 49; 
 
 /**
  * Muestra el diálogo modal con el formulario HTML.
+ * IMPORTANTE: usa createTemplateFromFile + evaluate() (no
+ * createHtmlOutputFromFile) porque CitaFormulario.html contiene una
+ * scriptlet (<?!= ... ?>) para precargar PACIENTE_PRESELECCIONADO. Con
+ * createHtmlOutputFromFile esa scriptlet no se evalúa, llega tal cual al
+ * navegador como JavaScript inválido, y rompe TODO el <script> del
+ * formulario antes de que llegue a pedir el paciente o la agenda.
  */
 function mostrarDialogoCita() {
   try {
-    const html = HtmlService.createHtmlOutputFromFile('CitaFormulario') 
-        .setWidth(800) 
-        .setHeight(650); 
+    const template = HtmlService.createTemplateFromFile('CitaFormulario');
+    template.pacientePreseleccionado = ''; // desde el menú de Sheets no aplica
+    const html = template.evaluate()
+        .setWidth(800)
+        .setHeight(650);
     SpreadsheetApp.getUi().showModalDialog(html, '\u200B');
   } catch (e) {
     SpreadsheetApp.getUi().alert('Error al mostrar el diálogo: ' + e.toString());
@@ -252,10 +262,11 @@ function guardarCitasMultiples(formData) {
   }
 
   const ss = getSS();
-  const sheet = ss.getSheetByName(NOMBRE_HOJA_AGENDA);
-  
-  if (!sheet) {
-    return { success: false, message: "No se encontró la hoja de Agenda." };
+  let sheet;
+  try {
+    sheet = obtenerHojaAgenda(); // hoja del curso actual, calculada dinámicamente
+  } catch (e) {
+    return { success: false, message: e.message };
   }
   
   // CARGA ÚNICA DE HISTORIAS CLÍNICAS EN MEMORIA
@@ -314,3 +325,7 @@ function guardarCitasMultiples(formData) {
     return { success: false, message: "No se pudo guardar ninguna cita: " + failureMessages.join('; ') };
   }
 }
+
+
+// ================================================================================
+// ARCHIVO: Utils.gs
