@@ -303,7 +303,7 @@
       <div class="controles">
         <div class="buscador">
           <span class="material-symbols-outlined">search</span>
-          <input type="text" id="inputBusqueda" placeholder="Buscar por nombre, DNI o teléfono…">
+          <input type="text" id="inputBusqueda" placeholder="Buscar por nombre, DNI, teléfono, patología, gravedad…">
         </div>
         <div class="filtros" id="filtrosEstado"></div>
       </div>
@@ -425,8 +425,11 @@
         var filtrados = TODOS.filter(function(p) {
           if (filtroEstado && (p['Estado'] || '').toString().trim() !== filtroEstado) return false;
           if (!termino) return true;
-          var campos = [p['Nombre'], p['DNI'], p['Teléfono 1'], p['Teléfono 2']];
-          return campos.some(function(c) { return normalizar(c).indexOf(termino) !== -1; });
+          // Busca en TODAS las columnas de la ficha (Nombre, DNI, Teléfonos,
+          // Fecha nacimiento, Edad, Gravedad, Patología 1/2, Tipo de Ingreso,
+          // etc.), no solo en una lista fija — así cubre cualquier columna
+          // que exista hoy o se añada más adelante, sin tocar este código.
+          return HEADERS.some(function(h) { return normalizar(p[h]).indexOf(termino) !== -1; });
         });
 
         document.getElementById('contador').textContent = filtrados.length + ' de ' + TODOS.length;
