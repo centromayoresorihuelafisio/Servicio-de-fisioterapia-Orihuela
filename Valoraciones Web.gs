@@ -1,6 +1,3 @@
-// ARCHIVO: Valoraciones Web.gs
-// Alimenta la pestaña "Valoraciones" de la Web App (?page=valoraciones): una
-// tabla con una fila por paciente (su valoración más reciente) y, al
 // seleccionar uno, su historial completo para ver la evolución.
 //
 // La hoja "Valoraciones" tiene una fila por valoración (un paciente puede
@@ -169,6 +166,58 @@ function eliminarValoracionWeb(fila) {
     return { success: true, message: 'Valoración eliminada correctamente.' };
   } catch (e) {
     Logger.log('Error en eliminarValoracionWeb: ' + e.message);
+    return { success: false, message: e.message };
+  }
+}
+
+/**
+ * Deshace un "Eliminar" reciente: vuelve a insertar la fila de una
+ * valoración borrada, con los mismos datos que tenía. El cliente ya guardaba
+ * el registro completo en memoria (el mismo que pinta en el historial), así
+ * que aquí no hace falta leer nada de la hoja primero — solo el nombre del
+ * paciente viaja aparte porque el registro, tal cual se guarda en memoria,
+ * no lo incluye.
+ * @param {object} datos El registro completo (fecha, tipo, pegDolor, ...,
+ *   _fila) más `nombre`, añadido por el cliente al capturar la foto.
+ */
+function restaurarValoracionWeb(datos) {
+  try {
+    const ss = getSS();
+    const sheet = ss.getSheetByName(SHEETS.VALORACIONES);
+    if (!sheet) return { success: false, message: `No se encontró la hoja "${SHEETS.VALORACIONES}".` };
+
+    if (!datos || !datos.nombre) {
+      return { success: false, message: 'No hay datos que restaurar.' };
+    }
+
+    const fechaObj = parsearFechaISO_(datos.fecha);
+    if (!fechaObj) return { success: false, message: 'La fecha guardada no es válida.' };
+
+    const C = COLUMNAS_NUM.VALORACIONES;
+    const filaOriginal = parseInt(datos._fila, 10);
+    const fila = (filaOriginal && filaOriginal <= sheet.getLastRow() + 1) ? filaOriginal : (sheet.getLastRow() + 1);
+
+    const filaDatos = [];
+    filaDatos[C.FECHA - 1] = fechaObj;
+    filaDatos[C.TIPO - 1] = datos.tipo || '';
+    filaDatos[C.NOMBRE - 1] = datos.nombre;
+    filaDatos[C.TELEFONO - 1] = datos.telefono || '';
+    filaDatos[C.PEG_DOLOR - 1] = numeroOVacio_(datos.pegDolor);
+    filaDatos[C.PEG_ACTIVIDAD - 1] = numeroOVacio_(datos.pegActividad);
+    filaDatos[C.PEG_VIDA - 1] = numeroOVacio_(datos.pegVida);
+    filaDatos[C.MEDIA_COLUMNA - 1] = numeroOVacio_(datos.mediaColumna);
+    filaDatos[C.MEDIA_MS - 1] = numeroOVacio_(datos.mediaMS);
+    filaDatos[C.MEDIA_MI - 1] = numeroOVacio_(datos.mediaMI);
+    filaDatos[C.FUNCION_GLOBAL - 1] = numeroOVacio_(datos.funcionGlobal);
+    filaDatos[C.ANALGESICOS - 1] = numeroOVacio_(datos.analgesicos);
+    filaDatos[C.NOTAS - 1] = datos.notas || '';
+
+    sheet.insertRowBefore(fila);
+    sheet.getRange(fila, 1, 1, filaDatos.length).setValues([filaDatos]);
+
+    return { success: true, message: 'Valoración restaurada correctamente.' };
+  } catch (e) {
+    Logger.log('Error en restaurarValoracionWeb: ' + e.message);
     return { success: false, message: e.message };
   }
 }

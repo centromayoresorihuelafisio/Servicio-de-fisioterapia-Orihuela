@@ -1,6 +1,3 @@
-// ARCHIVO: Agenda Web.gs
-// Alimenta la vista semanal de la Agenda en la Web App (?page=agenda): una
-// tabla de solo lectura de lunes a viernes, con las mismas columnas que la
 // hoja plana que genera "Extraer datos Agenda.gs". Reutiliza obtenerHojaAgenda()
 // (Utils.gs) para no duplicar la lógica de encontrar la hoja del curso activo,
 // y extraerUrlHistoriaClinica() para leer el enlace igual que en la Base de
@@ -399,6 +396,56 @@ function eliminarVariasCitasWeb(filas) {
     return { success: true, message: mensaje, eliminadas: borradas };
   } catch (e) {
     Logger.log('Error en eliminarVariasCitasWeb: ' + e.message);
+    return { success: false, message: e.message };
+  }
+}
+
+/**
+ * Deshace un "Eliminar"/"liberar hueco" reciente: repone los valores que
+ * tenían los campos (Usuario, Teléfono, Sesión, Asistencia, Notas, Historia
+ * Clínica, ID Evento Calendar) antes de vaciarse. A diferencia de Base de
+ * Datos o Valoraciones, en la Agenda nunca se borra una fila entera — son
+ * huecos horarios fijos — así que deshacer es solo volver a escribir esos
+ * campos, no insertar nada.
+ * @param {Array<{fila: number, valores: Object}>} snapshots Capturados en el
+ *   cliente ANTES de eliminar (ya los tenía en memoria).
+ */
+function restaurarCitasWeb(snapshots) {
+  try {
+    if (!snapshots || snapshots.length === 0) {
+      return { success: false, message: 'No hay nada que deshacer.' };
+    }
+
+    const sheet = obtenerHojaAgenda();
+    const lastRow = sheet.getLastRow();
+    const lastCol = sheet.getLastColumn();
+    const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(h => h.toString().trim());
+    const colHC = headers.indexOf(COLUMNAS.AGENDA.HISTORIA_CLINICA);
+
+    snapshots.forEach(snap => {
+      const fila = parseInt(snap.fila, 10);
+      if (!fila || fila < 2 || fila > lastRow) return;
+
+      CAMPOS_A_BORRAR_AGENDA.forEach(nombreCampo => {
+        const colIdx = headers.indexOf(nombreCampo);
+        if (colIdx === -1) return;
+        const valor = snap.valores ? snap.valores[nombreCampo] : undefined;
+
+        if (colIdx === colHC && valor) {
+          // Mismo formato de enlace que usa el resto de la app: Rich Text
+          // con el texto "Ver Historia Clínica", no la URL a pelo.
+          const richText = SpreadsheetApp.newRichTextValue().setText('Ver Historia Clínica').setLinkUrl(valor).build();
+          sheet.getRange(fila, colIdx + 1).setRichTextValue(richText);
+        } else {
+          sheet.getRange(fila, colIdx + 1).setValue(valor === undefined || valor === null ? '' : valor);
+        }
+      });
+    });
+
+    invalidarCacheAgenda_(sheet);
+    return { success: true, message: 'Cita(s) restaurada(s) correctamente.' };
+  } catch (e) {
+    Logger.log('Error en restaurarCitasWeb: ' + e.message);
     return { success: false, message: e.message };
   }
 }
@@ -804,3 +851,6 @@ function obtenerEnlacesJornadaWeb() {
     return { urls: [], turno: turno, error: e.message };
   }
 }
+
+
+// ================================================================================

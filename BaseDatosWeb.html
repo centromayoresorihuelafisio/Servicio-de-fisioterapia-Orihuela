@@ -103,6 +103,24 @@
       .btn-toolbar .material-symbols-outlined { font-size: 17px; }
       .btn-toolbar.icono-solo { padding: .35rem; }
       .btn-toolbar.destructivo:hover:not(:disabled) { background: var(--md-error-bg); border-color: var(--md-error); color: var(--md-error); }
+      /* Botón "Deshacer": solo se muestra tras eliminar un usuario, hasta que
+         se usa, se elimina otro encima, o se recarga/cambia de pestaña. */
+      .btn-toolbar.deshacer { display: none; background: var(--md-warning-bg); border-color: var(--md-warning); color: #7a4f00; }
+      .btn-toolbar.deshacer.visible { display: inline-flex; }
+      .btn-toolbar.deshacer:hover { background: #fdecc0; }
+      .toast-deshacer {
+        position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%);
+        background: #323232; color: #fff; padding: .65rem 1rem; border-radius: var(--radius-md);
+        display: flex; align-items: center; gap: 1rem; font-size: .82rem;
+        box-shadow: 0 4px 16px rgba(0,0,0,.25); z-index: 1200;
+        opacity: 0; pointer-events: none; transition: opacity 200ms ease;
+      }
+      .toast-deshacer.visible { opacity: 1; pointer-events: auto; }
+      .toast-deshacer button {
+        background: none; border: none; color: #8ab4f8; font-weight: 700; font-size: .82rem;
+        cursor: pointer; font-family: var(--font); padding: 0; letter-spacing: .02em;
+      }
+      .toast-deshacer button:hover { text-decoration: underline; }
 
       .seleccion-info {
         font-size: .78rem;
@@ -272,6 +290,9 @@
         <button class="btn-toolbar" id="btnValoracion" disabled>
           <span class="material-symbols-outlined">assignment</span> Valoración
         </button>
+        <button class="btn-toolbar deshacer" id="btnDeshacer" title="Deshacer la última eliminación">
+          <span class="material-symbols-outlined">undo</span> Deshacer
+        </button>
 
         <div class="seleccion-info" id="seleccionInfo" style="display:none;">
           Seleccionado: <strong id="nombreSeleccionado"></strong>
@@ -297,6 +318,12 @@
 
     <!-- Modal propio: sustituye a los alert()/confirm() nativos del navegador,
          que en la Web App muestran el dominio interno de Google (feo y confuso). -->
+    <!-- Aviso momentáneo tras eliminar, con enlace para deshacer al instante. -->
+    <div class="toast-deshacer" id="toastDeshacer">
+      <span id="toastDeshacerTexto"></span>
+      <button type="button" id="toastDeshacerBtn">DESHACER</button>
+    </div>
+
     <div class="modal-overlay" id="modalOverlay">
       <div class="modal-box">
         <p class="modal-mensaje" id="modalMensaje"></p>
@@ -576,6 +603,9 @@
         var confirmado = await mostrarConfirm('¿Eliminar a ' + pacienteSeleccionado['Nombre'] + '? Se borrará toda su ficha.');
         if (!confirmado) return;
 
+        // Foto completa de la ficha ANTES de borrarla, para poder deshacer.
+        var snapshot = Object.assign({}, pacienteSeleccionado);
+
         var btn = this;
         btn.disabled = true;
 
@@ -585,6 +615,7 @@
             if (!res.success) { mostrarAviso(res.message || 'No se pudo eliminar el usuario.'); return; }
             quitarSeleccion();
             cargar();
+            mostrarDeshacer(snapshot, 'Usuario eliminado.');
           })
           .withFailureHandler(function(err) {
             btn.disabled = !pacienteSeleccionado;
@@ -592,6 +623,56 @@
           })
           .eliminarPacienteWeb(pacienteSeleccionado._fila);
       });
+
+      // ---------- Deshacer la última eliminación ----------
+      // Guarda solo la ÚLTIMA foto (no un historial completo): se pierde al
+      // recargar o cambiar de pestaña, o al eliminar otro usuario encima —
+      // cubre el caso real ("me he equivocado") sin la complejidad de un
+      // historial de deshacer de verdad.
+      var ultimaEliminacion = null;
+      var timeoutToastDeshacer = null;
+      var procesandoDeshacer = false;
+
+      function mostrarDeshacer(snapshot, texto) {
+        ultimaEliminacion = snapshot;
+
+        document.getElementById('btnDeshacer').classList.add('visible');
+
+        var toast = document.getElementById('toastDeshacer');
+        document.getElementById('toastDeshacerTexto').textContent = texto;
+        toast.classList.add('visible');
+        if (timeoutToastDeshacer) clearTimeout(timeoutToastDeshacer);
+        timeoutToastDeshacer = setTimeout(function() { toast.classList.remove('visible'); }, 6000);
+      }
+
+      function ocultarDeshacer() {
+        ultimaEliminacion = null;
+        document.getElementById('btnDeshacer').classList.remove('visible');
+        document.getElementById('toastDeshacer').classList.remove('visible');
+        if (timeoutToastDeshacer) { clearTimeout(timeoutToastDeshacer); timeoutToastDeshacer = null; }
+      }
+
+      function ejecutarDeshacer() {
+        if (!ultimaEliminacion || procesandoDeshacer) return;
+        procesandoDeshacer = true;
+        var snapshot = ultimaEliminacion;
+
+        google.script.run
+          .withSuccessHandler(function(res) {
+            procesandoDeshacer = false;
+            if (!res.success) { mostrarAviso(res.message || 'No se pudo deshacer.'); return; } // el botón sigue disponible para reintentar
+            ocultarDeshacer();
+            cargar();
+          })
+          .withFailureHandler(function(err) {
+            procesandoDeshacer = false;
+            mostrarAviso('Error al deshacer: ' + err); // el botón sigue disponible para reintentar
+          })
+          .restaurarPacienteWeb(snapshot);
+      }
+
+      document.getElementById('toastDeshacerBtn').addEventListener('click', ejecutarDeshacer);
+      document.getElementById('btnDeshacer').addEventListener('click', ejecutarDeshacer);
 
       // ---------- Dar de alta ----------
       document.getElementById('btnAlta').addEventListener('click', async function() {
@@ -690,3 +771,6 @@
     </script>
   </body>
 </html>
+
+
+// ================================================================================

@@ -1,10 +1,3 @@
-// ARCHIVO: Base de Datos Web.gs
-// ================================================================================
-
-// ================================================================================
-// ARCHIVO: Base de Datos Web.gs
-// Alimenta la tabla de pacientes de la Web App (?page=baseDatos): una vista de
-// solo lectura de TODA la Maestra con todas sus columnas, para poder consultar
 // la base de datos sin abrir la hoja de cálculo. La edición de cada paciente
 // se hace desde ahí mismo, con un enlace a ?page=editarPaciente&fila=N que
 // reutiliza el mismo FormularioEdicion.html que ya usa el menú 🧍 → Editar.
@@ -108,3 +101,51 @@ function eliminarPacienteWeb(fila) {
     return { success: false, message: e.message };
   }
 }
+
+/**
+ * Deshace un "Eliminar" reciente: vuelve a insertar la fila de un usuario
+ * borrado, con los mismos datos que tenía. El cliente ya guardaba la ficha
+ * completa en memoria (la misma que pinta en la tabla), así que aquí no hace
+ * falta leer nada de la hoja primero — solo volver a escribirla.
+ *
+ * OJO: el enlace de Historia Clínica se restaura como texto plano (la URL),
+ * no como el enlace enriquecido "Ver Historia Clínica" que tiene normalmente
+ * — el dato no se pierde, pero para que vuelva a verse como un enlace bonito
+ * habría que regenerarlo o pegarlo de nuevo desde Historia Clínica → Enlace HC.
+ *
+ * @param {object} datosPaciente La ficha completa tal cual la tenía el
+ *   cliente (incluye _fila, la fila original que ocupaba).
+ */
+function restaurarPacienteWeb(datosPaciente) {
+  try {
+    const ss = getSS();
+    const sheet = ss.getSheetByName(SHEETS.MAESTRA);
+    if (!sheet) return { success: false, message: `No se encontró la hoja "${SHEETS.MAESTRA}".` };
+
+    if (!datosPaciente || !datosPaciente['Nombre']) {
+      return { success: false, message: 'No hay datos que restaurar.' };
+    }
+
+    const lastCol = sheet.getLastColumn();
+    const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(h => h.toString().trim());
+
+    const filaOriginal = parseInt(datosPaciente._fila, 10);
+    const fila = (filaOriginal && filaOriginal <= sheet.getLastRow() + 1) ? filaOriginal : (sheet.getLastRow() + 1);
+
+    const valores = headers.map(h => {
+      const v = datosPaciente[h];
+      return (v === undefined || v === null) ? '' : v;
+    });
+
+    sheet.insertRowBefore(fila);
+    sheet.getRange(fila, 1, 1, valores.length).setValues([valores]);
+
+    return { success: true, message: 'Usuario restaurado correctamente.' };
+  } catch (e) {
+    Logger.log('Error en restaurarPacienteWeb: ' + e.message);
+    return { success: false, message: e.message };
+  }
+}
+
+
+// ================================================================================
