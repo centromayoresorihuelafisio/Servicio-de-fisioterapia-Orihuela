@@ -59,6 +59,18 @@ function guardarPaciente(datos) {
     }
   }
 
+  // --- NUEVA LÓGICA: CÁLCULO AUTOMÁTICO DE LA EDAD ---
+  // "Edad" está en columnasNoFormulario (el formulario nunca la rellena), así
+  // que se calcula aquí a partir de "Fecha nacimiento" con la misma lógica
+  // que recalcularEdades() (Edad manual.gs) y el disparador onEdit — antes se
+  // quedaba en blanco hasta la próxima vez que alguien ejecutara esa función
+  // a mano, porque un guardado desde la Web App no dispara onEdit.
+  const colNacimientoIdx = encabezados.indexOf(COLUMNAS.MAESTRA.FECHA_NACIMIENTO);
+  const colEdadIdx = encabezados.indexOf(COLUMNAS.MAESTRA.EDAD);
+  if (colNacimientoIdx !== -1 && colEdadIdx !== -1) {
+    nuevaFila[colEdadIdx] = calcularEdadDesdeFecha_(nuevaFila[colNacimientoIdx]);
+  }
+
   Logger.log('Fila preparada para insertar (nuevaFila): ' + JSON.stringify(nuevaFila));
 
   try {
@@ -166,3 +178,6 @@ function crearContactoGoogle(nombre, telefono) {
     return { success: false, message: e.message };
   }
 }
+
+
+// ================================================================================

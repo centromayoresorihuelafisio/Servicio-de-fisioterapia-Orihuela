@@ -21,21 +21,13 @@ function onEdit(e) {
     var colEdad = encabezados.indexOf(COLUMNAS.MAESTRA.EDAD) + 1;
 
     if (colNacimiento !== 0 && colEdad !== 0 && col === colNacimiento) {
-      var fechaNacimiento = e.range.getValue(); 
       var celdaEdad = hoja.getRange(fila, colEdad);
+      var edadCalculada = calcularEdadDesdeFecha_(e.range.getValue());
 
-      if (Object.prototype.toString.call(fechaNacimiento) === "[object Date]" && !isNaN(fechaNacimiento)) {
-        var hoy = new Date();
-        var edad = hoy.getFullYear() - fechaNacimiento.getFullYear();
-        if (
-          hoy.getMonth() < fechaNacimiento.getMonth() ||
-          (hoy.getMonth() === fechaNacimiento.getMonth() && hoy.getDate() < fechaNacimiento.getDate())
-        ) {
-          edad--;
-        }
-        celdaEdad.setValue(edad);
-      } else {
+      if (edadCalculada === "") {
         celdaEdad.clearContent();
+      } else {
+        celdaEdad.setValue(edadCalculada);
       }
     }
   }
@@ -132,3 +124,6 @@ function onEdit(e) {
  * insertarEnlaceHistoriaClinica()... 
  * cargarMapaHistoriasClinicas()...
  */
+
+
+// ================================================================================

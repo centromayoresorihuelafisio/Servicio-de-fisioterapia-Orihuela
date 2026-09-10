@@ -319,3 +319,44 @@ function insertarEnlaceHistoriaClinica() {
     ui.alert("Error Crítico", e.message, ui.ButtonSet.OK);
   }
 }
+
+
+// ================================================================================
+
+/**
+ * Calcula la edad (años cumplidos) a partir de una fecha de nacimiento.
+ * Misma lógica que ya usa recalcularEdades() (Edad manual.gs) y el
+ * disparador onEdit (onEdit, edad, tlf.gs) — centralizada aquí para no
+ * tenerla triplicada en tres archivos.
+ *
+ * Acepta tanto un objeto Date (como el que devuelve una celda de Sheets) como
+ * un texto "aaaa-mm-dd" (como el que manda el <input type="date"> del
+ * formulario web: FormData siempre lo envía como texto, nunca como Date).
+ * Devuelve "" si no se puede interpretar como una fecha válida.
+ */
+function calcularEdadDesdeFecha_(fechaNacimiento) {
+  var fecha = fechaNacimiento;
+
+  if (Object.prototype.toString.call(fecha) !== "[object Date]") {
+    if (typeof fecha === 'string' && fecha.trim() !== '') {
+      var partes = fecha.split('-'); // "aaaa-mm-dd"
+      if (partes.length === 3) {
+        fecha = new Date(Number(partes[0]), Number(partes[1]) - 1, Number(partes[2]));
+      }
+    }
+  }
+
+  if (Object.prototype.toString.call(fecha) !== "[object Date]" || isNaN(fecha)) {
+    return "";
+  }
+
+  var hoy = new Date();
+  var edad = hoy.getFullYear() - fecha.getFullYear();
+  if (
+    hoy.getMonth() < fecha.getMonth() ||
+    (hoy.getMonth() === fecha.getMonth() && hoy.getDate() < fecha.getDate())
+  ) {
+    edad--;
+  }
+  return edad;
+}
