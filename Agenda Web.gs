@@ -851,6 +851,3 @@ function obtenerEnlacesJornadaWeb() {
     return { urls: [], turno: turno, error: e.message };
   }
 }
-
-
-// ================================================================================

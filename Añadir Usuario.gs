@@ -9,6 +9,49 @@ function abrirFormularioPaciente() {
 }
 
 /**
+ * Comprueba si ya existe un usuario con ese DNI en la Base de Datos Maestra.
+ * La usa el formulario de Nuevo Usuario para avisar de una posible alta
+ * duplicada ANTES de guardar — no bloquea nada por sí sola, solo informa;
+ * es el formulario quien decide qué hacer con la respuesta.
+ * @param {string} dni
+ * @return {{existe: boolean, nombre?: string}}
+ */
+function buscarUsuarioPorDniWeb(dni) {
+  try {
+    const dniNormalizado = (dni || '').toString().trim().toUpperCase();
+    if (!dniNormalizado) return { existe: false };
+
+    const ss = getSS();
+    const hoja = ss.getSheetByName(SHEETS.MAESTRA);
+    if (!hoja) return { existe: false };
+
+    const lastRow = hoja.getLastRow();
+    if (lastRow < 2) return { existe: false };
+
+    const encabezados = hoja.getRange(1, 1, 1, hoja.getLastColumn()).getValues()[0];
+    const colDni = encabezados.indexOf(COLUMNAS.MAESTRA.DNI);
+    const colNombre = encabezados.indexOf(COLUMNAS.MAESTRA.NOMBRE);
+    if (colDni === -1) return { existe: false }; // sin columna DNI, no hay nada que comprobar
+
+    // Solo leemos la columna DNI (no toda la hoja) para localizar la fila.
+    const columnaDni = hoja.getRange(2, colDni + 1, lastRow - 1, 1).getValues();
+
+    for (let i = 0; i < columnaDni.length; i++) {
+      const dniFila = (columnaDni[i][0] || '').toString().trim().toUpperCase();
+      if (dniFila && dniFila === dniNormalizado) {
+        const nombre = colNombre !== -1 ? hoja.getRange(i + 2, colNombre + 1).getValue() : '';
+        return { existe: true, nombre: (nombre || '').toString() };
+      }
+    }
+
+    return { existe: false };
+  } catch (e) {
+    Logger.log('Error en buscarUsuarioPorDniWeb: ' + e.message);
+    return { existe: false }; // ante un error en la comprobación, no bloqueamos el alta por esto
+  }
+}
+
+/**
  * Guarda los datos del paciente recibidos del formulario HTML en la hoja de cálculo.
  */
 function guardarPaciente(datos) {
@@ -240,6 +283,54 @@ function generarHistoriaClinicaRegistroUsuario(patientData) {
     const fechaInscripcion = formatHtmlDate(patientData['Fecha inscripción']);
     const fechaNacimiento = formatHtmlDate(patientData['Fecha nacimiento']);
 
+    // --- VALIDACIÓN ANTI-DUPLICADOS ---
+    // Localizamos la fila del paciente ANTES de crear nada en Drive: si ya
+    // tiene una Historia Clínica enlazada (p. ej. el formulario se reenvía por
+    // error, o se marca el toggle sobre un usuario que ya la tenía), salimos
+    // sin generar un documento nuevo. Antes esta función creaba siempre el
+    // documento primero y buscaba la fila después, así que un reenvío dejaba
+    // un duplicado huérfano en Drive y machacaba el enlace anterior.
+    const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0].map(h => h.toString().trim().toLowerCase());
+    const dniColIndex = headers.indexOf(COLUMNAS.MAESTRA.DNI.toLowerCase());
+    const nombreColIndex = headers.indexOf(COLUMNAS.MAESTRA.NOMBRE.toLowerCase());
+    const histColIndex = headers.indexOf(COLUMNAS.MAESTRA.HISTORIA_CLINICA.toLowerCase());
+
+    let targetRow = -1;
+    if (histColIndex !== -1) {
+      const dataValues = sheet.getDataRange().getValues();
+
+      // Escaneo inverso para obtener el último registro de ese paciente
+      for (let i = dataValues.length - 1; i > 0; i--) {
+        const rowDni = dataValues[i][dniColIndex] ? dataValues[i][dniColIndex].toString().trim() : '';
+        const rowNombre = dataValues[i][nombreColIndex] ? dataValues[i][nombreColIndex].toString().trim().toUpperCase() : '';
+
+        // Criterio de búsqueda: Primero por DNI idéntico, y si no tiene DNI por Nombre coincidente
+        if (dni && rowDni === dni.trim()) {
+          targetRow = i + 1;
+          break;
+        } else if (!dni && rowNombre === nombre.trim().toUpperCase()) {
+          targetRow = i + 1;
+          break;
+        }
+      }
+
+      if (targetRow !== -1) {
+        const celdaHC = sheet.getRange(targetRow, histColIndex + 1);
+        const urlExistente = extraerUrlHistoriaClinica(
+          celdaHC.getValue(),
+          celdaHC.getRichTextValue(),
+          celdaHC.getFormula()
+        );
+        if (urlExistente) {
+          return {
+            success: false,
+            message: `${nombre} ya tiene una Historia Clínica enlazada; no se ha creado otra.`,
+            url: urlExistente
+          };
+        }
+      }
+    }
+
     // 1. Duplicar la plantilla en la carpeta de destino de Google Drive
     const targetFolder = DriveApp.getFolderById(folderId);
     const newDocName = `HISTORIA CLINICA ${nombre}${dni ? ' ' + dni + '' : ''}`;
@@ -260,41 +351,13 @@ function generarHistoriaClinicaRegistroUsuario(patientData) {
     newDoc.saveAndClose();
     const newDocUrl = newDoc.getUrl();
 
-    // 3. Buscar la fila que acabamos de guardar en la hoja "Base de Datos Maestra"
-    // Buscaremos de abajo hacia arriba (más rápido para registros recientes)
-    const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0].map(h => h.toString().trim().toLowerCase());
-    const dniColIndex = headers.indexOf(COLUMNAS.MAESTRA.DNI.toLowerCase());
-    const nombreColIndex = headers.indexOf(COLUMNAS.MAESTRA.NOMBRE.toLowerCase());
-    const histColIndex = headers.indexOf(COLUMNAS.MAESTRA.HISTORIA_CLINICA.toLowerCase());
-
-    if (histColIndex !== -1) {
-      const dataRange = sheet.getDataRange();
-      const dataValues = dataRange.getValues();
-      let targetRow = -1;
-
-      // Escaneo inverso para obtener el último registro de ese paciente
-      for (let i = dataValues.length - 1; i > 0; i--) {
-        const rowDni = dataValues[i][dniColIndex] ? dataValues[i][dniColIndex].toString().trim() : '';
-        const rowNombre = dataValues[i][nombreColIndex] ? dataValues[i][nombreColIndex].toString().trim().toUpperCase() : '';
-
-        // Criterio de búsqueda: Primero por DNI idéntico, y si no tiene DNI por Nombre coincidente
-        if (dni && rowDni === dni.trim()) {
-          targetRow = i + 1;
-          break;
-        } else if (!dni && rowNombre === nombre.trim().toUpperCase()) {
-          targetRow = i + 1;
-          break;
-        }
-      }
-
-      // Si localizamos la fila del registro del paciente, escribimos el enlace
-      if (targetRow !== -1) {
-        const richText = SpreadsheetApp.newRichTextValue()
-          .setText("Ver Historia Clínica")
-          .setLinkUrl(newDocUrl)
-          .build();
-        sheet.getRange(targetRow, histColIndex + 1).setRichTextValue(richText);
-      }
+    // 3. Escribir el enlace en la fila que localizamos arriba
+    if (histColIndex !== -1 && targetRow !== -1) {
+      const richText = SpreadsheetApp.newRichTextValue()
+        .setText("Ver Historia Clínica")
+        .setLinkUrl(newDocUrl)
+        .build();
+      sheet.getRange(targetRow, histColIndex + 1).setRichTextValue(richText);
     }
 
     return { success: true, url: newDocUrl };
@@ -302,6 +365,5 @@ function generarHistoriaClinicaRegistroUsuario(patientData) {
   } catch (error) {
     Logger.log("Error en generarHistoriaClinicaRegistroUsuario: " + error.message);
     return { success: false, message: error.message };
-    return { success: false, message: e.message };
   }
 }

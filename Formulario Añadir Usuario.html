@@ -1059,6 +1059,42 @@
       outline-offset: 2px;
       border-radius: 2px;
     }
+
+    /* ---------- Aviso de posible alta duplicada (por DNI) ---------- */
+    .modal-overlay-dup {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.5);
+      align-items: center; justify-content: center;
+      z-index: 2000;
+      padding: 1rem;
+    }
+    .modal-overlay-dup.visible { display: flex; }
+    .modal-box-dup {
+      background: var(--md-surface);
+      border-radius: var(--md-shape-lg);
+      padding: 1.5rem;
+      max-width: 380px;
+      width: 100%;
+      box-shadow: var(--md-elev-3, 0 8px 24px rgba(0,0,0,.25));
+      font-family: var(--md-font);
+    }
+    .modal-box-dup p {
+      font-size: .9rem;
+      color: var(--md-on-surface);
+      line-height: 1.5;
+      margin-bottom: 1.25rem;
+      white-space: pre-line;
+    }
+    .modal-botones-dup { display: flex; justify-content: flex-end; gap: .6rem; }
+    .btn-secondary-dup {
+      display: inline-flex; align-items: center; justify-content: center;
+      height: 44px; padding: 0 1.5rem;
+      background: transparent; color: var(--md-on-surface-variant);
+      border: 1px solid var(--md-outline); border-radius: var(--md-shape-full);
+      font-family: var(--md-font); font-size: .9rem; font-weight: 500; cursor: pointer;
+    }
+    .btn-secondary-dup:hover { background: var(--md-surface-variant); }
   </style>
 </head>
 <body>
@@ -1405,6 +1441,17 @@
 
   <div id="messageBox"></div>
 
+  <!-- Aviso de posible alta duplicada: no bloquea, solo avisa y deja decidir. -->
+  <div class="modal-overlay-dup" id="modalDuplicadoOverlay">
+    <div class="modal-box-dup">
+      <p id="modalDuplicadoMensaje"></p>
+      <div class="modal-botones-dup">
+        <button type="button" class="btn-secondary-dup" id="modalDuplicadoCancelar">Cancelar</button>
+        <button type="button" class="btn-primary" id="modalDuplicadoAceptar">Guardar igualmente</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ══ Javascript Logics ══ -->
   <script>
     const PATOLOGIAS = ["MS","MI","Dolor Crónico","Cervicalgia","Dorsalgia","Lumbalgia","Omalgia","Coxalgia","Gonalgia","Tendinopatía","Fascitis Plantar","Traumatismo","Caída","Fractura","Luxación","Esguince","Prótesis Hombro","Prótesis Rodilla","Estabilidad","Debilidad Muscular","Limitación Funcional","Alteración Marcha","Hernia Discal","Radiculopatía MS","Radiculopatía MI","Estenosis Medular","Parkinson","Esclerosis","Ictus","Linfedema","Cardiopatía","Enfermedad Respiratoria","Cáncer","Otro"];
@@ -1694,6 +1741,28 @@
       }
     }
 
+    // ── Aviso de posible alta duplicada (Promise, mismo patrón que el resto del proyecto) ──
+    function mostrarConfirmDuplicado(mensaje) {
+      return new Promise(function(resolve) {
+        var overlay = document.getElementById('modalDuplicadoOverlay');
+        var btnCancelar = document.getElementById('modalDuplicadoCancelar');
+        var btnAceptar = document.getElementById('modalDuplicadoAceptar');
+        document.getElementById('modalDuplicadoMensaje').textContent = mensaje;
+        overlay.classList.add('visible');
+
+        function limpiar() {
+          overlay.classList.remove('visible');
+          btnAceptar.removeEventListener('click', onAceptar);
+          btnCancelar.removeEventListener('click', onCancelar);
+        }
+        function onAceptar() { limpiar(); resolve(true); }
+        function onCancelar() { limpiar(); resolve(false); }
+
+        btnAceptar.addEventListener('click', onAceptar);
+        btnCancelar.addEventListener('click', onCancelar);
+      });
+    }
+
     // ── Envío del formulario con validación M3 ──
     function enviarFormulario(e) {
       e.preventDefault();
@@ -1736,6 +1805,36 @@
       datos.Gravedad = grav;
       datos.anadirContacto = document.getElementById('anadirContacto').checked;
 
+      // --- Aviso de posible alta duplicada (comprobación por DNI) ---
+      // No bloquea el guardado: si ya existe alguien con ese DNI, avisa con
+      // el nombre y deja decidir si continuar (puede ser una coincidencia,
+      // o un alta repetida a propósito). Sin DNI no hay nada que comprobar.
+      const dniValor = document.getElementById('dni').value.trim();
+      if (dniValor && typeof google !== 'undefined' && typeof google.script.run !== 'undefined') {
+        google.script.run
+          .withSuccessHandler(async resDni => {
+            if (resDni && resDni.existe) {
+              const continuar = await mostrarConfirmDuplicado(
+                'Ya existe un usuario con este DNI: ' + (resDni.nombre || '(sin nombre)') + '.\n\n¿Guardar de todas formas?'
+              );
+              if (!continuar) return;
+            }
+            procederGuardado(datos, btn, msg, form, chip);
+          })
+          .withFailureHandler(() => {
+            // Si la comprobación en sí falla (p.ej. red), no bloqueamos el
+            // alta por eso — seguimos con el guardado normal.
+            procederGuardado(datos, btn, msg, form, chip);
+          })
+          .buscarUsuarioPorDniWeb(dniValor);
+      } else {
+        procederGuardado(datos, btn, msg, form, chip);
+      }
+    }
+
+    // ── Guardado real (extraído de enviarFormulario para poder llamarlo
+    // también después de confirmar un posible duplicado) ──
+    function procederGuardado(datos, btn, msg, form, chip) {
       btn.disabled = true;
       btn.innerHTML = `<span class="ms spinner" style="animation:spin .8s linear infinite">refresh</span> Guardando...`;
 

@@ -59,6 +59,30 @@ function _generarHistoriaClinicaEnFila(sheet, rowIndex) {
   const nombre = patientData[COLUMNAS.MAESTRA.NOMBRE.toLowerCase()] || '';
   if (!nombre) return { success: false, message: 'Esa fila no tiene un paciente válido.' };
 
+  // --- VALIDACIÓN ANTI-DUPLICADOS ---
+  // Si esta fila ya tiene una Historia Clínica enlazada, no generamos otra:
+  // antes, cada clic en "Historia Clínica" (o un reenvío del formulario de
+  // alta) creaba un documento nuevo en Drive y machacaba el enlace anterior,
+  // dejando el documento viejo huérfano y sin que nadie se enterase.
+  // Se comprueba con extraerUrlHistoriaClinica() para cubrir los tres
+  // formatos posibles de celda: Rich Text, fórmula =HIPERVINCULO() y texto plano.
+  const colIndex = headers.findIndex(h => h.toLowerCase() === COLUMNAS.MAESTRA.HISTORIA_CLINICA.toLowerCase());
+  if (colIndex !== -1) {
+    const celdaHC = sheet.getRange(rowIndex, colIndex + 1);
+    const urlExistente = extraerUrlHistoriaClinica(
+      data[colIndex],
+      celdaHC.getRichTextValue(),
+      celdaHC.getFormula()
+    );
+    if (urlExistente) {
+      return {
+        success: false,
+        message: `${nombre} ya tiene una Historia Clínica enlazada.\n\nSi necesitas crear una nueva, borra antes el enlace de la columna "${COLUMNAS.MAESTRA.HISTORIA_CLINICA}".`,
+        url: urlExistente
+      };
+    }
+  }
+
   const dni = patientData[COLUMNAS.MAESTRA.DNI.toLowerCase()] || '';
   const edad = patientData[COLUMNAS.MAESTRA.EDAD.toLowerCase()] || '';
   const telefono1 = patientData[COLUMNAS.MAESTRA.TELEFONO_1.toLowerCase()] || '';
@@ -96,7 +120,7 @@ function _generarHistoriaClinicaEnFila(sheet, rowIndex) {
   newDoc.saveAndClose();
 
   const newDocUrl = newDoc.getUrl();
-  const colIndex = headers.findIndex(h => h.toLowerCase() === COLUMNAS.MAESTRA.HISTORIA_CLINICA.toLowerCase());
+  // colIndex ya se calculó arriba, en la validación anti-duplicados.
   if (colIndex !== -1) {
     const richText = SpreadsheetApp.newRichTextValue().setText("Ver Historia Clínica").setLinkUrl(newDocUrl).build();
     sheet.getRange(rowIndex, colIndex + 1).setRichTextValue(richText);

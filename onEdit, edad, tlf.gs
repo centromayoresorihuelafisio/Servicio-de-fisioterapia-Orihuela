@@ -124,6 +124,3 @@ function onEdit(e) {
  * insertarEnlaceHistoriaClinica()... 
  * cargarMapaHistoriasClinicas()...
  */
-
-
-// ================================================================================

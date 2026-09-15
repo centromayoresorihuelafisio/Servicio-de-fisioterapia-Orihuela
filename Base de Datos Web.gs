@@ -146,6 +146,3 @@ function restaurarPacienteWeb(datosPaciente) {
     return { success: false, message: e.message };
   }
 }
-
-
-// ================================================================================
