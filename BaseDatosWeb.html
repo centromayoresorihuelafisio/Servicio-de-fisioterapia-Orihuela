@@ -276,10 +276,13 @@
           <span class="material-symbols-outlined">delete</span>
         </button>
         <button class="btn-toolbar" id="btnAlta" disabled>
-          <span class="material-symbols-outlined">how_to_reg</span> Dar de Alta
+          <span class="material-symbols-outlined">how_to_reg</span>Alta
         </button>
         <button class="btn-toolbar" id="btnHistoria" disabled>
-          <span class="material-symbols-outlined">description</span> Historia Clínica
+          <span class="material-symbols-outlined">description</span> Crear HC
+        </button>
+        <button class="btn-toolbar" id="btnBuscarHuerfana" disabled title="Buscar historia clínica huérfana por posible errata en el nombre">
+          <span class="material-symbols-outlined">manage_search</span> Buscar HC
         </button>
         <button class="btn-toolbar" id="btnWhatsapp" disabled>
           <span class="material-symbols-outlined">chat</span> WhatsApp
@@ -476,7 +479,7 @@
         actualizarUiSeleccion();
       }
 
-      var BOTONES_PACIENTE = ['btnEditar','btnEliminarUsuario','btnAlta','btnHistoria','btnWhatsapp','btnCita','btnValoracion']
+      var BOTONES_PACIENTE = ['btnEditar','btnEliminarUsuario','btnAlta','btnHistoria','btnBuscarHuerfana','btnWhatsapp','btnCita','btnValoracion']
         .map(function(id) { return document.getElementById(id); });
 
       function actualizarUiSeleccion() {
@@ -725,6 +728,12 @@
             mostrarAviso('Error al generar la historia clínica: ' + err);
           })
           .generarHistoriaClinicaWeb(pacienteSeleccionado._fila);
+      });
+
+      // ---------- Buscar Historia Clínica Huérfana ----------
+      document.getElementById('btnBuscarHuerfana').addEventListener('click', function() {
+        if (!pacienteSeleccionado) return;
+        abrirVentanaEmergente('huerfanaHC&fila=' + pacienteSeleccionado._fila);
       });
 
       // ---------- WhatsApp ----------

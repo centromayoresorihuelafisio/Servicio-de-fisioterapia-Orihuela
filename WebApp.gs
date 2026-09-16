@@ -54,6 +54,13 @@ function doGet(e) {
     return servirFormularioEdicionWeb(e.parameter.fila, e.parameter.embed === '1');
   }
 
+  // Caso especial: buscador de Historia Clínica huérfana para un paciente
+  // concreto (?page=huerfanaHC&fila=N), abierto como ventana emergente desde
+  // el botón "Buscar Huérfana" de la Base de Datos Web.
+  if (page === 'huerfanaHC') {
+    return servirBuscadorHuerfanaWeb(e.parameter.fila);
+  }
+
   const config = PAGINAS_WEB[page];
   if (!config) {
     return construirIndiceWeb(); // parámetro desconocido → volvemos al índice
@@ -122,6 +129,22 @@ function servirFormularioEdicionWeb(filaParam, enVentanaEmergente) {
   return template.evaluate()
     .setTitle('Editar Usuario')
     .addMetaTag('viewport', 'width=device-width, initial-scale=1');
+}
+
+/**
+ * Sirve BuscadorHuerfanaHCWeb.html para el paciente de `filaParam`, para
+ * abrir desde el botón "Buscar Huérfana" de la Base de Datos Web en una
+ * ventana emergente (igual que hace servirFormularioEdicionWeb con la
+ * edición de pacientes).
+ */
+function servirBuscadorHuerfanaWeb(filaParam) {
+  const rowIdx = parseInt(filaParam, 10);
+  if (!rowIdx || rowIdx < 2) {
+    return HtmlService.createHtmlOutput('Falta indicar un paciente válido (parámetro "fila").');
+  }
+  const template = HtmlService.createTemplateFromFile('BuscadorHuerfanaHCWeb');
+  template.fila = rowIdx;
+  return template.evaluate().addMetaTag('viewport', 'width=device-width, initial-scale=1');
 }
 
 /**
