@@ -68,7 +68,7 @@ function actualizarFechaAltaEnDoc(docUrl) {
     doc.saveAndClose();
 
     if (altaActualizada) {
-      return `✅ Fecha de alta (${newText}) actualizada en la Historia Clínica`;
+      return `✅ Fecha de alta (${newText}) actualizada en la H.C.`;
     } else {
       return "⚠️ No se encontró la tabla de ASISTENCIA/ALTA o no hay celdas de ALTA vacías disponibles en el documento.";
     }

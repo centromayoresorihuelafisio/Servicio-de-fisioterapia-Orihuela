@@ -5,6 +5,11 @@
  * usuario elija manualmente cuál vincular.
  */
 
+// Mismo prefijo literal que ya usa _generarHistoriaClinicaEnFila (Historia
+// Clínica.gs) al nombrar los documentos nuevos — con nombre aquí para no
+// repetir el texto suelto dos veces.
+const PREFIJO_HISTORIA_CLINICA_ = 'HISTORIA CLINICA ';
+
 /** Entrada desde el menú de Sheets: usa la fila activa. */
 function buscarHistoriaClinicaHuerfana() {
   const ui = SpreadsheetApp.getUi();
@@ -17,18 +22,19 @@ function buscarHistoriaClinicaHuerfana() {
   const template = HtmlService.createTemplateFromFile('CandidatosHistoriaClinica');
   template.fila = rowIndex;
   const output = template.evaluate().setWidth(520).setHeight(620);
-  ui.showModalDialog(output, 'Buscar Historia Clínica Huérfana');
+  ui.showModalDialog(output, 'Buscar Historia Clínica');
 }
 
 /**
  * Normaliza un texto para comparación: mayúsculas, sin tildes, espacios
- * colapsados. Mantiene la Ñ (no se toca, según el criterio de normalización
- * ya usado en el resto del sistema).
+ * colapsados. Mantiene la Ñ (no se toca).
  */
 function _normalizarTexto(texto) {
   return (texto || '').toString()
     .toUpperCase()
-    .normalize('NFD').replace(/[\u0300-\u0301\u0303\u0304\u0306-\u036f]/g, '') // quita tildes, respeta la Ñ (u0303 la generaría, por eso solo se excluye 0303 de vocales... ver nota abajo)
+    .replace(/Ñ/g, '\u0001') // aparta la Ñ antes de quitar tildes, para que NFD no la reduzca a N
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // quita tildes de vocales (á, é, í, ó, ú)
+    .replace(/\u0001/g, 'Ñ') // recupera la Ñ
     .replace(/\s+/g, ' ')
     .trim();
 }
@@ -95,7 +101,14 @@ function obtenerCandidatosHistoriaClinica(fila) {
     if (url) urlsUsadasPorOtros.add(url);
   }
 
-  const folder = DriveApp.getFolderById(HISTORIAS_CLINICAS_FOLDER_ID);
+  // La carpeta de Historias Clínicas es la misma que configuras en
+  // ⚙️ Cambiar Carpeta Destino Drive — no una carpeta aparte.
+  const folderId = PropertiesService.getScriptProperties().getProperty(PROP_KEYS.DRIVE_FOLDER_ID);
+  if (!folderId) {
+    return { success: false, message: '⚠️ Falta configurar la Carpeta de Destino.\nVe al menú ⚙️ Config y actualiza el valor.' };
+  }
+
+  const folder = DriveApp.getFolderById(folderId);
   const files = folder.getFiles();
   const candidatos = [];
   while (files.hasNext()) {
@@ -103,7 +116,7 @@ function obtenerCandidatosHistoriaClinica(fila) {
     const url = f.getUrl();
     if (urlsUsadasPorOtros.has(url)) continue; // ya pertenece a otro paciente
 
-    const nombreArchivo = f.getName().replace(PREFIJO_HC, '').trim();
+    const nombreArchivo = f.getName().replace(PREFIJO_HISTORIA_CLINICA_, '').trim();
     const score = _similitudNombres(nombre, nombreArchivo);
     if (score > 0) {
       candidatos.push({ fileId: f.getId(), fileName: f.getName(), url, score });
@@ -145,7 +158,7 @@ function vincularHistoriaClinicaHuerfana(fila, fileId) {
   const file = DriveApp.getFileById(fileId);
 
   // Renombrado automático con el nombre correcto de la hoja
-  const nuevoNombre = `${PREFIJO_HC}${nombre}${dni ? ' ' + dni : ''}`;
+  const nuevoNombre = `${PREFIJO_HISTORIA_CLINICA_}${nombre}${dni ? ' ' + dni : ''}`;
   if (file.getName() !== nuevoNombre) file.setName(nuevoNombre);
 
   const url = file.getUrl();
