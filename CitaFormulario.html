@@ -976,6 +976,31 @@
             setFieldValue(numSesionInput, ''); 
             setFieldValue(notasTextarea, ''); 
             selectedHuecos=[]; 
+            // Aviso a otras pestañas (Base de Datos, Agenda) para que se
+            // refresquen solas al instante, sin esperar a que esta ventana
+            // se cierre o a su propio sondeo periódico. No cerramos esta
+            // ventana, el formulario sigue abierto para registrar más citas.
+            //
+            // Vía 1: postMessage a la ventana que abrió esta (Base de Datos
+            // Web) — funciona si el navegador conserva window.opener. Es la
+            // señal FIABLE aquí (a diferencia de localStorage entre pestañas
+            // de Apps Script, cada una con su propio origen aleatorio de
+            // sandbox): antes esta ventana solo avisaba por localStorage, por
+            // eso el cambio de estado a "🟢 Activo" no siempre se veía en la
+            // Base de Datos Web hasta cerrar esta ventana.
+            if (window.opener) {
+              try {
+                window.opener.postMessage({ tipo: 'citaGuardada' }, '*');
+              } catch (e) { /* opener ya no accesible */ }
+            }
+
+            // Vía 2: localStorage, como red de seguridad adicional por si
+            // window.opener se ha perdido (algunos navegadores lo cortan por
+            // privacidad). La Agenda Web no depende de esto: se refresca sola
+            // con su propio sondeo de versión.
+            try {
+              localStorage.setItem('pacienteActualizado', JSON.stringify({ guardado: true, ts: Date.now() }));
+            } catch (e) { /* localStorage no disponible (modo incógnito estricto, etc.) */ }
           }
           loadInitialData();
         })

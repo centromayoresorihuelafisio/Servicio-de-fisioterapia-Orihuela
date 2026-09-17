@@ -246,6 +246,22 @@ function invalidarCacheAgenda_(sheet) {
 }
 
 /**
+ * Versión actual de la caché de la Agenda del curso activo. Llamada barata
+ * (obtenerHojaAgenda() busca la hoja por nombre exacto, sin leer filas, y
+ * obtenerVersionCacheAgenda_ solo consulta CacheService) pensada para sondeo
+ * frecuente desde AgendaWeb.html: si el número no cambió desde la última
+ * comprobación, el cliente no pide los datos completos de la semana.
+ */
+function obtenerVersionAgendaWeb() {
+  try {
+    const sheet = obtenerHojaAgenda();
+    return { sheetId: sheet.getSheetId(), version: obtenerVersionCacheAgenda_(sheet) };
+  } catch (e) {
+    return { error: e.message };
+  }
+}
+
+/**
  * Busca en las primeras filas de datos de `sheet` una celda con validación
  * de tipo lista en la columna `colIdx1based` y devuelve sus opciones. Así el
  * desplegable de Asistencia en la Web App siempre coincide con el que

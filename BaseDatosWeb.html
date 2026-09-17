@@ -1,3 +1,6 @@
+// ARCHIVO: BaseDatosWeb.html
+// ================================================================================
+
 <!DOCTYPE html>
 <html lang="es">
   <head>
@@ -565,6 +568,15 @@
           if (sondeoCierre) { clearInterval(sondeoCierre); sondeoCierre = null; }
           if (e.data.guardado) cargar();
         }
+        // El formulario de Citas avisa igual al guardar cada cita, pero sin
+        // cerrarse (se queda abierto para registrar más citas seguidas), así
+        // que aquí NO tocamos sondeoCierre: sigue vivo hasta que la ventana
+        // se cierre de verdad. Esto es lo que faltaba para que "dar una cita"
+        // actualice el Estado (p. ej. a "🟢 Activo") en la tabla sin tener
+        // que cerrar la ventana de Citas primero.
+        if (e.data && e.data.tipo === 'citaGuardada') {
+          cargar();
+        }
       });
 
       // Segunda vía de aviso (más fiable que postMessage): el formulario de
@@ -783,3 +795,6 @@
     </script>
   </body>
 </html>
+
+
+// ================================================================================

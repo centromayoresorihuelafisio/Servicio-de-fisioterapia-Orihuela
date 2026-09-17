@@ -430,9 +430,17 @@
       }
 
       // ---------- Carga de datos ----------
-      function cargar(fechaISO) {
-        document.getElementById('tablaWrap').innerHTML =
-          '<div class="estado-carga"><span class="material-symbols-outlined">progress_activity</span>Cargando agenda…</div>';
+      // `silencioso`: true para refrescos en segundo plano (sondeo periódico
+      // cada 30s) que no deben hacer parpadear toda la tabla — se piden los
+      // datos y la tabla se sustituye solo cuando llegan, igual que hace
+      // BaseDatosWeb. false/omitido: navegación explícita del usuario (Hoy,
+      // flechas, selector de fecha), donde sí tiene sentido el aviso de
+      // carga porque el contenido va a cambiar por completo.
+      function cargar(fechaISO, silencioso) {
+        if (!silencioso) {
+          document.getElementById('tablaWrap').innerHTML =
+            '<div class="estado-carga"><span class="material-symbols-outlined">progress_activity</span>Cargando agenda…</div>';
+        }
 
         google.script.run
           .withSuccessHandler(function(res) {
@@ -801,7 +809,7 @@
             if (!res.success) { mostrarAviso(res.message || 'No se pudieron eliminar las citas.'); return; }
             mostrarAviso(res.message);
             quitarSeleccion();
-            cargar(semanaActual);
+            cargar(semanaActual, true);
             mostrarDeshacer(snapshot, snapshot.length === 1 ? 'Cita eliminada.' : snapshot.length + ' citas eliminadas.');
           })
           .withFailureHandler(function(err) { mostrarAviso('Error: ' + err); })
@@ -848,7 +856,7 @@
             procesandoDeshacer = false;
             if (!res.success) { mostrarAviso(res.message || 'No se pudo deshacer.'); return; } // el botón sigue disponible para reintentar
             ocultarDeshacer();
-            cargar(semanaActual);
+            cargar(semanaActual, true);
           })
           .withFailureHandler(function(err) {
             procesandoDeshacer = false;
@@ -1008,7 +1016,7 @@
             if (!res.success) { mostrarAviso(res.message || 'No se pudo copiar.'); return; }
             mostrarAviso(res.message);
             quitarSeleccion();
-            cargar(semanaActual);
+            cargar(semanaActual, true);
           })
           .withFailureHandler(function(err) { mostrarAviso('Error: ' + err); })
           .copiarVariasCitasWeb(items, !!forzar);
@@ -1052,7 +1060,7 @@
             }
             if (!res.success) { mostrarAviso(res.message || 'No se pudo copiar la semana.'); return; }
             mostrarAviso(res.message);
-            cargar(semanaActual);
+            cargar(semanaActual, true);
           })
           .withFailureHandler(function(err) { mostrarAviso('Error: ' + err); })
           .copiarVariasCitasWeb(items, !!forzar);
@@ -1106,6 +1114,54 @@
           : '<span class="material-symbols-outlined">event_available</span> Mostrar citas disponibles';
         btn.classList.toggle('activo', mostrarHuecos);
       }
+
+      // Auto-refresh: en vez de repedir la semana completa cada X segundos,
+      // sondeamos un dato muy barato (obtenerVersionAgendaWeb, Agenda Web.gs:
+      // no lee la hoja de Agenda, solo consulta CacheService) y solo si ese
+      // número cambió pedimos los datos completos con cargar(semanaActual,
+      // true) — refresco silencioso, no repinta "Cargando agenda…", la tabla
+      // se sustituye sola al llegar el dato nuevo. invalidarCacheAgenda_ se
+      // llama tanto desde aquí (ediciones en la propia Agenda Web) como desde
+      // guardarCitasMultiples (Cita.gs, formulario de Citas), así que este
+      // sondeo detecta cambios hechos desde cualquiera de los dos sitios.
+      // Se salta el ciclo si hay una celda en edición en ese momento, para no
+      // perder lo que se está escribiendo.
+      var ultimaVersionAgenda = null; // null = aún no se ha establecido la base de comparación
+
+      function comprobarVersionAgenda() {
+        if (!semanaActual) return;
+        if (document.querySelector('td.editando')) return;
+
+        google.script.run
+          .withSuccessHandler(function(res) {
+            if (!res || res.error) return; // fallo puntual: no rompe nada, se reintenta en el próximo ciclo
+            if (ultimaVersionAgenda === null) { ultimaVersionAgenda = res.version; return; } // primera lectura: solo fija la base, no fuerza recarga
+            if (res.version !== ultimaVersionAgenda) {
+              ultimaVersionAgenda = res.version;
+              cargar(semanaActual, true);
+            }
+          })
+          .withFailureHandler(function() { /* no crítico: se reintenta en el próximo ciclo */ })
+          .obtenerVersionAgendaWeb();
+      }
+
+      var AUTO_REFRESH_MS = 4000; // consulta barata, puede ir más rápido que los 30s de antes sin sobrecargar
+      setInterval(comprobarVersionAgenda, AUTO_REFRESH_MS);
+
+      // Aviso opcional desde otra pestaña: el formulario de Citas (y el de
+      // edición de paciente) escriben en localStorage al guardar. En teoría
+      // el evento 'storage' llegaría aquí al instante sin esperar al sondeo
+      // de arriba, pero cada pestaña de una Web App de Apps Script carga en
+      // un sandbox con origen distinto y aleatorio, así que este canal no es
+      // fiable entre pestañas — cuando sí llega, adelanta el refresco;
+      // cuando no, el sondeo de comprobarVersionAgenda() (cada 4s) lo cubre
+      // igualmente. También es un refresco silencioso.
+      window.addEventListener('storage', function(e) {
+        if (e.key === 'pacienteActualizado' && semanaActual) {
+          if (document.querySelector('td.editando')) return;
+          cargar(semanaActual, true);
+        }
+      });
 
       cargar();
       cargarListaPacientes();
