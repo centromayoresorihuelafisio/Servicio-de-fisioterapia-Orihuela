@@ -35,11 +35,11 @@ function onEdit(e) {
   // ============================================================
   // 2️⃣ Buscar Teléfono e Historia Clínica para la hoja de Agenda
   // ============================================================
-  if (sheetName.startsWith('Agenda') && col === 4 && fila > 1) {
+  if (sheetName.startsWith('Agenda') && col === COLUMNAS_NUM.AGENDA.USUARIO && fila > 1) {
     // Identificamos las columnas de destino en Agenda
     const encabezadosAgenda = hoja.getRange(1, 1, 1, hoja.getLastColumn()).getValues()[0];
     const colHCAgenda = encabezadosAgenda.indexOf(COLUMNAS.AGENDA.HISTORIA_CLINICA) + 1;
-    const colTelfAgenda = 5; // Columna E según tu código original
+    const colTelfAgenda = COLUMNAS_NUM.AGENDA.TELEFONO;
 
     const celdaTelefono = hoja.getRange(fila, colTelfAgenda);
     const celdaHC = colHCAgenda > 0 ? hoja.getRange(fila, colHCAgenda) : null;
@@ -60,9 +60,11 @@ function onEdit(e) {
 
     // --- BÚSQUEDA DINÁMICA EN MAESTRA ---
     // Obtenemos encabezados de Maestra para saber dónde está cada cosa
+    // La columna de teléfono se resuelve con resolverColumnaTelefono_ (Utils.gs),
+    // que cubre las cabeceras conocidas y cae al criterio difuso "tel"/"mov".
     const headersBD = sheetBD.getRange(1, 1, 1, sheetBD.getLastColumn()).getValues()[0];
     const idxNombreBD = headersBD.indexOf(COLUMNAS.MAESTRA.NOMBRE);
-    const idxTelfBD = headersBD.indexOf(COLUMNAS.MAESTRA.TELEFONO); // Ajustar si el nombre es distinto
+    const idxTelfBD = resolverColumnaTelefono_(sheetBD, headersBD);
     const idxHCBD = headersBD.indexOf(COLUMNAS.MAESTRA.HISTORIA_CLINICA);
 
     // Leemos los valores y los RichText (para los enlaces)
@@ -76,9 +78,8 @@ function onEdit(e) {
       const nombreBD = dataBD[i][idxNombreBD] ? dataBD[i][idxNombreBD].toString().trim() : "";
       
       if (nombreBD.toLowerCase() === usuarioBuscado.toLowerCase()) {
-        // 1. Obtener Teléfono (asumiendo que está en la columna que calculamos o la D original)
-        // Si no encuentras 'Teléfono' por nombre, usamos el índice 3 (Columna D) por defecto
-        const colTelfFinal = idxTelfBD !== -1 ? idxTelfBD : 3; 
+        // 1. Obtener Teléfono desde la columna resuelta dinámicamente
+        const colTelfFinal = idxTelfBD !== -1 ? idxTelfBD : COLUMNAS_NUM.MAESTRA.TELEFONO - 1;
         telefonoEncontrado = dataBD[i][colTelfFinal];
 
         // 2. Obtener URL de Historia Clínica

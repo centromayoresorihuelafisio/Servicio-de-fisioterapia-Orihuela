@@ -40,10 +40,29 @@ function generarUrlWhatsappWeb(fila) {
  * WhatsApp Web con la plantilla de mensaje configurada.
  */
 function _generarUrlWhatsappParaNombre(hoja, nombreCompleto) {
-  const datos = hoja.getRange("B:D").getValues();
+  const idxNombre = obtenerIndiceColumnaPorNombre_(hoja, COLUMNAS.MAESTRA.NOMBRE);
+  const idxTelefono = resolverColumnaTelefono_(hoja);
+  if (idxNombre === -1 || idxTelefono === -1) {
+    return { success: false, message: "No se encontraron las columnas de Nombre o Teléfono en la Maestra." };
+  }
+
+  const lastRow = hoja.getLastRow();
+  if (lastRow < 2) {
+    return { success: false, message: "No hay pacientes registrados en la Maestra." };
+  }
+
+  const numColumnas = Math.abs(idxTelefono - idxNombre) + 1;
+  const primerCol = Math.min(idxNombre, idxTelefono) + 1;
+  const offsetTelefono = idxTelefono - Math.min(idxNombre, idxTelefono);
+  const offsetNombre = idxNombre - Math.min(idxNombre, idxTelefono);
+
+  const datos = hoja.getRange(2, primerCol, lastRow - 1, numColumnas).getValues();
   let telefono = "";
   for (let i = 0; i < datos.length; i++) {
-    if (datos[i][0] === nombreCompleto) { telefono = datos[i][2]; break; }
+    if (String(datos[i][offsetNombre]).trim() === String(nombreCompleto).trim()) {
+      telefono = datos[i][offsetTelefono];
+      break;
+    }
   }
   if (!telefono) return { success: false, message: "No hay teléfono para " + nombreCompleto };
 

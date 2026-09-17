@@ -38,7 +38,7 @@ const COLUMNAS = {
     ESTADO: "Estado",
     HISTORIA_CLINICA: "Historia clínica",
     FECHA_INSCRIPCION: "Fecha inscripción",
-    TELEFONO: "Teléfono",       // OJO: no confirmado — ver nota en onEdit edad tlf.gs
+    TELEFONO: "Teléfono 1",     // Confirmado (17/09/2026): la columna real se llama "Teléfono 1"
     TELEFONO_1: "Teléfono 1",
     TELEFONO_2: "Teléfono 2",
     // Cabecera "sin espacio/sin acento" que usa Sincronizar contactos google.gs

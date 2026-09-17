@@ -97,6 +97,15 @@ function guardarPaciente(datos) {
       if (Array.isArray(valor)) {
         valor = valor.join(', ');
       }
+
+      // Si es una fecha (YYYY-MM-DD), convertir a objeto fecha para Sheets — mismo
+      // patrón que actualizarPaciente (Editar datos usuario.gs). El <input type="date">
+      // del formulario manda el valor como texto, y sin esto se guardaría como texto
+      // en la hoja (parseFecha y el onEdit no lo reconocen como fecha real).
+      if (typeof valor === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(valor)) {
+        const partes = valor.split('-');
+        valor = new Date(Number(partes[0]), Number(partes[1]) - 1, Number(partes[2]));
+      }
       
       nuevaFila[i] = valor;
     }

@@ -317,6 +317,11 @@ function guardarCitasMultiples(formData) {
     actualizarEstadoPaciente(nombreUsuario, "🟢 Activo");
 
     ordenarPacientes();
+
+    // Las citas recién guardadas modifican la Agenda: invalidamos la caché de
+    // la Agenda Web (misma hoja) para que la próxima carga no sirva datos de
+    // hasta 90s atrás. Ver invalidarCacheAgenda_ en Agenda Web.gs.
+    invalidarCacheAgenda_(sheet);
     
     let message = `Registro exitoso de **${successCount}** cita(s).`;
     message += `<br>Estado de **${nombreUsuario}** actualizado a **🟢 Activo** e Historia Clínica vinculada.`;

@@ -177,6 +177,45 @@ function extraerUrlHistoriaClinica(valorCelda, richTextCell, formula) {
 }
 
 /**
+ * Devuelve el índice 0-based de una columna por su cabecera EXACTA (ignorando
+ * mayúsculas y espacios), o -1 si no la encuentra. Centraliza la búsqueda por
+ * nombre de cabecera que antes se repetía con findIndex/indexOf en cada archivo.
+ */
+function obtenerIndiceColumnaPorNombre_(hoja, nombreColumna) {
+  const headers = hoja.getRange(1, 1, 1, hoja.getLastColumn()).getValues()[0];
+  const objetivo = String(nombreColumna).trim().toLowerCase();
+  return headers.findIndex(h => h && String(h).trim().toLowerCase() === objetivo);
+}
+
+/**
+ * Localiza la columna de teléfono principal de la Maestra, intentando las
+ * cabeceras conocidas en orden y cayendo a una búsqueda difusa ("tel"/"mov")
+ * como último recurso. Devuelve el índice 0-based o -1.
+ *
+ * Unifica el acceso al teléfono en un solo sitio: antes cada consumidor lo
+ * buscaba a su manera (getRange("B:D") fijo en Whatsapp.gs, fallback a la
+ * columna D en onEdit...), y cualquier cambio de cabecera rompía solo una
+ * parte de la app. Aquí se resuelve una vez.
+ */
+function resolverColumnaTelefono_(hoja, encabezados) {
+  const encab = encabezados || hoja.getRange(1, 1, 1, hoja.getLastColumn()).getValues()[0];
+
+  const candidatos = [COLUMNAS.MAESTRA.TELEFONO, COLUMNAS.MAESTRA.TELEFONO_1, COLUMNAS.MAESTRA.TELEFONO_FORM];
+  for (let i = 0; i < candidatos.length; i++) {
+    const objetivo = String(candidatos[i]).trim().toLowerCase();
+    const idx = encab.findIndex(h => h && String(h).trim().toLowerCase() === objetivo);
+    if (idx !== -1) return idx;
+  }
+
+  // Fallback difuso: mismo criterio que usaba Sincronizar contactos google.gs.
+  return encab.findIndex(h => {
+    if (!h) return false;
+    const t = String(h).toLowerCase();
+    return t.includes('tel') || t.includes('mov');
+  });
+}
+
+/**
  * Construye un mapa { nombrePacienteEnMinuscula: { url: enlaceHistoriaClinica } }
  * leyendo la hoja "Base de Datos Maestra". Comprueba null de forma defensiva
  * antes de leer getLinkUrl() para no lanzar excepción con celdas vacías.
