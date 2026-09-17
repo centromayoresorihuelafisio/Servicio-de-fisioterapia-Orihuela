@@ -1,4 +1,3 @@
-// ARCHIVO: WebApp.gs
 // Punto de entrada para acceder a formularios desde fuera de la hoja de cálculo.
 // Despliegue: Implementar > Nueva implementación > Aplicación web
 //   Ejecutar como: Yo
@@ -16,6 +15,20 @@ const SPREADSHEET_ID = "1D99N_jIQkZwZJ7IM2elk1nLxrIaUJIaSvldUX9yzQ2A";
  */
 function getSS() {
   return SpreadsheetApp.openById(SPREADSHEET_ID);
+}
+
+/**
+ * Inyecta el contenido de otro archivo .html dentro de una plantilla, para
+ * compartir fragmentos (CSS_Global, Modal_Deshacer, JS_Modal_Deshacer...)
+ * entre BaseDatosWeb, AgendaWeb y ValoracionesWeb sin tenerlos copiados y
+ * pegados en cada archivo. Se usa desde dentro de una plantilla con
+ * <?!= include('NombreDeArchivo'); ?> — el "!" es importante: sin él, Apps
+ * Script escapa el HTML/CSS/JS inyectado y sale como texto literal en vez
+ * de interpretarse. Solo funciona en páginas servidas con
+ * HtmlService.createTemplateFromFile(...) (no con createHtmlOutputFromFile).
+ */
+function include(nombreArchivo) {
+  return HtmlService.createHtmlOutputFromFile(nombreArchivo).getContent();
 }
 
 /**

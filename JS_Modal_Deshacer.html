@@ -1,0 +1,58 @@
+// ---------- Modal propio (sustituye a alert()/confirm()) ----------
+      function mostrarDialogo(mensaje, conCancelar) {
+        return new Promise(function(resolve) {
+          var overlay = document.getElementById('modalOverlay');
+          var btnCancelar = document.getElementById('modalBtnCancelar');
+          var btnAceptar = document.getElementById('modalBtnAceptar');
+          document.getElementById('modalMensaje').textContent = mensaje;
+          btnCancelar.style.display = conCancelar ? 'inline-flex' : 'none';
+          overlay.classList.add('visible');
+
+          function limpiar() {
+            overlay.classList.remove('visible');
+            btnAceptar.removeEventListener('click', onAceptar);
+            btnCancelar.removeEventListener('click', onCancelar);
+          }
+          function onAceptar() { limpiar(); resolve(true); }
+          function onCancelar() { limpiar(); resolve(false); }
+
+          btnAceptar.addEventListener('click', onAceptar);
+          btnCancelar.addEventListener('click', onCancelar);
+        });
+      }
+      function mostrarAviso(mensaje) { return mostrarDialogo(mensaje, false); }
+      function mostrarConfirm(mensaje) { return mostrarDialogo(mensaje, true); }
+
+      // ---------- Deshacer la última eliminación ----------
+      // Guarda solo la ÚLTIMA foto (no un historial completo): se pierde al
+      // recargar o cambiar de pestaña, o al eliminar otro elemento encima —
+      // cubre el caso real ("me he equivocado") sin la complejidad de un
+      // historial de deshacer de verdad.
+      // NOTA: estas tres variables y las dos funciones de abajo son
+      // compartidas (idénticas en Base de Datos, Agenda y Valoraciones); lo
+      // que SÍ cambia en cada página es ejecutarDeshacer() — porque cada una
+      // llama a una función de servidor distinta (restaurarPacienteWeb /
+      // restaurarCitasWeb / restaurarValoracionWeb) — así que esa función se
+      // queda definida en cada archivo, no aquí.
+      var ultimaEliminacion = null;
+      var timeoutToastDeshacer = null;
+      var procesandoDeshacer = false;
+
+      function mostrarDeshacer(snapshot, texto) {
+        ultimaEliminacion = snapshot;
+
+        document.getElementById('btnDeshacer').classList.add('visible');
+
+        var toast = document.getElementById('toastDeshacer');
+        document.getElementById('toastDeshacerTexto').textContent = texto;
+        toast.classList.add('visible');
+        if (timeoutToastDeshacer) clearTimeout(timeoutToastDeshacer);
+        timeoutToastDeshacer = setTimeout(function() { toast.classList.remove('visible'); }, 6000);
+      }
+
+      function ocultarDeshacer() {
+        ultimaEliminacion = null;
+        document.getElementById('btnDeshacer').classList.remove('visible');
+        document.getElementById('toastDeshacer').classList.remove('visible');
+        if (timeoutToastDeshacer) { clearTimeout(timeoutToastDeshacer); timeoutToastDeshacer = null; }
+      }

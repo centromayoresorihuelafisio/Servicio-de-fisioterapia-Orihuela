@@ -11,40 +11,7 @@
     <style>
       *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-      :root {
-        --md-primary:          #2b5c75;
-        --md-primary-dark:     #1d3f52;
-        --md-primary-light:    #e0f1fc;
-        --md-primary-container:#c9e4f5;
-        --md-on-primary:       #ffffff;
-
-        --md-success:          #137333;
-        --md-success-bg:       #e6f4ea;
-        --md-error:            #c5221f;
-        --md-error-bg:         #fce8e6;
-        --md-warning:          #f29900;
-        --md-warning-bg:       #fef7e0;
-        --md-purple:           #8430ce;
-        --md-purple-bg:        #f3e8fd;
-
-        --md-bg:               #f8f9fa;
-        --md-surface:          #ffffff;
-        --md-surface-variant:  #f1f3f4;
-        --md-outline:          #dadce0;
-
-        --md-on-surface:       #202124;
-        --md-on-surface-med:   #5f6368;
-        --md-on-surface-low:   #80868b;
-
-        --tabs-bg:             #e7eff6;
-
-        --radius-sm: 4px;
-        --radius-md: 8px;
-        --radius-pill: 50px;
-
-        --font: 'Google Sans', 'Segoe UI', Arial, sans-serif;
-        --transition: 150ms cubic-bezier(.2,0,0,1);
-      }
+      <?!= include('CSS_Global'); ?>
 
       html, body { height: 100%; }
       body {
@@ -379,21 +346,7 @@
 
     <!-- Modal propio: sustituye a los alert()/confirm() nativos del navegador,
          que en la Web App muestran el dominio interno de Google (feo y confuso). -->
-    <!-- Aviso momentáneo tras eliminar, con enlace para deshacer al instante. -->
-    <div class="toast-deshacer" id="toastDeshacer">
-      <span id="toastDeshacerTexto"></span>
-      <button type="button" id="toastDeshacerBtn">DESHACER</button>
-    </div>
-
-    <div class="modal-overlay" id="modalOverlay">
-      <div class="modal-box">
-        <p class="modal-mensaje" id="modalMensaje"></p>
-        <div class="modal-botones">
-          <button class="btn-toolbar" id="modalBtnCancelar">Cancelar</button>
-          <button class="btn-toolbar primario" id="modalBtnAceptar">Aceptar</button>
-        </div>
-      </div>
-    </div>
+    <?!= include('Modal_Deshacer'); ?>
 
     <script>
       // Hora a partir de la cual una cita se considera "de tarde" para la
@@ -579,30 +532,7 @@
         cont.innerHTML = '<table>' + thead + tbody + '</table>';
       }
 
-      // ---------- Modal propio (sustituye a alert()/confirm()) ----------
-      function mostrarDialogo(mensaje, conCancelar) {
-        return new Promise(function(resolve) {
-          var overlay = document.getElementById('modalOverlay');
-          var btnCancelar = document.getElementById('modalBtnCancelar');
-          var btnAceptar = document.getElementById('modalBtnAceptar');
-          document.getElementById('modalMensaje').textContent = mensaje;
-          btnCancelar.style.display = conCancelar ? 'inline-flex' : 'none';
-          overlay.classList.add('visible');
-
-          function limpiar() {
-            overlay.classList.remove('visible');
-            btnAceptar.removeEventListener('click', onAceptar);
-            btnCancelar.removeEventListener('click', onCancelar);
-          }
-          function onAceptar() { limpiar(); resolve(true); }
-          function onCancelar() { limpiar(); resolve(false); }
-
-          btnAceptar.addEventListener('click', onAceptar);
-          btnCancelar.addEventListener('click', onCancelar);
-        });
-      }
-      function mostrarAviso(mensaje) { return mostrarDialogo(mensaje, false); }
-      function mostrarConfirm(mensaje) { return mostrarDialogo(mensaje, true); }
+      <?!= include('JS_Modal_Deshacer'); ?>
 
       // ---------- Edición en línea ----------
       function activarEdicion(td) {
@@ -817,34 +747,6 @@
       }
 
       document.getElementById('btnEliminarCitas').addEventListener('click', manejarEliminarSeleccionadas);
-
-      // ---------- Deshacer la última eliminación ----------
-      // Guarda solo la ÚLTIMA foto (no un historial completo): se pierde al
-      // cambiar de semana/pestaña o al hacer otra eliminación encima, tal y
-      // como se decidió — cubre el caso real (\"me he equivocado\") sin la
-      // complejidad de un historial de deshacer de verdad.
-      var ultimaEliminacion = null;
-      var timeoutToastDeshacer = null;
-      var procesandoDeshacer = false;
-
-      function mostrarDeshacer(snapshot, texto) {
-        ultimaEliminacion = snapshot;
-
-        document.getElementById('btnDeshacer').classList.add('visible');
-
-        var toast = document.getElementById('toastDeshacer');
-        document.getElementById('toastDeshacerTexto').textContent = texto;
-        toast.classList.add('visible');
-        if (timeoutToastDeshacer) clearTimeout(timeoutToastDeshacer);
-        timeoutToastDeshacer = setTimeout(function() { toast.classList.remove('visible'); }, 6000);
-      }
-
-      function ocultarDeshacer() {
-        ultimaEliminacion = null;
-        document.getElementById('btnDeshacer').classList.remove('visible');
-        document.getElementById('toastDeshacer').classList.remove('visible');
-        if (timeoutToastDeshacer) { clearTimeout(timeoutToastDeshacer); timeoutToastDeshacer = null; }
-      }
 
       function ejecutarDeshacer() {
         if (!ultimaEliminacion || procesandoDeshacer) return;
