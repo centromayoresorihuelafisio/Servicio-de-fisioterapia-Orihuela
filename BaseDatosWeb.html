@@ -251,6 +251,9 @@
         <button class="btn-toolbar" id="btnBuscarHuerfana" disabled title="Buscar historia clínica huérfana por posible errata en el nombre">
           <span class="material-symbols-outlined">manage_search</span> Buscar HC
         </button>
+        <button class="btn-toolbar" id="btnActualizarHistoria" disabled title="Sincroniza el documento de Drive con los datos actuales de la Base de Datos">
+          <span class="material-symbols-outlined">sync</span> Actualizar HC
+        </button>
         <button class="btn-toolbar" id="btnWhatsapp" disabled>
           <span class="material-symbols-outlined">chat</span> WhatsApp
         </button>
@@ -432,7 +435,7 @@
         actualizarUiSeleccion();
       }
 
-      var BOTONES_PACIENTE = ['btnEditar','btnEliminarUsuario','btnAlta','btnHistoria','btnBuscarHuerfana','btnWhatsapp','btnCita','btnValoracion']
+      var BOTONES_PACIENTE = ['btnEditar','btnEliminarUsuario','btnAlta','btnHistoria','btnActualizarHistoria','btnBuscarHuerfana','btnWhatsapp','btnCita','btnValoracion']
         .map(function(id) { return document.getElementById(id); });
 
       function actualizarUiSeleccion() {
@@ -646,6 +649,32 @@
       document.getElementById('btnBuscarHuerfana').addEventListener('click', function() {
         if (!pacienteSeleccionado) return;
         abrirVentanaEmergente('huerfanaHC&fila=' + pacienteSeleccionado._fila);
+      });
+
+      // ---------- Actualizar Historia Clínica Existente ----------
+      document.getElementById('btnActualizarHistoria').addEventListener('click', async function() {
+        if (!pacienteSeleccionado) return;
+
+        var confirmado = await mostrarConfirm('¿Sobrescribir los datos personales en el documento de Historia Clínica de ' + pacienteSeleccionado['Nombre'] + ' con la información actual de la base de datos?');
+        if (!confirmado) return;
+
+        var btn = this;
+        var textoOriginal = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="material-symbols-outlined">progress_activity</span> Actualizando…';
+
+        google.script.run
+          .withSuccessHandler(function(res) {
+            btn.innerHTML = textoOriginal;
+            btn.disabled = !pacienteSeleccionado;
+            mostrarAviso(res.message);
+          })
+          .withFailureHandler(function(err) {
+            btn.innerHTML = textoOriginal;
+            btn.disabled = !pacienteSeleccionado;
+            mostrarAviso('Error al actualizar la historia clínica: ' + err);
+          })
+          .actualizarDatosHistoriaClinicaWeb(pacienteSeleccionado._fila);
       });
 
       // ---------- WhatsApp ----------
