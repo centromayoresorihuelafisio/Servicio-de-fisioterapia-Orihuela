@@ -84,6 +84,12 @@ function actualizarPaciente(updatedData, rowIdx) {
     
     return value || "";
   });
+  
+  const colNacimientoIdx = headers.indexOf(COLUMNAS.MAESTRA.FECHA_NACIMIENTO);
+  const colEdadIdx = headers.indexOf(COLUMNAS.MAESTRA.EDAD);
+  if (colNacimientoIdx !== -1 && colEdadIdx !== -1) {
+    newRowValues[colEdadIdx] = calcularEdadDesdeFecha_(newRowValues[colNacimientoIdx]);
+  }
 
   sheet.getRange(rowIdx, 1, 1, newRowValues.length).setValues([newRowValues]);
 

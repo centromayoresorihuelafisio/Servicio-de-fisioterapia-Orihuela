@@ -84,7 +84,6 @@ function _generarHistoriaClinicaEnFila(sheet, rowIndex) {
   }
 
   const dni = patientData[COLUMNAS.MAESTRA.DNI.toLowerCase()] || '';
-  const edad = patientData[COLUMNAS.MAESTRA.EDAD.toLowerCase()] || '';
   const telefono1 = patientData[COLUMNAS.MAESTRA.TELEFONO_1.toLowerCase()] || '';
   const telefono2 = patientData[COLUMNAS.MAESTRA.TELEFONO_2.toLowerCase()] || '';
   let fechaInscripcion = patientData[COLUMNAS.MAESTRA.FECHA_INSCRIPCION.toLowerCase()] || patientData['fecha_inscripción'] || '';
@@ -100,6 +99,9 @@ function _generarHistoriaClinicaEnFila(sheet, rowIndex) {
   };
   fechaInscripcion = parseGoogleSheetDate(fechaInscripcion);
   fechaNacimiento = parseGoogleSheetDate(fechaNacimiento);
+
+  // Calculamos la edad real aquí al vuelo
+  const edad = fechaNacimiento ? calcularEdadDesdeFecha_(fechaNacimiento) : '';
 
   const formatDate = (date) => date ? Utilities.formatDate(date, Session.getScriptTimeZone(), 'dd/MM/yyyy') : '';
 
@@ -172,10 +174,13 @@ function actualizarDatosHistoriaClinicaWeb(fila) {
   let fNac = parseGoogleSheetDate(patientData[COLUMNAS.MAESTRA.FECHA_NACIMIENTO.toLowerCase()]);
   const formatDate = (date) => date ? Utilities.formatDate(date, Session.getScriptTimeZone(), 'dd/MM/yyyy') : '';
 
+  // Calculamos la edad real EN ESTE MOMENTO basándonos en la fecha de nacimiento
+  let edadReal = fNac ? calcularEdadDesdeFecha_(fNac) : '';
+
   const updateData = {
     nombre: patientData[COLUMNAS.MAESTRA.NOMBRE.toLowerCase()] || '',
     dni: patientData[COLUMNAS.MAESTRA.DNI.toLowerCase()] || '',
-    edad: patientData[COLUMNAS.MAESTRA.EDAD.toLowerCase()] || '',
+    edad: edadReal, // <-- Usamos la edad calculada en tiempo real
     telefono1: patientData[COLUMNAS.MAESTRA.TELEFONO_1.toLowerCase()] || '',
     telefono2: patientData[COLUMNAS.MAESTRA.TELEFONO_2.toLowerCase()] || '',
     fechaInscripcion: formatDate(fInsc),
