@@ -867,3 +867,62 @@ function obtenerEnlacesJornadaWeb() {
     return { urls: [], turno: turno, error: e.message };
   }
 }
+/**
+ * Versión web-safe de insertarEnlaceHistoriaClinica.
+ * Recibe un array con los números de fila seleccionados en la Agenda Web,
+ * busca a esos usuarios en la Maestra y les enlaza su Historia Clínica.
+ */
+function insertarEnlaceHistoriaClinicaWeb(filas) {
+  try {
+    if (!filas || filas.length === 0) {
+      return { success: false, message: 'No hay ninguna cita seleccionada.' };
+    }
+
+    const ss = getSS();
+    const sheetAgenda = obtenerHojaAgenda();
+    const lastCol = sheetAgenda.getLastColumn();
+    const headers = sheetAgenda.getRange(1, 1, 1, lastCol).getValues()[0].map(h => h.toString().trim());
+
+    const colUsuario = headers.indexOf(COLUMNAS.AGENDA.USUARIO);
+    const colHC = headers.indexOf(COLUMNAS.AGENDA.HISTORIA_CLINICA);
+
+    if (colUsuario === -1 || colHC === -1) {
+      return { success: false, message: "No se encontraron las columnas 'Usuario' o 'Historia clínica' en la Agenda." };
+    }
+
+    const mapaHistorias = cargarMapaHistoriasClinicas(ss);
+    if (!mapaHistorias) return { success: false, message: "No se pudo cargar el mapa de Historias Clínicas de la Maestra." };
+
+    let enlacesInsertados = 0;
+
+    filas.forEach(fila => {
+      const rowIdx = parseInt(fila, 10);
+      if (!rowIdx || rowIdx < 2 || rowIdx > sheetAgenda.getLastRow()) return;
+
+      const nombrePacienteRaw = sheetAgenda.getRange(rowIdx, colUsuario + 1).getValue().toString().trim();
+      if (!nombrePacienteRaw) return;
+
+      const enlaceInfo = mapaHistorias[nombrePacienteRaw.toLowerCase()];
+      if (enlaceInfo) {
+        const richTextValue = SpreadsheetApp.newRichTextValue()
+          .setText("Ver Historia Clínica")
+          .setLinkUrl(enlaceInfo.url)
+          .build();
+
+        sheetAgenda.getRange(rowIdx, colHC + 1).setRichTextValue(richTextValue);
+        enlacesInsertados++;
+      }
+    });
+
+    if (enlacesInsertados > 0) {
+      invalidarCacheAgenda_(sheetAgenda); // Invalida la caché para que la web se refresque
+      return { success: true, message: `✅ Se han insertado ${enlacesInsertados} enlaces de Historia Clínica.` };
+    } else {
+      return { success: false, message: "⚠️ No se encontraron las historias clínicas de esos pacientes en la Base de Datos Maestra." };
+    }
+
+  } catch (e) {
+    Logger.log('Error en insertarEnlaceHistoriaClinicaWeb: ' + e.message);
+    return { success: false, message: e.message };
+  }
+}

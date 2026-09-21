@@ -301,6 +301,9 @@
         <button class="btn-toolbar" id="btnQuitarSeleccion" style="display:none;" title="Quitar selección">
           <span class="material-symbols-outlined">close</span>
         </button>
+        <button class="btn-toolbar" id="btnEnlazarHC" disabled title="Busca y enlaza la Historia Clínica a las citas seleccionadas">
+          <span class="material-symbols-outlined">link</span> Enlazar HC
+        </button>
         <button class="btn-toolbar" id="btnValoracion" disabled>
           <span class="material-symbols-outlined">assignment</span> Valoración
         </button>
@@ -777,7 +780,7 @@
       // reemplazarla — Copiar Siguiente Cita / ×2 pueden actuar sobre varias
       // a la vez). ----------
       var BOTONES_UNA_SOLA = ['btnValoracion', 'btnWhatsapp'].map(function(id) { return document.getElementById(id); });
-      var BOTONES_UNA_O_MAS = ['btnCopiarCita', 'btnCopiarCita2', 'btnEliminarCitas'].map(function(id) { return document.getElementById(id); });
+      var BOTONES_UNA_O_MAS = ['btnEnlazarHC', 'btnCopiarCita', 'btnCopiarCita2', 'btnEliminarCitas'].map(function(id) { return document.getElementById(id); });
 
       function citasSeleccionadas() {
         return CITAS.filter(function(c) { return filasSeleccionadas.has(c._fila) && !c._hueco; });
@@ -1018,7 +1021,32 @@
           : '<span class="material-symbols-outlined">event_available</span> Mostrar citas disponibles';
         btn.classList.toggle('activo', mostrarHuecos);
       }
+      // ---------- Enlazar Historia Clínica a la Agenda ----------
+      document.getElementById('btnEnlazarHC').addEventListener('click', function() {
+        var sel = citasSeleccionadas();
+        if (sel.length === 0) return;
 
+        var filas = sel.map(function(c) { return c._fila; });
+        var btn = this;
+        var textoOriginal = btn.innerHTML;
+        
+        btn.disabled = true;
+        btn.innerHTML = '<span class="material-symbols-outlined spin-icon">progress_activity</span> Enlazando…';
+
+        google.script.run
+          .withSuccessHandler(function(res) {
+            btn.innerHTML = textoOriginal;
+            if (!res.success) { mostrarAviso(res.message); return; }
+            mostrarAviso(res.message);
+            quitarSeleccion();
+            cargar(semanaActual, true); // Refresco silencioso
+          })
+          .withFailureHandler(function(err) {
+            btn.innerHTML = textoOriginal;
+            mostrarAviso('Error: ' + err);
+          })
+          .insertarEnlaceHistoriaClinicaWeb(filas);
+      });
       // Auto-refresh: en vez de repedir la semana completa cada X segundos,
       // sondeamos un dato muy barato (obtenerVersionAgendaWeb, Agenda Web.gs:
       // no lee la hoja de Agenda, solo consulta CacheService) y solo si ese
