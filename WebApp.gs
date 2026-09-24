@@ -32,6 +32,19 @@ function include(nombreArchivo) {
 }
 
 /**
+ * Pasa a una plantilla las dos variables que necesita JS_Cierre_Formulario
+ * para cerrar el formulario según dónde esté abierto:
+ *   'dialogo' → modal de Sheets (showModalDialog)
+ *   'popup'   → ventana emergente (window.open) de la Web App (?embed=1)
+ *   'pestana' → Web App como página independiente
+ */
+function prepararContexto_(template, contexto) {
+  template.contexto = contexto;
+  template.baseUrl = (contexto === 'dialogo') ? '' : ScriptApp.getService().getUrl();
+  return template;
+}
+
+/**
  * Router de la Web App. Sirve una página HTML distinta según el parámetro ?page=.
  * Sin parámetro, muestra un índice con enlaces a todos los formularios.
  * Añadir un formulario nuevo en el futuro es solo añadir una entrada a este mapa.
@@ -57,6 +70,8 @@ function doGet(e) {
   // entre las que se puede saltar, y el resto de formularios se abren desde
   // botones dentro de ellas).
   const page = (e && e.parameter && e.parameter.page) || 'baseDatos';
+  // Ventana emergente (window.open desde la Web App) o pestaña independiente.
+  const contexto = (e && e.parameter && e.parameter.embed === '1') ? 'popup' : 'pestana';
 
   // Caso especial: edición de un paciente concreto, identificado por su fila
   // real en la Maestra (?page=editarPaciente&fila=N). No es un archivo estático
@@ -97,6 +112,16 @@ function doGet(e) {
   if (page === 'citas' || page === 'valoracion') {
     const template = HtmlService.createTemplateFromFile(config.archivo);
     template.pacientePreseleccionado = e.parameter.paciente || '';
+    prepararContexto_(template, contexto);
+    return template.evaluate()
+      .setTitle(config.titulo)
+      .addMetaTag('viewport', 'width=device-width, initial-scale=1');
+  }
+
+  // 'nuevoPaciente' se sirve como plantilla para poder incluir el cierre unificado.
+  if (page === 'nuevoPaciente') {
+    const template = HtmlService.createTemplateFromFile(config.archivo);
+    prepararContexto_(template, contexto);
     return template.evaluate()
       .setTitle(config.titulo)
       .addMetaTag('viewport', 'width=device-width, initial-scale=1');

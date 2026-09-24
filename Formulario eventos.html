@@ -165,6 +165,8 @@
   <!-- Message / Feedback Box -->
   <div id="messageBox" class="hidden w-full max-w-[600px] mt-4 p-3.5 rounded-lg text-[0.875rem] font-medium border-[1.5px] animate-fade-up text-center shadow-sm"></div>
 
+  <?!= include('JS_Cierre_Formulario'); ?>
+
   <script>
     function enviarFormulario(e) {
       e.preventDefault();
@@ -220,7 +222,7 @@
           
           btn.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg> Guardado`;
           
-          setTimeout(() => google.script.host.close(), 1200); 
+          finalizarFormulario({ guardado: true });
         })
         .withFailureHandler((err) => {
           showError("Error en el servidor: " + err.message);

@@ -731,7 +731,7 @@
 
       document.getElementById('btnNuevaValoracion').addEventListener('click', function() {
         var ruta = 'valoracion' + (pacienteSeleccionado ? '&paciente=' + encodeURIComponent(pacienteSeleccionado) : '');
-        var url = BASE_URL + '?page=' + ruta;
+        var url = BASE_URL + '?page=' + ruta + '&embed=1';
 
         ventanaActiva = window.open(url, 'ventanaValoracion', 'width=650,height=800,resizable=yes,scrollbars=yes');
 

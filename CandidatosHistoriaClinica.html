@@ -30,6 +30,8 @@
   </div>
   <div id="estado"></div>
 
+  <?!= include('JS_Cierre_Formulario'); ?>
+
   <script>
     const FILA = <?= fila ?>;
     let fileIdSeleccionado = null;
@@ -84,7 +86,7 @@
     }
 
     document.getElementById('btnCancelar').addEventListener('click', function() {
-      google.script.host.close();
+      finalizarFormulario({ demora: 0 });
     });
 
     document.getElementById('btnVincular').addEventListener('click', function() {
@@ -96,7 +98,7 @@
         .withSuccessHandler(function(resp) {
           if (resp.success) {
             document.getElementById('estado').innerText = resp.message;
-            setTimeout(function() { google.script.host.close(); }, 1500);
+            finalizarFormulario({ guardado: true });
           } else {
             document.getElementById('estado').innerText = 'Error: ' + resp.message;
             document.getElementById('btnVincular').disabled = false;

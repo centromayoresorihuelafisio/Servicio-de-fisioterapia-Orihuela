@@ -909,6 +909,8 @@
       </div>
     </div>
 
+    <?!= include('JS_Cierre_Formulario'); ?>
+
     <script>
       var rowIdx = <?= rowIdx ?>;
       var esWebApp = <?= esWebApp ? 'true' : 'false' ?>;
@@ -923,43 +925,22 @@
       // NOTA: las URLs de Apps Script Web App no se pueden embeber en un
       // <iframe> (Google lo bloquea), así que la opción 3 usa una ventana
       // real (window.open), nunca un iframe.
+      // El cierre en sí (avisar a la ventana que abrió esta + cerrar según el
+      // contexto) vive en JS_Cierre_Formulario.html, compartido por todos los
+      // formularios.
+      window.CONTEXTO_FORM = enVentanaEmergente ? 'popup' : (esWebApp ? 'pestana' : 'dialogo');
+      window.BASE_URL_FORM = '<?= baseUrl ?>';
+
       function cerrarFormulario(guardado) {
-  if (enVentanaEmergente) {
-    // Vía 1: postMessage a la ventana que abrió esta (funciona si el
-    // navegador conserva window.opener).
-    if (window.opener) {
-      try {
-        window.opener.postMessage({ tipo: 'cerrarEdicionPaciente', guardado: !!guardado }, '*');
-      } catch (e) { /* opener ya no accesible */ }
-    }
-
-    // Vía 2: localStorage. Es la señal FIABLE: funciona entre pestañas del
-    // mismo origen incluso cuando el navegador ha cortado window.opener por
-    // privacidad (algo que hacen varios navegadores aunque la ventana se
-    // abriera con window.open). La Base de Datos Web escucha el evento
-    // 'storage' y se refresca sola al detectarlo.
-    try {
-      localStorage.setItem('pacienteActualizado', JSON.stringify({ guardado: !!guardado, ts: Date.now() }));
-    } catch (e) { /* localStorage no disponible (modo incógnito estricto, etc.) */ }
-
-    window.close();
-
-    // Red de seguridad: si el navegador bloquea el cierre por script (pasa a
-    // menudo), no dejamos al usuario mirando un botón de "Guardando…" para
-    // siempre — mostramos que el guardado sí se completó.
-    setTimeout(function() {
-      var btn = document.getElementById('btnConfirmar');
-      if (btn && guardado) {
-        btn.innerHTML = '<span class="material-symbols-outlined text-[18px]">check_circle</span> Guardado. Puedes cerrar esta pestaña.';
-        btn.disabled = true;
+        if (guardado) {
+          var btn = document.getElementById('btnConfirmar');
+          if (btn) {
+            btn.innerHTML = '<span class="material-symbols-outlined text-[18px]">check_circle</span> Guardado';
+            btn.disabled = true;
+          }
+        }
+        finalizarFormulario({ guardado: !!guardado, demora: guardado ? undefined : 0 });
       }
-    }, 300);
-  } else if (esWebApp) {
-    window.top.location.href = '<?= baseUrl ?>?page=baseDatos';
-  } else {
-    google.script.host.close();
-  }
-}
 
       function syncFloated(inp) {
         var label = inp.parentElement.querySelector('label.field-label');

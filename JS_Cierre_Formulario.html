@@ -1,0 +1,67 @@
+<!--
+  JS_Cierre_Formulario.html
+  Cierre unificado de formularios. Se incluye desde un scriptlet de tipo include('JS_Cierre_Formulario') con "!"
+  (fuera de cualquier <script>), en páginas servidas con createTemplateFromFile().
+
+  Cada página puede definir antes:
+    window.CONTEXTO_FORM = 'dialogo' | 'popup' | 'pestana'   (por defecto 'dialogo')
+    window.BASE_URL_FORM = URL de despliegue de la Web App   (solo para 'pestana')
+
+  Contextos:
+    dialogo → modal de Sheets (showModalDialog)              → google.script.host.close()
+    popup   → ventana emergente (window.open) de la Web App  → avisa a la ventana que la abrió y window.close()
+    pestana → Web App como página independiente             → vuelve a la Base de Datos
+-->
+<script>
+  var CIERRE_DEMORA_MS = 1200;
+
+  // Avisa a la Base de Datos Web para que se refresque al instante.
+  // Vía 1: postMessage a la ventana que abrió esta (funciona si el navegador
+  //        conserva window.opener).
+  // Vía 2: localStorage. Es la señal FIABLE: funciona entre pestañas del mismo
+  //        origen incluso cuando el navegador ha cortado window.opener por
+  //        privacidad. La Base de Datos Web escucha el evento 'storage'.
+  function notificarGuardado(tipo, guardado) {
+    var ok = (guardado === undefined) ? true : !!guardado;
+    try {
+      if (window.opener) window.opener.postMessage({ tipo: tipo || 'cerrarEdicionPaciente', guardado: ok }, '*');
+    } catch (e) { /* opener ya no accesible */ }
+    try {
+      localStorage.setItem('pacienteActualizado', JSON.stringify({ guardado: ok, ts: Date.now() }));
+    } catch (e) { /* localStorage no disponible (modo incógnito estricto, etc.) */ }
+  }
+
+  // opciones: { guardado: bool, demora: ms }
+  //   guardado → true si se acaba de guardar algo (false al cancelar/cerrar sin guardar)
+  //   demora   → ms de espera antes de cerrar (por defecto CIERRE_DEMORA_MS);
+  //              usa 0 al cancelar
+  function finalizarFormulario(opciones) {
+    opciones = opciones || {};
+    var guardado = !!opciones.guardado;
+    var demora = (opciones.demora !== undefined) ? opciones.demora : CIERRE_DEMORA_MS;
+    var contexto = window.CONTEXTO_FORM || 'dialogo';
+
+    // En el diálogo de Sheets no hay ventana a la que avisar.
+    if (contexto !== 'dialogo') notificarGuardado('cerrarEdicionPaciente', guardado);
+
+    setTimeout(function () {
+      if (contexto === 'popup') {
+        window.close();
+        // Red de seguridad: si el navegador bloquea el cierre por script (pasa
+        // a menudo), no dejamos al usuario sin saber que el guardado terminó.
+        setTimeout(function () { if (guardado) _avisoCerrarManual(); }, 300);
+      } else if (contexto === 'pestana') {
+        window.top.location.href = (window.BASE_URL_FORM || '') + '?page=baseDatos';
+      } else {
+        google.script.host.close();
+      }
+    }, demora);
+  }
+
+  function _avisoCerrarManual() {
+    var d = document.createElement('div');
+    d.textContent = '✓ Guardado. Ya puedes cerrar esta ventana.';
+    d.style.cssText = 'position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#1b5e20;color:#fff;padding:12px 20px;border-radius:12px;font:500 14px sans-serif;z-index:99999;box-shadow:0 4px 12px rgba(0,0,0,.25)';
+    document.body.appendChild(d);
+  }
+</script>

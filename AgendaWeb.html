@@ -878,7 +878,7 @@
       document.getElementById('btnValoracion').addEventListener('click', function() {
         var sel = citasSeleccionadas();
         if (sel.length !== 1) return;
-        var url = BASE_URL + '?page=valoracion&paciente=' + encodeURIComponent(sel[0]['Usuario']);
+        var url = BASE_URL + '?page=valoracion&paciente=' + encodeURIComponent(sel[0]['Usuario']) + '&embed=1';
         window.open(url, 'ventanaValoracionAgenda', 'width=850,height=900');
       });
 

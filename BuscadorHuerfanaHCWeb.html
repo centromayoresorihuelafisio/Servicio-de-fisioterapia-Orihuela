@@ -31,18 +31,13 @@
   <div id="estado"></div>
 
   <script>
+    window.CONTEXTO_FORM = 'popup';
+  </script>
+  <?!= include('JS_Cierre_Formulario'); ?>
+
+  <script>
     var FILA = <?= fila ?>;
     var fileIdSeleccionado = null;
-
-    function avisarYcerrar(guardado) {
-      if (window.opener) {
-        try { window.opener.postMessage({ tipo: 'cerrarEdicionPaciente', guardado: !!guardado }, '*'); } catch (e) {}
-      }
-      try {
-        localStorage.setItem('pacienteActualizado', JSON.stringify({ guardado: !!guardado, ts: Date.now() }));
-      } catch (e) {}
-      window.close();
-    }
 
     function cargarCandidatos() {
       google.script.run
@@ -94,7 +89,7 @@
     }
 
     document.getElementById('btnCancelar').addEventListener('click', function() {
-      avisarYcerrar(false);
+      finalizarFormulario({ demora: 0 });
     });
 
     document.getElementById('btnVincular').addEventListener('click', function() {
@@ -106,7 +101,7 @@
         .withSuccessHandler(function(resp) {
           if (resp.success) {
             document.getElementById('estado').innerText = resp.message;
-            setTimeout(function() { avisarYcerrar(true); }, 1200);
+            finalizarFormulario({ guardado: true });
           } else {
             document.getElementById('estado').innerText = 'Error: ' + resp.message;
             document.getElementById('btnVincular').disabled = false;

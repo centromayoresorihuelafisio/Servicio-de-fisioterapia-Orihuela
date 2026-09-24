@@ -769,6 +769,12 @@
   </div>
 
   <script>
+    window.CONTEXTO_FORM = '<?= contexto ?>';
+    window.BASE_URL_FORM = '<?= baseUrl ?>';
+  </script>
+  <?!= include('JS_Cierre_Formulario'); ?>
+
+  <script>
     // Paciente ya elegido desde la Base de Datos Web (viene de ?paciente=...).
     // Vacío cuando se abre desde el menú de Sheets o el índice de la Web App.
     var PACIENTE_PRESELECCIONADO = <?!= JSON.stringify(pacientePreseleccionado || '') ?>;
@@ -1099,7 +1105,7 @@
           resetAllSliders();
           updateProgress();
           resetBtn();
-          setTimeout(() => google.script.host.close(), 1800);
+          finalizarFormulario({ guardado: true });
         })
         .withFailureHandler(error => {
           showMessage('error', 'error', 'Error: ' + error.message);

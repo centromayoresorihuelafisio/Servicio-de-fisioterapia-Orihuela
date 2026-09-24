@@ -11,7 +11,7 @@ const ESTILOS_CONFIG = {
  * Lanza el diálogo modal con el formulario HTML.
  */
 function mostrarFormularioEvento() {
-  const html = HtmlService.createHtmlOutputFromFile('Formulario eventos')
+  const html = HtmlService.createTemplateFromFile('Formulario eventos').evaluate()
       .setWidth(450)
       .setHeight(500)
       .setTitle('Gestión de Eventos y Notas');

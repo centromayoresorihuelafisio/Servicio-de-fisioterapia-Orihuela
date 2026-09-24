@@ -470,8 +470,7 @@
       var sondeoCierre = null;
 
       function abrirVentanaEmergente(rutaConParametros) {
-        var esEdicion = rutaConParametros.indexOf('editarPaciente') === 0;
-        var embedParam = esEdicion ? '&embed=1' : '';
+        var embedParam = '&embed=1';
         var url = BASE_URL + '?page=' + rutaConParametros + embedParam;
 
         ventanaActiva = window.open(url, 'ventanaPaciente', 'width=650,height=800,resizable=yes,scrollbars=yes');

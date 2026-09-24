@@ -4,6 +4,8 @@
 function abrirFormularioValoracion() {
   const ui = SpreadsheetApp.getUi();
   const tmpl = HtmlService.createTemplateFromFile('Valoracion');
+  tmpl.pacientePreseleccionado = ''; // desde el menú de Sheets no aplica
+  prepararContexto_(tmpl, 'dialogo');
   
   const html = tmpl.evaluate()
       .setWidth(800)

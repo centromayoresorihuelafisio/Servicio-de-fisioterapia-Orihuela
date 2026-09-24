@@ -1452,6 +1452,12 @@
     </div>
   </div>
 
+  <script>
+    window.CONTEXTO_FORM = '<?= contexto ?>';
+    window.BASE_URL_FORM = '<?= baseUrl ?>';
+  </script>
+  <?!= include('JS_Cierre_Formulario'); ?>
+
   <!-- ══ Javascript Logics ══ -->
   <script>
     const PATOLOGIAS = ["MS","MI","Dolor Crónico","Cervicalgia","Dorsalgia","Lumbalgia","Omalgia","Coxalgia","Gonalgia","Tendinopatía","Fascitis Plantar","Traumatismo","Caída","Fractura","Luxación","Esguince","Prótesis Hombro","Prótesis Rodilla","Estabilidad","Debilidad Muscular","Limitación Funcional","Alteración Marcha","Hernia Discal","Radiculopatía MS","Radiculopatía MI","Estenosis Medular","Parkinson","Esclerosis","Ictus","Linfedema","Cardiopatía","Enfermedad Respiratoria","Cáncer","Otro"];
@@ -1868,7 +1874,7 @@
 
               chip.className = 'sev-chip'; chip.textContent = 'Completa la evaluación';
               document.getElementById('severityRow').classList.remove('filled');
-              setTimeout(() => google.script.host.close(), 1000);
+              finalizarFormulario({ guardado: true });
             }
             restore();
           })
