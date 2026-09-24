@@ -90,6 +90,7 @@ function mostrarDialogoCita() {
   try {
     const template = HtmlService.createTemplateFromFile('CitaFormulario');
     template.pacientePreseleccionado = ''; // desde el menú de Sheets no aplica
+    prepararContexto_(template, 'dialogo');
     const html = template.evaluate()
         .setWidth(800)
         .setHeight(650);

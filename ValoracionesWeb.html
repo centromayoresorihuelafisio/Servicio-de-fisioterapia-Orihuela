@@ -753,6 +753,42 @@
         }, 500);
       });
 
+      // El formulario avisa por postMessage al guardar o cerrar
+      window.addEventListener('message', function(e) {
+        if (e.data && (e.data.tipo === 'cerrarEdicionPaciente' || e.data.tipo === 'citaGuardada')) {
+          if (sondeoCierre) { clearInterval(sondeoCierre); sondeoCierre = null; }
+          if (e.data.guardado) cargar();
+          
+          // ¡LA MAGIA AQUÍ!: La ventana madre cierra la ventana hija
+          if (ventanaActiva && !ventanaActiva.closed) {
+            ventanaActiva.close();
+          }
+        }
+      });
+
+      // Segunda vía de aviso (localStorage)
+      window.addEventListener('storage', function(e) {
+        if (e.key === 'pacienteActualizado') {
+          if (sondeoCierre) { clearInterval(sondeoCierre); sondeoCierre = null; }
+          cargar();
+          
+          // ¡LA MAGIA AQUÍ!: La ventana madre cierra la ventana hija
+          if (ventanaActiva && !ventanaActiva.closed) {
+            ventanaActiva.close();
+          }
+        }
+      });
+
+      // Cierre de ventanas emergentes: el formulario (popup) no siempre puede
+      // cerrarse a sí mismo, así que pide a la ventana que la abrió (esta) que
+      // lo haga. e.source es la ventana emergente; close() está permitido
+      // aunque sea de otro origen.
+      window.addEventListener('message', function(e) {
+        if (e.data && e.data.tipo === 'cerrarPopupFormulario' && e.source) {
+          try { e.source.close(); } catch (err) { /* bloqueado por el navegador */ }
+        }
+      });
+
       document.getElementById('inputBusqueda').addEventListener('input', render);
 
       cargar();

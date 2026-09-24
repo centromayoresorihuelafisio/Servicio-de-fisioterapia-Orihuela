@@ -9,22 +9,29 @@
 
   Contextos:
     dialogo → modal de Sheets (showModalDialog)              → google.script.host.close()
-    popup   → ventana emergente (window.open) de la Web App  → avisa a la ventana que la abrió y window.close()
+    popup   → ventana emergente (window.open) de la Web App  → avisa a la ventana madre, que la cierra
     pestana → Web App como página independiente             → vuelve a la Base de Datos
 -->
 <script>
   var CIERRE_DEMORA_MS = 1200;
 
-  // Avisa a la Base de Datos Web para que se refresque al instante.
-  // Vía 1: postMessage a la ventana que abrió esta (funciona si el navegador
-  //        conserva window.opener).
-  // Vía 2: localStorage. Es la señal FIABLE: funciona entre pestañas del mismo
-  //        origen incluso cuando el navegador ha cortado window.opener por
-  //        privacidad. La Base de Datos Web escucha el evento 'storage'.
+  // Ventana que abrió esta. Dentro del <iframe> de Apps Script window.opener es
+  // null: el opener real cuelga de la ventana de nivel superior (window.top),
+  // y esa propiedad sí se puede leer entre orígenes distintos.
+  function _ventanaPadre() {
+    var o = null;
+    try { o = window.top.opener; } catch (e) { /* inaccesible */ }
+    if (!o) { try { o = window.opener; } catch (e) { /* inaccesible */ } }
+    return o;
+  }
+
+  // Avisa a la ventana madre (Base de Datos, Agenda, Valoraciones).
+  // Vía 1: postMessage. Vía 2: localStorage (evento 'storage').
   function notificarGuardado(tipo, guardado) {
     var ok = (guardado === undefined) ? true : !!guardado;
     try {
-      if (window.opener) window.opener.postMessage({ tipo: tipo || 'cerrarEdicionPaciente', guardado: ok }, '*');
+      var padre = _ventanaPadre();
+      if (padre) padre.postMessage({ tipo: tipo || 'cerrarEdicionPaciente', guardado: ok }, '*');
     } catch (e) { /* opener ya no accesible */ }
     try {
       localStorage.setItem('pacienteActualizado', JSON.stringify({ guardado: ok, ts: Date.now() }));
@@ -32,9 +39,6 @@
   }
 
   // opciones: { guardado: bool, demora: ms }
-  //   guardado → true si se acaba de guardar algo (false al cancelar/cerrar sin guardar)
-  //   demora   → ms de espera antes de cerrar (por defecto CIERRE_DEMORA_MS);
-  //              usa 0 al cancelar
   function finalizarFormulario(opciones) {
     opciones = opciones || {};
     var guardado = !!opciones.guardado;
@@ -46,10 +50,23 @@
 
     setTimeout(function () {
       if (contexto === 'popup') {
-        window.close();
-        // Red de seguridad: si el navegador bloquea el cierre por script (pasa
-        // a menudo), no dejamos al usuario sin saber que el guardado terminó.
-        setTimeout(function () { if (guardado) _avisoCerrarManual(); }, 300);
+        try { window.top.close(); } catch (e) { /* bloqueado */ }
+        try { window.close(); } catch (e) { /* bloqueado */ }
+        // Segunda vía: pedir a la ventana que abrió esta que la cierre.
+        try {
+          var padre = _ventanaPadre();
+          if (padre) padre.postMessage({ tipo: 'cerrarPopupFormulario' }, '*');
+        } catch (e) { /* opener ya no accesible */ }
+
+        // Red de seguridad: si nadie ha cerrado la ventana, avisamos de que el
+        // guardado terminó y dejamos el dato en la consola (F12).
+        setTimeout(function () {
+          if (!guardado) return;
+          var hayPadre = false;
+          try { hayPadre = !!_ventanaPadre(); } catch (e) {}
+          console.warn('[cierre] La ventana no se cerró. Ventana madre accesible:', hayPadre, '· historial:', history.length);
+          _avisoCerrarManual();
+        }, 600);
       } else if (contexto === 'pestana') {
         window.top.location.href = (window.BASE_URL_FORM || '') + '?page=baseDatos';
       } else {
@@ -61,7 +78,7 @@
   function _avisoCerrarManual() {
     var d = document.createElement('div');
     d.textContent = '✓ Guardado. Ya puedes cerrar esta ventana.';
-    d.style.cssText = 'position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#1b5e20;color:#fff;padding:12px 20px;border-radius:12px;font:500 14px sans-serif;z-index:99999;box-shadow:0 4px 12px rgba(0,0,0,.25)';
+    d.style.cssText = 'position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:rgba(168,230,184,.75);color:#1e4d2b;padding:12px 20px;border-radius:12px;font:500 14px sans-serif;z-index:99999;box-shadow:0 4px 12px rgba(0,0,0,.15)';
     document.body.appendChild(d);
   }
 </script>

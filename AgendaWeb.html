@@ -874,12 +874,16 @@
           .obtenerEnlacesJornadaWeb();
       });
 
+      // Ventana emergente de Valoración abierta desde aquí (guardamos la referencia
+      // para poder cerrarla cuando el formulario avise de que ha terminado).
+      var ventanaActiva = null;
+
       // ---------- Valoración (abre la ventana emergente ya existente; solo con 1 cita seleccionada) ----------
       document.getElementById('btnValoracion').addEventListener('click', function() {
         var sel = citasSeleccionadas();
         if (sel.length !== 1) return;
         var url = BASE_URL + '?page=valoracion&paciente=' + encodeURIComponent(sel[0]['Usuario']) + '&embed=1';
-        window.open(url, 'ventanaValoracionAgenda', 'width=850,height=900');
+        ventanaActiva = window.open(url, 'ventanaValoracionAgenda', 'width=850,height=900');
       });
 
       // ---------- WhatsApp (solo con 1 cita seleccionada) ----------
@@ -1080,6 +1084,26 @@
       var AUTO_REFRESH_MS = 4000; // consulta barata, puede ir más rápido que los 30s de antes sin sobrecargar
       setInterval(comprobarVersionAgenda, AUTO_REFRESH_MS);
 
+      // El formulario de Valoración avisa por postMessage al guardar o cerrar;
+      // la ventana madre (esta) cierra la ventana hija.
+      window.addEventListener('message', function(e) {
+        if (e.data && e.data.tipo === 'cerrarEdicionPaciente') {
+          if (ventanaActiva && !ventanaActiva.closed) {
+            ventanaActiva.close();
+          }
+        }
+      });
+
+      // Cierre de ventanas emergentes: el formulario (popup) no siempre puede
+      // cerrarse a sí mismo, así que pide a la ventana que la abrió (esta) que
+      // lo haga. e.source es la ventana emergente; close() está permitido
+      // aunque sea de otro origen.
+      window.addEventListener('message', function(e) {
+        if (e.data && e.data.tipo === 'cerrarPopupFormulario' && e.source) {
+          try { e.source.close(); } catch (err) { /* bloqueado por el navegador */ }
+        }
+      });
+
       // Aviso opcional desde otra pestaña: el formulario de Citas (y el de
       // edición de paciente) escriben en localStorage al guardar. En teoría
       // el evento 'storage' llegaría aquí al instante sin esperar al sondeo
@@ -1089,6 +1113,9 @@
       // cuando no, el sondeo de comprobarVersionAgenda() (cada 4s) lo cubre
       // igualmente. También es un refresco silencioso.
       window.addEventListener('storage', function(e) {
+        if (e.key === 'pacienteActualizado' && ventanaActiva && !ventanaActiva.closed) {
+          ventanaActiva.close();
+        }
         if (e.key === 'pacienteActualizado' && semanaActual) {
           if (document.querySelector('td.editando')) return;
           cargar(semanaActual, true);
