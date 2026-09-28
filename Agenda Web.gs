@@ -926,3 +926,83 @@ function insertarEnlaceHistoriaClinicaWeb(filas) {
     return { success: false, message: e.message };
   }
 }
+/**
+ * Mueve una cita de un hueco a otro (Drag & Drop).
+ * Copia los datos al destino y los borra del origen. Fecha, Día y Hora no se
+ * tocan (son el esqueleto del hueco). El "ID Evento Calendar" viaja con la
+ * cita, así que el evento se recoloca en la próxima exportación a Calendar.
+ * Protegida con LockService para que dos movimientos simultáneos no se pisen.
+ */
+function moverCitaWeb(filaOrigen, filaDestino) {
+  const lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(10000);
+
+    const sheet = obtenerHojaAgenda();
+    const rowOrig = parseInt(filaOrigen, 10);
+    const rowDest = parseInt(filaDestino, 10);
+    const lastRow = sheet.getLastRow();
+
+    if (!rowOrig || !rowDest || rowOrig < 2 || rowDest < 2 || rowOrig > lastRow || rowDest > lastRow) {
+      return { success: false, message: 'Filas no válidas.' };
+    }
+    if (rowOrig === rowDest) {
+      return { success: true, message: 'Misma fila, sin cambios.' };
+    }
+
+    const lastCol = sheet.getLastColumn();
+    const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(h => h.toString().trim());
+    const colUsuario = headers.indexOf(COLUMNAS.AGENDA.USUARIO);
+    const colFecha = headers.indexOf(COLUMNAS.AGENDA.FECHA);
+    const colHora = headers.indexOf(COLUMNAS.AGENDA.HORA);
+    const colHC = headers.indexOf(COLUMNAS.AGENDA.HISTORIA_CLINICA);
+    const colSesion = headers.indexOf(COLUMNAS.AGENDA.SESION);
+    if (colUsuario === -1) return { success: false, message: 'Falta la columna Usuario.' };
+
+    // Una sola lectura por fila para validar origen y destino
+    const filaO = sheet.getRange(rowOrig, 1, 1, lastCol).getValues()[0];
+    const filaD = sheet.getRange(rowDest, 1, 1, lastCol).getValues()[0];
+    const ocupada = fila => !!(fila[colUsuario] && fila[colUsuario].toString().trim() !== '');
+
+    if (!ocupada(filaO)) {
+      return { success: false, message: 'La cita de origen ya no existe (¿la ha cambiado otra persona?).' };
+    }
+    if (ocupada(filaD)) {
+      return { success: false, message: 'El hueco de destino ya está ocupado.' };
+    }
+    // El destino debe ser un hueco horario real (fecha y hora válidas), no una etiqueta de la plantilla
+    const esFecha = v => Object.prototype.toString.call(v) === '[object Date]';
+    if ((colFecha !== -1 && !esFecha(filaD[colFecha])) || (colHora !== -1 && !esFecha(filaD[colHora]))) {
+      return { success: false, message: 'El destino no es un hueco horario válido.' };
+    }
+
+    // Escritura en destino (la Historia Clínica conserva su enlace en RichText)
+    const rtvHC = colHC !== -1 ? sheet.getRange(rowOrig, colHC + 1).getRichTextValue() : null;
+    const colsMovidas = [];
+    CAMPOS_A_BORRAR_AGENDA.forEach(nombreCampo => {
+      const c = headers.indexOf(nombreCampo);
+      if (c === -1) return;
+      colsMovidas.push(c);
+      const destino = sheet.getRange(rowDest, c + 1);
+      if (c === colHC && rtvHC) {
+        destino.setRichTextValue(rtvHC);
+      } else {
+        destino.setValue(filaO[c]);
+        if (c === colSesion && filaO[c] !== '') destino.setNumberFormat('0');
+      }
+    });
+
+    // Vaciar el origen en una sola llamada
+    const a1 = colsMovidas.map(c => sheet.getRange(rowOrig, c + 1).getA1Notation());
+    if (a1.length) sheet.getRangeList(a1).clearContent();
+
+    SpreadsheetApp.flush();
+    invalidarCacheAgenda_(sheet);
+    return { success: true, message: 'Cita reubicada correctamente.' };
+  } catch (e) {
+    Logger.log('Error en moverCitaWeb: ' + e.message);
+    return { success: false, message: e.message };
+  } finally {
+    try { lock.releaseLock(); } catch (err) { /* sin bloqueo que liberar */ }
+  }
+}

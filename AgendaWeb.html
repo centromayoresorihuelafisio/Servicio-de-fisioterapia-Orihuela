@@ -517,6 +517,62 @@
         border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg);
       }
       .editable { cursor: pointer; }
+      /* ===== Mejoras visuales + arrastrar y soltar ===== */
+      .tabla-wrap { scrollbar-width: thin; scrollbar-color: #c5cddb transparent; }
+      .tabla-wrap::-webkit-scrollbar { width: 10px; height: 10px; }
+      .tabla-wrap::-webkit-scrollbar-thumb { background: #c5cddb; border-radius: 999px; border: 2px solid var(--ag-surface); }
+      header.top { position: relative; z-index: 5; box-shadow: 0 1px 4px rgba(31,36,48,.07); }
+      .btn-toolbar { box-shadow: 0 1px 1px rgba(31,36,48,.05); }
+      .btn-toolbar:hover:not(:disabled) { box-shadow: 0 2px 6px rgba(31,36,48,.14); }
+      .btn-toolbar:active:not(:disabled) { transform: translateY(1px); box-shadow: none; }
+      thead th { border-bottom: 1px solid var(--ag-line); box-shadow: 0 2px 0 rgba(0,74,119,.06); }
+      tbody td { border-bottom-color: rgba(227,232,239,.8); }
+      td.hora { letter-spacing: .01em; }
+      tbody tr.fila-dia td { border-top: 1px solid var(--ag-line); font-size: .92rem; }
+      tbody tr.fila-dia:hover td { filter: brightness(.97); }
+      .dia-stats { background: rgba(255,255,255,.65); padding: .1rem .65rem; border-radius: 999px; }
+      .chip { font-weight: 700; letter-spacing: .01em; }
+      .tarjeta { border-radius: 18px; }
+      .tarjeta:hover { box-shadow: 0 4px 14px rgba(0,74,119,.16); transform: translateY(-1px); }
+      .tarjeta { transition: box-shadow var(--ag-t), transform var(--ag-t), background-color var(--ag-t); }
+
+      /* Columna Hora más ancha para alojar el asa de arrastre */
+      thead th:nth-child(1), tbody td:nth-child(1) { width: 132px; min-width: 132px; max-width: 132px; }
+      thead th:nth-child(2), tbody td:nth-child(2) { left: 132px; }
+      table { min-width: 1220px; }
+
+      .asa {
+        width: 18px; height: 18px; overflow: hidden; flex-shrink: 0; font-size: 18px; margin-left: -.3rem;
+        color: var(--ag-text-low); opacity: .3; cursor: grab; touch-action: none;
+        user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; transition: opacity var(--ag-t);
+      }
+      tbody tr.fila-cita:hover .asa, .tarjeta:hover .asa, .asa:hover { opacity: .95; color: var(--ag-accent); }
+      @media (hover: none) { .asa { opacity: .7; } }
+
+      body.arrastrando-cita, body.arrastrando-cita * { cursor: grabbing !important; }
+      body.arrastrando-cita { user-select: none; -webkit-user-select: none; }
+      tr.arrastrando td, .tarjeta.arrastrando { opacity: .4; }
+      body.arrastrando-cita tbody tr.fila-hueco td { background-color: #eef5ff; color: var(--ag-accent-dark); }
+      body.arrastrando-cita .tarjeta.hueco { background: #eef5ff; border-color: var(--ag-accent); }
+      tbody tr.destino-drop td, tbody tr.destino-drop td.editable:hover {
+        --fila-tinte: rgba(11,87,208,.24) !important;
+        box-shadow: inset 0 2px 0 var(--ag-accent), inset 0 -2px 0 var(--ag-accent) !important;
+      }
+      .tarjeta.destino-drop { background: var(--ag-container) !important; border-style: solid; box-shadow: 0 0 0 2px var(--ag-accent); }
+      .ghost-cita {
+        position: fixed; left: 0; top: 0; z-index: 2000; pointer-events: none; display: flex; align-items: center; gap: .55rem;
+        background: var(--ag-surface); border: 1px solid var(--ag-accent); border-left: 5px solid var(--ag-accent);
+        border-radius: 12px; padding: .45rem .85rem; font-size: .85rem; font-weight: 600; white-space: nowrap;
+        box-shadow: 0 10px 26px rgba(0,74,119,.3); will-change: transform;
+      }
+      .ghost-cita small { color: var(--ag-text-med); font-weight: 500; font-size: .78rem; }
+
+      @media (max-width: 900px) {
+        .buscador { flex: 1 1 100%; }
+        .barra-filtros { overflow-x: auto; flex-wrap: nowrap; scrollbar-width: none; }
+        .barra-filtros > * { flex-shrink: 0; }
+      }
+      @media (prefers-reduced-motion: reduce) { .tarjeta, .btn-toolbar { transition: none; } .tarjeta:hover { transform: none; } }
     </style>
   </head>
   <body>
@@ -640,6 +696,11 @@
     <div class="tabla-wrap" id="tablaWrap"></div>
 
     <?!= include('Modal_Deshacer'); ?>
+
+    <div class="toast-deshacer" id="toastMover">
+      <span id="toastMoverTexto"></span>
+      <button type="button" id="toastMoverBtn">DESHACER</button>
+    </div>
 
     <script>
       // Hora ("HH:mm") a partir de la cual una cita es "de tarde".
@@ -918,7 +979,8 @@
         if (header === 'Hora') {
           var casilla = '<span class="chk' + (esHueco ? ' oculto' : '') + '"></span>';
           var punto = tag ? '<span class="pto-t ' + tag + '" title="' + (tag === 'ahora' ? 'En curso' : 'Próxima cita') + '"></span>' : '';
-          return '<td class="hora"><span class="hora-celda">' + casilla + (vacio ? '—' : escapar(valor)) + punto + '</span></td>';
+          var asa = '<span class="asa material-symbols-outlined"' + (esHueco ? ' style="visibility:hidden"' : ' title="Arrastra para mover la cita a otro hueco libre"') + '>' + (esHueco ? '' : 'drag_indicator') + '</span>';
+          return '<td class="hora"><span class="hora-celda">' + asa + casilla + (vacio ? '—' : escapar(valor)) + punto + '</span></td>';
         }
 
         if (header === 'Usuario' && esHueco) {
@@ -981,6 +1043,7 @@
 
         var filtradas = CITAS.filter(function(c) {
           if (vista === 'hoy' && c._fechaISO !== hoy) return false;
+          if (arrastre && c._hueco) return true;
           if (filtrosActivos.size > 0) {
             if (!pasaFiltrosRapidos(c)) return false;
           } else if (!mostrarHuecos && c._hueco) {
@@ -1002,6 +1065,7 @@
 
         cont.innerHTML = vista === 'hoy' ? htmlTarjetas(filtradas) : htmlTabla(filtradas);
         cont.scrollTop = scrollPrevio;
+        reaplicarArrastre();
       }
 
       function htmlTabla(filtradas) {
@@ -1145,7 +1209,7 @@
         var meta = (vacioTxt(c['Sesión']) ? '' : badgeSesion(c['Sesión'])) + (vacioTxt(tel) ? '' : '<span>' + escapar(tel) + '</span>');
 
         return '<div class="' + clases.join(' ') + '" data-fila="' + c._fila + '">' +
-          '<div class="tj-top"><span class="chk"></span><span class="tj-hora">' + escapar(hora) + '</span>' + tagTxt + '<span class="tj-fill"></span>' + htmlBotonesFila(c._fila) + '</div>' +
+          '<div class="tj-top"><span class="asa material-symbols-outlined" title="Arrastra para mover la cita a otro hueco libre">drag_indicator</span><span class="chk"></span><span class="tj-hora">' + escapar(hora) + '</span>' + tagTxt + '<span class="tj-fill"></span>' + htmlBotonesFila(c._fila) + '</div>' +
           '<div class="tj-nombre" title="' + escapar(c['Usuario']) + '">' + escapar(c['Usuario']) + '</div>' +
           '<div class="tj-meta">' + meta + '</div>' + asis + notas + '<div class="tj-pie">' + pie + '</div></div>';
       }
@@ -1756,9 +1820,192 @@
 
       // Cada minuto: actualiza "ahora", la línea de hora y las citas ya terminadas
       setInterval(function() {
-        if (document.querySelector('.editando') || !CITAS.length) return;
+        if (document.querySelector('.editando') || arrastre || !CITAS.length) return;
         if (vista === 'hoy' || CITAS.some(function(c) { return c._fechaISO === hoyISO(); })) render();
       }, 60000);
+
+      // ---------- Arrastrar y soltar: mover una cita a un hueco libre ----------
+      // Pointer Events (ratón, táctil y lápiz). Con ratón se arrastra desde cualquier
+      // parte de la fila/tarjeta (salvo botones, enlaces y celdas editables); con
+      // táctil, desde el asa ⋮⋮. Mientras se arrastra se muestran los huecos libres,
+      // la lista hace autoscroll en los bordes y Esc cancela.
+      var arrastre = null;          // arrastre en curso: { fila, id, x, y, destino, ghost, raf }
+      var candidatoArrastre = null; // pulsación pendiente de superar el umbral de movimiento
+      var ultimoArrastreTs = 0;
+      var UMBRAL_ARRASTRE = 6;
+      var ultimoMovimiento = null, timeoutToastMover = null;
+
+      function citaPorFila(f) { return CITAS.find(function(c) { return c._fila == f; }); }
+
+      function camposMovibles() {
+        var k = ['Usuario', 'Teléfono', 'Sesión', 'Asistencia', 'ID Evento Calendar', 'Notas'];
+        if (COL_HISTORIA) k.push(COL_HISTORIA);
+        return k;
+      }
+
+      // Traspasa los datos de una cita a otro hueco EN MEMORIA (fecha/día/hora no se tocan).
+      function transferirLocal(deFila, aFila) {
+        var o = citaPorFila(deFila), d = citaPorFila(aFila);
+        if (!o || !d) return false;
+        camposMovibles().forEach(function(k) { d[k] = o[k]; o[k] = ''; });
+        o._hueco = true; d._hueco = false;
+        if (filasSeleccionadas.has(deFila)) { filasSeleccionadas.delete(deFila); filasSeleccionadas.add(aFila); }
+        return true;
+      }
+
+      var wrapArrastre = document.getElementById('tablaWrap');
+
+      wrapArrastre.addEventListener('pointerdown', function(e) {
+        if (arrastre || (e.pointerType === 'mouse' && e.button !== 0)) return;
+        if (document.querySelector('.editando')) return;
+        var t = e.target, asa = t.closest('.asa');
+        if (!asa && (e.pointerType !== 'mouse' || t.closest('button, a, input, select, .editable, .chk'))) return;
+        var el = t.closest('tr.fila-cita, .tarjeta:not(.hueco)');
+        if (!el) return;
+        candidatoArrastre = { fila: Number(el.dataset.fila), id: e.pointerId, x: e.clientX, y: e.clientY };
+      });
+
+      window.addEventListener('pointermove', function(e) {
+        if (!arrastre && candidatoArrastre && e.pointerId === candidatoArrastre.id) {
+          var dx = e.clientX - candidatoArrastre.x, dy = e.clientY - candidatoArrastre.y;
+          if (dx * dx + dy * dy > UMBRAL_ARRASTRE * UMBRAL_ARRASTRE) iniciarArrastre(e);
+        }
+        if (arrastre && e.pointerId === arrastre.id) {
+          arrastre.x = e.clientX; arrastre.y = e.clientY;
+          if (e.cancelable) e.preventDefault();
+          posicionarGhost();
+        }
+      }, { passive: false });
+
+      window.addEventListener('pointerup', function(e) {
+        candidatoArrastre = null;
+        if (arrastre && e.pointerId === arrastre.id) finalizarArrastre(true);
+      });
+      window.addEventListener('pointercancel', function() { candidatoArrastre = null; if (arrastre) finalizarArrastre(false); });
+      document.addEventListener('selectstart', function(e) { if (arrastre) e.preventDefault(); });
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && arrastre) { e.stopPropagation(); finalizarArrastre(false); }
+      }, true);
+
+      // El clic que sigue a soltar no debe seleccionar/editar nada.
+      wrapArrastre.addEventListener('click', function(e) {
+        if (Date.now() - ultimoArrastreTs < 350) { e.stopPropagation(); e.preventDefault(); }
+      }, true);
+
+      function iniciarArrastre(e) {
+        var cita = citaPorFila(candidatoArrastre.fila);
+        if (!cita || cita._hueco) { candidatoArrastre = null; return; }
+        arrastre = { fila: cita._fila, id: candidatoArrastre.id, x: e.clientX, y: e.clientY, destino: null, ghost: null, raf: 0 };
+        candidatoArrastre = null;
+        try { wrapArrastre.setPointerCapture(e.pointerId); } catch (err) { /* no crítico */ }
+
+        var g = document.createElement('div');
+        g.className = 'ghost-cita';
+        g.innerHTML = '<span class="material-symbols-outlined" style="font-size:18px">event</span><span>' + escapar(cita['Usuario']) +
+          '</span><small>' + escapar(cita['Hora']) + '</small>';
+        document.body.appendChild(g);
+        arrastre.ghost = g;
+        document.body.classList.add('arrastrando-cita');
+        try { window.getSelection().removeAllRanges(); } catch (err) { /* no crítico */ }
+
+        render(); // enseña los huecos libres mientras se arrastra
+        posicionarGhost();
+        arrastre.raf = requestAnimationFrame(bucleArrastre);
+      }
+
+      function posicionarGhost() {
+        if (arrastre && arrastre.ghost) arrastre.ghost.style.transform = 'translate3d(' + (arrastre.x + 14) + 'px,' + (arrastre.y + 10) + 'px,0)';
+      }
+
+      function reaplicarArrastre() {
+        if (!arrastre) return;
+        var o = document.querySelector('tr.fila-cita[data-fila="' + arrastre.fila + '"], .tarjeta[data-fila="' + arrastre.fila + '"]');
+        if (o) o.classList.add('arrastrando');
+        arrastre.destino = null;
+      }
+
+      function bucleArrastre() {
+        if (!arrastre) return;
+        var r = wrapArrastre.getBoundingClientRect(), th = wrapArrastre.querySelector('thead');
+        var arriba = r.top + (th ? th.offsetHeight : 0) + 60, abajo = r.bottom - 60, v = 0;
+        if (arrastre.y < arriba) v = -(arriba - arrastre.y) / 4;
+        else if (arrastre.y > abajo) v = (arrastre.y - abajo) / 4;
+        if (v) wrapArrastre.scrollTop += Math.max(-22, Math.min(22, v));
+        marcarDestino();
+        arrastre.raf = requestAnimationFrame(bucleArrastre);
+      }
+
+      function marcarDestino() {
+        var el = document.elementFromPoint(arrastre.x, arrastre.y);
+        var obj = el && el.closest ? el.closest('tr.fila-hueco, .tarjeta.hueco') : null;
+        var fila = obj ? Number(obj.dataset.fila) : null;
+        if (fila === arrastre.destino) return;
+        var prev = document.querySelector('.destino-drop');
+        if (prev) prev.classList.remove('destino-drop');
+        arrastre.destino = fila;
+        if (obj) obj.classList.add('destino-drop');
+      }
+
+      function finalizarArrastre(soltar) {
+        var a = arrastre;
+        if (!a) return;
+        cancelAnimationFrame(a.raf);
+        if (soltar) marcarDestino();
+        var destino = soltar ? a.destino : null;
+        if (a.ghost) a.ghost.remove();
+        document.body.classList.remove('arrastrando-cita');
+        try { wrapArrastre.releasePointerCapture(a.id); } catch (err) { /* ya liberado */ }
+        ultimoArrastreTs = Date.now();
+        arrastre = null;
+        if (destino) moverCitaUI(a.fila, destino, false);
+        else { render(); actualizarBotonesSeleccion(); }
+      }
+
+      // Actualiza la pantalla al instante y confirma con el servidor; si falla, revierte.
+      function moverCitaUI(filaO, filaD, esDeshacer) {
+        if (!transferirLocal(filaO, filaD)) { render(); return; }
+        render();
+        actualizarBotonesSeleccion();
+
+        function revertir(msg) {
+          transferirLocal(filaD, filaO);
+          render();
+          actualizarBotonesSeleccion();
+          mostrarAviso(msg);
+          cargar(semanaActual, true);
+        }
+
+        google.script.run
+          .withSuccessHandler(function(res) {
+            if (!res || !res.success) { revertir((res && res.message) || 'No se pudo mover la cita.'); return; }
+            if (esDeshacer) ocultarToastMover(); else mostrarToastMover(filaO, filaD);
+          })
+          .withFailureHandler(function(err) { revertir('Error al mover la cita: ' + err); })
+          .moverCitaWeb(filaO, filaD);
+      }
+
+      function mostrarToastMover(filaO, filaD) {
+        var d = citaPorFila(filaD);
+        ultimoMovimiento = { desde: filaO, hacia: filaD };
+        document.getElementById('toastMoverTexto').textContent = 'Cita movida' + (d ? ' a ' + (d['Día'] ? d['Día'] + ' ' : '') + d['Hora'] : '') + '.';
+        var toast = document.getElementById('toastMover');
+        toast.classList.add('visible');
+        if (timeoutToastMover) clearTimeout(timeoutToastMover);
+        timeoutToastMover = setTimeout(function() { toast.classList.remove('visible'); }, 6000);
+      }
+
+      function ocultarToastMover() {
+        ultimoMovimiento = null;
+        document.getElementById('toastMover').classList.remove('visible');
+        if (timeoutToastMover) { clearTimeout(timeoutToastMover); timeoutToastMover = null; }
+      }
+
+      document.getElementById('toastMoverBtn').addEventListener('click', function() {
+        var m = ultimoMovimiento;
+        if (!m) return;
+        ocultarToastMover();
+        moverCitaUI(m.hacia, m.desde, true);
+      });
 
       // ---------- Enlazar Historia Clínica ----------
       document.getElementById('btnEnlazarHC').addEventListener('click', function() {
@@ -1792,7 +2039,7 @@
       var ultimaVersionAgenda = null;
 
       function comprobarVersionAgenda() {
-        if (!semanaActual) return;
+        if (!semanaActual || arrastre) return;
         if (document.querySelector('.editando')) return;
 
         google.script.run
