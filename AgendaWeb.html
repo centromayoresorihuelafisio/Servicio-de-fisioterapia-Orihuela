@@ -5,265 +5,518 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Agenda</title>
 
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600&family=Roboto+Mono:wght@400;500&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
 
     <style>
       *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+      button, input, select { font-family: inherit; line-height: inherit; }
 
       <?!= include('CSS_Global'); ?>
+
+      /* Paleta propia de la Agenda: tonos Material 3 desaturados. Los rellenos
+         de fila/día/turno son tintes translúcidos (rgba) que se apilan sobre
+         un fondo blanco opaco, así las columnas fijas no dejan ver lo que hay
+         debajo al desplazarse. */
+      :root {
+        --ag-accent:          #0b57d0;   /* primario: enlaces, foco, casillas */
+        --ag-accent-hover:    #0949b0;
+        --ag-accent-dark:     #004a77;   /* texto sobre contenedor tonal */
+        --ag-container:       #c2e7ff;   /* botón primario y pestaña activa */
+        --ag-container-hover: #a8d9f9;
+        --ag-accent-soft:     rgba(194,231,255,.55);
+
+        --ag-page:          #f8fafd;
+        --ag-surface:       #ffffff;
+        --ag-line:          #e3e8ef;
+        --ag-text:          #1f2430;
+        --ag-text-med:      #586074;
+        --ag-text-low:      #8a93a6;
+
+        --ag-tinte-par:     rgba(0,74,119,.075);
+        --ag-tinte-hover:   rgba(0,120,212,.12);
+        --ag-tinte-sel:     rgba(0,120,212,.22);
+        --ag-tinte-dia:     rgba(0,74,119,.09);
+        --ag-tinte-hoy:     rgba(0,120,212,.20);
+        --ag-tinte-manana:  rgba(0,74,119,.04);
+        --ag-tinte-tarde:   rgba(200,140,0,.10);
+        --ag-day-bg:        #e9eef3;
+
+        --ag-ok-bar:    #4c9f6a;
+        --ag-mal-bar:   #d9706a;
+        --ag-aviso-bar: #e3ad45;
+
+        --ag-error:         #b3261e;
+        --ag-error-bg:      #fdecea;
+        --ag-warning-bg:    #fff4d6;
+        --ag-warning-border:#f0c14b;
+        --ag-warning-text:  #6d5320;
+        --ag-warning-hover: #fdecc0;
+        --ag-toast-bg:      #323232;
+        --ag-toast-action:  #8ab4f8;
+        --ag-overlay:       rgba(32,33,36,.5);
+        --ag-t:             150ms ease;
+        --alto-thead:       36px;
+      }
 
       html, body { height: 100%; }
       body {
         font-family: var(--font);
-        background: var(--md-bg);
-        color: var(--md-on-surface);
+        background: var(--ag-page);
+        color: var(--ag-text);
         display: flex;
         flex-direction: column;
-        font-size: 13px;
+        font-size: 14px;
+        line-height: 1.5;
       }
 
+      .btn-toolbar:focus-visible, .btn-fila:focus-visible, .btn-asis:focus-visible, .seg:focus-visible, .chip-filtro:focus-visible, .menu-item:focus-visible,
+      nav.tabs-cambio a.tab-cambio:focus-visible, td a.link-hc:focus-visible {
+        outline: 2px solid var(--ag-accent); outline-offset: 2px;
+      }
+      .toast-deshacer button:focus-visible { outline: 2px solid var(--ag-toast-action); outline-offset: 2px; }
+      .buscador:focus-within, .selector-semana:focus-within { box-shadow: 0 0 0 2px var(--ag-accent); }
+
+      /* ---------- Cabecera ---------- */
       header.top {
-        background: var(--md-surface);
-        border-bottom: 1px solid var(--md-outline);
-        padding: .75rem 1rem;
+        background: var(--ag-surface);
+        border-bottom: 1px solid var(--ag-line);
+        padding: .6rem 1rem;
         flex-shrink: 0;
       }
-      header.top h1 {
-        font-size: 1.05rem;
-        font-weight: 600;
-        display: flex;
-        align-items: center;
-        gap: .5rem;
-        margin-bottom: .6rem;
-      }
-      header.top .contador { font-size: .78rem; color: var(--md-on-surface-med); font-weight: 400; }
+      .barra { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; min-height: 40px; }
+      .espaciador { flex: 1; }
+      .contador { font-size: .8rem; color: var(--ag-text-med); white-space: nowrap; }
 
-      .barra-herramientas {
-        display: flex;
-        gap: .4rem;
-        flex-wrap: wrap;
-        align-items: center;
-        margin-bottom: .6rem;
-        padding-bottom: .6rem;
-        border-bottom: 1px solid var(--md-outline);
-      }
+      .barra-seleccion { display: none; background: var(--ag-accent-soft); border-radius: 12px; padding: .3rem .6rem; }
+      header.top.con-seleccion .barra-principal { display: none; }
+      header.top.con-seleccion .barra-seleccion { display: flex; }
+      .contador-seleccion { font-size: .85rem; font-weight: 600; color: var(--ag-accent-dark); margin-right: .25rem; }
+      .separador { width: 1px; height: 22px; background: rgba(0,0,0,.15); margin: 0 .25rem; }
+
+      /* ---------- Botones ---------- */
       .btn-toolbar {
-        display: inline-flex;
-        align-items: center;
-        gap: .3rem;
-        background: var(--md-surface);
-        border: 1px solid var(--md-outline);
-        color: var(--md-on-surface);
-        border-radius: var(--radius-pill);
-        padding: .35rem .8rem;
-        font-size: .8rem;
-        font-weight: 500;
-        cursor: pointer;
-        transition: var(--transition);
-        font-family: var(--font);
+        display: inline-flex; align-items: center; gap: .35rem;
+        background: var(--ag-surface); border: 1px solid #cfd6e4; color: var(--ag-text);
+        border-radius: 999px; padding: .4rem .9rem; font-size: .82rem; font-weight: 500;
+        cursor: pointer; transition: all var(--ag-t); font-family: var(--font);
       }
-      .btn-toolbar:hover { background: var(--md-surface-variant); }
-      .btn-toolbar.primario { background: #c2e7ff; border-color: #c2e7ff; color: #004a77; }
-      .btn-toolbar.primario:hover { background: #a8d9f9; border-color: #a8d9f9; }
+      .btn-toolbar:hover { background: #eef2f9; }
+      .btn-toolbar.primario { background: var(--ag-container); border-color: var(--ag-container); color: var(--ag-accent-dark); }
+      .btn-toolbar.primario:hover { background: var(--ag-container-hover); border-color: var(--ag-container-hover); }
+      .btn-toolbar.peligro { color: var(--ag-error); }
+      .btn-toolbar.peligro:hover { background: var(--ag-error-bg); border-color: var(--ag-error); }
       .btn-toolbar:disabled { opacity: .45; cursor: not-allowed; }
-      /* Botón "Deshacer": solo se muestra tras una eliminación, hasta que se
-         usa, se hace otra eliminación encima, o se cambia de semana/pestaña
-         (al ser una página independiente, el estado no sobrevive a eso). */
-      .btn-toolbar.deshacer { display: none; background: var(--md-warning-bg); border-color: var(--md-warning); color: #7a4f00; }
+      .btn-toolbar .material-symbols-outlined { font-size: 18px; }
+      .btn-toolbar.btn-nav { padding: .4rem .55rem; }
+      .btn-toolbar.activo { background: var(--ag-container); border-color: var(--ag-container); color: var(--ag-accent-dark); }
+      .btn-toolbar.deshacer { display: none; background: var(--ag-warning-bg); border-color: var(--ag-warning-border); color: var(--ag-warning-text); }
       .btn-toolbar.deshacer.visible { display: inline-flex; }
-      .btn-toolbar.deshacer:hover { background: #fdecc0; }
+      .btn-toolbar.deshacer:hover { background: var(--ag-warning-hover); }
+      .spin-icon { animation: spin 1s linear infinite; }
+      @keyframes spin { to { transform: rotate(360deg); } }
+
+      .grupo-nav { display: inline-flex; }
+      .grupo-nav .btn-toolbar { border-radius: 0; margin-left: -1px; position: relative; }
+      .grupo-nav .btn-toolbar:first-child { border-radius: 999px 0 0 999px; margin-left: 0; }
+      .grupo-nav .btn-toolbar:last-child { border-radius: 0 999px 999px 0; }
+      .grupo-nav .btn-toolbar:hover, .grupo-nav .btn-toolbar:focus-visible { z-index: 1; }
+
+      .etiqueta-semana {
+        font-size: .82rem; font-weight: 600; color: var(--ag-accent-dark); white-space: nowrap;
+        text-transform: capitalize; background: var(--ag-accent-soft); border-radius: 999px; padding: .3rem .85rem;
+      }
+      .selector-semana {
+        display: flex; align-items: center; gap: .3rem;
+        background: #eef1f7; border-radius: 999px; padding: .3rem .75rem;
+      }
+      .selector-semana .material-symbols-outlined { color: var(--ag-text-low); font-size: 18px; }
+      .selector-semana input { border: none; outline: none; background: transparent; font-family: var(--font); font-size: .82rem; color: var(--ag-text); }
+
+      .buscador {
+        display: flex; align-items: center; gap: .4rem;
+        background: #eef1f7; border-radius: 999px; padding: .4rem .85rem; flex: 0 1 320px; min-width: 200px;
+      }
+      .buscador input { border: none; outline: none; flex: 1; min-width: 0; font-size: .85rem; font-family: var(--font); background: transparent; color: var(--ag-text); }
+      .buscador input::placeholder { color: var(--ag-text-low); }
+      .buscador .material-symbols-outlined { color: var(--ag-text-low); font-size: 18px; }
+
+      /* ---------- Toast de deshacer ---------- */
       .toast-deshacer {
         position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%);
-        background: #323232; color: #fff; padding: .65rem 1rem; border-radius: var(--radius-md);
+        background: var(--ag-toast-bg); color: #fff; padding: .65rem 1rem; border-radius: 10px;
         display: flex; align-items: center; gap: 1rem; font-size: .82rem;
         box-shadow: 0 4px 16px rgba(0,0,0,.25); z-index: 1200;
         opacity: 0; pointer-events: none; transition: opacity 200ms ease;
       }
       .toast-deshacer.visible { opacity: 1; pointer-events: auto; }
       .toast-deshacer button {
-        background: none; border: none; color: #8ab4f8; font-weight: 700; font-size: .82rem;
+        background: none; border: none; color: var(--ag-toast-action); font-weight: 700; font-size: .82rem;
         cursor: pointer; font-family: var(--font); padding: 0; letter-spacing: .02em;
       }
       .toast-deshacer button:hover { text-decoration: underline; }
-      .btn-toolbar.activo { background: var(--md-primary-light); border-color: var(--md-primary); color: var(--md-primary-dark); }
-      .btn-toolbar .material-symbols-outlined { font-size: 17px; }
-      .btn-toolbar.btn-nav { padding: .35rem .55rem; }
 
-      .etiqueta-semana {
-        font-size: .8rem;
-        font-weight: 600;
-        color: var(--md-primary-dark);
-        white-space: nowrap;
-        text-transform: capitalize;
-        background: var(--md-primary-light);
-        border-radius: var(--radius-pill);
-        padding: .3rem .8rem;
+      /* ---------- Tabla ---------- */
+      .tabla-wrap { flex: 1; overflow: auto; background: var(--ag-surface); }
+      table {
+        border-collapse: separate; border-spacing: 0; width: 100%; min-width: 1180px;
+        table-layout: fixed; font-variant-numeric: tabular-nums;
       }
-
-      .etiqueta-ayuda { font-size: .78rem; color: var(--md-on-surface-low); white-space: nowrap; padding: 0 .2rem; }
-
-      .selector-semana {
-        display: flex; align-items: center; gap: .3rem;
-        background: var(--md-surface-variant); border-radius: var(--radius-pill);
-        padding: .3rem .7rem; margin-left: auto;
-      }
-      .selector-semana .material-symbols-outlined { color: var(--md-on-surface-low); font-size: 18px; }
-      .selector-semana input {
-        border: none; outline: none; background: transparent; font-family: var(--font); font-size: .8rem; color: var(--md-on-surface);
-      }
-
-      .controles { display: flex; gap: .5rem; flex-wrap: wrap; align-items: center; }
-      .buscador {
-        display: flex; align-items: center; gap: .4rem;
-        background: var(--md-surface-variant); border-radius: var(--radius-pill);
-        padding: .4rem .8rem; flex: 1; min-width: 200px;
-      }
-      .buscador input { border: none; outline: none; flex: 1; font-size: .85rem; font-family: var(--font); background: transparent; }
-      .buscador .material-symbols-outlined { color: var(--md-on-surface-low); font-size: 18px; }
-
-      .tabla-wrap { flex: 1; overflow: auto; }
-      table { border-collapse: collapse; width: 100%; min-width: 900px; table-layout: fixed; }
       thead th {
-        position: sticky; top: 0; background: var(--md-surface-variant); color: var(--md-on-surface-med);
-        font-size: .68rem; text-transform: uppercase; letter-spacing: .02em; font-weight: 600; text-align: left;
-        padding: .4rem .6rem; border-bottom: 1px solid var(--md-outline); white-space: nowrap; z-index: 2;
+        position: sticky; top: 0; background: #eef2f7; color: var(--ag-text-med);
+        font-size: .7rem; text-transform: uppercase; letter-spacing: .05em; font-weight: 700; text-align: left;
+        height: var(--alto-thead); padding: 0 .8rem; border-bottom: 2px solid var(--ag-line);
+        white-space: nowrap; z-index: 2;
       }
+      /* Columnas 1 (casilla + Hora) y 2 (Usuario) fijas a la izquierda */
       thead th:nth-child(1), tbody td:nth-child(1) {
-        position: sticky; left: 0; width: 60px; min-width: 60px; max-width: 60px;
-        background: var(--md-surface-variant); z-index: 3; box-shadow: 1px 0 0 var(--md-outline);
+        position: sticky; left: 0; width: 92px; min-width: 92px; max-width: 92px;
+        background-color: #eef2f7; z-index: 3; box-shadow: 1px 0 0 var(--ag-line);
       }
-      tbody td:nth-child(1) { background: var(--md-surface); z-index: 1; }
+      tbody td:nth-child(1) { background-color: var(--ag-surface); z-index: 1; }
       thead th:nth-child(2), tbody td:nth-child(2) {
-        position: sticky; left: 60px; width: 210px; min-width: 210px; max-width: 210px;
-        background: var(--md-surface-variant); z-index: 3; box-shadow: 1px 0 0 var(--md-outline);
+        position: sticky; left: 92px; width: 320px; min-width: 320px; max-width: 320px;
+        background-color: #eef2f7; z-index: 3; box-shadow: 1px 0 0 var(--ag-line);
       }
-      tbody td:nth-child(2) { background: var(--md-surface); z-index: 1; }
-      /* Teléfono, Sesión, Asistencia, Historia clínica: anchos ajustados a su
-         contenido real. Notas se deja sin ancho fijo para que se quede con
-         todo el espacio sobrante (table-layout: fixed reparte así lo que no
-         está explícitamente asignado). */
-      thead th:nth-child(3), tbody td:nth-child(3) { width: 112px; }
-      thead th:nth-child(4), tbody td:nth-child(4) { width: 64px; }
-      thead th:nth-child(5), tbody td:nth-child(5) { width: 110px; }
-      thead th:nth-child(6), tbody td:nth-child(6) { width: 110px; }
-      thead th:nth-child(8), tbody td:nth-child(8) { width: 44px; text-align: center; }
+      tbody td:nth-child(2) { background-color: var(--ag-surface); z-index: 1; font-weight: 600; }
+      thead th:nth-child(3), tbody td:nth-child(3) { width: 116px; }
+      thead th:nth-child(4), tbody td:nth-child(4) { width: 70px; }
+      thead th:nth-child(5), tbody td:nth-child(5) { width: 136px; }
+      thead th:nth-child(6), tbody td:nth-child(6) { width: 120px; }
 
-      /* Filas estrechas con alternancia de color, como en la hoja de Sheets.
-         Se aplica por clase (no nth-child) porque las filas de cabecera de
-         día intercaladas en la tabla romperían la paridad par/impar. */
-      tbody tr.fila-par { background: #fbfbfc; }
-      tbody tr.fila-par td:nth-child(1), tbody tr.fila-par td:nth-child(2) { background: #fbfbfc; }
+      /* Relleno de fila = fondo blanco opaco + tinte translúcido (--fila-tinte,
+         que se define por fila y por estado: alterna, hover, seleccionada). */
+      tbody td {
+        background-color: var(--ag-surface);
+        background-image: linear-gradient(var(--fila-tinte, transparent), var(--fila-tinte, transparent));
+        padding: .6rem .8rem; border-bottom: 1px solid var(--ag-line);
+        white-space: nowrap; max-width: 220px; overflow: hidden; text-overflow: ellipsis;
+      }
+      /* Columna de la papelera: sin relleno lateral ni recorte. Con el relleno
+         normal el botón (26px) no cabía en la columna y aparecían los "…". */
+      thead th:nth-child(8), tbody td:nth-child(8) {
+        width: 116px; padding: 0 .5rem; text-align: right; white-space: nowrap; overflow: visible; text-overflow: clip;
+      }
+      td.hora { font-weight: 700; font-size: .92rem; }
+      td.vacio { color: var(--ag-text-low); font-style: italic; }
+      td a.link-hc { color: var(--ag-accent); text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: .2rem; }
+      td a.link-hc:hover { text-decoration: underline; }
+      .ic-15 { font-size: 15px; }
 
-      /* Fila-etiqueta de cambio de turno (mañana -> tarde): mismo lenguaje
-         visual que la cabecera de día, para que el corte se vea de un
-         vistazo en vez de un simple borde sutil. */
+      tbody tr.fila-par { --fila-tinte: var(--ag-tinte-par); }
+      tbody tr.fila-cita { cursor: pointer; }
+      tbody tr.fila-cita:not(.seleccionada):hover { --fila-tinte: var(--ag-tinte-hover); }
+      tbody tr.seleccionada { --fila-tinte: var(--ag-tinte-sel); }
+
+      /* Barra de color de asistencia en el borde izquierdo */
+      tbody tr.asist-ok td:nth-child(1)    { box-shadow: inset 4px 0 0 var(--ag-ok-bar),    1px 0 0 var(--ag-line); }
+      tbody tr.asist-mal td:nth-child(1)   { box-shadow: inset 4px 0 0 var(--ag-mal-bar),   1px 0 0 var(--ag-line); }
+      tbody tr.asist-aviso td:nth-child(1) { box-shadow: inset 4px 0 0 var(--ag-aviso-bar), 1px 0 0 var(--ag-line); }
+
+      /* Casilla de selección */
+      .hora-celda { display: inline-flex; align-items: center; gap: .55rem; }
+      .chk {
+        width: 16px; height: 16px; flex-shrink: 0; position: relative;
+        border: 1.5px solid var(--ag-text-low); border-radius: 4px;
+        background: var(--ag-surface); transition: all var(--ag-t);
+      }
+      .chk.oculto { visibility: hidden; }
+      tbody tr.fila-cita:hover .chk { border-color: var(--ag-accent); }
+      tbody tr.seleccionada .chk { background: var(--ag-accent); border-color: var(--ag-accent); }
+      tbody tr.seleccionada .chk::after {
+        content: ''; position: absolute; left: 4px; top: 0; width: 4px; height: 8px;
+        border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg);
+      }
+
+      /* Cabecera de día: banda tonal, fijada bajo el encabezado de columnas */
+      tbody tr.fila-dia td {
+        position: sticky !important; top: calc(var(--alto-thead) - 1px); left: 0; z-index: 2;
+        width: auto !important; min-width: 0 !important; max-width: none !important;
+        background-color: var(--ag-surface) !important;
+        background-image: linear-gradient(var(--ag-tinte-dia), var(--ag-tinte-dia)) !important;
+        color: var(--ag-text); font-weight: 700; font-size: .88rem; text-transform: capitalize;
+        padding: .6rem .9rem; border-bottom: 1px solid var(--ag-line); white-space: normal; box-shadow: none !important;
+      }
+      tbody tr.fila-dia.hoy td {
+        background-image: linear-gradient(var(--ag-tinte-hoy), var(--ag-tinte-hoy)) !important;
+        color: var(--ag-accent-dark); box-shadow: inset 4px 0 0 var(--ag-accent) !important;
+      }
+      .dia-cab { display: flex; align-items: center; gap: .7rem; }
+      .dia-hoy {
+        background: rgba(255,255,255,.75); color: var(--ag-accent-dark); border-radius: 999px;
+        padding: .05rem .65rem; font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em;
+      }
+      .dia-stats { margin-left: auto; font-size: .76rem; font-weight: 500; color: var(--ag-text-med); text-transform: none; }
+
+      /* Etiqueta de turno */
       tbody tr.fila-turno td {
         position: static !important; width: auto !important; min-width: 0 !important; max-width: none !important;
-        background: var(--md-warning-bg) !important; color: var(--md-warning);
-        font-weight: 700; font-size: .68rem; text-transform: uppercase; letter-spacing: .04em;
-        padding: .3rem .6rem; border-top: 1px solid var(--md-outline); border-bottom: 1px solid var(--md-outline);
+        font-weight: 700; font-size: .68rem; letter-spacing: .06em; text-transform: uppercase;
+        padding: .3rem .9rem; border-bottom: 1px solid var(--ag-line); box-shadow: none !important;
+      }
+      tbody tr.fila-turno.manana td {
+        background-image: linear-gradient(var(--ag-tinte-manana), var(--ag-tinte-manana)) !important; color: var(--ag-text-med);
+      }
+      tbody tr.fila-turno.tarde td {
+        background-image: linear-gradient(var(--ag-tinte-tarde), var(--ag-tinte-tarde)) !important; color: var(--ag-warning-text);
       }
 
-      /* Hueco libre (hora real sin paciente asignado): más discreto que una
-         cita real, para que a simple vista destaquen las citas confirmadas. */
-      tbody tr.fila-hueco td { color: var(--md-on-surface-low); }
-      tbody tr.fila-hueco td.hueco-libre { font-style: italic; }
-
-      /* Selección de cita (mismo patrón que la Base de Datos) */
-      tbody tr.seleccionada td { background: var(--md-primary-container) !important; }
-
-      /* Cabecera de grupo por día: sustituye a repetir Fecha/Día en cada fila */
-      tbody tr.fila-dia td {
-        position: static !important; width: auto !important; min-width: 0 !important; max-width: none !important;
-        background: var(--md-primary-light) !important; color: var(--md-primary-dark);
-        font-weight: 600; font-size: .78rem; text-transform: capitalize;
-        padding: .4rem .6rem; border-bottom: 1px solid var(--md-outline); white-space: normal;
+      /* Hueco libre */
+      tbody tr.fila-hueco td { color: var(--ag-text-low); }
+      td.hueco-libre { cursor: pointer; }
+      .chip-asignar {
+        display: inline-flex; align-items: center; gap: .1rem;
+        border: 1px dashed var(--ag-accent); color: var(--ag-accent); border-radius: 999px;
+        padding: .02rem .7rem .02rem .35rem; font-size: .74rem; font-weight: 600; font-style: normal;
+        transition: all var(--ag-t);
       }
+      .chip-asignar .material-symbols-outlined { font-size: 14px; }
+      td.hueco-libre:hover .chip-asignar { background: var(--ag-accent); border-style: solid; color: #fff; }
 
-      tbody td { padding: .32rem .6rem; border-bottom: 1px solid var(--md-outline); white-space: nowrap; max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
-      td.hora { font-weight: 600; }
-      td.vacio { color: var(--md-on-surface-low); font-style: italic; }
+      /* Chips de asistencia */
+      .chip {
+        display: inline-flex; align-items: center; gap: .35rem; max-width: 100%;
+        padding: .15rem .7rem; border-radius: 999px;
+        font-size: .76rem; font-weight: 600; font-style: normal; white-space: nowrap;
+        overflow: hidden; text-overflow: ellipsis;
+      }
+      .chip::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+      .chip-ok { background: rgba(30,142,62,.15); color: #1b6a33; }
+      .chip-mal { background: rgba(217,48,37,.13); color: #a52f29; }
+      .chip-aviso { background: rgba(240,165,0,.20); color: #7a5200; }
+      .chip-neutro { background: rgba(88,96,116,.14); color: #4a5265; }
 
-      td a.link-hc { color: var(--md-primary); text-decoration: none; font-weight: 500; display: inline-flex; align-items: center; gap: .2rem; }
-      td a.link-hc:hover { text-decoration: underline; }
+      td.celda-notas { white-space: normal; max-width: none; }
+      .notas-clamp {
+        display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
+        overflow: hidden; word-break: break-word; line-height: 1.35;
+      }
 
       /* Edición en línea */
       td.editable { cursor: pointer; }
-      td.editable:hover { background: var(--md-primary-light) !important; }
-      td.editando { padding: .18rem .3rem; overflow: visible; position: relative; }
-      /* Indicador de autoguardado: aparece a la derecha del campo mientras
-         se está editando, sin necesidad de salir de la celda para saber si
-         se ha guardado. */
+      td.editable:hover { --fila-tinte: var(--ag-tinte-hover); }
+      td.editando, div.editando { padding: .25rem .4rem; overflow: visible; position: relative; }
       .estado-guardado {
-        position: absolute; right: 5px; top: 50%; transform: translateY(-50%);
+        position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
         font-size: .8rem; font-weight: 700; pointer-events: none;
       }
-      .estado-guardado.progreso { color: var(--md-on-surface-low); font-weight: 400; }
-      .estado-guardado.ok { color: var(--md-success); }
-      .estado-guardado.fallo { color: var(--md-error); }
+      .estado-guardado.progreso { color: var(--ag-text-low); font-weight: 400; }
+      .estado-guardado.ok { color: var(--ag-ok-bar); }
+      .estado-guardado.fallo { color: var(--ag-mal-bar); }
       .input-celda {
-        width: 100%; font-family: var(--font); font-size: .8rem; color: var(--md-on-surface);
-        border: 1px solid var(--md-primary); border-radius: var(--radius-sm); padding: .2rem .35rem;
-        background: var(--md-surface); outline: none;
+        width: 100%; font-family: var(--font); font-size: .85rem; color: var(--ag-text);
+        border: 1px solid var(--ag-accent); border-radius: 6px; padding: .25rem .4rem;
+        background: var(--ag-surface); outline: none;
       }
-      .btn-borrar-fila {
-        display: inline-flex; align-items: center; justify-content: center;
-        width: 24px; height: 24px; border-radius: 50%; border: none; background: transparent;
-        color: var(--md-on-surface-low); cursor: pointer; transition: var(--transition);
+      .estado-vacio { text-align: center; color: var(--ag-text-med); padding: 3rem 1rem; font-size: .9rem; }
+
+      /* Esqueleto de carga */
+      .esqueleto { background: var(--ag-surface); }
+      .esq-dia { height: 36px; background: var(--ag-day-bg); }
+      .esq-fila { display: flex; align-items: center; gap: 1.5rem; padding: .85rem 1rem; border-bottom: 1px solid var(--ag-line); }
+      .esq-barra {
+        display: block; height: 12px; border-radius: 6px;
+        background: linear-gradient(90deg, #eef1f7 25%, #e0e5ee 50%, #eef1f7 75%);
+        background-size: 200% 100%; animation: destello 1.3s linear infinite;
       }
-      .btn-borrar-fila:hover { background: var(--md-error-bg); color: var(--md-error); }
-      .btn-borrar-fila .material-symbols-outlined { font-size: 17px; }
+      .esq-flex { flex: 1; }
+      @keyframes destello { from { background-position: 200% 0; } to { background-position: -200% 0; } }
 
-      .estado-vacio, .estado-carga { text-align: center; color: var(--md-on-surface-med); padding: 3rem 1rem; font-size: .9rem; }
-      .estado-carga .material-symbols-outlined { font-size: 28px; animation: spin 1s linear infinite; display: block; margin: 0 auto .5rem; color: var(--md-primary); }
-      @keyframes spin { to { transform: rotate(360deg); } }
-
-      /* ---------- Modal propio (sustituye a alert()/confirm() nativos) ---------- */
+      /* ---------- Modal propio ---------- */
       .modal-overlay {
-        display: none;
-        position: fixed; inset: 0;
-        background: rgba(32,33,36,.5);
-        align-items: center; justify-content: center;
-        z-index: 1000;
-        padding: 1rem;
+        display: none; position: fixed; inset: 0; background: var(--ag-overlay);
+        align-items: center; justify-content: center; z-index: 1000; padding: 1rem;
       }
       .modal-overlay.visible { display: flex; }
       .modal-box {
-        background: var(--md-surface);
-        border-radius: var(--radius-md);
-        padding: 1.25rem 1.5rem;
-        max-width: 360px;
-        width: 100%;
-        box-shadow: 0 4px 20px rgba(0,0,0,.25);
+        background: var(--ag-surface); border-radius: 14px; padding: 1.25rem 1.5rem;
+        max-width: 360px; width: 100%; box-shadow: 0 4px 20px rgba(0,0,0,.25);
       }
-      .modal-mensaje {
-        font-size: .88rem;
-        color: var(--md-on-surface);
-        white-space: pre-line;
-        line-height: 1.45;
-        margin-bottom: 1.15rem;
-      }
+      .modal-mensaje { font-size: .88rem; color: var(--ag-text); white-space: pre-line; line-height: 1.45; margin-bottom: 1.15rem; }
       .modal-botones { display: flex; justify-content: flex-end; gap: .5rem; }
 
-      /* Pestañas para alternar entre Agenda y Base de Datos. Son enlaces
-         normales (navegación con recarga) porque las Web Apps de Apps
-         Script no se pueden embeber en un iframe (Google lo bloquea) — ver
-         el mismo comentario en BaseDatosWeb.html, donde por eso se usa
-         window.open() en vez de un iframe para el formulario de edición. */
+      /* Pestañas Agenda / Base de Datos / Valoraciones (enlaces con recarga,
+         porque las Web Apps de Apps Script no se pueden embeber en iframe) */
       nav.tabs-cambio {
         display: flex; gap: .25rem; flex-shrink: 0;
-        background: #f8fafd; padding: .5rem .75rem 0;
-        border-bottom: 1px solid var(--md-outline);
+        background: var(--ag-page); padding: .5rem .75rem 0;
+        border-bottom: 1px solid var(--ag-line);
       }
       nav.tabs-cambio a.tab-cambio {
         display: inline-flex; align-items: center; gap: .35rem;
-        background: transparent; color: #004a77; text-decoration: none;
+        background: transparent; color: var(--ag-accent-dark); text-decoration: none;
         font-family: var(--font); font-weight: 600; font-size: .82rem;
-        padding: .5rem 1rem; border-radius: 8px 8px 0 0; transition: var(--transition);
+        padding: .5rem 1rem; border-radius: 8px 8px 0 0; transition: all var(--ag-t);
       }
-      nav.tabs-cambio a.tab-cambio:hover { background: rgba(0,74,119, .05); }
-      nav.tabs-cambio a.tab-cambio.activo { background: #c2e7ff; color: #004a77; cursor: default; }
+      nav.tabs-cambio a.tab-cambio:hover { background: rgba(0,74,119,.05); }
+      nav.tabs-cambio a.tab-cambio.activo { background: var(--ag-container); color: var(--ag-accent-dark); cursor: default; }
+
+      /* ===== Barra secundaria: vista, filtros rápidos, densidad ===== */
+      .barra-filtros { margin-top: .5rem; min-height: 32px; }
+      .segmentado { display: inline-flex; background: #eef1f7; border-radius: 999px; padding: 2px; }
+      .seg {
+        border: none; background: transparent; padding: .25rem .9rem; border-radius: 999px;
+        font-size: .8rem; font-weight: 600; color: var(--ag-text-med); cursor: pointer;
+        font-family: var(--font); transition: all var(--ag-t);
+      }
+      .seg.activo { background: var(--ag-container); color: var(--ag-accent-dark); }
+      .chip-filtro {
+        display: inline-flex; align-items: center; gap: .35rem; border: 1px solid #cfd6e4;
+        background: var(--ag-surface); color: var(--ag-text-med); border-radius: 999px;
+        padding: .22rem .75rem; font-size: .78rem; font-weight: 600; cursor: pointer;
+        font-family: var(--font); transition: all var(--ag-t);
+      }
+      .chip-filtro:hover { background: #eef2f9; }
+      .chip-filtro.activo { background: var(--ag-container); border-color: var(--ag-container); color: var(--ag-accent-dark); }
+      .chip-filtro .cnt { font-size: .7rem; background: rgba(0,74,119,.09); border-radius: 999px; padding: 0 .4rem; }
+
+      /* ===== Menú desplegable (Copiar) ===== */
+      .menu-wrap { position: relative; display: inline-block; }
+      .menu {
+        display: none; position: absolute; top: calc(100% + 4px); left: 0; min-width: 250px;
+        background: var(--ag-surface); border: 1px solid var(--ag-line); border-radius: 14px;
+        padding: .35rem; box-shadow: 0 6px 20px rgba(0,0,0,.18); z-index: 1500;
+      }
+      .menu-wrap.abierto .menu { display: block; }
+      .menu-item {
+        display: flex; align-items: center; gap: .6rem; width: 100%; text-align: left; background: transparent;
+        border: none; border-radius: 10px; padding: .5rem .7rem; font-size: .84rem; color: var(--ag-text);
+        cursor: pointer; font-family: var(--font);
+      }
+      .menu-item:hover:not(:disabled) { background: var(--ag-accent-soft); }
+      .menu-item:disabled { opacity: .45; cursor: not-allowed; }
+      .menu-item small { display: block; color: var(--ag-text-med); font-size: .72rem; }
+
+      /* ===== Banda de día: plegable + progreso ===== */
+      tbody tr.fila-dia { cursor: pointer; }
+      .dia-chevron { font-size: 20px; margin-left: -.3rem; opacity: .7; }
+      .prog { width: 72px; height: 6px; border-radius: 999px; background: rgba(0,74,119,.12); overflow: hidden; flex-shrink: 0; }
+      .prog > span { display: block; height: 100%; background: var(--ag-ok-bar); border-radius: 999px; }
+
+      /* ===== Ahora / próxima / ya terminadas ===== */
+      tbody tr.fila-ahora td {
+        position: static !important; width: auto !important; min-width: 0 !important; max-width: none !important;
+        padding: 0; height: 0; border: 0; overflow: visible !important; box-shadow: none !important;
+        background-image: none !important; background-color: transparent !important;
+      }
+      .ahora-linea { position: relative; height: 2px; background: var(--ag-accent); }
+      .ahora-linea span {
+        position: absolute; left: .6rem; top: -9px; z-index: 4; background: var(--ag-accent); color: #fff;
+        font-size: .66rem; font-weight: 700; padding: .02rem .55rem; border-radius: 999px;
+      }
+      tbody tr.en-curso:not(.seleccionada) { --fila-tinte: rgba(11,87,208,.10); }
+      tbody tr.en-curso td.hora { color: var(--ag-accent); }
+      tbody tr.pasada td { color: var(--ag-text-low); }
+      tbody tr.pasada td.hora, tbody tr.pasada td:nth-child(2) { color: var(--ag-text-med); }
+      .pto-t { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+      .pto-t.ahora { background: var(--ag-accent); animation: pulso 1.8s infinite; }
+      .pto-t.proxima { border: 2px solid var(--ag-accent); }
+      @keyframes pulso { 0% { box-shadow: 0 0 0 0 rgba(11,87,208,.45); } 70%, 100% { box-shadow: 0 0 0 7px rgba(11,87,208,0); } }
+      @media (prefers-reduced-motion: reduce) { .pto-t.ahora { animation: none; } }
+      .tag-t { font-size: .66rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; padding: .05rem .55rem; border-radius: 999px; }
+      .tag-t.ahora { background: var(--ag-accent); color: #fff; }
+      .tag-t.proxima { background: var(--ag-container); color: var(--ag-accent-dark); }
+
+      /* ===== Asistencia con un clic ===== */
+      .asis-rapida { display: none; align-items: center; gap: .1rem; }
+      tbody tr.fila-cita:hover .asis-guion { display: none; }
+      tbody tr.fila-cita:hover .asis-rapida { display: inline-flex; }
+      .btn-asis {
+        width: 26px; height: 26px; border: none; background: transparent; border-radius: 50%; cursor: pointer;
+        display: inline-flex; align-items: center; justify-content: center; color: var(--ag-text-low); transition: all var(--ag-t);
+      }
+      .btn-asis .material-symbols-outlined { font-size: 20px; }
+      .btn-asis.ok:hover    { background: rgba(30,142,62,.15);  color: #1b6a33; }
+      .btn-asis.mal:hover   { background: rgba(217,48,37,.13);  color: #a52f29; }
+      .btn-asis.aviso:hover { background: rgba(240,165,0,.20);  color: #7a5200; }
+      .btn-asis-lg {
+        width: auto; height: 28px; border-radius: 999px; padding: 0 .65rem 0 .3rem; gap: .2rem;
+        font-size: .76rem; font-weight: 600; border: 1px solid var(--ag-line); color: var(--ag-text-med); font-family: var(--font);
+      }
+
+      /* ===== Sesión, notas, acciones por fila ===== */
+      .badge-sesion {
+        display: inline-flex; align-items: center; justify-content: center; min-width: 24px; height: 24px;
+        padding: 0 .4rem; border-radius: 999px; font-size: .8rem; font-weight: 700;
+      }
+      .badge-sesion.s1 { background: var(--ag-container); color: var(--ag-accent-dark); }
+      .badge-sesion.sn { background: rgba(0,74,119,.08); color: var(--ag-text-med); }
+      .ic-nota { font-size: 16px; vertical-align: -3px; margin-right: .3rem; color: var(--ag-text-low); }
+      .btn-fila {
+        display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px;
+        border-radius: 50%; border: none; background: transparent; color: var(--ag-text-low); cursor: pointer;
+        transition: all var(--ag-t);
+      }
+      .btn-fila:hover { background: var(--ag-accent-soft); color: var(--ag-accent-dark); }
+      .btn-fila.peligro:hover { background: var(--ag-error-bg); color: var(--ag-error); }
+      .btn-fila .material-symbols-outlined { font-size: 18px; }
+      .acciones-fila .btn-fila { opacity: 0; }
+      tbody tr:hover .acciones-fila .btn-fila, tbody tr.seleccionada .acciones-fila .btn-fila, .acciones-fila .btn-fila:focus-visible { opacity: 1; }
+      @media (hover: none) {
+        .acciones-fila .btn-fila { opacity: 1; }
+        tbody tr.fila-cita .asis-guion { display: none; }
+        tbody tr.fila-cita .asis-rapida { display: inline-flex; }
+      }
+
+      /* ===== Densidad compacta ===== */
+      body.compacto tbody td:not(.acciones-fila) { padding-top: .2rem; padding-bottom: .2rem; }
+      body.compacto td.hora { font-size: .85rem; }
+      body.compacto tbody td { font-size: .82rem; }
+      body.compacto .chip { padding-top: .05rem; padding-bottom: .05rem; }
+      body.compacto .btn-fila { width: 24px; height: 24px; }
+
+      /* ===== Estado vacío ===== */
+      .estado-icono { font-size: 44px; color: var(--ag-text-low); }
+      .estado-titulo { font-weight: 600; font-size: 1rem; color: var(--ag-text); margin-top: .3rem; }
+      .estado-texto { margin: .2rem 0 1rem; }
+      .esq-turno { height: 24px; background: rgba(0,74,119,.04); border-bottom: 1px solid var(--ag-line); }
+
+      /* ===== Vista "Hoy": tarjetas ===== */
+      .tj-cab {
+        position: sticky; top: 0; z-index: 3; padding: .6rem 1rem; background-color: var(--ag-surface);
+        background-image: linear-gradient(var(--ag-tinte-hoy), var(--ag-tinte-hoy)); color: var(--ag-accent-dark);
+        font-weight: 700; font-size: .9rem; text-transform: capitalize; border-bottom: 1px solid var(--ag-line);
+      }
+      .tj-turnos { padding: .25rem 1rem 1.5rem; background: var(--ag-page); }
+      .tj-turno-titulo { font-size: .7rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--ag-text-med); margin: 1rem 0 .5rem; }
+      .tj-turno-titulo.tarde { color: var(--ag-warning-text); }
+      .tj-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); gap: .75rem; }
+      .tarjeta {
+        background: var(--ag-surface); border: 1px solid var(--ag-line); border-left: 5px solid var(--ag-line);
+        border-radius: 16px; padding: .8rem 1rem; display: flex; flex-direction: column; gap: .45rem;
+        cursor: pointer; transition: box-shadow var(--ag-t), background-color var(--ag-t);
+      }
+      .tarjeta:hover { box-shadow: 0 2px 10px rgba(0,74,119,.12); }
+      .tarjeta.asist-ok    { border-left-color: var(--ag-ok-bar); }
+      .tarjeta.asist-mal   { border-left-color: var(--ag-mal-bar); }
+      .tarjeta.asist-aviso { border-left-color: var(--ag-aviso-bar); }
+      .tarjeta.pasada .tj-hora, .tarjeta.pasada .tj-nombre { color: var(--ag-text-med); }
+      .tarjeta.en-curso { border-color: var(--ag-accent); box-shadow: 0 0 0 1px var(--ag-accent); border-left-width: 5px; }
+      .tarjeta.proxima { border-color: var(--ag-container-hover); }
+      .tarjeta.seleccionada { background-image: linear-gradient(var(--ag-tinte-sel), var(--ag-tinte-sel)); }
+      .tarjeta.hueco { border-style: dashed; background: transparent; cursor: default; flex-direction: row; align-items: center; gap: .8rem; }
+      .tarjeta.hueco:hover { box-shadow: none; }
+      .tj-top { display: flex; align-items: center; gap: .55rem; }
+      .tj-hora { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; }
+      .tj-fill { flex: 1; }
+      .tj-nombre { font-weight: 600; font-size: .95rem; line-height: 1.3; }
+      .tj-meta { display: flex; align-items: center; gap: .6rem; color: var(--ag-text-med); font-size: .82rem; }
+      .tj-asis { min-height: 28px; display: flex; align-items: center; gap: .4rem; }
+      .tj-asis .asis-rapida { display: inline-flex; gap: .35rem; }
+      .tj-notas { font-size: .82rem; color: var(--ag-text-med); padding: .3rem .5rem; border-radius: 8px; min-height: 1.9rem; }
+      .tj-notas:hover { background: var(--ag-accent-soft); }
+      .tj-notas.editando { padding: 0; }
+      .tj-notas-vacia { color: var(--ag-text-low); font-style: italic; }
+      .tj-pie { display: flex; align-items: center; gap: .5rem; margin-top: auto; }
+      .tj-btn { text-decoration: none; }
+      .tj-sinhc { font-size: .8rem; color: var(--ag-text-low); font-style: italic; }
+      .tarjeta .chk { flex-shrink: 0; }
+      .tarjeta:hover .chk { border-color: var(--ag-accent); }
+      .tarjeta.seleccionada .chk { background: var(--ag-accent); border-color: var(--ag-accent); }
+      .tarjeta.seleccionada .chk::after {
+        content: ''; position: absolute; left: 4px; top: 0; width: 4px; height: 8px;
+        border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg);
+      }
+      .editable { cursor: pointer; }
     </style>
   </head>
   <body>
@@ -272,35 +525,58 @@
       <a class="tab-cambio activo" href="<?= baseUrl ?>?page=agenda" target="_top">🗓️ Agenda</a>
       <a class="tab-cambio" href="<?= baseUrl ?>?page=valoraciones" target="_top">📈 Valoraciones</a>
     </nav>
-    <header class="top">
-      <h1>🗓️ Agenda <span class="contador" id="contador"></span></h1>
+    <header class="top" id="cabecera">
 
-      <div class="barra-herramientas">
-        <button class="btn-toolbar btn-nav" id="btnSemanaAnterior" title="Semana anterior">
-          <span class="material-symbols-outlined">chevron_left</span>
-        </button>
-        <button class="btn-toolbar" id="btnHoy">
-          <span class="material-symbols-outlined">today</span> Hoy
-        </button>
-        <button class="btn-toolbar btn-nav" id="btnSemanaSiguiente" title="Semana siguiente">
-          <span class="material-symbols-outlined">chevron_right</span>
-        </button>
+      <!-- Barra principal -->
+      <div class="barra barra-principal">
+        <div class="grupo-nav">
+          <button class="btn-toolbar btn-nav" id="btnSemanaAnterior" title="Semana anterior (←)">
+            <span class="material-symbols-outlined">chevron_left</span>
+          </button>
+          <button class="btn-toolbar" id="btnHoy" title="Ir a hoy (T)">
+            <span class="material-symbols-outlined">today</span> Hoy
+          </button>
+          <button class="btn-toolbar btn-nav" id="btnSemanaSiguiente" title="Semana siguiente (→)">
+            <span class="material-symbols-outlined">chevron_right</span>
+          </button>
+        </div>
         <span class="etiqueta-semana" id="etiquetaSemana"></span>
-
         <div class="selector-semana">
           <span class="material-symbols-outlined">calendar_month</span>
           <input type="date" id="inputSemana" title="Ir a la semana que contiene esta fecha">
         </div>
-      </div>
+        <span class="contador" id="contador"></span>
 
-      <div class="barra-herramientas">
-        <button class="btn-toolbar" id="btnJornada" title="Abre las Historias Clínicas del turno actual de hoy">
+        <div class="buscador">
+          <span class="material-symbols-outlined">search</span>
+          <input type="text" id="inputBusqueda" placeholder="Buscar por usuario, sesión o notas…  ( / )">
+        </div>
+
+        <span class="espaciador"></span>
+
+        <button class="btn-toolbar" id="btnHuecos">
+          <span class="material-symbols-outlined">event_available</span> Mostrar citas disponibles
+        </button>
+        <button class="btn-toolbar primario" id="btnJornada" title="Abre las Historias Clínicas del turno actual de hoy">
           <span class="material-symbols-outlined">today</span> Preparar Jornada
         </button>
-        <span class="etiqueta-ayuda" id="contadorSeleccion" style="font-weight:600; color:var(--md-primary-dark);"></span>
-        <button class="btn-toolbar" id="btnQuitarSeleccion" style="display:none;" title="Quitar selección">
+        <button class="btn-toolbar" id="btnCopiarSemana" title="Copia miércoles y jueves (doble sesión) y viernes (simple) a la semana siguiente, sin necesidad de seleccionar nada">
+          <span class="material-symbols-outlined">event_repeat</span> Copiar Semana
+        </button>
+        <button class="btn-toolbar deshacer" id="btnDeshacer" title="Deshacer la última eliminación">
+          <span class="material-symbols-outlined">undo</span> Deshacer
+        </button>
+      </div>
+
+      <!-- Barra contextual: sustituye a la principal con citas seleccionadas -->
+      <div class="barra barra-seleccion" id="barraSeleccion">
+        <button class="btn-toolbar btn-nav" id="btnQuitarSeleccion" title="Quitar selección">
           <span class="material-symbols-outlined">close</span>
         </button>
+        <span class="contador-seleccion" id="contadorSeleccion"></span>
+
+        <span class="separador"></span>
+
         <button class="btn-toolbar" id="btnEnlazarHC" disabled title="Busca y enlaza la Historia Clínica a las citas seleccionadas">
           <span class="material-symbols-outlined">link</span> Enlazar HC
         </button>
@@ -312,69 +588,113 @@
             <path d="M13.601 2.326A7.854 7.854 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.933 7.933 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.898 7.898 0 0 0 13.6 2.326zM7.994 14.521a6.573 6.573 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.557 6.557 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592zm3.615-4.934c-.197-.099-1.17-.578-1.353-.646-.182-.065-.315-.099-.445.099-.133.197-.513.646-.627.775-.114.133-.232.148-.43.05-.197-.1-.836-.308-1.592-.985-.59-.525-.985-1.175-1.103-1.372-.114-.198-.011-.304.088-.403.087-.088.197-.232.296-.346.1-.114.133-.198.198-.33.065-.134.034-.248-.015-.347-.05-.099-.445-1.076-.612-1.47-.16-.389-.323-.335-.445-.34-.114-.007-.247-.007-.38-.007a.729.729 0 0 0-.529.247c-.182.198-.691.677-.691 1.654 0 .977.71 1.916.81 2.049.098.133 1.394 2.132 3.383 2.992.47.205.84.326 1.129.418.475.152.904.129 1.246.08.38-.058 1.171-.48 1.338-.943.164-.464.164-.86.114-.943-.049-.084-.182-.133-.38-.232z"/>
           </svg> WhatsApp
         </button>
-        <button class="btn-toolbar" id="btnCopiarCita" disabled title="Copia la(s) cita(s) seleccionada(s) al siguiente día alterno (L/M→+2, M/J→+5, V→+7)">
-          <span class="material-symbols-outlined">content_copy</span> Siguiente cita
-        </button>
-        <button class="btn-toolbar" id="btnCopiarCita2" disabled title="Copia la(s) cita(s) seleccionada(s) a las dos siguientes fechas alternas (usuarios de doble sesión semanal)">
-          <span class="material-symbols-outlined">library_add</span> Siguientes 2 citas
-        </button>
-        <button class="btn-toolbar" id="btnCopiarSemana" title="Copia miércoles y jueves (doble sesión) y viernes (simple) a la semana siguiente, sin necesidad de seleccionar nada">
-          <span class="material-symbols-outlined">event_repeat</span> Copiar Semana
-        </button>
-        <button class="btn-toolbar" id="btnEliminarCitas" disabled title="Libera la(s) cita(s) seleccionada(s) (borra usuario, teléfono, sesión, asistencia, notas e historia clínica)">
+
+        <span class="separador"></span>
+
+        <div class="menu-wrap" id="menuCopiarWrap">
+          <button class="btn-toolbar" id="btnMenuCopiar" disabled aria-haspopup="true" aria-expanded="false">
+            <span class="material-symbols-outlined">content_copy</span> Copiar
+            <span class="material-symbols-outlined">arrow_drop_down</span>
+          </button>
+          <div class="menu" role="menu">
+            <button class="menu-item" id="btnCopiarCita" disabled role="menuitem" title="Copia la(s) cita(s) seleccionada(s) al siguiente día alterno (L/M→+2, M/J→+5, V→+7)">
+              <span class="material-symbols-outlined">content_copy</span>
+              <span>Siguiente cita<small>Al siguiente día alterno</small></span>
+            </button>
+            <button class="menu-item" id="btnCopiarCita2" disabled role="menuitem" title="Copia la(s) cita(s) seleccionada(s) a las dos siguientes fechas alternas (usuarios de doble sesión semanal)">
+              <span class="material-symbols-outlined">library_add</span>
+              <span>Siguientes 2 citas<small>Doble sesión semanal</small></span>
+            </button>
+          </div>
+        </div>
+
+        <span class="espaciador"></span>
+
+        <button class="btn-toolbar peligro" id="btnEliminarCitas" disabled title="Libera la(s) cita(s) seleccionada(s) (borra usuario, teléfono, sesión, asistencia, notas e historia clínica)">
           <span class="material-symbols-outlined">delete</span> Eliminar
-        </button>
-        <button class="btn-toolbar deshacer" id="btnDeshacer" title="Deshacer la última eliminación">
-          <span class="material-symbols-outlined">undo</span> Deshacer
         </button>
       </div>
 
-      <div class="controles">
-        <div class="buscador">
-          <span class="material-symbols-outlined">search</span>
-          <input type="text" id="inputBusqueda" placeholder="Buscar por usuario, sesión o notas…">
+      <!-- Barra secundaria: vista, filtros rápidos y densidad -->
+      <div class="barra barra-filtros">
+        <div class="segmentado" role="group" aria-label="Vista">
+          <button type="button" class="seg activo" id="btnVistaSemana" title="Tabla de la semana">Semana</button>
+          <button type="button" class="seg" id="btnVistaHoy" title="Tarjetas con las citas de hoy">Hoy</button>
         </div>
-        <button class="btn-toolbar" id="btnHuecos">
-          <span class="material-symbols-outlined">event_available</span> Mostrar citas disponibles
+        <span class="separador"></span>
+        <button type="button" class="chip-filtro" data-filtro="sinAsistencia" title="Citas de hoy o anteriores sin asistencia registrada">Sin asistencia <span class="cnt"></span></button>
+        <button type="button" class="chip-filtro" data-filtro="sinHC" title="Citas sin Historia Clínica enlazada">Sin HC <span class="cnt"></span></button>
+        <button type="button" class="chip-filtro" data-filtro="conNotas" title="Citas con notas">Con notas <span class="cnt"></span></button>
+        <span class="espaciador"></span>
+        <button type="button" class="btn-toolbar" id="btnDensidad" title="Cambiar la altura de las filas">
+          <span class="material-symbols-outlined">density_medium</span> <span id="txtDensidad">Cómodo</span>
+        </button>
+        <button type="button" class="btn-toolbar btn-nav" id="btnAtajos" title="Atajos de teclado">
+          <span class="material-symbols-outlined">keyboard</span>
         </button>
       </div>
     </header>
 
     <datalist id="listaPacientes"></datalist>
 
-    <div class="tabla-wrap" id="tablaWrap">
-      <div class="estado-carga">
-        <span class="material-symbols-outlined">progress_activity</span>
-        Cargando agenda…
-      </div>
-    </div>
+    <div class="tabla-wrap" id="tablaWrap"></div>
 
-    <!-- Modal propio: sustituye a los alert()/confirm() nativos del navegador,
-         que en la Web App muestran el dominio interno de Google (feo y confuso). -->
     <?!= include('Modal_Deshacer'); ?>
 
     <script>
-      // Hora a partir de la cual una cita se considera "de tarde" para la
-      // línea divisoria entre turnos. Formato "HH:mm" (comparación de texto,
-      // válida porque el servidor siempre manda la hora con dos dígitos).
-      // Cambia este valor si tu corte de turno no es a las 14:00.
+      // Hora ("HH:mm") a partir de la cual una cita es "de tarde".
       var HORA_CORTE_TARDE = '14:00';
 
       var BASE_URL = '<?= baseUrl ?>';
-      var filasSeleccionadas = new Set(); // números de fila (Agenda) seleccionados
+      var filasSeleccionadas = new Set();
 
-      // Columnas que la hoja de Sheets tiene pero no queremos mostrar en esta
-      // vista (comparación normalizada: sin mayúsculas ni acentos).
+      // Columnas de Sheets que no se muestran (normalizadas: sin mayúsculas ni acentos).
       var COLUMNAS_OCULTAS = ['fecha', 'dia', 'id evento calendar'];
 
-      var HEADERS = [];        // todas las columnas que manda el servidor
-      var HEADERS_VISIBLES = []; // HEADERS sin Fecha/Día/ID Evento Calendar
+      var HEADERS = [];
+      var HEADERS_VISIBLES = [];
       var CITAS = [];
       var COL_HISTORIA = null;
       var semanaActual = null; // lunes de la semana mostrada, "yyyy-MM-dd"
-      var mostrarHuecos = false; // huecos horarios sin paciente asignado
-      var OPCIONES_ASISTENCIA = []; // opciones del desplegable, leídas de Sheets
-      var NOMBRES_PACIENTES = [];   // para el autocompletado al asignar un hueco
+      var mostrarHuecos = false;
+      var OPCIONES_ASISTENCIA = [];
+      var NOMBRES_PACIENTES = [];
+      var vista = 'semana';            // 'semana' (tabla) | 'hoy' (tarjetas del día de hoy)
+      var filtrosActivos = new Set();  // 'sinAsistencia' | 'sinHC' | 'conNotas'
+      var plegadoManual = {};          // fechaISO -> true/false: días plegados o desplegados a mano
+      var DURACION_CITA_MIN = 30;      // para marcar "Ahora" y atenuar las citas ya terminadas
+
+      // Color del chip según el texto de Asistencia. Se evalúa EN ORDEN y gana
+      // la primera coincidencia: primero las negativas ("No asistió", "Falta"),
+      // después "pendiente" (gris), después avisos (ámbar) y por último las
+      // positivas (verde). Lo que no encaje sale en gris neutro.
+      var ESTILOS_ASISTENCIA = [
+        { clase: 'mal',    patron: /^no\b|^sin asist|falt|ausen|plant|no (vino|asist|acud|se present)/ },
+        { clase: 'neutro', patron: /pendient|por confirmar|sin confirmar|sin registrar/ },
+        { clase: 'aviso',  patron: /cancel|anul|aplaz|recuper|justific|retras/ },
+        { clase: 'ok',     patron: /asist|vino|presente|realiz|acudi|^si$|^ok$/ }
+      ];
+
+      function estiloAsistencia(valor) {
+        var v = normalizar(valor);
+        if (!v) return '';
+        for (var i = 0; i < ESTILOS_ASISTENCIA.length; i++) {
+          if (ESTILOS_ASISTENCIA[i].patron.test(v)) return ESTILOS_ASISTENCIA[i].clase;
+        }
+        return 'neutro';
+      }
+
+      function htmlEsqueleto() {
+        var anchos = [44, 170, 90, 36, 80];
+        var fila = '<div class="esq-fila">' +
+          anchos.map(function(w) { return '<span class="esq-barra" style="width:' + w + 'px"></span>'; }).join('') +
+          '<span class="esq-barra esq-flex"></span></div>';
+        function filas(n) { var h = ''; for (var i = 0; i < n; i++) h += fila; return h; }
+        return '<div class="esqueleto" aria-busy="true" aria-label="Cargando agenda">' +
+          '<div class="esq-dia"></div><div class="esq-turno"></div>' + filas(5) +
+          '<div class="esq-turno"></div>' + filas(4) +
+          '<div class="esq-dia"></div><div class="esq-turno"></div>' + filas(4) + '</div>';
+      }
 
       function cargarListaPacientes() {
         google.script.run
@@ -383,21 +703,18 @@
             document.getElementById('listaPacientes').innerHTML =
               NOMBRES_PACIENTES.map(function(n) { return '<option value="' + escapar(n) + '">'; }).join('');
           })
-          .withFailureHandler(function() { /* no crítico: el autocompletado simplemente no sugerirá nombres */ })
+          .withFailureHandler(function() { /* no crítico */ })
           .obtenerListaPacientesWeb();
       }
 
       // ---------- Carga de datos ----------
-      // `silencioso`: true para refrescos en segundo plano (sondeo periódico
-      // cada 30s) que no deben hacer parpadear toda la tabla — se piden los
-      // datos y la tabla se sustituye solo cuando llegan, igual que hace
-      // BaseDatosWeb. false/omitido: navegación explícita del usuario (Hoy,
-      // flechas, selector de fecha), donde sí tiene sentido el aviso de
-      // carga porque el contenido va a cambiar por completo.
+      // `silencioso`: refrescos en segundo plano (sin esqueleto y SIN mover el
+      // scroll). Una carga no silenciosa (primera carga, Hoy, flechas, selector
+      // de fecha) deja la vista centrada en el día de hoy si está en la semana.
       function cargar(fechaISO, silencioso) {
+        var irAHoy = !silencioso;
         if (!silencioso) {
-          document.getElementById('tablaWrap').innerHTML =
-            '<div class="estado-carga"><span class="material-symbols-outlined">progress_activity</span>Cargando agenda…</div>';
+          document.getElementById('tablaWrap').innerHTML = htmlEsqueleto();
         }
 
         google.script.run
@@ -415,14 +732,28 @@
               document.getElementById('inputSemana').value = res.semana.lunes;
             }
             render();
+            if (irAHoy) scrollAHoy();
           })
           .withFailureHandler(mostrarError)
           .obtenerAgendaSemanaWeb(fechaISO || null);
       }
 
+      // Coloca la cabecera del día de hoy justo bajo el encabezado de columnas,
+      // para no tener que hacer scroll hacia abajo un viernes. Si hoy no está
+      // en la semana mostrada, vuelve arriba.
+      function scrollAHoy() {
+        var wrap = document.getElementById('tablaWrap');
+        var filaHoy = wrap.querySelector('tr.fila-dia.hoy');
+        if (!filaHoy) { wrap.scrollTop = 0; return; }
+        var thead = wrap.querySelector('thead');
+        var alto = thead ? thead.offsetHeight : 0;
+        var destino = filaHoy.getBoundingClientRect().top - wrap.getBoundingClientRect().top - alto + wrap.scrollTop;
+        wrap.scrollTop = Math.max(0, destino);
+      }
+
       function mostrarError(err) {
         document.getElementById('tablaWrap').innerHTML =
-          '<div class="estado-vacio">⚠️ No se pudo cargar la agenda.<br>' + (err && err.message ? err.message : err) + '</div>';
+          '<div class="estado-vacio">⚠️ No se pudo cargar la agenda.<br>' + escapar(err && err.message ? err.message : err) + '</div>';
       }
 
       function normalizar(txt) {
@@ -430,43 +761,231 @@
       }
 
       function esUrl(valor) { return typeof valor === 'string' && /^https?:\/\//i.test(valor.trim()); }
-      function escapar(txt) { return (txt + '').replace(/</g, '&lt;'); }
 
-      // Campos editables sueltos (Asistencia/Notas/Sesión) solo en citas
-      // reales — en un hueco libre no tiene sentido editar esto, la única
-      // acción posible ahí es escribir el nombre del paciente.
+      // Escapado completo (& < > " '). Sirve tanto para texto como para
+      // valores de atributo: antes solo se escapaba "<", y una comilla doble
+      // en una nota cortaba el value="..." del campo de edición.
+      function escapar(txt) {
+        return (txt === null || txt === undefined ? '' : txt + '')
+          .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+      }
+
       var CAMPOS_EDITABLES = ['Asistencia', 'Notas', 'Sesión'];
 
-      function renderCelda(header, valor, fila, esHueco) {
-        var vacio = valor === '' || valor === null || valor === undefined;
+      // ---------- Utilidades de fecha/hora y estado ----------
+      function vacioTxt(v) { return v === '' || v === null || v === undefined; }
+      function pad2(n) { return (n < 10 ? '0' : '') + n; }
+      function ahoraHHmm() { var d = new Date(); return pad2(d.getHours()) + ':' + pad2(d.getMinutes()); }
 
-        if (header === 'Hora') return '<td class="hora">' + (vacio ? '—' : escapar(valor)) + '</td>';
+      function finCita(hora) {
+        var m = /^(\d{1,2}):(\d{2})$/.exec(hora || '');
+        if (!m) return '';
+        var t = parseInt(m[1], 10) * 60 + parseInt(m[2], 10) + DURACION_CITA_MIN;
+        return pad2(Math.floor(t / 60)) + ':' + pad2(t % 60);
+      }
+
+      // '' | 'pasada' (ya terminó) | 'en-curso'. Solo tiene sentido para citas de hoy.
+      function estadoTemporal(hora, ahora) {
+        var fin = finCita(hora);
+        if (!fin) return '';
+        if (fin <= ahora) return 'pasada';
+        if (hora <= ahora) return 'en-curso';
+        return '';
+      }
+
+      function filaProxima(hoy, ahora) {
+        return CITAS.find(function(c) { return c._fechaISO === hoy && !c._hueco && (c['Hora'] || '') > ahora; }) || null;
+      }
+
+      function sumarDiasISO(iso, n) {
+        var p = iso.split('-').map(Number);
+        return formatoISO(new Date(p[0], p[1] - 1, p[2] + n));
+      }
+
+      function semanaContieneHoy() {
+        if (!semanaActual) return false;
+        var h = hoyISO();
+        return h >= semanaActual && h <= sumarDiasISO(semanaActual, 6);
+      }
+
+      // Días pasados de la semana actual: plegados por defecto (en semanas
+      // pasadas o futuras se muestra todo). Lo que el usuario pliega o
+      // despliega a mano manda sobre el valor por defecto.
+      function diaPlegado(fechaISO) {
+        if (Object.prototype.hasOwnProperty.call(plegadoManual, fechaISO)) return plegadoManual[fechaISO];
+        return semanaContieneHoy() && fechaISO < hoyISO();
+      }
+
+      function hayBusqueda() {
+        return normalizar(document.getElementById('inputBusqueda').value) !== '' || filtrosActivos.size > 0;
+      }
+
+      function calcularTotalesDia() {
+        var tot = {};
+        CITAS.forEach(function(c) {
+          var t = tot[c._fechaISO] || (tot[c._fechaISO] = { citas: 0, libres: 0, registradas: 0 });
+          if (c._hueco) t.libres++;
+          else { t.citas++; if (!vacioTxt(c['Asistencia'])) t.registradas++; }
+        });
+        return tot;
+      }
+
+      // ---------- Filtros rápidos ----------
+      function cumpleFiltro(c, filtro) {
+        if (c._hueco) return false;
+        if (filtro === 'sinAsistencia') return c._fechaISO <= hoyISO() && vacioTxt(c['Asistencia']);
+        if (filtro === 'sinHC') return !!COL_HISTORIA && vacioTxt(c[COL_HISTORIA]);
+        if (filtro === 'conNotas') return !vacioTxt(c['Notas']);
+        return true;
+      }
+
+      function pasaFiltrosRapidos(c) {
+        var ok = true;
+        filtrosActivos.forEach(function(f) { if (!cumpleFiltro(c, f)) ok = false; });
+        return ok;
+      }
+
+      function actualizarChipsFiltros() {
+        var hoy = hoyISO();
+        var base = CITAS.filter(function(c) { return !c._hueco && (vista !== 'hoy' || c._fechaISO === hoy); });
+        document.querySelectorAll('.chip-filtro').forEach(function(b) {
+          var k = b.dataset.filtro;
+          b.classList.toggle('activo', filtrosActivos.has(k));
+          b.querySelector('.cnt').textContent = base.filter(function(c) { return cumpleFiltro(c, k); }).length;
+        });
+      }
+
+      // ---------- Asistencia con un clic ----------
+      // Cada botón busca en las opciones reales de tu desplegable la que
+      // corresponde a su color (verde/rojo/ámbar), igual que los chips.
+      function opcionAsistencia(clase) {
+        var ops = OPCIONES_ASISTENCIA.filter(function(op) { return estiloAsistencia(op) === clase; });
+        if (clase === 'aviso') {
+          var just = ops.filter(function(op) { return /justific/.test(normalizar(op)); });
+          if (just.length) return just[0];
+        }
+        return ops[0] || '';
+      }
+
+      var ASIS_RAPIDA = [
+        { clase: 'ok',    icono: 'check_circle' },
+        { clase: 'mal',   icono: 'cancel' },
+        { clase: 'aviso', icono: 'event_busy' }
+      ];
+
+      function htmlAsistenciaRapida(conTexto) {
+        return ASIS_RAPIDA.map(function(a) {
+          var op = opcionAsistencia(a.clase);
+          if (!op) return '';
+          return '<button type="button" class="btn-asis ' + a.clase + (conTexto ? ' btn-asis-lg' : '') +
+            '" data-asis="' + escapar(op) + '" title="' + escapar(op) + '"><span class="material-symbols-outlined">' + a.icono + '</span>' +
+            (conTexto ? escapar(op) : '') + '</button>';
+        }).join('');
+      }
+
+      function badgeSesion(v) {
+        var t = (v + '').trim();
+        if (!/^\d+$/.test(t)) return escapar(v);
+        return '<span class="badge-sesion ' + (t === '1' ? 's1' : 'sn') + '" title="Sesión ' + t + '">' + t + '</span>';
+      }
+
+      function htmlBotonesFila(fila) {
+        return '<button type="button" class="btn-fila" data-accion="whatsapp" data-fila="' + fila + '" title="Abrir WhatsApp"><span class="material-symbols-outlined">chat</span></button>' +
+          '<button type="button" class="btn-fila" data-accion="valoracion" data-fila="' + fila + '" title="Valoración"><span class="material-symbols-outlined">assignment</span></button>' +
+          '<button type="button" class="btn-fila peligro" data-accion="borrar" data-fila="' + fila + '" title="Liberar este hueco (borra todos los datos de la cita)"><span class="material-symbols-outlined">delete</span></button>';
+      }
+
+      function htmlStatsDia(t, fechaISO) {
+        var txt = t.citas === 0 ? 'Sin citas' : t.citas + (t.citas === 1 ? ' cita' : ' citas');
+        if (t.libres > 0) txt += ' · ' + t.libres + (t.libres === 1 ? ' libre' : ' libres');
+        var prog = '';
+        if (t.citas > 0 && fechaISO <= hoyISO()) {
+          var pct = Math.round(100 * t.registradas / t.citas);
+          txt += ' · ' + t.registradas + ' de ' + t.citas + ' registradas';
+          prog = '<span class="prog" title="' + pct + '% con asistencia registrada"><span style="width:' + pct + '%"></span></span>';
+        }
+        return '<span class="dia-stats">' + txt + '</span>' + prog;
+      }
+
+      function htmlLineaAhora(ahora, numColumnas) {
+        return '<tr class="fila-ahora"><td colspan="' + numColumnas + '"><div class="ahora-linea"><span>' + ahora + '</span></div></td></tr>';
+      }
+
+      function renderCelda(header, valor, fila, esHueco, tag) {
+        var vacio = vacioTxt(valor);
+
+        if (header === 'Hora') {
+          var casilla = '<span class="chk' + (esHueco ? ' oculto' : '') + '"></span>';
+          var punto = tag ? '<span class="pto-t ' + tag + '" title="' + (tag === 'ahora' ? 'En curso' : 'Próxima cita') + '"></span>' : '';
+          return '<td class="hora"><span class="hora-celda">' + casilla + (vacio ? '—' : escapar(valor)) + punto + '</span></td>';
+        }
 
         if (header === 'Usuario' && esHueco) {
-          return '<td class="editable hueco-libre" data-campo="Usuario" data-fila="' + fila + '" data-valor="">Disponible</td>';
+          return '<td class="editable hueco-libre" data-campo="Usuario" data-fila="' + fila + '" data-valor=""><span class="chip-asignar"><span class="material-symbols-outlined">add</span>Asignar</span></td>';
         }
+
+        if (esHueco && vacio) return '<td class="vacio"></td>';
 
         if (header === COL_HISTORIA) {
           if (vacio) return '<td class="vacio">Sin enlace</td>';
           return esUrl(valor)
-            ? '<td><a class="link-hc" href="' + valor + '" target="_blank" rel="noopener"><span class="material-symbols-outlined text-[15px]">description</span>Abrir</a></td>'
+            ? '<td><a class="link-hc" href="' + escapar(valor.trim()) + '" target="_blank" rel="noopener"><span class="material-symbols-outlined ic-15">description</span>Abrir</a></td>'
             : '<td>' + escapar(valor) + '</td>';
         }
 
         if (!esHueco && CAMPOS_EDITABLES.indexOf(header) !== -1) {
-          var valorAttr = vacio ? '' : (valor + '').replace(/"/g, '&quot;');
-          return '<td class="editable' + (vacio ? ' vacio' : '') + '" data-campo="' + header + '" data-fila="' + fila + '" data-valor="' + valorAttr + '">' + (vacio ? '—' : escapar(valor)) + '</td>';
+          var valorAttr = vacio ? '' : escapar(valor);
+          var contenido;
+          if (header === 'Asistencia') {
+            var rapidas = htmlAsistenciaRapida(false);
+            contenido = vacio
+              ? (rapidas ? '<span class="asis-guion">—</span><span class="asis-rapida">' + rapidas + '</span>' : '—')
+              : '<span class="chip chip-' + estiloAsistencia(valor) + '">' + escapar(valor) + '</span>';
+          }
+          else if (vacio) contenido = '—';
+          else if (header === 'Notas') contenido = '<div class="notas-clamp" title="' + valorAttr + '"><span class="material-symbols-outlined ic-nota">sticky_note_2</span>' + escapar(valor) + '</div>';
+          else if (header === 'Sesión') contenido = badgeSesion(valor);
+          else contenido = escapar(valor);
+
+          var clases = 'editable' + (vacio ? ' vacio' : '') + (header === 'Notas' ? ' celda-notas' : '');
+          return '<td class="' + clases + '" data-campo="' + escapar(header) + '" data-fila="' + fila + '" data-valor="' + valorAttr + '">' + contenido + '</td>';
         }
 
-        return '<td class="' + (vacio ? 'vacio' : '') + '">' + (vacio ? '—' : escapar(valor)) + '</td>';
+        var titulo = (header === 'Usuario' && !vacio) ? ' title="' + escapar(valor) + '"' : '';
+        return '<td class="' + (vacio ? 'vacio' : '') + '"' + titulo + '>' + (vacio ? '—' : escapar(valor)) + '</td>';
       }
 
-      // ---------- Render tabla ----------
+      // ---------- Estado vacío con acción ----------
+      function htmlVacio() {
+        var titulo, texto, boton = '';
+        if (hayBusqueda()) {
+          titulo = 'Ninguna cita coincide';
+          texto = 'Prueba con otro término o quita los filtros.';
+          boton = '<button type="button" class="btn-toolbar" data-vacio="limpiar"><span class="material-symbols-outlined">filter_alt_off</span> Quitar filtros</button>';
+        } else {
+          titulo = vista === 'hoy' ? 'Hoy no hay citas asignadas' : 'Esta semana no tiene citas asignadas';
+          texto = mostrarHuecos ? 'Todos los huecos están libres.' : 'Puedes mostrar los huecos libres para asignar usuarios.';
+          if (!mostrarHuecos) boton = '<button type="button" class="btn-toolbar" data-vacio="huecos"><span class="material-symbols-outlined">event_available</span> Mostrar citas disponibles</button>';
+        }
+        return '<div class="estado-vacio"><span class="material-symbols-outlined estado-icono">event_busy</span>' +
+          '<div class="estado-titulo">' + titulo + '</div><div class="estado-texto">' + texto + '</div>' + boton + '</div>';
+      }
+
+      // ---------- Render ----------
       function render() {
+        var cont = document.getElementById('tablaWrap');
+        var scrollPrevio = cont.scrollTop; // se conserva al repintar (ediciones, selección, refrescos)
         var termino = normalizar(document.getElementById('inputBusqueda').value);
+        var hoy = hoyISO();
 
         var filtradas = CITAS.filter(function(c) {
-          if (!mostrarHuecos && c._hueco) return false;
+          if (vista === 'hoy' && c._fechaISO !== hoy) return false;
+          if (filtrosActivos.size > 0) {
+            if (!pasaFiltrosRapidos(c)) return false;
+          } else if (!mostrarHuecos && c._hueco) {
+            return false;
+          }
           if (!termino) return true;
           var campos = [c['Usuario'], c['Notas'], c['Sesión']];
           return campos.some(function(v) { return normalizar(v).indexOf(termino) !== -1; });
@@ -474,19 +993,25 @@
 
         var numCitas = filtradas.filter(function(c) { return !c._hueco; }).length;
         document.getElementById('contador').textContent = numCitas + (numCitas === 1 ? ' cita' : ' citas');
+        actualizarChipsFiltros();
 
-        var cont = document.getElementById('tablaWrap');
         if (filtradas.length === 0) {
-          cont.innerHTML = '<div class="estado-vacio">No hay ninguna cita que coincida en esta semana.</div>';
+          cont.innerHTML = htmlVacio();
           return;
         }
 
-        var numColumnas = HEADERS_VISIBLES.length + 1; // +1 por la columna de Acciones
-        var thead = '<thead><tr>' + HEADERS_VISIBLES.map(function(h) { return '<th>' + h + '</th>'; }).join('') + '<th></th></tr></thead>';
+        cont.innerHTML = vista === 'hoy' ? htmlTarjetas(filtradas) : htmlTabla(filtradas);
+        cont.scrollTop = scrollPrevio;
+      }
 
-        // Agrupamos las citas (ya vienen ordenadas cronológicamente del
-        // servidor) por día, para mostrar la Fecha y el Día una sola vez por
-        // grupo en vez de repetirlos en cada fila.
+      function htmlTabla(filtradas) {
+        var totalesDia = calcularTotalesDia();
+        var hoy = hoyISO(), ahora = ahoraHHmm(), buscando = hayBusqueda();
+        var proxima = filaProxima(hoy, ahora);
+
+        var numColumnas = HEADERS_VISIBLES.length + 1;
+        var thead = '<thead><tr>' + HEADERS_VISIBLES.map(function(h) { return '<th>' + escapar(h) + '</th>'; }).join('') + '<th></th></tr></thead>';
+
         var grupos = [];
         filtradas.forEach(function(c) {
           var ultimo = grupos[grupos.length - 1];
@@ -501,40 +1026,128 @@
 
         var tbody = '<tbody>' + grupos.map(function(g) {
           var etiquetaDia = (g.dia ? escapar(g.dia) + ' · ' : '') + escapar(g.fecha);
-          var cabecera = '<tr class="fila-dia"><td colspan="' + numColumnas + '">' + etiquetaDia + '</td></tr>';
+          var t = totalesDia[g.fechaISO] || { citas: 0, libres: 0, registradas: 0 };
+          var esHoy = g.fechaISO === hoy;
+          var plegado = !buscando && diaPlegado(g.fechaISO);
 
-          var mananaAnterior = null;
+          var cabecera = '<tr class="fila-dia' + (esHoy ? ' hoy' : '') + (plegado ? ' plegado' : '') + '" data-dia="' + g.fechaISO + '"><td colspan="' + numColumnas + '">' +
+            '<div class="dia-cab"><span class="material-symbols-outlined dia-chevron">' + (plegado ? 'chevron_right' : 'expand_more') + '</span>' +
+            '<span>' + etiquetaDia + '</span>' +
+            (esHoy ? '<span class="dia-hoy">Hoy</span>' : '') +
+            htmlStatsDia(t, g.fechaISO) + '</div></td></tr>';
+
+          if (plegado) return cabecera;
+
+          var turnoPrevio = null, lineaPuesta = false;
 
           var filasDia = g.citas.map(function(c) {
-            var celdas = HEADERS_VISIBLES.map(function(h) { return renderCelda(h, c[h], c._fila, c._hueco); }).join('');
-            var celdaAcciones = c._hueco
-              ? '<td></td>'
-              : '<td><button type="button" class="btn-borrar-fila" data-fila="' + c._fila + '" title="Liberar este hueco (borra todos los datos de la cita)"><span class="material-symbols-outlined">delete</span></button></td>';
+            var hora = c['Hora'] || '';
+            var prefijo = '';
 
-            var esManana = (c['Hora'] || '') < HORA_CORTE_TARDE;
-            var divisor = (mananaAnterior === true && esManana === false);
-            mananaAnterior = esManana;
+            // Línea de "ahora": justo antes de la primera fila posterior a la hora actual
+            if (esHoy && !lineaPuesta && hora > ahora) { prefijo += htmlLineaAhora(ahora, numColumnas); lineaPuesta = true; }
 
-            // Cambio de turno: fila-etiqueta bien visible en vez de un
-            // simple borde, para que el corte mañana/tarde se note de un
-            // vistazo (igual que ya se hace con la cabecera de cada día).
-            var filaEtiquetaTurno = divisor
-              ? '<tr class="fila-turno"><td colspan="' + numColumnas + '">Turno de tarde</td></tr>'
-              : '';
+            var tempo = (esHoy && !c._hueco) ? estadoTemporal(hora, ahora) : '';
+            var tag = tempo === 'en-curso' ? 'ahora' : ((esHoy && proxima && proxima._fila === c._fila) ? 'proxima' : '');
+
+            var celdas = HEADERS_VISIBLES.map(function(h) { return renderCelda(h, c[h], c._fila, c._hueco, tag); }).join('');
+            var celdaAcciones = c._hueco ? '<td></td>' : '<td class="acciones-fila">' + htmlBotonesFila(c._fila) + '</td>';
+
+            var esManana = hora < HORA_CORTE_TARDE;
+            var turno = esManana ? 'manana' : 'tarde';
+            if (turno !== turnoPrevio) {
+              prefijo += '<tr class="fila-turno ' + turno + '"><td colspan="' + numColumnas + '">' + (esManana ? 'Turno de mañana' : 'Turno de tarde') + '</td></tr>';
+            }
+            turnoPrevio = turno;
 
             var clases = [];
-            if (c._hueco) clases.push('fila-hueco');
+            if (c._hueco) {
+              clases.push('fila-hueco');
+            } else {
+              clases.push('fila-cita');
+              var estado = estiloAsistencia(c['Asistencia']);
+              if (estado && estado !== 'neutro') clases.push('asist-' + estado);
+            }
+            if (tempo) clases.push(tempo);
             if (contadorFila % 2 === 1) clases.push('fila-par');
             if (filasSeleccionadas.has(c._fila)) clases.push('seleccionada');
             contadorFila++;
 
-            return filaEtiquetaTurno + '<tr class="' + clases.join(' ') + '" data-fila="' + c._fila + '">' + celdas + celdaAcciones + '</tr>';
+            return prefijo + '<tr class="' + clases.join(' ') + '" data-fila="' + c._fila + '">' + celdas + celdaAcciones + '</tr>';
           }).join('');
 
           return cabecera + filasDia;
         }).join('') + '</tbody>';
 
-        cont.innerHTML = '<table>' + thead + tbody + '</table>';
+        return '<table>' + thead + tbody + '</table>';
+      }
+
+      // ---------- Vista "Hoy": tarjetas ----------
+      function htmlTarjetas(citas) {
+        var hoy = hoyISO(), ahora = ahoraHHmm();
+        var t = calcularTotalesDia()[hoy] || { citas: 0, libres: 0, registradas: 0 };
+        var proxima = filaProxima(hoy, ahora);
+        var primera = citas[0];
+
+        var html = '<div class="tj-cab"><div class="dia-cab"><span>' + (primera['Día'] ? escapar(primera['Día']) + ' · ' : '') + escapar(primera['Fecha']) +
+          '</span><span class="dia-hoy">Hoy</span>' + htmlStatsDia(t, hoy) + '</div></div><div class="tj-turnos">';
+
+        var turnoPrevio = null, abierto = false;
+        citas.forEach(function(c) {
+          var esManana = (c['Hora'] || '') < HORA_CORTE_TARDE;
+          var turno = esManana ? 'manana' : 'tarde';
+          if (turno !== turnoPrevio) {
+            if (abierto) html += '</div>';
+            html += '<div class="tj-turno-titulo ' + turno + '">' + (esManana ? 'Turno de mañana' : 'Turno de tarde') + '</div><div class="tj-grid">';
+            abierto = true;
+            turnoPrevio = turno;
+          }
+          html += htmlTarjeta(c, ahora, proxima);
+        });
+        if (abierto) html += '</div>';
+        return html + '</div>';
+      }
+
+      function htmlTarjeta(c, ahora, proxima) {
+        var hora = c['Hora'] || '—';
+
+        if (c._hueco) {
+          return '<div class="tarjeta hueco" data-fila="' + c._fila + '"><div class="tj-hora">' + escapar(hora) + '</div>' +
+            '<div class="editable hueco-libre" data-campo="Usuario" data-fila="' + c._fila + '" data-valor=""><span class="chip-asignar"><span class="material-symbols-outlined">add</span>Asignar</span></div></div>';
+        }
+
+        var tempo = estadoTemporal(c['Hora'] || '', ahora);
+        var esProxima = !!(proxima && proxima._fila === c._fila);
+        var clases = ['tarjeta'];
+        var estado = estiloAsistencia(c['Asistencia']);
+        if (estado && estado !== 'neutro') clases.push('asist-' + estado);
+        if (tempo) clases.push(tempo);
+        if (esProxima) clases.push('proxima');
+        if (filasSeleccionadas.has(c._fila)) clases.push('seleccionada');
+
+        var tagTxt = tempo === 'en-curso' ? '<span class="tag-t ahora">Ahora</span>' : (esProxima ? '<span class="tag-t proxima">Próxima</span>' : '');
+
+        var vAsis = c['Asistencia'];
+        var asis = vacioTxt(vAsis)
+          ? '<div class="tj-asis"><span class="asis-rapida">' + htmlAsistenciaRapida(true) + '</span></div>'
+          : '<div class="tj-asis editable" data-campo="Asistencia" data-fila="' + c._fila + '" data-valor="' + escapar(vAsis) + '"><span class="chip chip-' + estiloAsistencia(vAsis) + '">' + escapar(vAsis) + '</span></div>';
+
+        var vNotas = c['Notas'];
+        var notas = '<div class="tj-notas editable" data-campo="Notas" data-fila="' + c._fila + '" data-valor="' + (vacioTxt(vNotas) ? '' : escapar(vNotas)) + '">' +
+          (vacioTxt(vNotas) ? '<span class="tj-notas-vacia">Añadir nota…</span>' : '<span class="material-symbols-outlined ic-nota">sticky_note_2</span>' + escapar(vNotas)) + '</div>';
+
+        var hc = COL_HISTORIA ? c[COL_HISTORIA] : '';
+        var pie = esUrl(hc)
+          ? '<a class="btn-toolbar tj-btn" href="' + escapar(hc.trim()) + '" target="_blank" rel="noopener"><span class="material-symbols-outlined">description</span> Historia clínica</a>'
+          : '<span class="tj-sinhc">Sin Historia Clínica enlazada</span>';
+
+        var tel = c['Teléfono'];
+        var meta = (vacioTxt(c['Sesión']) ? '' : badgeSesion(c['Sesión'])) + (vacioTxt(tel) ? '' : '<span>' + escapar(tel) + '</span>');
+
+        return '<div class="' + clases.join(' ') + '" data-fila="' + c._fila + '">' +
+          '<div class="tj-top"><span class="chk"></span><span class="tj-hora">' + escapar(hora) + '</span>' + tagTxt + '<span class="tj-fill"></span>' + htmlBotonesFila(c._fila) + '</div>' +
+          '<div class="tj-nombre" title="' + escapar(c['Usuario']) + '">' + escapar(c['Usuario']) + '</div>' +
+          '<div class="tj-meta">' + meta + '</div>' + asis + notas + '<div class="tj-pie">' + pie + '</div></div>';
       }
 
       <?!= include('JS_Modal_Deshacer'); ?>
@@ -577,12 +1190,8 @@
           return;
         }
 
-        // Notas y Sesión: texto libre. Autoguardado tras una breve pausa al
-        // escribir (no hace falta salir del campo ni pulsar Enter), con un
-        // pequeño indicador de estado a la derecha. Enter guarda al momento
-        // y sale del campo; Escape cancela el guardado pendiente y descarta
-        // los cambios sin confirmar (los ya autoguardados no se deshacen,
-        // igual que en Sheets o Docs).
+        // Notas y Sesión: texto libre con autoguardado tras una pausa al escribir.
+        // Enter guarda y sale; Escape cancela el guardado pendiente.
         td.innerHTML = '<input class="input-celda" type="text" value="' + escapar(valorActual) + '">';
         var input = td.querySelector('input');
         input.focus();
@@ -614,10 +1223,8 @@
         });
       }
 
-      // Indicador visual (…/✓/⚠) dentro de la celda que se está editando,
-      // para que el autoguardado se note sin tener que salir del campo.
       function mostrarEstadoGuardado(td, estado) {
-        if (!td || !td.classList.contains('editando')) return; // ya se cerró la edición, no la tocamos
+        if (!td || !td.classList.contains('editando')) return;
         var marca = td.querySelector('.estado-guardado');
         if (!marca) {
           marca = document.createElement('span');
@@ -640,9 +1247,6 @@
         }
       }
 
-      // Guardado en segundo plano mientras se sigue editando: NO repinta la
-      // tabla entera (eso haría perder el foco y el cursor a media escritura),
-      // solo actualiza los datos en memoria y el indicador visual de la celda.
       function guardarCampoSilencioso(fila, campo, valor, td) {
         mostrarEstadoGuardado(td, 'progreso');
         google.script.run
@@ -659,9 +1263,6 @@
         google.script.run
           .withSuccessHandler(function(res) {
             if (!res.success) { mostrarAviso(res.message || 'No se pudo guardar el cambio.'); render(); return; }
-            // Parche local: actualizamos solo esta cita en memoria y volvemos
-            // a pintar la tabla sin volver a pedirle al servidor toda la
-            // semana (eso es lo que hacía lento cada edición).
             var cita = CITAS.find(function(c) { return c._fila == fila; });
             if (cita) cita[campo] = valor;
             render();
@@ -697,7 +1298,6 @@
         var confirmado = await mostrarConfirm('¿Eliminar cita? Se borrarán los datos de la cita');
         if (!confirmado) return;
 
-        // Foto de los datos actuales, ANTES de liberarlos, para poder deshacer.
         var citaOriginal = CITAS.find(function(c) { return c._fila == fila; });
         var snapshot = citaOriginal ? [{ fila: fila, valores: Object.assign({}, citaOriginal) }] : null;
 
@@ -726,16 +1326,14 @@
           .eliminarDatosFilaAgendaWeb(fila);
       }
 
-      // ---------- Eliminar varias citas a la vez (selección múltiple) ----------
+      // ---------- Eliminar varias citas ----------
       async function manejarEliminarSeleccionadas() {
         var sel = citasSeleccionadas();
         if (sel.length === 0) return;
 
-        var mensaje = '¿Eliminar cita? Se borrarán los datos de la cita';
-        var confirmado = await mostrarConfirm(mensaje);
+        var confirmado = await mostrarConfirm('¿Eliminar cita? Se borrarán los datos de la cita');
         if (!confirmado) return;
 
-        // Foto de cada cita seleccionada, ANTES de liberarlas, para deshacer.
         var snapshot = sel.map(function(c) { return { fila: c._fila, valores: Object.assign({}, c) }; });
         var filas = sel.map(function(c) { return c._fila; });
 
@@ -761,13 +1359,13 @@
         google.script.run
           .withSuccessHandler(function(res) {
             procesandoDeshacer = false;
-            if (!res.success) { mostrarAviso(res.message || 'No se pudo deshacer.'); return; } // el botón sigue disponible para reintentar
+            if (!res.success) { mostrarAviso(res.message || 'No se pudo deshacer.'); return; }
             ocultarDeshacer();
             cargar(semanaActual, true);
           })
           .withFailureHandler(function(err) {
             procesandoDeshacer = false;
-            mostrarAviso('Error al deshacer: ' + err); // el botón sigue disponible para reintentar
+            mostrarAviso('Error al deshacer: ' + err);
           })
           .restaurarCitasWeb(snapshot);
       }
@@ -775,12 +1373,9 @@
       document.getElementById('toastDeshacerBtn').addEventListener('click', ejecutarDeshacer);
       document.getElementById('btnDeshacer').addEventListener('click', ejecutarDeshacer);
 
-      // ---------- Selección múltiple de citas (mismo patrón que la Base de
-      // Datos, pero el clic AÑADE o QUITA de la selección en vez de
-      // reemplazarla — Copiar Siguiente Cita / ×2 pueden actuar sobre varias
-      // a la vez). ----------
+      // ---------- Selección múltiple (el clic añade o quita de la selección) ----------
       var BOTONES_UNA_SOLA = ['btnValoracion', 'btnWhatsapp'].map(function(id) { return document.getElementById(id); });
-      var BOTONES_UNA_O_MAS = ['btnEnlazarHC', 'btnCopiarCita', 'btnCopiarCita2', 'btnEliminarCitas'].map(function(id) { return document.getElementById(id); });
+      var BOTONES_UNA_O_MAS = ['btnEnlazarHC', 'btnMenuCopiar', 'btnCopiarCita', 'btnCopiarCita2', 'btnEliminarCitas'].map(function(id) { return document.getElementById(id); });
 
       function citasSeleccionadas() {
         return CITAS.filter(function(c) { return filasSeleccionadas.has(c._fila) && !c._hueco; });
@@ -801,37 +1396,86 @@
 
       function actualizarBotonesSeleccion() {
         var n = citasSeleccionadas().length;
-        BOTONES_UNA_SOLA.forEach(function(btn) { btn.disabled = (n !== 1); });
+        if (n === 0) document.getElementById('menuCopiarWrap').classList.remove('abierto');
+        BOTONES_UNA_SOLA.forEach(function(btn) {
+          btn.disabled = (n !== 1);
+          btn.style.display = (n === 1) ? '' : 'none';
+        });
         BOTONES_UNA_O_MAS.forEach(function(btn) { btn.disabled = (n === 0); });
 
         var contador = document.getElementById('contadorSeleccion');
         contador.textContent = n > 0 ? (n + (n === 1 ? ' cita seleccionada' : ' citas seleccionadas')) : '';
-        document.getElementById('btnQuitarSeleccion').style.display = n > 0 ? 'inline-flex' : 'none';
+
+        document.getElementById('cabecera').classList.toggle('con-seleccion', n > 0);
       }
 
       document.getElementById('btnQuitarSeleccion').addEventListener('click', quitarSeleccion);
 
-      document.getElementById('tablaWrap').addEventListener('click', function(e) {
-        if (e.target.closest('td.editando')) return; // no seleccionar mientras se edita una celda
+      function alternarPlegado(fechaISO) {
+        var nuevo = !diaPlegado(fechaISO);
+        plegadoManual[fechaISO] = nuevo;
+        if (nuevo) {
+          CITAS.forEach(function(c) { if (c._fechaISO === fechaISO) filasSeleccionadas.delete(c._fila); });
+          actualizarBotonesSeleccion();
+        }
+        render();
+      }
 
-        var tdEditable = e.target.closest('td.editable');
-        if (tdEditable && !tdEditable.classList.contains('editando')) {
-          activarEdicion(tdEditable);
+      function limpiarFiltros() {
+        filtrosActivos.clear();
+        document.getElementById('inputBusqueda').value = '';
+        render();
+      }
+
+      document.getElementById('tablaWrap').addEventListener('click', function(e) {
+        var t = e.target;
+        if (t.closest('.editando')) return; // no seleccionar mientras se edita
+
+        // Asistencia con un clic (icono ✓ / ✕ / aviso)
+        var btnAsis = t.closest('[data-asis]');
+        if (btnAsis) {
+          var contenedor = btnAsis.closest('[data-fila]');
+          if (contenedor) guardarCampo(contenedor.dataset.fila, 'Asistencia', btnAsis.dataset.asis);
           return;
         }
-        var btnBorrar = e.target.closest('.btn-borrar-fila');
-        if (btnBorrar) {
-          manejarBorrarFila(btnBorrar.dataset.fila);
+
+        // Acciones rápidas de la fila / tarjeta
+        var btnFila = t.closest('.btn-fila');
+        if (btnFila) {
+          var f = btnFila.dataset.fila, acc = btnFila.dataset.accion;
+          if (acc === 'borrar') manejarBorrarFila(f);
+          else if (acc === 'whatsapp') abrirWhatsappFila(f);
+          else if (acc === 'valoracion') {
+            var ci = CITAS.find(function(c) { return c._fila == f; });
+            if (ci) abrirValoracionCita(ci['Usuario']);
+          }
           return;
         }
-        var tr = e.target.closest('tr[data-fila]');
-        if (tr) {
-          var cita = CITAS.find(function(c) { return c._fila == tr.dataset.fila; });
-          if (cita) alternarSeleccionFila(cita);
+
+        // Botones de los estados vacíos
+        var vacio = t.closest('[data-vacio]');
+        if (vacio) {
+          if (vacio.dataset.vacio === 'limpiar') limpiarFiltros();
+          else if (vacio.dataset.vacio === 'huecos') { mostrarHuecos = true; actualizarBotonHuecos(); render(); }
+          return;
+        }
+
+        var editable = t.closest('.editable');
+        if (editable) { activarEdicion(editable); return; }
+
+        var banda = t.closest('tr.fila-dia');
+        if (banda) { alternarPlegado(banda.dataset.dia); return; }
+
+        if (t.closest('a')) return; // los enlaces (Historia clínica) no seleccionan la cita
+
+        var fil = t.closest('tr[data-fila], .tarjeta[data-fila]');
+        if (fil) {
+          var cita = CITAS.find(function(c) { return c._fila == fil.dataset.fila; });
+          if (cita && !cita._hueco) alternarSeleccionFila(cita);
         }
       });
 
-      // ---------- Preparar Jornada (abre las Historias Clínicas del turno de hoy) ----------
+      // ---------- Preparar Jornada ----------
       function mostrarLanzadorHCs(urls, turno) {
         var overlay = document.getElementById('modalOverlay');
         var btnCancelar = document.getElementById('modalBtnCancelar');
@@ -850,9 +1494,7 @@
           btnAceptar.removeEventListener('click', onAbrir);
           btnCancelar.removeEventListener('click', onCancelar);
         }
-        // Abrimos las ventanas DENTRO del propio clic de este botón (no tras
-        // un await) para que cuenten como gesto directo del usuario y el
-        // navegador no las bloquee.
+        // Las ventanas se abren DENTRO del clic para que cuenten como gesto directo.
         function onAbrir() { urls.forEach(function(url) { window.open(url, '_blank'); }); limpiar(); }
         function onCancelar() { limpiar(); }
 
@@ -874,27 +1516,17 @@
           .obtenerEnlacesJornadaWeb();
       });
 
-      // Ventana emergente de Valoración abierta desde aquí (guardamos la referencia
-      // para poder cerrarla cuando el formulario avise de que ha terminado).
       var ventanaActiva = null;
 
-      // ---------- Valoración (abre la ventana emergente ya existente; solo con 1 cita seleccionada) ----------
-      document.getElementById('btnValoracion').addEventListener('click', function() {
-        var sel = citasSeleccionadas();
-        if (sel.length !== 1) return;
-        var url = BASE_URL + '?page=valoracion&paciente=' + encodeURIComponent(sel[0]['Usuario']) + '&embed=1';
+      // ---------- Valoración y WhatsApp (barra de selección y acciones por fila) ----------
+      function abrirValoracionCita(nombre) {
+        var url = BASE_URL + '?page=valoracion&paciente=' + encodeURIComponent(nombre) + '&embed=1';
         ventanaActiva = window.open(url, 'ventanaValoracionAgenda', 'width=850,height=900');
-      });
+      }
 
-      // ---------- WhatsApp (solo con 1 cita seleccionada) ----------
-      document.getElementById('btnWhatsapp').addEventListener('click', function() {
-        var sel = citasSeleccionadas();
-        if (sel.length !== 1) return;
-
-        // Abrimos la ventana en el propio clic (síncrono) para que el
-        // navegador no la bloquee; la rellenamos en cuanto llega la URL.
+      function abrirWhatsappFila(fila) {
+        // La ventana se abre en el propio clic (síncrono) para que no la bloquee el navegador.
         var ventana = window.open('', '_blank');
-
         google.script.run
           .withSuccessHandler(function(res) {
             if (res.success) {
@@ -908,10 +1540,20 @@
             if (ventana) ventana.close();
             mostrarAviso('Error al abrir WhatsApp: ' + err);
           })
-          .generarUrlWhatsappParaAgendaWeb(sel[0]._fila);
+          .generarUrlWhatsappParaAgendaWeb(fila);
+      }
+
+      document.getElementById('btnValoracion').addEventListener('click', function() {
+        var sel = citasSeleccionadas();
+        if (sel.length === 1) abrirValoracionCita(sel[0]['Usuario']);
       });
 
-      // ---------- Copiar Siguiente Cita / ×2 (una o varias citas a la vez) ----------
+      document.getElementById('btnWhatsapp').addEventListener('click', function() {
+        var sel = citasSeleccionadas();
+        if (sel.length === 1) abrirWhatsappFila(sel[0]._fila);
+      });
+
+      // ---------- Copiar Siguiente Cita / ×2 ----------
       async function manejarCopiarSeleccionadas(doble, forzar) {
         var sel = citasSeleccionadas();
         if (sel.length === 0) return;
@@ -936,13 +1578,10 @@
       document.getElementById('btnCopiarCita').addEventListener('click', function() { manejarCopiarSeleccionadas(false, false); });
       document.getElementById('btnCopiarCita2').addEventListener('click', function() { manejarCopiarSeleccionadas(true, false); });
 
-      // ---------- Copiar Semana: miércoles y jueves (doble sesión) + viernes
-      // (simple) de la semana que se está viendo → puebla toda la semana
-      // siguiente sin tener que seleccionar nada a mano. No usa la selección
-      // en absoluto; recorre CITAS directamente. ----------
+      // ---------- Copiar Semana (mié/jue doble, vie simple → semana siguiente) ----------
       function diaSemanaDeCita(c) {
         var partes = c._fechaISO.split('-').map(Number);
-        return new Date(partes[0], partes[1] - 1, partes[2]).getDay(); // 0=Dom … 6=Sáb
+        return new Date(partes[0], partes[1] - 1, partes[2]).getDay();
       }
 
       async function manejarCopiarSemana(forzar) {
@@ -950,7 +1589,7 @@
           .filter(function(c) {
             if (c._hueco) return false;
             var dia = diaSemanaDeCita(c);
-            return dia === 3 || dia === 4 || dia === 5; // miércoles, jueves, viernes
+            return dia === 3 || dia === 4 || dia === 5;
           })
           .map(function(c) {
             var dia = diaSemanaDeCita(c);
@@ -988,26 +1627,29 @@
         return d.getFullYear() + '-' + m + '-' + day;
       }
 
-      document.getElementById('btnSemanaAnterior').addEventListener('click', function() {
+      function moverSemana(dias) {
+        if (!semanaActual) return;
         var partes = semanaActual.split('-').map(Number);
         var d = new Date(partes[0], partes[1] - 1, partes[2]);
-        d.setDate(d.getDate() - 7);
+        d.setDate(d.getDate() + dias);
+        fijarVista('semana');
         cargar(formatoISO(d));
-      });
+      }
 
-      document.getElementById('btnSemanaSiguiente').addEventListener('click', function() {
-        var partes = semanaActual.split('-').map(Number);
-        var d = new Date(partes[0], partes[1] - 1, partes[2]);
-        d.setDate(d.getDate() + 7);
-        cargar(formatoISO(d));
-      });
+      document.getElementById('btnSemanaAnterior').addEventListener('click', function() { moverSemana(-7); });
+      document.getElementById('btnSemanaSiguiente').addEventListener('click', function() { moverSemana(7); });
 
+      // "Hoy": en la vista de tarjetas las refresca; en la tabla, si el día ya
+      // está en la semana cargada solo se desplaza hasta él, y si no, carga la actual.
       document.getElementById('btnHoy').addEventListener('click', function() {
-        cargar(hoyISO());
+        if (vista === 'hoy') { cambiarVista('hoy'); return; }
+        var hoy = hoyISO();
+        if (CITAS.some(function(c) { return c._fechaISO === hoy; })) scrollAHoy();
+        else cargar(hoy);
       });
 
       document.getElementById('inputSemana').addEventListener('change', function(e) {
-        if (e.target.value) cargar(e.target.value);
+        if (e.target.value) { fijarVista('semana'); cargar(e.target.value); }
       });
 
       document.getElementById('inputBusqueda').addEventListener('input', render);
@@ -1025,7 +1667,100 @@
           : '<span class="material-symbols-outlined">event_available</span> Mostrar citas disponibles';
         btn.classList.toggle('activo', mostrarHuecos);
       }
-      // ---------- Enlazar Historia Clínica a la Agenda ----------
+
+      // ---------- Vista Semana / Hoy ----------
+      function fijarVista(v) {
+        vista = v;
+        document.getElementById('btnVistaSemana').classList.toggle('activo', v === 'semana');
+        document.getElementById('btnVistaHoy').classList.toggle('activo', v === 'hoy');
+      }
+
+      function cambiarVista(v) {
+        fijarVista(v);
+        if (v === 'hoy' && !CITAS.some(function(c) { return c._fechaISO === hoyISO(); })) {
+          cargar(hoyISO()); // la semana cargada no contiene hoy
+          return;
+        }
+        render();
+        if (v === 'semana') scrollAHoy();
+        else document.getElementById('tablaWrap').scrollTop = 0;
+      }
+
+      document.getElementById('btnVistaSemana').addEventListener('click', function() { cambiarVista('semana'); });
+      document.getElementById('btnVistaHoy').addEventListener('click', function() { cambiarVista('hoy'); });
+
+      // ---------- Filtros rápidos ----------
+      document.querySelectorAll('.chip-filtro').forEach(function(b) {
+        b.addEventListener('click', function() {
+          var k = b.dataset.filtro;
+          if (filtrosActivos.has(k)) filtrosActivos.delete(k); else filtrosActivos.add(k);
+          render();
+        });
+      });
+
+      // ---------- Densidad de filas ----------
+      function aplicarDensidad(compacto, guardar) {
+        document.body.classList.toggle('compacto', compacto);
+        document.getElementById('txtDensidad').textContent = compacto ? 'Compacto' : 'Cómodo';
+        if (guardar) { try { localStorage.setItem('agendaDensidad', compacto ? 'compacto' : 'comodo'); } catch (err) { /* sin almacenamiento */ } }
+      }
+      document.getElementById('btnDensidad').addEventListener('click', function() {
+        aplicarDensidad(!document.body.classList.contains('compacto'), true);
+      });
+      (function() {
+        var guardada = null;
+        try { guardada = localStorage.getItem('agendaDensidad'); } catch (err) { /* sin almacenamiento */ }
+        aplicarDensidad(guardada === 'compacto', false);
+      })();
+
+      // ---------- Menú Copiar ----------
+      document.getElementById('btnMenuCopiar').addEventListener('click', function(e) {
+        e.stopPropagation();
+        if (this.disabled) return;
+        var abierto = document.getElementById('menuCopiarWrap').classList.toggle('abierto');
+        this.setAttribute('aria-expanded', abierto ? 'true' : 'false');
+      });
+      document.addEventListener('click', function(e) {
+        if (!e.target.closest('#menuCopiarWrap') || e.target.closest('.menu-item')) {
+          document.getElementById('menuCopiarWrap').classList.remove('abierto');
+        }
+      });
+
+      // ---------- Atajos de teclado ----------
+      document.getElementById('btnAtajos').addEventListener('click', function() {
+        mostrarAviso('Atajos de teclado\n← / →   Semana anterior / siguiente\nT   Ir a hoy\n/   Buscar\nEsc   Quitar selección o filtros');
+      });
+
+      document.getElementById('inputBusqueda').addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') { this.value = ''; this.blur(); render(); }
+      });
+
+      document.addEventListener('keydown', function(e) {
+        if (e.ctrlKey || e.metaKey || e.altKey) return;
+        var modal = document.getElementById('modalOverlay');
+        if (modal && modal.classList.contains('visible')) return;
+        var el = document.activeElement, tag = el ? el.tagName : '';
+        if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA' || (el && el.isContentEditable)) return;
+
+        if (e.key === 'ArrowLeft') { e.preventDefault(); moverSemana(-7); }
+        else if (e.key === 'ArrowRight') { e.preventDefault(); moverSemana(7); }
+        else if (e.key === 't' || e.key === 'T') { document.getElementById('btnHoy').click(); }
+        else if (e.key === '/') { e.preventDefault(); document.getElementById('inputBusqueda').focus(); }
+        else if (e.key === 'Escape') {
+          var wrapMenu = document.getElementById('menuCopiarWrap');
+          if (wrapMenu.classList.contains('abierto')) wrapMenu.classList.remove('abierto');
+          else if (citasSeleccionadas().length) quitarSeleccion();
+          else if (hayBusqueda()) limpiarFiltros();
+        }
+      });
+
+      // Cada minuto: actualiza "ahora", la línea de hora y las citas ya terminadas
+      setInterval(function() {
+        if (document.querySelector('.editando') || !CITAS.length) return;
+        if (vista === 'hoy' || CITAS.some(function(c) { return c._fechaISO === hoyISO(); })) render();
+      }, 60000);
+
+      // ---------- Enlazar Historia Clínica ----------
       document.getElementById('btnEnlazarHC').addEventListener('click', function() {
         var sel = citasSeleccionadas();
         if (sel.length === 0) return;
@@ -1033,7 +1768,7 @@
         var filas = sel.map(function(c) { return c._fila; });
         var btn = this;
         var textoOriginal = btn.innerHTML;
-        
+
         btn.disabled = true;
         btn.innerHTML = '<span class="material-symbols-outlined spin-icon">progress_activity</span> Enlazando…';
 
@@ -1043,7 +1778,7 @@
             if (!res.success) { mostrarAviso(res.message); return; }
             mostrarAviso(res.message);
             quitarSeleccion();
-            cargar(semanaActual, true); // Refresco silencioso
+            cargar(semanaActual, true);
           })
           .withFailureHandler(function(err) {
             btn.innerHTML = textoOriginal;
@@ -1051,41 +1786,32 @@
           })
           .insertarEnlaceHistoriaClinicaWeb(filas);
       });
-      // Auto-refresh: en vez de repedir la semana completa cada X segundos,
-      // sondeamos un dato muy barato (obtenerVersionAgendaWeb, Agenda Web.gs:
-      // no lee la hoja de Agenda, solo consulta CacheService) y solo si ese
-      // número cambió pedimos los datos completos con cargar(semanaActual,
-      // true) — refresco silencioso, no repinta "Cargando agenda…", la tabla
-      // se sustituye sola al llegar el dato nuevo. invalidarCacheAgenda_ se
-      // llama tanto desde aquí (ediciones en la propia Agenda Web) como desde
-      // guardarCitasMultiples (Cita.gs, formulario de Citas), así que este
-      // sondeo detecta cambios hechos desde cualquiera de los dos sitios.
-      // Se salta el ciclo si hay una celda en edición en ese momento, para no
-      // perder lo que se está escribiendo.
-      var ultimaVersionAgenda = null; // null = aún no se ha establecido la base de comparación
+
+      // ---------- Auto-refresh: sondeo barato de versión (CacheService) y recarga
+      // silenciosa solo si cambió. Se salta si hay una celda en edición. ----------
+      var ultimaVersionAgenda = null;
 
       function comprobarVersionAgenda() {
         if (!semanaActual) return;
-        if (document.querySelector('td.editando')) return;
+        if (document.querySelector('.editando')) return;
 
         google.script.run
           .withSuccessHandler(function(res) {
-            if (!res || res.error) return; // fallo puntual: no rompe nada, se reintenta en el próximo ciclo
-            if (ultimaVersionAgenda === null) { ultimaVersionAgenda = res.version; return; } // primera lectura: solo fija la base, no fuerza recarga
+            if (!res || res.error) return;
+            if (ultimaVersionAgenda === null) { ultimaVersionAgenda = res.version; return; }
             if (res.version !== ultimaVersionAgenda) {
               ultimaVersionAgenda = res.version;
               cargar(semanaActual, true);
             }
           })
-          .withFailureHandler(function() { /* no crítico: se reintenta en el próximo ciclo */ })
+          .withFailureHandler(function() { /* se reintenta en el próximo ciclo */ })
           .obtenerVersionAgendaWeb();
       }
 
-      var AUTO_REFRESH_MS = 4000; // consulta barata, puede ir más rápido que los 30s de antes sin sobrecargar
+      var AUTO_REFRESH_MS = 4000;
       setInterval(comprobarVersionAgenda, AUTO_REFRESH_MS);
 
-      // El formulario de Valoración avisa por postMessage al guardar o cerrar;
-      // la ventana madre (esta) cierra la ventana hija.
+      // El formulario de Valoración avisa por postMessage al guardar o cerrar.
       window.addEventListener('message', function(e) {
         if (e.data && e.data.tipo === 'cerrarEdicionPaciente') {
           if (ventanaActiva && !ventanaActiva.closed) {
@@ -1094,30 +1820,21 @@
         }
       });
 
-      // Cierre de ventanas emergentes: el formulario (popup) no siempre puede
-      // cerrarse a sí mismo, así que pide a la ventana que la abrió (esta) que
-      // lo haga. e.source es la ventana emergente; close() está permitido
-      // aunque sea de otro origen.
+      // Los popups piden a la ventana madre que los cierre.
       window.addEventListener('message', function(e) {
         if (e.data && e.data.tipo === 'cerrarPopupFormulario' && e.source) {
           try { e.source.close(); } catch (err) { /* bloqueado por el navegador */ }
         }
       });
 
-      // Aviso opcional desde otra pestaña: el formulario de Citas (y el de
-      // edición de paciente) escriben en localStorage al guardar. En teoría
-      // el evento 'storage' llegaría aquí al instante sin esperar al sondeo
-      // de arriba, pero cada pestaña de una Web App de Apps Script carga en
-      // un sandbox con origen distinto y aleatorio, así que este canal no es
-      // fiable entre pestañas — cuando sí llega, adelanta el refresco;
-      // cuando no, el sondeo de comprobarVersionAgenda() (cada 4s) lo cubre
-      // igualmente. También es un refresco silencioso.
+      // Aviso opcional entre pestañas vía localStorage (no siempre fiable en
+      // Apps Script; el sondeo de arriba lo cubre igualmente).
       window.addEventListener('storage', function(e) {
         if (e.key === 'pacienteActualizado' && ventanaActiva && !ventanaActiva.closed) {
           ventanaActiva.close();
         }
         if (e.key === 'pacienteActualizado' && semanaActual) {
-          if (document.querySelector('td.editando')) return;
+          if (document.querySelector('.editando')) return;
           cargar(semanaActual, true);
         }
       });
