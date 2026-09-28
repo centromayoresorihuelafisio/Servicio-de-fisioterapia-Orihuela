@@ -1006,3 +1006,61 @@ function moverCitaWeb(filaOrigen, filaDestino) {
     try { lock.releaseLock(); } catch (err) { /* sin bloqueo que liberar */ }
   }
 }
+
+/**
+ * Intercambia los datos de dos citas ocupadas (drag & drop de una cita sobre otra).
+ * Fecha, Día y Hora no se tocan; el "ID Evento Calendar" viaja con cada cita.
+ */
+function intercambiarCitasWeb(filaA, filaB) {
+  const lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(10000);
+
+    const sheet = obtenerHojaAgenda();
+    const rA = parseInt(filaA, 10), rB = parseInt(filaB, 10);
+    const lastRow = sheet.getLastRow();
+    if (!rA || !rB || rA < 2 || rB < 2 || rA > lastRow || rB > lastRow) return { success: false, message: 'Filas no válidas.' };
+    if (rA === rB) return { success: true, message: 'Misma fila, sin cambios.' };
+
+    const lastCol = sheet.getLastColumn();
+    const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(h => h.toString().trim());
+    const colUsuario = headers.indexOf(COLUMNAS.AGENDA.USUARIO);
+    const colHC = headers.indexOf(COLUMNAS.AGENDA.HISTORIA_CLINICA);
+    const colSesion = headers.indexOf(COLUMNAS.AGENDA.SESION);
+    if (colUsuario === -1) return { success: false, message: 'Falta la columna Usuario.' };
+
+    const vA = sheet.getRange(rA, 1, 1, lastCol).getValues()[0];
+    const vB = sheet.getRange(rB, 1, 1, lastCol).getValues()[0];
+    const ocupada = fila => !!(fila[colUsuario] && fila[colUsuario].toString().trim() !== '');
+    if (!ocupada(vA) || !ocupada(vB)) {
+      return { success: false, message: 'Alguna de las citas ya no existe (¿la ha cambiado otra persona?).' };
+    }
+
+    // Leer todo ANTES de escribir (incluido el enlace de la Historia Clínica)
+    const rtA = colHC !== -1 ? sheet.getRange(rA, colHC + 1).getRichTextValue() : null;
+    const rtB = colHC !== -1 ? sheet.getRange(rB, colHC + 1).getRichTextValue() : null;
+
+    CAMPOS_A_BORRAR_AGENDA.forEach(nombreCampo => {
+      const c = headers.indexOf(nombreCampo);
+      if (c === -1) return;
+      [[rA, vB, rtB], [rB, vA, rtA]].forEach(par => {
+        const rango = sheet.getRange(par[0], c + 1);
+        if (c === colHC && par[2]) {
+          rango.setRichTextValue(par[2]);
+        } else {
+          rango.setValue(par[1][c]);
+          if (c === colSesion && par[1][c] !== '') rango.setNumberFormat('0');
+        }
+      });
+    });
+
+    SpreadsheetApp.flush();
+    invalidarCacheAgenda_(sheet);
+    return { success: true, message: 'Citas intercambiadas correctamente.' };
+  } catch (e) {
+    Logger.log('Error en intercambiarCitasWeb: ' + e.message);
+    return { success: false, message: e.message };
+  } finally {
+    try { lock.releaseLock(); } catch (err) { /* sin bloqueo que liberar */ }
+  }
+}

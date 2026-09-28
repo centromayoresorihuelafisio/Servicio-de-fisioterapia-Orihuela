@@ -552,8 +552,8 @@
       body.arrastrando-cita, body.arrastrando-cita * { cursor: grabbing !important; }
       body.arrastrando-cita { user-select: none; -webkit-user-select: none; }
       tr.arrastrando td, .tarjeta.arrastrando { opacity: .4; }
-      body.arrastrando-cita tbody tr.fila-hueco td { background-color: #eef5ff; color: var(--ag-accent-dark); }
-      body.arrastrando-cita .tarjeta.hueco { background: #eef5ff; border-color: var(--ag-accent); }
+      body.arrastrando-cita tbody tr.fila-hueco td { background-color: var(--ag-drop); color: var(--ag-accent-dark); }
+      body.arrastrando-cita .tarjeta.hueco { background: var(--ag-drop); border-color: var(--ag-accent); }
       tbody tr.destino-drop td, tbody tr.destino-drop td.editable:hover {
         --fila-tinte: rgba(11,87,208,.24) !important;
         box-shadow: inset 0 2px 0 var(--ag-accent), inset 0 -2px 0 var(--ag-accent) !important;
@@ -573,6 +573,87 @@
         .barra-filtros > * { flex-shrink: 0; }
       }
       @media (prefers-reduced-motion: reduce) { .tarjeta, .btn-toolbar { transition: none; } .tarjeta:hover { transform: none; } }
+      /* ===== Tema, avisos, avatares, ocupación, cuadrícula, animaciones ===== */
+      :root { --ag-ctl:#eef1f7; --ag-ctl-border:#cfd6e4; --ag-ctl-hover:#eef2f9; --ag-th:#eef2f7; --ag-pill:rgba(255,255,255,.65); --ag-drop:#eef5ff;
+        --chip-ok:#1b6a33; --chip-mal:#a52f29; --chip-aviso:#7a5200; --chip-neutro:#4a5265; --av-bg:88%; --av-fg:28%; color-scheme: light; }
+      @media (prefers-color-scheme: dark) { :root:not([data-tema]) {
+        --ag-accent:#8ab4f8;--ag-accent-hover:#a8c7fa;--ag-accent-dark:#c2e7ff;--ag-container:#1f3a5a;--ag-container-hover:#274a72;--ag-accent-soft:rgba(138,180,248,.16);
+        --ag-page:#121418;--ag-surface:#1b1e24;--ag-line:#2c313a;--ag-text:#e6e8ee;--ag-text-med:#aab1c0;--ag-text-low:#7f8797;
+        --ag-tinte-par:rgba(138,180,248,.05);--ag-tinte-hover:rgba(138,180,248,.10);--ag-tinte-sel:rgba(138,180,248,.20);--ag-tinte-dia:rgba(138,180,248,.10);
+        --ag-tinte-hoy:rgba(138,180,248,.22);--ag-tinte-manana:rgba(138,180,248,.035);--ag-tinte-tarde:rgba(240,190,80,.10);--ag-day-bg:#232830;
+        --ag-ok-bar:#5bb37d;--ag-mal-bar:#e57f78;--ag-aviso-bar:#e8b95a;--ag-error:#f2b8b5;--ag-error-bg:#3b1f1e;
+        --ag-warning-bg:#3a3120;--ag-warning-border:#6b5a2a;--ag-warning-text:#f0d894;--ag-warning-hover:#4a3f26;--ag-toast-bg:#2d3038;--ag-overlay:rgba(0,0,0,.6);
+        --ag-ctl:#262b33;--ag-ctl-border:#3a404b;--ag-ctl-hover:#2c323b;--ag-th:#232830;--ag-pill:rgba(0,0,0,.28);--ag-drop:#1f2b3d;
+        --chip-ok:#7fd39b;--chip-mal:#f2a19b;--chip-aviso:#f0c66a;--chip-neutro:#b8bfcd;--av-bg:26%;--av-fg:82%;color-scheme:dark; } }
+      :root[data-tema="oscuro"] {
+        --ag-accent:#8ab4f8;--ag-accent-hover:#a8c7fa;--ag-accent-dark:#c2e7ff;--ag-container:#1f3a5a;--ag-container-hover:#274a72;--ag-accent-soft:rgba(138,180,248,.16);
+        --ag-page:#121418;--ag-surface:#1b1e24;--ag-line:#2c313a;--ag-text:#e6e8ee;--ag-text-med:#aab1c0;--ag-text-low:#7f8797;
+        --ag-tinte-par:rgba(138,180,248,.05);--ag-tinte-hover:rgba(138,180,248,.10);--ag-tinte-sel:rgba(138,180,248,.20);--ag-tinte-dia:rgba(138,180,248,.10);
+        --ag-tinte-hoy:rgba(138,180,248,.22);--ag-tinte-manana:rgba(138,180,248,.035);--ag-tinte-tarde:rgba(240,190,80,.10);--ag-day-bg:#232830;
+        --ag-ok-bar:#5bb37d;--ag-mal-bar:#e57f78;--ag-aviso-bar:#e8b95a;--ag-error:#f2b8b5;--ag-error-bg:#3b1f1e;
+        --ag-warning-bg:#3a3120;--ag-warning-border:#6b5a2a;--ag-warning-text:#f0d894;--ag-warning-hover:#4a3f26;--ag-toast-bg:#2d3038;--ag-overlay:rgba(0,0,0,.6);
+        --ag-ctl:#262b33;--ag-ctl-border:#3a404b;--ag-ctl-hover:#2c323b;--ag-th:#232830;--ag-pill:rgba(0,0,0,.28);--ag-drop:#1f2b3d;
+        --chip-ok:#7fd39b;--chip-mal:#f2a19b;--chip-aviso:#f0c66a;--chip-neutro:#b8bfcd;--av-bg:26%;--av-fg:82%;color-scheme:dark; }
+      .btn-toolbar, .chip-filtro { border-color: var(--ag-ctl-border); }
+      .btn-toolbar:hover:not(:disabled):not(.primario):not(.activo):not(.deshacer):not(.peligro), .chip-filtro:hover:not(.activo) { background: var(--ag-ctl-hover); }
+      .selector-semana, .buscador, .segmentado { background: var(--ag-ctl); }
+      thead th, thead th:nth-child(1), thead th:nth-child(2) { background-color: var(--ag-th); }
+      .chip-ok { color: var(--chip-ok); } .chip-mal { color: var(--chip-mal); } .chip-aviso { color: var(--chip-aviso); } .chip-neutro { color: var(--chip-neutro); }
+      .dia-stats, .dia-hoy { background: var(--ag-pill); }
+      .esq-barra { background: linear-gradient(90deg, var(--ag-ctl) 25%, var(--ag-line) 50%, var(--ag-ctl) 75%); background-size: 200% 100%; }
+
+      .toasts { position: fixed; left: 50%; bottom: 78px; transform: translateX(-50%); display: flex; flex-direction: column; gap: .4rem; align-items: center; z-index: 1300; pointer-events: none; }
+      .toast-aviso { background: var(--ag-toast-bg); color: #fff; padding: .6rem 1rem; border-radius: 10px; font-size: .82rem; box-shadow: 0 4px 16px rgba(0,0,0,.25); max-width: min(92vw, 460px); animation: entra-toast .2s ease; transition: opacity .25s, transform .25s; }
+      .toast-aviso.error { background: #8c1d18; }
+      .toast-aviso.saliendo { opacity: 0; transform: translateY(6px); }
+      @keyframes entra-toast { from { opacity: 0; transform: translateY(8px); } }
+
+      .avatar { width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center;
+        font-size: .68rem; font-weight: 700; letter-spacing: .02em; background: hsl(var(--h) 55% var(--av-bg)); color: hsl(var(--h) 45% var(--av-fg)); }
+      .celda-usuario, .tj-nombre { display: flex; align-items: center; gap: .55rem; min-width: 0; }
+      .nombre-u { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .tj-nombre .nombre-u { white-space: normal; }
+      body.compacto .avatar { width: 20px; height: 20px; font-size: .6rem; }
+
+      .ocup { display: flex; width: 96px; height: 8px; border-radius: 999px; overflow: hidden; background: var(--ag-line); flex-shrink: 0; }
+      .ocup > span { display: block; height: 100%; }
+      .ocup .o-reg { background: var(--ag-ok-bar); } .ocup .o-cita { background: var(--ag-accent); }
+
+      .ghost-dest { color: var(--ag-accent-dark); font-weight: 700; font-size: .78rem; border-left: 1px solid var(--ag-line); padding-left: .55rem; }
+      .tabla-wrap.desplazado thead th:nth-child(2), .tabla-wrap.desplazado tbody tr:not(.fila-dia):not(.fila-turno):not(.fila-ahora) td:nth-child(2) { box-shadow: 8px 0 10px -8px rgba(0,0,0,.35); }
+      tr.saliendo-fila td, .tarjeta.saliendo-fila, .cal-cita.saliendo-fila { opacity: 0; transition: opacity .25s; }
+      .tarjeta.saliendo-fila { transform: scale(.97); }
+      tr.recien td, .tarjeta.recien, .cal-cita.recien { animation: flash-mov 1.2s ease-out; }
+      @keyframes flash-mov { from { box-shadow: inset 0 0 0 999px rgba(11,87,208,.28); } to { box-shadow: inset 0 0 0 999px rgba(11,87,208,0); } }
+
+      .cal { display: grid; min-width: 760px; background: var(--ag-surface); }
+      .cal-cab { position: sticky; top: 0; z-index: 4; background: var(--ag-th); border-bottom: 1px solid var(--ag-line); padding: .6rem; text-align: center;
+        font-size: .78rem; font-weight: 700; text-transform: capitalize; color: var(--ag-text-med); }
+      .cal-cab.hoy { background: var(--ag-container); color: var(--ag-accent-dark); }
+      .cal-esq { left: 0; z-index: 5; }
+      .cal-hora { position: sticky; left: 0; z-index: 3; background: var(--ag-surface); border-bottom: 1px solid var(--ag-line); padding: .5rem; text-align: right;
+        font-size: .74rem; font-weight: 700; color: var(--ag-text-med); font-variant-numeric: tabular-nums; }
+      .cal-celda { border-bottom: 1px solid var(--ag-line); border-left: 1px solid var(--ag-line); padding: 4px; min-height: 50px; display: flex; }
+      .cal-celda.hoy { background-image: linear-gradient(var(--ag-tinte-hoy), var(--ag-tinte-hoy)); background-blend-mode: normal; }
+      .cal-celda.vacia { background: repeating-linear-gradient(45deg, transparent 0 6px, var(--ag-tinte-manana) 6px 7px); }
+      .cal-cita { flex: 1; min-width: 0; display: flex; align-items: center; gap: .4rem; padding: .3rem .5rem; border-radius: 10px; border: 1px solid var(--ag-line);
+        border-left: 4px solid var(--ag-line); background: var(--ag-surface); font-size: .8rem; font-weight: 600; cursor: pointer; transition: box-shadow var(--ag-t); }
+      .cal-cita:hover { box-shadow: 0 2px 8px rgba(0,74,119,.18); }
+      .cal-cita.asist-ok { border-left-color: var(--ag-ok-bar); } .cal-cita.asist-mal { border-left-color: var(--ag-mal-bar); } .cal-cita.asist-aviso { border-left-color: var(--ag-aviso-bar); }
+      .cal-cita.en-curso { border-color: var(--ag-accent); box-shadow: 0 0 0 1px var(--ag-accent); }
+      .cal-cita.proxima { border-color: var(--ag-container-hover); }
+      .cal-cita.pasada { opacity: .6; }
+      .cal-cita.seleccionada { background-image: linear-gradient(var(--ag-tinte-sel), var(--ag-tinte-sel)); }
+      .cal-cita.atenuada { opacity: .25; }
+      .cal-cita.arrastrando { opacity: .4; }
+      .cal-hueco { flex: 1; display: flex; align-items: center; justify-content: center; border: 1px dashed transparent; border-radius: 10px; color: var(--ag-text-low); cursor: pointer; opacity: 0; transition: all var(--ag-t); }
+      .cal-celda:hover .cal-hueco, body.arrastrando-cita .cal-hueco { opacity: 1; border-color: var(--ag-accent); color: var(--ag-accent); }
+      body.arrastrando-cita .cal-hueco { background: var(--ag-drop); }
+      .cal-hueco.destino-drop, .cal-cita.destino-drop { background: var(--ag-container) !important; box-shadow: 0 0 0 2px var(--ag-accent); }
+      thead th.th-notas { width: auto; }
+      thead th:last-child, tbody td.acciones-fila { width: 144px; padding: 0 .5rem; text-align: right; white-space: nowrap; overflow: visible; text-overflow: clip; }
+      .btn-fila.con-hc { color: var(--ag-accent); }
+      .btn-fila.sin-hc .material-symbols-outlined { opacity: .35; }
     </style>
   </head>
   <body>
@@ -676,6 +757,7 @@
         <div class="segmentado" role="group" aria-label="Vista">
           <button type="button" class="seg activo" id="btnVistaSemana" title="Tabla de la semana">Semana</button>
           <button type="button" class="seg" id="btnVistaHoy" title="Tarjetas con las citas de hoy">Hoy</button>
+          <button type="button" class="seg" id="btnVistaCal" title="Cuadrícula semanal tipo calendario">Cuadrícula</button>
         </div>
         <span class="separador"></span>
         <button type="button" class="chip-filtro" data-filtro="sinAsistencia" title="Citas de hoy o anteriores sin asistencia registrada">Sin asistencia <span class="cnt"></span></button>
@@ -685,6 +767,7 @@
         <button type="button" class="btn-toolbar" id="btnDensidad" title="Cambiar la altura de las filas">
           <span class="material-symbols-outlined">density_medium</span> <span id="txtDensidad">Cómodo</span>
         </button>
+        <button type="button" class="btn-toolbar btn-nav" id="btnTema"></button>
         <button type="button" class="btn-toolbar btn-nav" id="btnAtajos" title="Atajos de teclado">
           <span class="material-symbols-outlined">keyboard</span>
         </button>
@@ -710,7 +793,7 @@
       var filasSeleccionadas = new Set();
 
       // Columnas de Sheets que no se muestran (normalizadas: sin mayúsculas ni acentos).
-      var COLUMNAS_OCULTAS = ['fecha', 'dia', 'id evento calendar'];
+      var COLUMNAS_OCULTAS = ['fecha', 'dia', 'id evento calendar', 'historia clinica'];
 
       var HEADERS = [];
       var HEADERS_VISIBLES = [];
@@ -951,8 +1034,16 @@
         return '<span class="badge-sesion ' + (t === '1' ? 's1' : 'sn') + '" title="Sesión ' + t + '">' + t + '</span>';
       }
 
-      function htmlBotonesFila(fila) {
-        return '<button type="button" class="btn-fila" data-accion="whatsapp" data-fila="' + fila + '" title="Abrir WhatsApp"><span class="material-symbols-outlined">chat</span></button>' +
+      function htmlBotonesFila(fila, cita) {
+        var btnHC = '';
+        if (cita) {
+          var url = COL_HISTORIA ? cita[COL_HISTORIA] : '';
+          var tiene = esUrl(url);
+          btnHC = '<button type="button" class="btn-fila ' + (tiene ? 'con-hc' : 'sin-hc') + '" data-accion="hc" data-fila="' + fila + '" title="' +
+            (tiene ? 'Abrir Historia Clínica' : 'Sin Historia Clínica enlazada') + '"><span class="material-symbols-outlined">description</span></button>';
+        }
+        return btnHC +
+          '<button type="button" class="btn-fila" data-accion="whatsapp" data-fila="' + fila + '" title="Abrir WhatsApp"><span class="material-symbols-outlined">chat</span></button>' +
           '<button type="button" class="btn-fila" data-accion="valoracion" data-fila="' + fila + '" title="Valoración"><span class="material-symbols-outlined">assignment</span></button>' +
           '<button type="button" class="btn-fila peligro" data-accion="borrar" data-fila="' + fila + '" title="Liberar este hueco (borra todos los datos de la cita)"><span class="material-symbols-outlined">delete</span></button>';
       }
@@ -960,13 +1051,14 @@
       function htmlStatsDia(t, fechaISO) {
         var txt = t.citas === 0 ? 'Sin citas' : t.citas + (t.citas === 1 ? ' cita' : ' citas');
         if (t.libres > 0) txt += ' · ' + t.libres + (t.libres === 1 ? ' libre' : ' libres');
-        var prog = '';
-        if (t.citas > 0 && fechaISO <= hoyISO()) {
-          var pct = Math.round(100 * t.registradas / t.citas);
-          txt += ' · ' + t.registradas + ' de ' + t.citas + ' registradas';
-          prog = '<span class="prog" title="' + pct + '% con asistencia registrada"><span style="width:' + pct + '%"></span></span>';
+        if (t.citas > 0 && fechaISO <= hoyISO()) txt += ' · ' + t.registradas + ' de ' + t.citas + ' registradas';
+        var total = t.citas + t.libres, barra = '';
+        if (total > 0) {
+          var sin = t.citas - t.registradas;
+          barra = '<span class="ocup" title="' + t.registradas + ' registradas · ' + sin + ' sin registrar · ' + t.libres + ' libres">' +
+            '<span class="o-reg" style="width:' + (100 * t.registradas / total) + '%"></span><span class="o-cita" style="width:' + (100 * sin / total) + '%"></span></span>';
         }
-        return '<span class="dia-stats">' + txt + '</span>' + prog;
+        return '<span class="dia-stats">' + txt + '</span>' + barra;
       }
 
       function htmlLineaAhora(ahora, numColumnas) {
@@ -1015,7 +1107,9 @@
         }
 
         var titulo = (header === 'Usuario' && !vacio) ? ' title="' + escapar(valor) + '"' : '';
-        return '<td class="' + (vacio ? 'vacio' : '') + '"' + titulo + '>' + (vacio ? '—' : escapar(valor)) + '</td>';
+        var interior = vacio ? '—' : escapar(valor);
+        if (header === 'Usuario' && !vacio && !esHueco) interior = '<div class="celda-usuario">' + avatarHtml(valor) + '<span class="nombre-u">' + escapar(valor) + '</span></div>';
+        return '<td class="' + (vacio ? 'vacio' : '') + '"' + titulo + '>' + interior + '</td>';
       }
 
       // ---------- Estado vacío con acción ----------
@@ -1058,14 +1152,15 @@
         document.getElementById('contador').textContent = numCitas + (numCitas === 1 ? ' cita' : ' citas');
         actualizarChipsFiltros();
 
-        if (filtradas.length === 0) {
+        if ((filtradas.length === 0 && vista !== 'cuadricula') || (vista === 'cuadricula' && CITAS.length === 0)) {
           cont.innerHTML = htmlVacio();
           return;
         }
 
-        cont.innerHTML = vista === 'hoy' ? htmlTarjetas(filtradas) : htmlTabla(filtradas);
+        cont.innerHTML = vista === 'hoy' ? htmlTarjetas(filtradas) : (vista === 'cuadricula' ? htmlCuadricula(filtradas) : htmlTabla(filtradas));
         cont.scrollTop = scrollPrevio;
         reaplicarArrastre();
+        animarCambios();
       }
 
       function htmlTabla(filtradas) {
@@ -1074,7 +1169,7 @@
         var proxima = filaProxima(hoy, ahora);
 
         var numColumnas = HEADERS_VISIBLES.length + 1;
-        var thead = '<thead><tr>' + HEADERS_VISIBLES.map(function(h) { return '<th>' + escapar(h) + '</th>'; }).join('') + '<th></th></tr></thead>';
+        var thead = '<thead><tr>' + HEADERS_VISIBLES.map(function(h) { return '<th' + (h === 'Notas' ? ' class="th-notas"' : '') + '>' + escapar(h) + '</th>'; }).join('') + '<th></th></tr></thead>';
 
         var grupos = [];
         filtradas.forEach(function(c) {
@@ -1115,7 +1210,7 @@
             var tag = tempo === 'en-curso' ? 'ahora' : ((esHoy && proxima && proxima._fila === c._fila) ? 'proxima' : '');
 
             var celdas = HEADERS_VISIBLES.map(function(h) { return renderCelda(h, c[h], c._fila, c._hueco, tag); }).join('');
-            var celdaAcciones = c._hueco ? '<td></td>' : '<td class="acciones-fila">' + htmlBotonesFila(c._fila) + '</td>';
+            var celdaAcciones = c._hueco ? '<td></td>' : '<td class="acciones-fila">' + htmlBotonesFila(c._fila, c) + '</td>';
 
             var esManana = hora < HORA_CORTE_TARDE;
             var turno = esManana ? 'manana' : 'tarde';
@@ -1210,7 +1305,7 @@
 
         return '<div class="' + clases.join(' ') + '" data-fila="' + c._fila + '">' +
           '<div class="tj-top"><span class="asa material-symbols-outlined" title="Arrastra para mover la cita a otro hueco libre">drag_indicator</span><span class="chk"></span><span class="tj-hora">' + escapar(hora) + '</span>' + tagTxt + '<span class="tj-fill"></span>' + htmlBotonesFila(c._fila) + '</div>' +
-          '<div class="tj-nombre" title="' + escapar(c['Usuario']) + '">' + escapar(c['Usuario']) + '</div>' +
+          '<div class="tj-nombre" title="' + escapar(c['Usuario']) + '">' + avatarHtml(c['Usuario']) + '<span class="nombre-u">' + escapar(c['Usuario']) + '</span></div>' +
           '<div class="tj-meta">' + meta + '</div>' + asis + notas + '<div class="tj-pie">' + pie + '</div></div>';
       }
 
@@ -1363,6 +1458,7 @@
         if (!confirmado) return;
 
         var citaOriginal = CITAS.find(function(c) { return c._fila == fila; });
+        marcarSaliendo(fila);
         var snapshot = citaOriginal ? [{ fila: fila, valores: Object.assign({}, citaOriginal) }] : null;
 
         google.script.run
@@ -1399,6 +1495,7 @@
         if (!confirmado) return;
 
         var snapshot = sel.map(function(c) { return { fila: c._fila, valores: Object.assign({}, c) }; });
+        sel.forEach(function(c) { marcarSaliendo(c._fila); });
         var filas = sel.map(function(c) { return c._fila; });
 
         google.script.run
@@ -1507,7 +1604,8 @@
         var btnFila = t.closest('.btn-fila');
         if (btnFila) {
           var f = btnFila.dataset.fila, acc = btnFila.dataset.accion;
-          if (acc === 'borrar') manejarBorrarFila(f);
+          if (acc === 'hc') abrirHCFila(f);
+          else if (acc === 'borrar') manejarBorrarFila(f);
           else if (acc === 'whatsapp') abrirWhatsappFila(f);
           else if (acc === 'valoracion') {
             var ci = CITAS.find(function(c) { return c._fila == f; });
@@ -1532,7 +1630,7 @@
 
         if (t.closest('a')) return; // los enlaces (Historia clínica) no seleccionan la cita
 
-        var fil = t.closest('tr[data-fila], .tarjeta[data-fila]');
+        var fil = t.closest('tr[data-fila], .tarjeta[data-fila], .cal-cita[data-fila]');
         if (fil) {
           var cita = CITAS.find(function(c) { return c._fila == fil.dataset.fila; });
           if (cita && !cita._hueco) alternarSeleccionFila(cita);
@@ -1737,6 +1835,7 @@
         vista = v;
         document.getElementById('btnVistaSemana').classList.toggle('activo', v === 'semana');
         document.getElementById('btnVistaHoy').classList.toggle('activo', v === 'hoy');
+        document.getElementById('btnVistaCal').classList.toggle('activo', v === 'cuadricula');
       }
 
       function cambiarVista(v) {
@@ -1752,6 +1851,7 @@
 
       document.getElementById('btnVistaSemana').addEventListener('click', function() { cambiarVista('semana'); });
       document.getElementById('btnVistaHoy').addEventListener('click', function() { cambiarVista('hoy'); });
+      document.getElementById('btnVistaCal').addEventListener('click', function() { cambiarVista('cuadricula'); });
 
       // ---------- Filtros rápidos ----------
       document.querySelectorAll('.chip-filtro').forEach(function(b) {
@@ -1860,7 +1960,7 @@
         if (document.querySelector('.editando')) return;
         var t = e.target, asa = t.closest('.asa');
         if (!asa && (e.pointerType !== 'mouse' || t.closest('button, a, input, select, .editable, .chk'))) return;
-        var el = t.closest('tr.fila-cita, .tarjeta:not(.hueco)');
+        var el = t.closest('tr.fila-cita, .tarjeta:not(.hueco), .cal-cita');
         if (!el) return;
         candidatoArrastre = { fila: Number(el.dataset.fila), id: e.pointerId, x: e.clientX, y: e.clientY };
       });
@@ -1902,7 +2002,7 @@
         var g = document.createElement('div');
         g.className = 'ghost-cita';
         g.innerHTML = '<span class="material-symbols-outlined" style="font-size:18px">event</span><span>' + escapar(cita['Usuario']) +
-          '</span><small>' + escapar(cita['Hora']) + '</small>';
+          '</span><small>' + escapar(cita['Hora']) + '</small><span class="ghost-dest" style="display:none"></span>';
         document.body.appendChild(g);
         arrastre.ghost = g;
         document.body.classList.add('arrastrando-cita');
@@ -1919,7 +2019,7 @@
 
       function reaplicarArrastre() {
         if (!arrastre) return;
-        var o = document.querySelector('tr.fila-cita[data-fila="' + arrastre.fila + '"], .tarjeta[data-fila="' + arrastre.fila + '"]');
+        var o = document.querySelector('tr.fila-cita[data-fila="' + arrastre.fila + '"], .tarjeta[data-fila="' + arrastre.fila + '"], .cal-cita[data-fila="' + arrastre.fila + '"]');
         if (o) o.classList.add('arrastrando');
         arrastre.destino = null;
       }
@@ -1937,13 +2037,15 @@
 
       function marcarDestino() {
         var el = document.elementFromPoint(arrastre.x, arrastre.y);
-        var obj = el && el.closest ? el.closest('tr.fila-hueco, .tarjeta.hueco') : null;
+        var obj = el && el.closest ? el.closest('tr.fila-hueco, tr.fila-cita, .tarjeta, .cal-cita, .cal-hueco') : null;
         var fila = obj ? Number(obj.dataset.fila) : null;
+        if (fila === arrastre.fila) { obj = null; fila = null; }
         if (fila === arrastre.destino) return;
         var prev = document.querySelector('.destino-drop');
         if (prev) prev.classList.remove('destino-drop');
         arrastre.destino = fila;
         if (obj) obj.classList.add('destino-drop');
+        etiquetaDestino(fila ? citaPorFila(fila) : null);
       }
 
       function finalizarArrastre(soltar) {
@@ -1962,32 +2064,65 @@
       }
 
       // Actualiza la pantalla al instante y confirma con el servidor; si falla, revierte.
+      function elFila(f) {
+        return document.querySelector('tr[data-fila="' + f + '"], .tarjeta[data-fila="' + f + '"], .cal-cita[data-fila="' + f + '"], .cal-hueco[data-fila="' + f + '"]');
+      }
+
+      function etiquetaDestino(d) {
+        var s = arrastre && arrastre.ghost && arrastre.ghost.querySelector('.ghost-dest');
+        if (!s) return;
+        if (!d) { s.style.display = 'none'; s.textContent = ''; return; }
+        s.style.display = '';
+        s.textContent = d._hueco ? '→ ' + (d['Día'] ? d['Día'] + ' ' : '') + d['Hora'] : '⇄ ' + d['Usuario'] + ' · ' + d['Hora'];
+      }
+
+      // Intercambia en memoria los datos de dos citas ocupadas.
+      function intercambiarLocal(a, b) {
+        var x = citaPorFila(a), y = citaPorFila(b);
+        if (!x || !y) return false;
+        camposMovibles().forEach(function(k) { var v = x[k]; x[k] = y[k]; y[k] = v; });
+        var sa = filasSeleccionadas.has(a), sb = filasSeleccionadas.has(b);
+        filasSeleccionadas.delete(a); filasSeleccionadas.delete(b);
+        if (sa) filasSeleccionadas.add(b);
+        if (sb) filasSeleccionadas.add(a);
+        return true;
+      }
+
+      // Mover a un hueco libre, o intercambiar si el destino está ocupado.
+      // Actualiza la pantalla al instante y confirma con el servidor; si falla, revierte.
       function moverCitaUI(filaO, filaD, esDeshacer) {
-        if (!transferirLocal(filaO, filaD)) { render(); return; }
+        var d = citaPorFila(filaD), intercambio = !!(d && !d._hueco);
+        function pos(f, haciaFila) { var e = elFila(f); if (!e) return null; var r = e.getBoundingClientRect(); return { fila: haciaFila, x: r.left, y: r.top }; }
+        var flips = [pos(filaO, filaD)];
+        if (intercambio) flips.push(pos(filaD, filaO));
+        pendienteFLIP = flips.filter(Boolean);
+
+        if (!(intercambio ? intercambiarLocal(filaO, filaD) : transferirLocal(filaO, filaD))) { render(); return; }
         render();
         actualizarBotonesSeleccion();
 
         function revertir(msg) {
-          transferirLocal(filaD, filaO);
+          if (intercambio) intercambiarLocal(filaO, filaD); else transferirLocal(filaD, filaO);
           render();
           actualizarBotonesSeleccion();
           mostrarAviso(msg);
           cargar(semanaActual, true);
         }
 
-        google.script.run
+        var runner = google.script.run
           .withSuccessHandler(function(res) {
             if (!res || !res.success) { revertir((res && res.message) || 'No se pudo mover la cita.'); return; }
-            if (esDeshacer) ocultarToastMover(); else mostrarToastMover(filaO, filaD);
+            if (esDeshacer) ocultarToastMover(); else mostrarToastMover(filaO, filaD, intercambio);
           })
-          .withFailureHandler(function(err) { revertir('Error al mover la cita: ' + err); })
-          .moverCitaWeb(filaO, filaD);
+          .withFailureHandler(function(err) { revertir('Error al mover la cita: ' + err); });
+        if (intercambio) runner.intercambiarCitasWeb(filaO, filaD); else runner.moverCitaWeb(filaO, filaD);
       }
 
-      function mostrarToastMover(filaO, filaD) {
+      function mostrarToastMover(filaO, filaD, intercambio) {
         var d = citaPorFila(filaD);
         ultimoMovimiento = { desde: filaO, hacia: filaD };
-        document.getElementById('toastMoverTexto').textContent = 'Cita movida' + (d ? ' a ' + (d['Día'] ? d['Día'] + ' ' : '') + d['Hora'] : '') + '.';
+        document.getElementById('toastMoverTexto').textContent = intercambio ? 'Citas intercambiadas.' :
+          'Cita movida' + (d ? ' a ' + (d['Día'] ? d['Día'] + ' ' : '') + d['Hora'] : '') + '.';
         var toast = document.getElementById('toastMover');
         toast.classList.add('visible');
         if (timeoutToastMover) clearTimeout(timeoutToastMover);
@@ -2006,6 +2141,127 @@
         ocultarToastMover();
         moverCitaUI(m.hacia, m.desde, true);
       });
+
+      // ---------- Avisos ligeros (toasts): sustituyen al modal salvo textos largos o multilínea ----------
+      var contenedorToasts = (function() { var d = document.createElement('div'); d.className = 'toasts'; document.body.appendChild(d); return d; })();
+      function mostrarAviso(mensaje) {
+        var m = (mensaje === null || mensaje === undefined) ? '' : String(mensaje);
+        if (m.indexOf('\n') !== -1 || m.length > 160) return mostrarDialogo(m, false);
+        var t = document.createElement('div');
+        var error = /^error|no se pudo|no se pudieron|ya est/i.test(m);
+        t.className = 'toast-aviso' + (error ? ' error' : '');
+        t.setAttribute('role', 'status');
+        t.textContent = m;
+        contenedorToasts.appendChild(t);
+        setTimeout(function() { t.classList.add('saliendo'); setTimeout(function() { t.remove(); }, 260); }, error ? 6000 : 3800);
+        return Promise.resolve(true);
+      }
+
+      // ---------- Avatares con iniciales ----------
+      function avatarHtml(nombre) {
+        var n = (nombre || '').toString().trim();
+        if (!n) return '';
+        var p = n.split(/\s+/), ini = (p[0].charAt(0) + (p.length > 1 ? p[1].charAt(0) : p[0].charAt(1))).toUpperCase(), h = 0, low = n.toLowerCase();
+        for (var i = 0; i < low.length; i++) h = (h * 31 + low.charCodeAt(i)) % 360;
+        return '<span class="avatar" style="--h:' + h + '">' + escapar(ini) + '</span>';
+      }
+
+      // ---------- Tema: automático / oscuro / claro ----------
+      var TEMAS = ['auto', 'oscuro', 'claro'], ICONOS_TEMA = { auto: 'contrast', oscuro: 'dark_mode', claro: 'light_mode' };
+      function aplicarTema(t, guardar) {
+        if (t === 'auto') document.documentElement.removeAttribute('data-tema'); else document.documentElement.setAttribute('data-tema', t);
+        var b = document.getElementById('btnTema');
+        b.innerHTML = '<span class="material-symbols-outlined">' + ICONOS_TEMA[t] + '</span>';
+        b.title = 'Tema: ' + t + ' (clic para cambiar)';
+        b.dataset.tema = t;
+        if (guardar) { try { localStorage.setItem('agendaTema', t); } catch (err) { /* sin almacenamiento */ } }
+      }
+      document.getElementById('btnTema').addEventListener('click', function() {
+        aplicarTema(TEMAS[(TEMAS.indexOf(this.dataset.tema || 'auto') + 1) % TEMAS.length], true);
+      });
+      (function() {
+        var t = 'auto';
+        try { t = localStorage.getItem('agendaTema') || 'auto'; } catch (err) { /* sin almacenamiento */ }
+        aplicarTema(TEMAS.indexOf(t) === -1 ? 'auto' : t, false);
+      })();
+
+      // ---------- Animaciones: desplazamiento al mover, destello y salida al eliminar ----------
+      var pendienteFLIP = [], estadoHuecoPrevio = {};
+      function marcarSaliendo(f) { var e = elFila(f); if (e) e.classList.add('saliendo-fila'); }
+      function animarCambios() {
+        var flips = pendienteFLIP; pendienteFLIP = [];
+        var nuevo = {};
+        CITAS.forEach(function(c) { nuevo[c._fila] = c._hueco; });
+        var reducir = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+        if (!reducir) {
+          flips.forEach(function(f) {
+            var el = elFila(f.fila);
+            if (!el) return;
+            var r = el.getBoundingClientRect(), dx = f.x - r.left, dy = f.y - r.top;
+            if (dx || dy) el.animate([{ transform: 'translate(' + dx + 'px,' + dy + 'px)', opacity: .55 }, { transform: 'none', opacity: 1 }], { duration: 300, easing: 'cubic-bezier(.2,0,0,1)' });
+          });
+          Object.keys(nuevo).forEach(function(k) {
+            var antes = estadoHuecoPrevio[k];
+            if (antes === undefined || antes === nuevo[k]) return;
+            var el = elFila(k);
+            if (!el) return;
+            if (nuevo[k]) el.animate([{ opacity: .25 }, { opacity: 1 }], { duration: 260 });
+            else { el.classList.add('recien'); setTimeout(function() { el.classList.remove('recien'); }, 1300); }
+          });
+        }
+        estadoHuecoPrevio = nuevo;
+      }
+
+      // Sombra en las columnas fijas al desplazar en horizontal
+      document.getElementById('tablaWrap').addEventListener('scroll', function() { this.classList.toggle('desplazado', this.scrollLeft > 4); }, { passive: true });
+
+      // ---------- Vista Cuadrícula (calendario semanal) ----------
+      function htmlCuadricula(filtradas) {
+        var hoy = hoyISO(), ahora = ahoraHHmm(), buscando = hayBusqueda();
+        var visibles = new Set(filtradas.map(function(c) { return c._fila; }));
+        var dias = [], horas = [], mapa = {}, etiqueta = {};
+        CITAS.forEach(function(c) {
+          var h = c['Hora'] || '';
+          if (dias.indexOf(c._fechaISO) === -1) dias.push(c._fechaISO);
+          if (h && horas.indexOf(h) === -1) horas.push(h);
+          mapa[c._fechaISO + '|' + h] = c;
+          if (!etiqueta[c._fechaISO]) etiqueta[c._fechaISO] = (c['Día'] ? c['Día'] + ' ' : '') + String(c['Fecha'] || '').slice(0, 5);
+        });
+        dias.sort(); horas.sort();
+        var proxima = filaProxima(hoy, ahora);
+        var html = '<div class="cal" style="grid-template-columns:64px repeat(' + dias.length + ',minmax(150px,1fr))"><div class="cal-cab cal-esq"></div>';
+        dias.forEach(function(d) { html += '<div class="cal-cab' + (d === hoy ? ' hoy' : '') + '">' + escapar(etiqueta[d]) + '</div>'; });
+        horas.forEach(function(h) {
+          html += '<div class="cal-hora">' + escapar(h) + '</div>';
+          dias.forEach(function(d) {
+            var c = mapa[d + '|' + h];
+            html += '<div class="cal-celda' + (d === hoy ? ' hoy' : '') + (c ? '' : ' vacia') + '">' +
+              (c ? htmlCeldaCal(c, ahora, proxima, d === hoy, !buscando || visibles.has(c._fila)) : '') + '</div>';
+          });
+        });
+        return html + '</div>';
+      }
+
+      function htmlCeldaCal(c, ahora, proxima, esHoy, visible) {
+        if (c._hueco) return '<div class="cal-hueco editable hueco-libre" data-campo="Usuario" data-fila="' + c._fila + '" data-valor="" title="Asignar usuario"><span class="material-symbols-outlined">add</span></div>';
+        var clases = ['cal-cita'], est = estiloAsistencia(c['Asistencia']);
+        if (est && est !== 'neutro') clases.push('asist-' + est);
+        var tempo = esHoy ? estadoTemporal(c['Hora'] || '', ahora) : '';
+        if (tempo) clases.push(tempo);
+        if (esHoy && proxima && proxima._fila === c._fila) clases.push('proxima');
+        if (filasSeleccionadas.has(c._fila)) clases.push('seleccionada');
+        if (!visible) clases.push('atenuada');
+        var tip = [c['Usuario'], c['Asistencia'], c['Notas']].filter(function(v) { return !vacioTxt(v); }).join(' · ');
+        return '<div class="' + clases.join(' ') + '" data-fila="' + c._fila + '" title="' + escapar(tip) + '">' +
+          '<span class="asa material-symbols-outlined">drag_indicator</span>' + avatarHtml(c['Usuario']) +
+          '<span class="nombre-u">' + escapar(c['Usuario']) + '</span>' + (vacioTxt(c['Sesión']) ? '' : badgeSesion(c['Sesión'])) + '</div>';
+      }
+
+      function abrirHCFila(fila) {
+        var c = citaPorFila(fila), url = c && COL_HISTORIA ? c[COL_HISTORIA] : '';
+        if (esUrl(url)) window.open(url.trim(), '_blank', 'noopener');
+        else mostrarAviso('Esta cita no tiene Historia Clínica enlazada.');
+      }
 
       // ---------- Enlazar Historia Clínica ----------
       document.getElementById('btnEnlazarHC').addEventListener('click', function() {
