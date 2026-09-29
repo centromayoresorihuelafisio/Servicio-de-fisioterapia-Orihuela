@@ -68,7 +68,7 @@ function actualizarFechaAltaEnDoc(docUrl) {
     doc.saveAndClose();
 
     if (altaActualizada) {
-      return `✅ Fecha de alta (${newText}) actualizada en la H.C.`;
+      return `✅ Fecha de alta (${newText}) actualizada.`;
     } else {
       return "⚠️ No se encontró la tabla de ASISTENCIA/ALTA o no hay celdas de ALTA vacías disponibles en el documento.";
     }
@@ -166,7 +166,7 @@ function _ejecutarAltaEnFila(sheet, activeRow) {
 
   const estadoActual = estadoRange.getValue();
   if (estadoActual === "✔️ Alta") {
-    return { success: false, message: "El paciente ya está dado de alta." };
+    return { success: false, message: "El usuario ya está dado de alta." };
   }
 
   const fechaInscripcionRange = (fechaInscripcionCol !== -1) ? sheet.getRange(activeRow, fechaInscripcionCol + 1) : null;
@@ -180,10 +180,10 @@ function _ejecutarAltaEnFila(sheet, activeRow) {
   let ultimaVisitaMsg = "";
   if (ultimaVisitaRange) {
     ultimaVisitaRange.setValue(new Date());
-    ultimaVisitaMsg = "La fecha de última visita se ha actualizada.";
+    ultimaVisitaMsg = "Fecha ctualizada.";
   }
 
-  let finalMessage = "✅ Paciente dado de alta correctamente.";
+  let finalMessage = "✅ Alta correcta.";
   if (ultimaVisitaMsg) finalMessage += "\n" + ultimaVisitaMsg;
 
   if (isDocUpdatePossible) {
