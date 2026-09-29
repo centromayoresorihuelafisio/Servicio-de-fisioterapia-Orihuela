@@ -38,6 +38,8 @@
         margin-bottom: .6rem;
       }
       header.top .contador { font-size: .78rem; color: var(--md-on-surface-med); font-weight: 400; }
+      h1 { display: flex; align-items: center; gap: .5rem; }
+      h1 .material-symbols-outlined { font-size: 22px; color: var(--md-primary); }
 
       .barra-herramientas {
         display: flex;
@@ -80,9 +82,9 @@
         background: #323232; color: #fff; padding: .65rem 1rem; border-radius: var(--radius-md);
         display: flex; align-items: center; gap: 1rem; font-size: .82rem;
         box-shadow: 0 4px 16px rgba(0,0,0,.25); z-index: 1200;
-        opacity: 0; pointer-events: none; transition: opacity 200ms ease;
+        opacity: 0; visibility: hidden; pointer-events: none; transition: opacity 200ms ease, visibility 0s 200ms;
       }
-      .toast-deshacer.visible { opacity: 1; pointer-events: auto; }
+      .toast-deshacer.visible { opacity: 1; visibility: visible; pointer-events: auto; transition: opacity 200ms ease; }
       .toast-deshacer button {
         background: none; border: none; color: #8ab4f8; font-weight: 700; font-size: .82rem;
         cursor: pointer; font-family: var(--font); padding: 0; letter-spacing: .02em;
@@ -114,13 +116,6 @@
       .buscador input { border: none; outline: none; flex: 1; font-size: .85rem; font-family: var(--font); background: transparent; }
       .buscador .material-symbols-outlined { color: var(--md-on-surface-low); font-size: 18px; }
 
-      .filtros { display: flex; gap: .35rem; flex-wrap: wrap; }
-      .chip {
-        border: 1px solid var(--md-outline); background: var(--md-surface); border-radius: var(--radius-pill);
-        padding: .3rem .75rem; font-size: .75rem; font-weight: 500; cursor: pointer;
-        transition: var(--transition); color: var(--md-on-surface-med); user-select: none; white-space: nowrap;
-      }
-      .chip.activo { background: var(--md-primary-container); border-color: var(--md-primary); color: var(--md-primary-dark); }
 
       .tabla-wrap { flex: 1; overflow: auto; }
       table { border-collapse: collapse; width: 100%; min-width: 900px; }
@@ -129,31 +124,9 @@
         font-size: .68rem; text-transform: uppercase; letter-spacing: .02em; font-weight: 600; text-align: left;
         padding: .5rem .6rem; border-bottom: 1px solid var(--md-outline); white-space: nowrap; z-index: 2;
       }
-      thead th:nth-child(1), tbody td:nth-child(1) {
-        position: sticky; left: 0; width: 64px; min-width: 64px; max-width: 64px;
-        background: var(--md-surface-variant); z-index: 3; box-shadow: 1px 0 0 var(--md-outline);
-      }
-      tbody td:nth-child(1) { background: var(--md-surface); z-index: 1; }
-      thead th:nth-child(2), tbody td:nth-child(2) {
-        position: sticky; left: 64px;
-        background: var(--md-surface-variant); z-index: 3; box-shadow: 1px 0 0 var(--md-outline);
-      }
-      tbody td:nth-child(2) { background: var(--md-surface); z-index: 1; }
-      tbody tr.fila-activo      { background: var(--md-success-bg); }
-      tbody tr.fila-espera      { background: var(--md-warning-bg); }
-      tbody tr.fila-contactara  { background: var(--md-error-bg); }
-      tbody tr.fila-alta        { background: var(--md-purple-bg); }
-      tbody tr.fila-no-responde { background: var(--md-surface-variant); }
-      tbody tr.fila-activo td:nth-child(1), tbody tr.fila-activo td:nth-child(2)           { background: var(--md-success-bg); }
-      tbody tr.fila-espera td:nth-child(1), tbody tr.fila-espera td:nth-child(2)           { background: var(--md-warning-bg); }
-      tbody tr.fila-contactara td:nth-child(1), tbody tr.fila-contactara td:nth-child(2)   { background: var(--md-error-bg); }
-      tbody tr.fila-alta td:nth-child(1), tbody tr.fila-alta td:nth-child(2)               { background: var(--md-purple-bg); }
-      tbody tr.fila-no-responde td:nth-child(1), tbody tr.fila-no-responde td:nth-child(2) { background: var(--md-surface-variant); }
+      tbody tr { cursor: pointer; background: var(--md-surface); }
       tbody tr:hover { background: var(--md-primary-light); }
-      tbody tr:hover td:nth-child(1), tbody tr:hover td:nth-child(2) { background: var(--md-primary-light); }
       tbody tr.seleccionada { background: var(--md-primary-container) !important; }
-      tbody tr.seleccionada td:nth-child(1), tbody tr.seleccionada td:nth-child(2) { background: var(--md-primary-container) !important; }
-      tbody tr { cursor: pointer; }
 
       tbody td { padding: .45rem .6rem; border-bottom: 1px solid var(--md-outline); white-space: nowrap; max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
       td.nombre { font-weight: 600; }
@@ -161,9 +134,9 @@
 
       .badge { font-size: .68rem; font-weight: 600; padding: .15rem .55rem; border-radius: var(--radius-pill); white-space: nowrap; background: var(--md-surface-variant); color: var(--md-on-surface-med); }
       .badge.activo      { background: var(--md-success-bg); color: var(--md-success); }
-      .badge.espera      { background: var(--md-warning-bg); color: var(--md-warning); }
-      .badge.contactara  { background: var(--md-error-bg); color: var(--md-error); }
-      .badge.alta        { background: var(--md-purple-bg); color: var(--md-purple); }
+      .badge.espera      { background: var(--md-warning-bg); color: #7a4f00; }
+      .badge.contactara  { background: var(--md-error-bg); color: #9c2a1f; }
+      .badge.alta        { background: var(--md-purple-bg); color: #5a2596; }
       .badge.no-responde { background: var(--md-surface-variant); color: var(--md-on-surface-med); }
 
       td a.link-hc { color: var(--md-primary); text-decoration: none; font-weight: 500; display: inline-flex; align-items: center; gap: .2rem; }
@@ -207,35 +180,265 @@
          en vez de un iframe (ver abrirVentanaEmergente más abajo). */
       nav.tabs-cambio {
         display: flex; gap: .25rem; flex-shrink: 0;
-        background: #f8fafd; padding: .5rem .75rem 0;
+        background: var(--md-bg); padding: .5rem .75rem 0;
         border-bottom: 1px solid var(--md-outline);
       }
       nav.tabs-cambio a.tab-cambio {
-        display: inline-flex; align-items: center; gap: .35rem;
-        background: transparent; color: #004a77; text-decoration: none;
+        display: inline-flex; align-items: center; gap: .4rem;
+        background: transparent; color: var(--md-primary-dark); text-decoration: none;
         font-family: var(--font); font-weight: 600; font-size: .82rem;
         padding: .5rem 1rem; border-radius: 8px 8px 0 0; transition: var(--transition);
       }
       nav.tabs-cambio a.tab-cambio:hover { background: rgba(0,74,119, .05); }
-      nav.tabs-cambio a.tab-cambio.activo { background: #c2e7ff; color: #004a77; cursor: default; }
+      nav.tabs-cambio a.tab-cambio.activo { background: var(--md-primary-container); color: var(--md-primary-dark); cursor: default; }
+      /* ===== Rediseño: filas de dos líneas, ficha lateral, acciones al hover ===== */
+      #btnEditar, #btnEliminarUsuario, #btnAlta, #btnHistoria, #btnBuscarHuerfana, #btnActualizarHistoria, #btnWhatsapp, #btnCita, #btnValoracion, #seleccionInfo { display: none !important; }
+      header.top { box-shadow: 0 1px 4px rgba(32,33,36,.08); position: relative; z-index: 5; }
+      .barra-herramientas { border-bottom: none; padding-bottom: 0; }
+      .tabla-wrap { scrollbar-width: thin; scrollbar-color: #c4c9d0 transparent; }
+      table { min-width: 1100px; }
+      tbody td { padding: .55rem .8rem; vertical-align: middle; }
+      thead th { padding: .55rem .8rem; }
+      tbody tr { transition: background-color 120ms; }
+      tbody tr.seleccionada td.col-usuario { box-shadow: inset 3px 0 0 var(--md-primary); }
+
+      .avatar { width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; font-size: .8rem; font-weight: 700;
+        background: hsl(var(--h) 55% 88%); color: hsl(var(--h) 45% 28%); }
+      .avatar.grande { width: 52px; height: 52px; font-size: 1.1rem; }
+      .celda-u { display: flex; align-items: center; gap: .7rem; min-width: 0; }
+      .doble { display: flex; flex-direction: column; min-width: 0; }
+      .u-nombre { font-weight: 600; font-size: .88rem; overflow: hidden; text-overflow: ellipsis; }
+      .u-sub, .c-sub { font-size: .78rem; font-weight: 500; color: var(--md-texto-secundario); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; }
+      .copiable { cursor: copy; }
+      .copiable:hover { text-decoration: underline dotted; }
+      .cl-pat { overflow: hidden; text-overflow: ellipsis; }
+      .chip-g { font-size: .68rem; font-weight: 600; padding: .1rem .5rem; border-radius: 999px; background: var(--md-surface-variant); color: var(--md-on-surface-med); }
+      .chip-g.leve { background: var(--md-success-bg); color: var(--md-success); }
+      .chip-g.moderado { background: var(--md-warning-bg); color: #7a4f00; }
+      .chip-g.urgente { background: var(--md-error-bg); color: var(--md-error); }
+      .tipo-ing { font-size: .76rem; font-weight: 500; color: var(--md-texto-secundario); margin-left: .35rem; }
+      button.badge { border: none; cursor: pointer; font-family: var(--font); display: inline-flex; align-items: center; gap: .1rem; }
+      button.badge .material-symbols-outlined { font-size: 15px; margin-right: -.25rem; opacity: .55; }
+      button.badge:hover { filter: brightness(.95); }
+
+      td.acciones-fila { width: 208px; min-width: 208px; max-width: none; overflow: visible; text-align: right; padding-right: .6rem; position: sticky; right: 0; background: inherit; }
+      .btn-fila { width: 30px; height: 30px; border-radius: 50%; border: none; background: transparent; color: var(--md-on-surface-med); cursor: pointer;
+        display: inline-flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 120ms, background 120ms; }
+      tbody tr:hover .btn-fila, tbody tr.seleccionada .btn-fila, .btn-fila:focus-visible { opacity: 1; }
+      .btn-fila:hover { background: rgba(0,0,0,.07); color: var(--md-primary); }
+      .btn-fila .material-symbols-outlined { font-size: 19px; }
+      .btn-fila.btn-whatsapp:hover { color: #25d366; }
+      .girando { animation: girar 1s linear infinite; display: inline-block; }
+      @keyframes girar { to { transform: rotate(360deg); } }
+      .btn-fila.con-hc { color: var(--md-primary); }
+      .btn-fila.sin-hc .material-symbols-outlined { opacity: .4; }
+      @media (hover: none) { .btn-fila { opacity: 1; } }
+
+      .menu-flot { position: fixed; z-index: 1100; display: none; min-width: 200px; background: var(--md-surface); border: 1px solid var(--md-outline); border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,.18); padding: .3rem; }
+      .menu-flot.visible { display: block; }
+      .menu-item { display: flex; align-items: center; gap: .6rem; width: 100%; border: none; background: none; text-align: left; padding: .5rem .7rem; border-radius: 8px; cursor: pointer; font-family: var(--font); font-size: .82rem; color: var(--md-on-surface); }
+      .menu-item:hover { background: var(--md-surface-variant); }
+      .menu-item .material-symbols-outlined { font-size: 18px; color: var(--md-on-surface-med); }
+      .menu-item .check { margin-left: auto; color: var(--md-primary); }
+      .menu-item.peligro, .menu-item.peligro .material-symbols-outlined { color: var(--md-error); }
+      .menu-sep { height: 1px; background: var(--md-outline); margin: .25rem .3rem; }
+      .punto { width: 10px; height: 10px; border-radius: 50%; margin: 0 4px; background: var(--md-on-surface-low); flex-shrink: 0; }
+      .punto.activo { background: var(--md-success); } .punto.espera { background: var(--md-warning); } .punto.contactara { background: var(--md-error); } .punto.alta { background: var(--md-purple); }
+
+      .ficha { position: fixed; top: 0; right: 0; bottom: 0; width: 400px; max-width: 100%; z-index: 900; display: flex; flex-direction: column; background: var(--md-surface);
+        border-left: 1px solid var(--md-outline); box-shadow: -6px 0 24px rgba(0,0,0,.08); transform: translateX(100%); visibility: hidden; transition: transform 160ms cubic-bezier(.2,0,0,1), visibility 0s 160ms; will-change: transform; }
+      .ficha.abierta { transform: none; visibility: visible; transition-delay: 0s; }
+      .ficha-cab { display: flex; align-items: center; gap: .9rem; padding: 1rem 1rem .6rem 1.2rem; }
+      .ficha-tit { flex: 1; min-width: 0; }
+      .ficha-nombre { font-size: 1.05rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; }
+      .ficha-sub { font-size: .78rem; color: var(--md-on-surface-med); margin-top: 2px; }
+      .ficha-cerrar { border: none; background: none; cursor: pointer; width: 34px; height: 34px; border-radius: 50%; color: var(--md-on-surface-med); align-self: flex-start; }
+      .ficha-cerrar:hover { background: var(--md-surface-variant); }
+      .ficha-estado { padding: 0 1.2rem .8rem; }
+      .ficha-acciones { display: flex; gap: .35rem; padding: 0 1rem .9rem; border-bottom: 1px solid var(--md-outline); }
+      .ficha-acc { flex: 1; display: flex; flex-direction: column; align-items: center; gap: .2rem; padding: .55rem .2rem; border: none; border-radius: 12px; background: var(--md-surface-variant);
+        color: var(--md-primary-dark); font-family: var(--font); font-size: .68rem; font-weight: 600; cursor: pointer; transition: background 120ms; }
+      .ficha-acc:hover { background: var(--md-primary-container); }
+      .ficha-acc .material-symbols-outlined { font-size: 20px; }
+      .ficha-cuerpo { flex: 1; overflow: auto; padding: .4rem 1.2rem 1rem; }
+      .f-sec { padding: .8rem 0; border-bottom: 1px solid var(--md-outline); }
+      .f-sec:last-child { border-bottom: none; }
+      .f-sec h3 { font-size: .66rem; text-transform: uppercase; letter-spacing: .06em; color: var(--md-on-surface-low); font-weight: 600; margin-bottom: .5rem; }
+      .f-campo { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; padding: .3rem 0; font-size: .85rem; }
+      .f-etq { color: var(--md-on-surface-med); flex-shrink: 0; }
+      .f-val { text-align: right; white-space: pre-wrap; overflow-wrap: anywhere; }
+      .f-vacio { color: var(--md-on-surface-low); }
+      .f-campo.largo { flex-direction: column; gap: .25rem; } .f-campo.largo .f-val { text-align: left; }
+      .f-copia { border: none; background: none; cursor: copy; font: inherit; color: inherit; display: inline-flex; align-items: center; gap: .3rem; padding: 0; }
+      .f-copia .material-symbols-outlined { font-size: 14px; opacity: 0; color: var(--md-on-surface-low); }
+      .f-copia:hover .material-symbols-outlined { opacity: 1; }
+      .ficha-pie { padding: .7rem 1rem; border-top: 1px solid var(--md-outline); display: flex; flex-wrap: wrap; gap: .4rem; }
+      .ficha-sec { display: inline-flex; align-items: center; gap: .3rem; border: 1px solid var(--md-outline); background: var(--md-surface); border-radius: 999px; padding: .35rem .8rem; font-family: var(--font); font-size: .76rem; font-weight: 500; cursor: pointer; color: var(--md-on-surface); }
+      .ficha-sec:hover { background: var(--md-surface-variant); }
+      .ficha-sec .material-symbols-outlined { font-size: 16px; }
+      .ficha-sec.peligro { color: var(--md-error); margin-left: auto; }
+      .ficha-sec.peligro:hover { background: var(--md-error-bg); border-color: var(--md-error); }
+      @media (min-width: 900px) {
+        /* Sin animar el margen (forzaba reflujo de la tabla en cada fotograma): el panel se desliza con transform y el contenido se ajusta al instante. */
+        body.con-ficha nav.tabs-cambio, body.con-ficha header.top, body.con-ficha .tabla-wrap { margin-right: 400px; }
+        /* Con la ficha abierta se ocultan Prioridad, Inscripción y las acciones de fila (la ficha ya tiene sus botones) para que la tabla quepa sin scroll horizontal. */
+        body.con-ficha .tabla-wrap { overflow-x: hidden; }
+        body.con-ficha table { min-width: 0; }
+        body.con-ficha thead th:nth-child(n+6), body.con-ficha tbody td:nth-child(n+6) { display: none; }
+        body.con-ficha thead th.col-usuario, body.con-ficha tbody td.col-usuario { width: 250px; min-width: 250px; max-width: 250px; }
+        body.con-ficha td.col-clinico { max-width: 240px; }
+      }
+
+      .toasts { position: fixed; left: 50%; bottom: 78px; transform: translateX(-50%); display: flex; flex-direction: column; gap: .4rem; align-items: center; z-index: 1300; pointer-events: none; }
+      .toast-aviso { background: #323232; color: #fff; padding: .6rem 1rem; border-radius: 10px; font-size: .82rem; box-shadow: 0 4px 16px rgba(0,0,0,.25); max-width: min(92vw, 460px); animation: entra-toast .2s ease; transition: opacity .25s, transform .25s; }
+      .toast-aviso.error { background: #8c1d18; }
+      .toast-aviso.saliendo { opacity: 0; transform: translateY(6px); }
+      @keyframes entra-toast { from { opacity: 0; transform: translateY(8px); } }
+      .barra-progreso { position: fixed; top: 0; left: 0; right: 0; height: 3px; z-index: 1400; opacity: 0; pointer-events: none; transition: opacity 150ms;
+        background: linear-gradient(90deg, transparent, var(--md-primary), transparent); background-size: 40% 100%; background-repeat: no-repeat; }
+      body.ocupado .barra-progreso { opacity: 1; animation: barrido 1s linear infinite; }
+      @keyframes barrido { from { background-position: -40% 0; } to { background-position: 140% 0; } }
+      nav.tabs-cambio a.tab-cambio .material-symbols-outlined { font-size: 18px; }
+      /* ===== Tema oscuro (tokens --md-*, igual que la Agenda con --ag-*) ===== */
+      :root, :root[data-tema="claro"] { color-scheme: light; --md-texto-secundario: #45494f; }
+      :root[data-tema="oscuro"] { --md-texto-secundario: #c7cdd8; }
+      @media (prefers-color-scheme: dark) { :root:not([data-tema]) { --md-texto-secundario: #c7cdd8; } }
+      @media (prefers-color-scheme: dark) { :root:not([data-tema]) { --md-primary:#8ab4f8;--md-primary-dark:#c2e7ff;--md-primary-light:#1f3a5a;--md-primary-container:#274a72;--md-on-primary:#0b2544;
+        --md-success:#7fd39b;--md-success-bg:#173a24;--md-error:#f2b8b5;--md-error-bg:#3b1f1e;--md-warning:#f0c66a;--md-warning-bg:#3a3120;--md-purple:#c9a6f7;--md-purple-bg:#2f2440;
+        --md-bg:#121418;--md-surface:#1b1e24;--md-surface-variant:#242830;--md-outline:#333944;--md-on-surface:#e6e8ee;--md-on-surface-med:#aab1c0;--md-on-surface-low:#7f8797;--tabs-bg:#1b2733;color-scheme:dark; } }
+      :root[data-tema="oscuro"] { --md-primary:#8ab4f8;--md-primary-dark:#c2e7ff;--md-primary-light:#1f3a5a;--md-primary-container:#274a72;--md-on-primary:#0b2544;
+        --md-success:#7fd39b;--md-success-bg:#173a24;--md-error:#f2b8b5;--md-error-bg:#3b1f1e;--md-warning:#f0c66a;--md-warning-bg:#3a3120;--md-purple:#c9a6f7;--md-purple-bg:#2f2440;
+        --md-bg:#121418;--md-surface:#1b1e24;--md-surface-variant:#242830;--md-outline:#333944;--md-on-surface:#e6e8ee;--md-on-surface-med:#aab1c0;--md-on-surface-low:#7f8797;--tabs-bg:#1b2733;color-scheme:dark; }
+      /* ===== Orden, filtros rápidos, selección múltiple, tarjetas móvil, esqueleto ===== */
+      .btn-nav { width: 38px; padding: 0; justify-content: center; }
+      .separador-toolbar { width: 1px; align-self: stretch; background: var(--md-outline); margin: .2rem .3rem; }
+
+      thead th.ordenable { cursor: pointer; user-select: none; }
+      thead th.ordenable:hover { color: var(--md-primary); }
+      thead th.ordenable .material-symbols-outlined { font-size: 15px; vertical-align: -3px; opacity: 0; transition: opacity 120ms; }
+      thead th.ordenable:hover .material-symbols-outlined { opacity: .5; }
+      thead th.ordenable.orden-asc .material-symbols-outlined, thead th.ordenable.orden-desc .material-symbols-outlined { opacity: 1; color: var(--md-primary); }
+      thead th.ordenable.orden-desc .material-symbols-outlined { transform: rotate(180deg); }
+
+      mark { background: #fff1a8; color: inherit; border-radius: 3px; padding: 0 1px; }
+      .celda-prioridad { font-variant-numeric: tabular-nums; font-size: .82rem; color: var(--md-on-surface-med); }
+      .chip-prioridad { margin-left: .5rem; font-size: .72rem; font-weight: 600; color: var(--md-on-surface-med); font-variant-numeric: tabular-nums; }
+      :root[data-tema="oscuro"] mark { background: #5c4d0f; }
+      @media (prefers-color-scheme: dark) { :root:not([data-tema]) mark { background: #5c4d0f; } }
+
+      thead th.col-check, tbody td.col-check { width: 40px; min-width: 40px; padding-right: 0; padding-left: .8rem; }
+      thead th.col-usuario, tbody td.col-usuario { width: 300px; min-width: 300px; max-width: 300px; }
+      thead th.col-acciones { width: 208px; min-width: 208px; }
+      input[type=checkbox].chk-fila, input[type=checkbox].chk-todo { width: 17px; height: 17px; cursor: pointer; accent-color: var(--md-primary); }
+      tbody tr td.col-check { opacity: 0; transition: opacity 120ms; }
+      tbody tr:hover td.col-check, tbody tr.seleccion-multiple td.col-check, body.seleccion-activa tbody tr td.col-check, thead th.col-check { opacity: 1; }
+      tbody tr.seleccion-multiple { background: var(--md-primary-light); }
+      tbody tr.fila-activa td.col-usuario { box-shadow: inset 3px 0 0 var(--md-on-surface-low); }
+
+      .barra-lote { position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%) translateY(120%); visibility: hidden; transition: transform 200ms cubic-bezier(.2,0,0,1), visibility 0s 200ms; z-index: 1200;
+        display: flex; align-items: center; gap: .6rem; background: var(--md-on-surface); color: var(--md-surface); padding: .6rem .7rem .6rem 1.1rem;
+        border-radius: 999px; box-shadow: 0 8px 24px rgba(0,0,0,.25); transition: transform 200ms cubic-bezier(.2,0,0,1); font-size: .84rem; }
+      .barra-lote.visible { transform: translateX(-50%) translateY(0); visibility: visible; transition: transform 200ms cubic-bezier(.2,0,0,1); }
+      .barra-lote .bl-n { font-weight: 700; }
+      .barra-lote button { border: none; background: rgba(255,255,255,.14); color: inherit; border-radius: 999px; padding: .45rem .9rem; font-family: var(--font); font-size: .8rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: .35rem; }
+      .barra-lote button:hover { background: rgba(255,255,255,.24); }
+      .barra-lote button.peligro { background: var(--md-error); color: #fff; }
+      .barra-lote .bl-cerrar { background: none; padding: .4rem; }
+
+      .skeleton-fila { display: flex; align-items: center; gap: .7rem; padding: .7rem 1.2rem; border-bottom: 1px solid var(--md-outline); }
+      .sk { background: linear-gradient(90deg, var(--md-surface-variant) 25%, var(--md-outline) 50%, var(--md-surface-variant) 75%); background-size: 200% 100%; animation: sk-anim 1.3s infinite; border-radius: 8px; }
+      @keyframes sk-anim { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+      .sk-avatar { width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0; }
+      .sk-linea { height: 11px; border-radius: 5px; }
+
+      .estado-vacio { display: flex; flex-direction: column; align-items: center; gap: .6rem; }
+      .estado-vacio .material-symbols-outlined.grande { font-size: 40px; color: var(--md-on-surface-low); }
+      .estado-vacio button { margin-top: .3rem; }
+
+      .menu-atajos { padding: .4rem 0; }
+      .menu-atajos dl { display: grid; grid-template-columns: auto 1fr; gap: .4rem 1rem; margin: 0; }
+      .menu-atajos dt kbd { background: var(--md-surface-variant); border: 1px solid var(--md-outline); border-radius: 5px; padding: .1rem .4rem; font-size: .76rem; font-family: inherit; }
+      .menu-atajos dd { margin: 0; color: var(--md-on-surface-med); font-size: .84rem; }
+
+      @media (max-width: 760px) {
+        table, thead, tbody, tr, td { display: block; }
+        table { min-width: 0; width: 100%; }
+        thead { position: absolute; left: -9999px; }
+        tbody tr { border: 1px solid var(--md-outline); border-radius: 16px; margin: .7rem; padding: .8rem .9rem; position: relative; background: var(--md-surface); }
+        tbody td { border: none; padding: .3rem 0; }
+        tbody td.col-check { position: absolute; top: .7rem; right: .8rem; opacity: 1; }
+        tbody td:nth-child(2) { width: auto; min-width: 0; max-width: none; padding-right: 2.1rem; }
+        tbody td[data-label]::before { content: attr(data-label); display: block; font-size: .68rem; text-transform: uppercase; letter-spacing: .04em; color: var(--md-on-surface-low); margin-bottom: 2px; }
+        td.acciones-fila { position: static; background: transparent !important; display: flex; justify-content: flex-end; gap: .1rem; padding-top: .5rem; margin-top: .3rem; border-top: 1px solid var(--md-outline); }
+        .btn-fila { opacity: 1; }
+        .filtros-menus { overflow-x: auto; flex-wrap: nowrap; }
+      }
+      /* ===== Filtros desplegables, fondo de filas y barra inferior ===== */
+      .controles { align-items: center; }
+      .buscador { min-height: 34px; }
+      .filtros-menus { display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; }
+      .filtro-menu, .filtro-limpiar { display: inline-flex; align-items: center; gap: .25rem; height: 34px; border: 1px solid var(--md-outline); background: var(--md-surface);
+        color: var(--md-on-surface-med); border-radius: var(--radius-pill); padding: 0 .35rem 0 .7rem; font-family: var(--font); font-size: .78rem; font-weight: 500;
+        cursor: pointer; white-space: nowrap; transition: var(--transition); }
+      .filtro-menu:hover, .filtro-limpiar:hover { background: var(--md-surface-variant); }
+      .filtro-menu.on { background: var(--md-primary-container); border-color: transparent; color: var(--md-primary-dark); }
+      .filtro-menu .material-symbols-outlined { font-size: 18px; }
+      .filtro-val { max-width: 150px; overflow: hidden; text-overflow: ellipsis; font-weight: 700; }
+      .filtro-val::before { content: ':'; margin-right: .25rem; font-weight: 500; }
+      .filtro-limpiar { padding: 0 .5rem; }
+      .filtro-limpiar .material-symbols-outlined { font-size: 18px; }
+      .menu-flot { max-height: min(60vh, 380px); overflow-y: auto; }
+      .menu-n { margin-left: auto; font-size: .72rem; opacity: .6; font-weight: 600; padding-left: 1rem; }
+      .menu-n + .check { margin-left: .4rem; }
+      /* Todas las celdas heredan el fondo de su fila (mismo tono en todas las columnas) */
+      tbody tr > td { background-color: inherit !important; }
+      /* Barra de selección múltiple: totalmente oculta cuando no hay selección */
+      .barra-lote { opacity: 0; pointer-events: none; transform: translateX(-50%) translateY(200%); transition: transform 200ms cubic-bezier(.2,0,0,1), opacity 150ms; }
+      .barra-lote.visible { opacity: 1; pointer-events: auto; transform: translateX(-50%) translateY(0); }
+      /* ===== Legibilidad de Contacto, Clínico y Estado ===== */
+      :root { --on-warn: #6b4300; --on-err: #9c2a1f; --on-purple: #5a2596; }
+      :root[data-tema="oscuro"] { --on-warn: #f6d58a; --on-err: #f7c5c2; --on-purple: #dcc3fb; }
+      @media (prefers-color-scheme: dark) { :root:not([data-tema]) { --on-warn: #f6d58a; --on-err: #f7c5c2; --on-purple: #dcc3fb; } }
+      .badge.espera, .chip-g.moderado { color: var(--on-warn); }
+      .badge.contactara { color: var(--on-err); }
+      .badge.alta { color: var(--on-purple); }
+      button.badge.estado-btn { font-size: .78rem; padding: .3rem .6rem .3rem .7rem; gap: 0; }
+      button.badge.estado-btn::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: currentColor; margin-right: .4rem; flex-shrink: 0; }
+      button.badge .material-symbols-outlined { font-size: 16px; margin-left: .1rem; margin-right: -.2rem; opacity: .7; }
+
+      td.col-contacto { font-size: .9rem; font-weight: 500; font-variant-numeric: tabular-nums; letter-spacing: .01em; color: var(--md-on-surface); }
+      td.col-contacto .c-sub { font-size: .84rem; margin-top: 3px; }
+      td.col-contacto .vacio { font-weight: 400; }
+
+      td.col-clinico { max-width: 320px; }
+      td.col-clinico .cl-pat { font-size: .88rem; font-weight: 500; line-height: 1.3; color: var(--md-on-surface); white-space: normal;
+        display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+      td.col-clinico .c-sub { display: flex; align-items: center; flex-wrap: wrap; gap: .1rem .45rem; margin-top: 5px; font-size: .82rem; }
+      .chip-g { font-size: .74rem; padding: .16rem .6rem; }
+      .tipo-ing { font-size: .82rem; margin-left: 0; }
+
+      .menu-item:focus-visible { outline: 2px solid var(--md-primary); outline-offset: -2px; background: var(--md-surface-variant); }
     </style>
   </head>
   <body>
     <nav class="tabs-cambio">
-      <a class="tab-cambio activo" href="<?= baseUrl ?>?page=baseDatos" target="_top">🗂️ Base de Datos</a>
-      <a class="tab-cambio" href="<?= baseUrl ?>?page=agenda" target="_top">🗓️ Agenda</a>
-      <a class="tab-cambio" href="<?= baseUrl ?>?page=valoraciones" target="_top">📈 Valoraciones</a>
+      <a class="tab-cambio activo" href="<?= baseUrl ?>?page=baseDatos" target="_top"><span class="material-symbols-outlined">folder_shared</span>Base de Datos</a>
+      <a class="tab-cambio" href="<?= baseUrl ?>?page=agenda" target="_top"><span class="material-symbols-outlined">calendar_month</span>Agenda</a>
+      <a class="tab-cambio" href="<?= baseUrl ?>?page=valoraciones" target="_top"><span class="material-symbols-outlined">monitoring</span>Valoraciones</a>
     </nav>
     <header class="top">
-      <h1>🗂️ Base de Datos <span class="contador" id="contador"></span></h1>
+      <h1><span class="material-symbols-outlined">folder_shared</span> Base de Datos <span class="contador" id="contador"></span></h1>
 
       <div class="barra-herramientas">
+        <button class="btn-toolbar icono-solo" id="btnOrdenar" title="Ordenar usuarios por prioridad (se aplica solo casi siempre, esto es solo para forzarlo)">
+          <span class="material-symbols-outlined">sort</span>
+        </button>
+        <span class="separador-toolbar"></span>
         <button class="btn-toolbar primario" id="btnNuevoPaciente">
-          <span class="material-symbols-outlined">person_add</span> Nuevo Usuario
+          <span class="material-symbols-outlined">person_add</span> Añadir usuario
         </button>
-        <button class="btn-toolbar" id="btnOrdenar">
-          <span class="material-symbols-outlined">sort</span> Ordenar Usuarios
-        </button>
+        <button type="button" class="btn-toolbar btn-nav" id="btnTema" title="Cambiar tema"></button>
+        <button type="button" class="btn-toolbar btn-nav" id="btnAtajos" title="Atajos de teclado"><span class="material-symbols-outlined">keyboard</span></button>
         <button class="btn-toolbar" id="btnEditar" disabled>
           <span class="material-symbols-outlined">edit</span> Editar
         </button>
@@ -280,20 +483,26 @@
           <span class="material-symbols-outlined">search</span>
           <input type="text" id="inputBusqueda" placeholder="Buscar por nombre, DNI, teléfono, patología, gravedad…">
         </div>
-        <div class="filtros" id="filtrosEstado"></div>
+        <div class="filtros-menus" id="filtrosMenus"></div>
       </div>
     </header>
 
-    <div class="tabla-wrap" id="tablaWrap">
-      <div class="estado-carga">
-        <span class="material-symbols-outlined">progress_activity</span>
-        Cargando usuarios…
-      </div>
+    <div class="tabla-wrap" id="tablaWrap"><div class="skeleton-fila"><div class="sk sk-avatar"></div><div class="doble" style="flex:1;gap:.4rem;display:flex;flex-direction:column"><div class="sk sk-linea" style="width:38%"></div><div class="sk sk-linea" style="width:22%"></div></div></div><div class="skeleton-fila"><div class="sk sk-avatar"></div><div class="doble" style="flex:1;gap:.4rem;display:flex;flex-direction:column"><div class="sk sk-linea" style="width:30%"></div><div class="sk sk-linea" style="width:16%"></div></div></div><div class="skeleton-fila"><div class="sk sk-avatar"></div><div class="doble" style="flex:1;gap:.4rem;display:flex;flex-direction:column"><div class="sk sk-linea" style="width:44%"></div><div class="sk sk-linea" style="width:20%"></div></div></div><div class="skeleton-fila"><div class="sk sk-avatar"></div><div class="doble" style="flex:1;gap:.4rem;display:flex;flex-direction:column"><div class="sk sk-linea" style="width:26%"></div><div class="sk sk-linea" style="width:30%"></div></div></div><div class="skeleton-fila"><div class="sk sk-avatar"></div><div class="doble" style="flex:1;gap:.4rem;display:flex;flex-direction:column"><div class="sk sk-linea" style="width:34%"></div><div class="sk sk-linea" style="width:18%"></div></div></div>
+    </div>
+
+    <div class="barra-lote" id="barraLote"><span class="bl-n"><span id="bloteN">0</span> seleccionados</span>
+      <button type="button" id="bloteEstado"><span class="material-symbols-outlined">label</span>Cambiar estado</button>
+      <button type="button" class="peligro" id="bloteEliminar"><span class="material-symbols-outlined">delete</span>Eliminar</button>
+      <button type="button" class="bl-cerrar" id="bloteCancelar" title="Cancelar selección"><span class="material-symbols-outlined">close</span></button>
     </div>
 
     <!-- Modal propio: sustituye a los alert()/confirm() nativos del navegador,
          que en la Web App muestran el dominio interno de Google (feo y confuso). -->
     <?!= include('Modal_Deshacer'); ?>
+
+    <aside class="ficha" id="ficha" aria-hidden="true"></aside>
+    <div class="menu-flot" id="menuFlotante"></div>
+    <div class="barra-progreso"></div>
 
     <script>
       var BASE_URL = '<?= baseUrl ?>';
@@ -302,6 +511,11 @@
       var filtroEstado = null;
       var COL_HISTORIA = null;
       var pacienteSeleccionado = null; // { _fila, Nombre, ... } o null
+      var filtroGravedad = null, filtroSinHC = false, filtroSinTel = false;
+      var filtroTipo = null, filtroPatologia = null;
+      var seleccionMultiple = new Set();
+      var ordenCampo = null, ordenDir = 1; // 1 = asc, -1 = desc
+      var ultimosFiltrados = [], filaActivaFila = null;
 
       // ---------- Carga de datos ----------
       function cargar() {
@@ -311,8 +525,10 @@
             HEADERS = res.headers || [];
             TODOS = res.pacientes || [];
             COL_HISTORIA = HEADERS.find(function(h) { return h.toLowerCase().indexOf('historia') !== -1; });
-            construirFiltrosEstado();
+            reanclarSeleccion();
+            construirMenusFiltro();
             render();
+            renderFicha();
           })
           .withFailureHandler(mostrarError)
           .obtenerBaseDatosCompletaWeb();
@@ -320,37 +536,153 @@
 
       function mostrarError(err) {
         document.getElementById('tablaWrap').innerHTML =
-          '<div class="estado-vacio">⚠️ No se pudo cargar la base de datos.<br>' + (err && err.message ? err.message : err) + '</div>';
+          '<div class="estado-vacio">⚠️ No se pudo cargar la base de datos.<br>' + esc(err && err.message ? err.message : err) + '</div>';
       }
 
       function normalizar(txt) {
         return (txt || '').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
       }
 
-      // ---------- Filtros ----------
-      function construirFiltrosEstado() {
-        var cont = document.getElementById('filtrosEstado');
-        var valores = {};
-        TODOS.forEach(function(p) {
-          var e = (p['Estado'] || '').toString().trim();
-          if (e) valores[e] = true;
-        });
-        var lista = Object.keys(valores).sort();
+      // ---------- Filtros (menús desplegables) ----------
+      var FILTROS_DEF = [
+        { id: 'estado', etq: 'Estado', icono: 'label' },
+        { id: 'gravedad', etq: 'Gravedad', icono: 'priority_high' },
+        { id: 'carencias', etq: 'Sin HC / TLF', icono: 'folder_off' },
+        { id: 'tipo', etq: 'Derivación', icono: 'alt_route' },
+        { id: 'patologia', etq: 'Patología', icono: 'medical_services' }
+      ];
 
-        var html = '<div class="chip activo" data-estado="">Todos</div>';
-        lista.forEach(function(estado) {
-          html += '<div class="chip" data-estado="' + estado.replace(/"/g, '&quot;') + '">' + estado + '</div>';
-        });
-        cont.innerHTML = html;
-
-        cont.querySelectorAll('.chip').forEach(function(chip) {
-          chip.addEventListener('click', function() {
-            cont.querySelectorAll('.chip').forEach(function(c) { c.classList.remove('activo'); });
-            chip.classList.add('activo');
-            filtroEstado = chip.getAttribute('data-estado') || null;
-            render();
+      // Patologías individuales: cada campo puede traer varias separadas por , ; / | · + o salto de línea.
+      var SEP_PAT = /\s*(?:[,;\/|·+]|\r?\n)\s*/;
+      function patologiasDe(p) {
+        var out = [], vistos = {};
+        ['Patología 1', 'Patología 2'].forEach(function(campo) {
+          dato(p, campo).split(SEP_PAT).forEach(function(s) {
+            s = s.replace(/[.\s]+$/, '').trim();
+            var k = normalizar(s);
+            if (!k || vistos[k]) return;
+            vistos[k] = true; out.push(s);
           });
         });
+        return out;
+      }
+      function sinHC(p) { return !esUrl(COL_HISTORIA ? p[COL_HISTORIA] : ''); }
+      function sinTelefono(p) { return !(dato(p, 'Teléfono 1') || dato(p, 'Teléfono 2')); }
+
+      // 'excluir' permite calcular los contadores de un menú ignorando su propio filtro (conteo por facetas).
+      function pasaFiltros(p, terminoNorm, excluir) {
+        if (excluir !== 'estado' && filtroEstado && (p['Estado'] || '').toString().trim() !== filtroEstado) return false;
+        if (excluir !== 'gravedad' && filtroGravedad && claseGravedad(dato(p, 'Gravedad')) !== filtroGravedad) return false;
+        if (excluir !== 'sinHC' && filtroSinHC && !sinHC(p)) return false;
+        if (excluir !== 'sinTel' && filtroSinTel && !sinTelefono(p)) return false;
+        if (excluir !== 'tipo' && filtroTipo && normalizar(textoEstado(dato(p, 'Tipo de Ingreso'))) !== normalizar(filtroTipo)) return false;
+        if (excluir !== 'patologia' && filtroPatologia && patologiasDe(p).map(normalizar).indexOf(normalizar(filtroPatologia)) === -1) return false;
+        if (!terminoNorm) return true;
+        return HEADERS.some(function(h) { return normalizar(p[h]).indexOf(terminoNorm) !== -1; });
+      }
+
+      function cuentasFiltros() {
+        var term = normalizar(document.getElementById('inputBusqueda').value);
+        var base = function(ex) { return TODOS.filter(function(p) { return pasaFiltros(p, term, ex); }); };
+        var c = { estado: {}, gravedad: { leve: 0, moderado: 0, urgente: 0 }, tipo: {}, patologia: {}, tot: {} };
+        var b = base('estado'); c.tot.estado = b.length;
+        b.forEach(function(p) { var e = (p['Estado'] || '').toString().trim(); if (e) c.estado[e] = (c.estado[e] || 0) + 1; });
+        b = base('gravedad'); c.tot.gravedad = b.length;
+        b.forEach(function(p) { var g = claseGravedad(dato(p, 'Gravedad')); if (g) c.gravedad[g]++; });
+        b = base('tipo'); c.tot.tipo = b.length;
+        b.forEach(function(p) {
+          var tx = textoEstado(dato(p, 'Tipo de Ingreso')), k = normalizar(tx);
+          if (k) { c.tipo[k] = c.tipo[k] || { texto: tx, n: 0 }; c.tipo[k].n++; }
+        });
+        b = base('patologia'); c.tot.patologia = b.length;
+        b.forEach(function(p) { patologiasDe(p).forEach(function(s) { var k = normalizar(s); c.patologia[k] = c.patologia[k] || { texto: s, n: 0 }; c.patologia[k].n++; }); });
+        c.sinHC = base('sinHC').filter(sinHC).length;
+        c.sinTel = base('sinTel').filter(sinTelefono).length;
+        return c;
+      }
+
+      function itemsFiltro(id) {
+        var c = cuentasFiltros(), it = [];
+        var fin = function() { construirMenusFiltro(); render(); };
+        if (id === 'estado') {
+          if (filtroEstado && !c.estado[filtroEstado]) c.estado[filtroEstado] = 0;
+          it.push({ punto: '', texto: 'Todos', n: c.tot.estado, marcado: !filtroEstado, fn: function() { filtroEstado = null; fin(); } });
+          Object.keys(c.estado).sort().forEach(function(e) {
+            it.push({ punto: claseParaEstado(e), texto: textoEstado(e), n: c.estado[e], marcado: filtroEstado === e, fn: function() { filtroEstado = e; fin(); } });
+          });
+        } else if (id === 'gravedad') {
+          var col = { leve: 'activo', moderado: 'espera', urgente: 'contactara' };
+          it.push({ punto: '', texto: 'Todas', n: c.tot.gravedad, marcado: !filtroGravedad, fn: function() { filtroGravedad = null; fin(); } });
+          ['leve', 'moderado', 'urgente'].forEach(function(g) {
+            it.push({ punto: col[g], texto: g.charAt(0).toUpperCase() + g.slice(1), n: c.gravedad[g], marcado: filtroGravedad === g, fn: function() { filtroGravedad = g; fin(); } });
+          });
+        } else if (id === 'carencias') {
+          it.push({ icono: 'folder_off', texto: 'Sin Historia Clínica', n: c.sinHC, marcado: filtroSinHC, fn: function() { filtroSinHC = !filtroSinHC; fin(); abrirMenuFiltro('carencias'); } });
+          it.push({ icono: 'phone_disabled', texto: 'Sin teléfono', n: c.sinTel, marcado: filtroSinTel, fn: function() { filtroSinTel = !filtroSinTel; fin(); abrirMenuFiltro('carencias'); } });
+        } else {
+          var esTipo = id === 'tipo', mapa = esTipo ? c.tipo : c.patologia, sel = esTipo ? filtroTipo : filtroPatologia, actual = normalizar(sel);
+          if (actual && !mapa[actual]) mapa[actual] = { texto: sel, n: 0 };
+          var poner = function(v) { if (esTipo) filtroTipo = v; else filtroPatologia = v; fin(); };
+          it.push({ texto: 'Todas', n: c.tot[id], marcado: !actual, fn: function() { poner(null); } });
+          Object.keys(mapa).sort(function(a, b) { return mapa[a].texto.localeCompare(mapa[b].texto, 'es'); }).forEach(function(k) {
+            it.push({ texto: mapa[k].texto, n: mapa[k].n, marcado: actual === k, fn: function() { poner(mapa[k].texto); } });
+          });
+        }
+        return it;
+      }
+
+      function abrirMenuFiltro(id) {
+        var btn = document.querySelector('#filtrosMenus [data-filtro="' + id + '"]');
+        if (btn) abrirMenu(itemsFiltro(id), btn, true);
+      }
+
+      function construirMenusFiltro() {
+        var cont = document.getElementById('filtrosMenus');
+        if (filtroEstado && !TODOS.some(function(p) { return (p['Estado'] || '').toString().trim() === filtroEstado; })) filtroEstado = null;
+        if (filtroTipo && !TODOS.some(function(p) { return normalizar(textoEstado(dato(p, 'Tipo de Ingreso'))) === normalizar(filtroTipo); })) filtroTipo = null;
+        if (filtroPatologia && !TODOS.some(function(p) { return patologiasDe(p).map(normalizar).indexOf(normalizar(filtroPatologia)) !== -1; })) filtroPatologia = null;
+        var val = {
+          estado: filtroEstado ? textoEstado(filtroEstado) : '',
+          gravedad: filtroGravedad ? filtroGravedad.charAt(0).toUpperCase() + filtroGravedad.slice(1) : '',
+          carencias: filtroSinHC && filtroSinTel ? 'HC + TLF' : filtroSinHC ? 'Sin HC' : filtroSinTel ? 'Sin TLF' : '',
+          tipo: filtroTipo || '', patologia: filtroPatologia || ''
+        };
+        var hay = filtroEstado || filtroGravedad || filtroSinHC || filtroSinTel || filtroTipo || filtroPatologia;
+        cont.innerHTML = FILTROS_DEF.map(function(f) {
+          var v = val[f.id];
+          return '<button type="button" class="filtro-menu' + (v ? ' on' : '') + '" data-filtro="' + f.id + '" aria-haspopup="menu" aria-expanded="false"><span class="material-symbols-outlined">' + f.icono + '</span>' +
+            esc(f.etq) + (v ? '<span class="filtro-val">' + esc(v) + '</span>' : '') + '<span class="material-symbols-outlined">arrow_drop_down</span></button>';
+        }).join('') + (hay ? '<button type="button" class="filtro-limpiar" data-filtro="limpiar" title="Quitar filtros" aria-label="Quitar filtros"><span class="material-symbols-outlined">filter_alt_off</span></button>' : '');
+      }
+
+      document.getElementById('filtrosMenus').addEventListener('click', function(e) {
+        var b = e.target.closest('[data-filtro]');
+        if (!b) return;
+        if (b.dataset.filtro === 'limpiar') {
+          filtroEstado = null; filtroGravedad = null; filtroTipo = null; filtroPatologia = null; filtroSinHC = false; filtroSinTel = false;
+          construirMenusFiltro(); render();
+          return;
+        }
+        abrirMenuFiltro(b.dataset.filtro);
+      });
+
+      // ---------- Recordar filtros y orden durante la sesión ----------
+      var CLAVE_VISTA = 'bdVista';
+      function guardarVista() {
+        try {
+          sessionStorage.setItem(CLAVE_VISTA, JSON.stringify({ q: document.getElementById('inputBusqueda').value, e: filtroEstado, g: filtroGravedad,
+            hc: filtroSinHC, tl: filtroSinTel, t: filtroTipo, p: filtroPatologia, oc: ordenCampo, od: ordenDir }));
+        } catch (err) { /* sin almacenamiento */ }
+      }
+      function restaurarVista() {
+        try {
+          var v = JSON.parse(sessionStorage.getItem(CLAVE_VISTA) || 'null');
+          if (!v) return;
+          document.getElementById('inputBusqueda').value = v.q || '';
+          filtroEstado = v.e || null; filtroGravedad = v.g || null; filtroSinHC = !!v.hc; filtroSinTel = !!v.tl;
+          filtroTipo = v.t || null; filtroPatologia = v.p || null;
+          if (v.oc) { ordenCampo = v.oc; ordenDir = v.od === -1 ? -1 : 1; }
+        } catch (err) { /* sin almacenamiento */ }
       }
 
       function claseParaEstado(estado) {
@@ -364,75 +696,516 @@
       }
 
       function esUrl(valor) { return typeof valor === 'string' && /^https?:\/\//i.test(valor.trim()); }
-      function escapar(txt) { return (txt + '').replace(/</g, '&lt;'); }
 
-      function renderCelda(header, valor) {
-        var vacio = valor === '' || valor === null || valor === undefined;
-        if (header === 'Nombre') return '<td class="nombre">' + (vacio ? '—' : escapar(valor)) + '</td>';
-        if (header === 'Estado') return '<td>' + (vacio ? '—' : '<span class="badge ' + claseParaEstado(valor) + '">' + escapar(valor) + '</span>') + '</td>';
-        if (header === COL_HISTORIA) {
-          if (vacio) return '<td class="vacio">Sin enlace</td>';
-          return esUrl(valor)
-            ? '<td><a class="link-hc" href="' + valor + '" target="_blank" rel="noopener" onclick="event.stopPropagation()"><span class="material-symbols-outlined text-[15px]">description</span>Abrir</a></td>'
-            : '<td>' + escapar(valor) + '</td>';
-        }
-        return '<td class="' + (vacio ? 'vacio' : '') + '">' + (vacio ? '—' : escapar(valor)) + '</td>';
+      // ================= Tabla de dos líneas, ficha lateral y estado en línea =================
+      var fichaAbierta = false, CACHE_HDR = {};
+      var GRUPOS_FICHA = [
+        ['Datos personales', ['DNI', 'Fecha nacimiento', 'Fecha inscripción']],
+        ['Clasificación', ['Gravedad', 'Tipo de Ingreso']],
+        ['Contacto', ['Teléfono 1', 'Teléfono 2']],
+        ['Diagnóstico', ['Patología 1', 'Patología 2']],
+        ['Observaciones', ['Observaciones']]
+      ];
+      var ESTADOS_BASE = ['🟢 Activo', '🟡 En espera', '🕐 Contactará', '🚫 No responde', '✔️ Alta'];
+      var MAPA_ACC = { editar: 'btnEditar', whatsapp: 'btnWhatsapp', cita: 'btnCita', valoracion: 'btnValoracion', alta: 'btnAlta',
+        crearhc: 'btnHistoria', actualizarhc: 'btnActualizarHistoria', buscarhc: 'btnBuscarHuerfana', eliminar: 'btnEliminarUsuario' };
+
+      function esc(t) { return (t === null || t === undefined ? '' : String(t)).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
+      function hdr(nombre) {
+        if (!(nombre in CACHE_HDR)) { var n = normalizar(nombre); CACHE_HDR[nombre] = HEADERS.find(function(h) { return normalizar(h) === n; }) || null; }
+        return CACHE_HDR[nombre];
+      }
+      function dato(p, nombre) { var h = hdr(nombre); if (!h) return ''; var v = p[h]; return (v === null || v === undefined) ? '' : String(v).trim(); }
+      function textoEstado(e) { var s = String(e || ''); return s.replace(/^[^\p{L}\p{N}]+/u, '').trim() || s; }
+      function edadTxt(p) { var e = dato(p, 'Edad'); return /^\d+$/.test(e) ? e + ' años' : e; }
+      function claseGravedad(v) { var n = normalizar(v); return n.indexOf('leve') !== -1 ? 'leve' : n.indexOf('moderad') !== -1 ? 'moderado' : n.indexOf('urgent') !== -1 ? 'urgente' : ''; }
+      function chipGravedad(v) { return '<span class="chip-g ' + claseGravedad(v) + '">' + esc(textoEstado(v)) + '</span>'; }
+
+      function formatearTel(t) {
+        var s = String(t || '').replace(/[^\d+]/g, ''), pref = '', num = s, m = s.match(/^(\+\d{1,3})(\d{9})$/);
+        if (m) { pref = m[1] + ' '; num = m[2]; }
+        return /^\d{9}$/.test(num) ? pref + num.replace(/(\d{3})(\d{3})(\d{3})/, '$1 $2 $3') : String(t || '').trim();
       }
 
-      // ---------- Render tabla ----------
+      function avatarHtml(nombre, extra) {
+        var n = (nombre || '').toString().trim();
+        if (!n) return '';
+        var p = n.split(/\s+/), ini = (p[0].charAt(0) + (p.length > 1 ? p[1].charAt(0) : p[0].charAt(1))).toUpperCase(), hue = 0, low = n.toLowerCase();
+        for (var i = 0; i < low.length; i++) hue = (hue * 31 + low.charCodeAt(i)) % 360;
+        return '<span class="avatar' + (extra ? ' ' + extra : '') + '" style="--h:' + hue + '">' + esc(ini) + '</span>';
+      }
+
+      // Columna A: puntuación de prioridad que escribe "Ordenar Usuarios" (ordenarPacientes,
+      // en Base de Datos Web.gs). Se localiza por posición (primera columna), no por nombre,
+      // para no depender de cómo esté titulada esa columna en tu hoja.
+      function colPrioridad() { return HEADERS.length ? HEADERS[0] : null; }
+      function prioridadNum(p) {
+        var h = colPrioridad();
+        if (!h) return null;
+        var n = parseFloat(p[h]);
+        return isNaN(n) ? null : n;
+      }
+      function prioridadTxt(p) { var n = prioridadNum(p); return n === null ? '—' : n.toFixed(2); }
+
+      function badgeEstado(p) {
+        var e = dato(p, 'Estado');
+        return '<button type="button" class="badge estado-btn ' + claseParaEstado(e) + '" data-estado-fila="' + p._fila + '" title="Cambiar estado">' +
+          (e ? esc(textoEstado(e)) : 'Sin estado') + '<span class="material-symbols-outlined">expand_more</span></button>';
+      }
+
+      var SVG_WHATSAPP = '<svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 16 16" fill="currentColor">' +
+        '<path d="M13.601 2.326A7.854 7.854 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.933 7.933 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.898 7.898 0 0 0 13.6 2.326zM7.994 14.521a6.573 6.573 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.557 6.557 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592zm3.615-4.934c-.197-.099-1.17-.578-1.353-.646-.182-.065-.315-.099-.445.099-.133.197-.513.646-.627.775-.114.133-.232.148-.43.05-.197-.1-.836-.308-1.592-.985-.59-.525-.985-1.175-1.103-1.372-.114-.198-.011-.304.088-.403.087-.088.197-.232.296-.346.1-.114.133-.198.198-.33.065-.134.034-.248-.015-.347-.05-.099-.445-1.076-.612-1.47-.16-.389-.323-.335-.445-.34-.114-.007-.247-.007-.38-.007a.729.729 0 0 0-.529.247c-.182.198-.691.677-.691 1.654 0 .977.71 1.916.81 2.049.098.133 1.394 2.132 3.383 2.992.47.205.84.326 1.129.418.475.152.904.129 1.246.08.38-.058 1.171-.48 1.338-.943.164-.464.164-.86.114-.943-.049-.084-.182-.133-.38-.232z"/></svg>';
+
+      function contenidoIcono(icono) { return icono === 'whatsapp' ? SVG_WHATSAPP : '<span class="material-symbols-outlined">' + icono + '</span>'; }
+
+      function btnFila(acc, p, icono, titulo, extra) {
+        return '<button type="button" class="btn-fila ' + (extra || '') + (icono === 'whatsapp' ? ' btn-whatsapp' : '') + '" data-acc="' + acc + '" data-fila="' + p._fila + '" title="' + esc(titulo) + '">' + contenidoIcono(icono) + '</button>';
+      }
+
+      function resalta(txt, termino) {
+        var s = esc(txt || '');
+        if (!termino) return s;
+        try {
+          var re = new RegExp('(' + termino.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'ig');
+          return s.replace(re, '<mark>$1</mark>');
+        } catch (err) { return s; }
+      }
+
+      function htmlFila(p, termino) {
+        var t1 = dato(p, 'Teléfono 1'), t2 = dato(p, 'Teléfono 2'), grav = dato(p, 'Gravedad'), tipo = dato(p, 'Tipo de Ingreso');
+        var pats = patologiasDe(p).join(' · ');
+        var tieneHC = esUrl(COL_HISTORIA ? p[COL_HISTORIA] : '');
+        var sel = pacienteSeleccionado && pacienteSeleccionado._fila === p._fila;
+        var enLote = seleccionMultiple.has(p._fila);
+        var tel = function(t, cls) { return t ? '<span class="' + cls + ' copiable" data-copiar="' + esc(t) + '" data-etiqueta="Teléfono" title="Copiar">' + resalta(formatearTel(t), termino) + '</span>' : ''; };
+        return '<tr data-fila="' + p._fila + '" class="' + (sel ? 'seleccionada ' : '') + (enLote ? 'seleccion-multiple' : '') + '">' +
+          '<td class="col-check"><input type="checkbox" class="chk-fila" data-fila="' + p._fila + '"' + (enLote ? ' checked' : '') + '></td>' +
+          '<td class="col-usuario"><div class="celda-u">' + avatarHtml(p['Nombre']) + '<div class="doble"><div class="u-nombre">' + resalta(p['Nombre'], termino) + '</div><div class="u-sub">' +
+            (resalta([dato(p, 'DNI'), edadTxt(p)].filter(Boolean).join(' · '), termino) || '—') + '</div></div></div></td>' +
+          '<td data-label="Contacto" class="col-contacto"><div class="doble">' + (tel(t1, '') || '<span class="vacio">—</span>') + (t2 ? '<div class="c-sub">' + tel(t2, '') + '</div>' : '') + '</div></td>' +
+          '<td data-label="Clínico" class="col-clinico"><div class="doble"><div class="cl-pat" title="' + esc(pats) + '">' + (pats ? resalta(pats, termino) : '<span class="vacio">—</span>') + '</div><div class="c-sub">' +
+            (grav ? chipGravedad(grav) : '') + (tipo ? '<span class="tipo-ing">' + esc(textoEstado(tipo)) + '</span>' : '') + '</div></div></td>' +
+          '<td data-label="Estado" class="col-estado">' + badgeEstado(p) + '</td>' +
+          '<td data-label="Prioridad" class="celda-prioridad">' + esc(prioridadTxt(p)) + '</td>' +
+          '<td data-label="Inscripción">' + (dato(p, 'Fecha inscripción') ? esc(dato(p, 'Fecha inscripción')) : '<span class="vacio">—</span>') + '</td>' +
+          '<td class="acciones-fila">' +
+            btnFila('hc', p, 'description', tieneHC ? 'Abrir Historia Clínica' : 'Sin Historia Clínica · clic para crearla', tieneHC ? 'con-hc' : 'sin-hc') +
+            btnFila('whatsapp', p, 'whatsapp', 'Abrir WhatsApp') + btnFila('cita', p, 'event', 'Nueva cita') + btnFila('editar', p, 'edit', 'Editar') + btnFila('mas', p, 'more_vert', 'Más acciones') +
+          '</td></tr>';
+      }
+
       function render() {
-        var termino = normalizar(document.getElementById('inputBusqueda').value);
-
-        var filtrados = TODOS.filter(function(p) {
-          if (filtroEstado && (p['Estado'] || '').toString().trim() !== filtroEstado) return false;
-          if (!termino) return true;
-          // Busca en TODAS las columnas de la ficha (Nombre, DNI, Teléfonos,
-          // Fecha nacimiento, Edad, Gravedad, Patología 1/2, Tipo de Ingreso,
-          // etc.), no solo en una lista fija — así cubre cualquier columna
-          // que exista hoy o se añada más adelante, sin tocar este código.
-          return HEADERS.some(function(h) { return normalizar(p[h]).indexOf(termino) !== -1; });
-        });
-
+        var termino = document.getElementById('inputBusqueda').value.trim();
+        var terminoNorm = normalizar(termino);
+        guardarVista();
+        var filtrados = TODOS.filter(function(p) { return pasaFiltros(p, terminoNorm); });
+        filtrados = ordenarFiltrados(filtrados);
+        ultimosFiltrados = filtrados;
         document.getElementById('contador').textContent = filtrados.length + ' de ' + TODOS.length;
+        var cont = document.getElementById('tablaWrap'), scroll = cont.scrollTop;
 
-        var cont = document.getElementById('tablaWrap');
-        if (filtrados.length === 0) {
-          cont.innerHTML = '<div class="estado-vacio">No se encontró ningún usuario con ese criterio.</div>';
+        if (TODOS.length === 0) {
+          cont.innerHTML = '<div class="estado-vacio"><span class="material-symbols-outlined grande">group_off</span>' +
+            'Todavía no hay usuarios registrados.<button type="button" class="btn-toolbar primario" id="btnVacioNuevo"><span class="material-symbols-outlined">person_add</span> Añadir usuario</button></div>';
+          document.getElementById('btnVacioNuevo').addEventListener('click', function() { document.getElementById('btnNuevoPaciente').click(); });
           return;
         }
-
-        var thead = '<thead><tr>' + HEADERS.map(function(h) { return '<th>' + h + '</th>'; }).join('') + '</tr></thead>';
-
-        var tbody = '<tbody>' + filtrados.map(function(p) {
-          var celdas = HEADERS.map(function(h) { return renderCelda(h, p[h]); }).join('');
-          var sel = pacienteSeleccionado && pacienteSeleccionado._fila === p._fila;
-          var clsFila = claseParaEstado(p['Estado']) ? 'fila-' + claseParaEstado(p['Estado']) : '';
-          var clases = clsFila + (sel ? ' seleccionada' : '');
-          return '<tr data-fila="' + p._fila + '" class="' + clases + '">' + celdas + '</tr>';
-        }).join('') + '</tbody>';
-
-        cont.innerHTML = '<table>' + thead + tbody + '</table>';
-
-        // Click en la fila = seleccionar (para las acciones que llegarán después)
-        cont.querySelectorAll('tbody tr').forEach(function(tr) {
-          tr.addEventListener('click', function() {
-            var fila = parseInt(tr.getAttribute('data-fila'), 10);
-            seleccionarFila(fila);
+        if (filtrados.length === 0) {
+          cont.innerHTML = '<div class="estado-vacio"><span class="material-symbols-outlined grande">search_off</span>' +
+            'No se encontró ningún usuario con ese criterio.<button type="button" class="btn-toolbar" id="btnVacioLimpiar">Quitar filtros</button></div>';
+          document.getElementById('btnVacioLimpiar').addEventListener('click', function() {
+            document.getElementById('inputBusqueda').value = '';
+            filtroEstado = null; filtroGravedad = null; filtroSinHC = false; filtroSinTel = false; filtroTipo = null; filtroPatologia = null;
+            construirMenusFiltro(); render();
           });
+          return;
+        }
+        cont.innerHTML = '<table><thead><tr>' +
+          '<th class="col-check"><input type="checkbox" class="chk-todo" title="Seleccionar todos los visibles"' + (todosVisiblesSeleccionados(filtrados) ? ' checked' : '') + '></th>' +
+          thCol('nombre', 'Usuario', 'col-usuario') + '<th>Contacto</th><th>Clínico</th>' + thCol('estado', 'Estado') + thCol('prioridad', 'Prioridad') + thCol('inscripcion', 'Inscripción') + '<th class="col-acciones"></th></tr></thead><tbody>' +
+          filtrados.map(function(p) { return htmlFila(p, termino); }).join('') + '</tbody></table>';
+        cont.scrollTop = scroll;
+        marcarFilaActiva();
+      }
+
+      function thCol(campo, texto, clase) {
+        var dir = ordenCampo === campo ? (ordenDir === 1 ? 'orden-asc' : 'orden-desc') : '';
+        return '<th class="ordenable ' + (clase || '') + ' ' + dir + '" data-orden="' + campo + '">' + texto + '<span class="material-symbols-outlined">arrow_upward</span></th>';
+      }
+
+      function parseFechaEs(s) {
+        var m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})/.exec(s || '');
+        return m ? new Date(+m[3], +m[2] - 1, +m[1]).getTime() : -Infinity;
+      }
+
+      function ordenarFiltrados(lista) {
+        if (!ordenCampo) return lista;
+        var estados = estadosDisponibles();
+        var claves = { nombre: function(p) { return normalizar(p['Nombre']); },
+          estado: function(p) { var i = estados.indexOf(dato(p, 'Estado')); return i === -1 ? 999 : i; },
+          prioridad: function(p) { var n = prioridadNum(p); return n === null ? -Infinity : n; },
+          inscripcion: function(p) { return parseFechaEs(dato(p, 'Fecha inscripción')); } };
+        var clave = claves[ordenCampo];
+        return lista.slice().sort(function(a, b) {
+          var x = clave(a), y = clave(b);
+          return (x < y ? -1 : x > y ? 1 : 0) * ordenDir;
         });
       }
 
-      // ---------- Selección de fila ----------
-      function seleccionarFila(fila) {
-        if (pacienteSeleccionado && pacienteSeleccionado._fila === fila) {
-          quitarSeleccion();
+      document.getElementById('tablaWrap').addEventListener('click', function(e) {
+        var th = e.target.closest('th.ordenable');
+        if (!th) return;
+        // Ciclo: dirección inicial → inversa → sin orden (vuelve al orden de la hoja). Prioridad empieza por mayor puntuación.
+        var campo = th.dataset.orden, inicial = campo === 'prioridad' ? -1 : 1;
+        if (ordenCampo !== campo) { ordenCampo = campo; ordenDir = inicial; }
+        else if (ordenDir === inicial) ordenDir = -inicial;
+        else { ordenCampo = null; ordenDir = 1; }
+        render();
+      });
+
+      function refrescarVista() { construirMenusFiltro(); render(); renderFicha(); }
+
+      // Tras recargar (p. ej. después de ordenar) las filas cambian de número: se vuelve a localizar la selección por nombre y DNI.
+      function reanclarSeleccion() {
+        CACHE_HDR = {};
+        if (!pacienteSeleccionado) return;
+        var n = pacienteSeleccionado['Nombre'], d = pacienteSeleccionado['DNI'] || '';
+        pacienteSeleccionado = TODOS.find(function(p) { return p['Nombre'] === n && (p['DNI'] || '') === d; }) || null;
+        if (!pacienteSeleccionado) fichaAbierta = false;
+      }
+
+      // ---------- Selección múltiple (checkboxes + acciones en lote) ----------
+      function todosVisiblesSeleccionados(lista) { return lista.length > 0 && lista.every(function(p) { return seleccionMultiple.has(p._fila); }); }
+
+      function actualizarBarraLote() {
+        var n = seleccionMultiple.size, barra = document.getElementById('barraLote');
+        document.body.classList.toggle('seleccion-activa', n > 0);
+        barra.classList.toggle('visible', n > 0);
+        document.getElementById('bloteN').textContent = n;
+      }
+
+      document.getElementById('tablaWrap').addEventListener('click', function(e) {
+        var chk = e.target.closest('.chk-fila, .chk-todo');
+        if (!chk) return;
+        e.stopPropagation();
+        if (chk.classList.contains('chk-todo')) {
+          if (todosVisiblesSeleccionados(ultimosFiltrados)) ultimosFiltrados.forEach(function(p) { seleccionMultiple.delete(p._fila); });
+          else ultimosFiltrados.forEach(function(p) { seleccionMultiple.add(p._fila); });
+        } else {
+          var f = Number(chk.dataset.fila);
+          if (chk.checked) seleccionMultiple.add(f); else seleccionMultiple.delete(f);
+        }
+        render();
+        actualizarBarraLote();
+      });
+
+      document.getElementById('bloteCancelar').addEventListener('click', function() { seleccionMultiple.clear(); render(); actualizarBarraLote(); });
+
+      document.getElementById('bloteEstado').addEventListener('click', function(e) {
+        abrirMenu(estadosDisponibles().map(function(est) {
+          return { punto: claseParaEstado(est), texto: textoEstado(est), fn: function() { cambiarEstadoLote(est); } };
+        }), e.currentTarget);
+      });
+
+      function cambiarEstadoLote(valor) {
+        if (claseParaEstado(valor) === 'alta') { mostrarAviso('Da de alta a cada usuario por separado desde su ficha: el alta actualiza también fechas e Historia Clínica.'); return; }
+        var filas = Array.from(seleccionMultiple), hEst = hdr('Estado') || 'Estado';
+        var antes = {};
+        filas.forEach(function(f) { var p = TODOS.find(function(x) { return x._fila === f; }); if (p) { antes[f] = p[hEst]; p[hEst] = valor; } });
+        render();
+        google.script.run
+          .withSuccessHandler(function(res) {
+            if (!res || !res.success) {
+              filas.forEach(function(f) { var p = TODOS.find(function(x) { return x._fila === f; }); if (p && f in antes) p[hEst] = antes[f]; });
+              render();
+              mostrarAviso((res && res.message) || 'No se pudo cambiar el estado.');
+              return;
+            }
+            mostrarAviso('Estado cambiado a ' + textoEstado(valor) + ' en ' + filas.length + (filas.length === 1 ? ' usuario.' : ' usuarios.'));
+          })
+          .withFailureHandler(function(err) { cargar(); mostrarAviso('Error al cambiar el estado: ' + err); })
+          .cambiarEstadoLoteWeb(filas, valor);
+      }
+
+      document.getElementById('bloteEliminar').addEventListener('click', async function() {
+        var filas = Array.from(seleccionMultiple);
+        if (!filas.length) return;
+        var confirmado = await mostrarConfirm('¿Eliminar a ' + filas.length + (filas.length === 1 ? ' usuario? Se borrará toda su ficha.' : ' usuarios? Se borrará toda su ficha de cada uno.'));
+        if (!confirmado) return;
+        // Copia de cada ficha ANTES de borrar, en orden de fila, para poder deshacer.
+        var copias = filas.map(function(f) { return TODOS.find(function(x) { return x._fila === f; }); })
+          .filter(Boolean).map(function(p) { return Object.assign({}, p); })
+          .sort(function(a, b) { return a._fila - b._fila; });
+        google.script.run
+          .withSuccessHandler(function(res) {
+            seleccionMultiple.clear();
+            actualizarBarraLote();
+            cargar();
+            if (res && res.success && copias.length) mostrarDeshacer(copias, (res.message) || (copias.length + (copias.length === 1 ? ' usuario eliminado.' : ' usuarios eliminados.')));
+            else mostrarAviso((res && res.message) || (res && res.success ? 'Usuarios eliminados.' : 'No se pudo eliminar.'));
+          })
+          .withFailureHandler(function(err) { cargar(); mostrarAviso('Error al eliminar: ' + err); })
+          .eliminarPacientesLoteWeb(filas);
+      });
+
+      // ---------- Navegación por teclado ----------
+      function marcarFilaActiva() {
+        document.querySelectorAll('tbody tr').forEach(function(tr) { tr.classList.toggle('fila-activa', Number(tr.dataset.fila) === filaActivaFila); });
+      }
+      function moverFilaActiva(delta) {
+        if (!ultimosFiltrados.length) return;
+        var idx = ultimosFiltrados.findIndex(function(p) { return p._fila === filaActivaFila; });
+        idx = Math.min(ultimosFiltrados.length - 1, Math.max(0, idx + delta));
+        filaActivaFila = ultimosFiltrados[idx]._fila;
+        marcarFilaActiva();
+        var el = document.querySelector('tr[data-fila="' + filaActivaFila + '"]');
+        if (el) el.scrollIntoView({ block: 'nearest' });
+      }
+      document.addEventListener('keydown', function(e) {
+        if (menuItems) { tecladoMenu(e); return; }
+        var enCampo = /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName);
+        if (e.key === '/' && !enCampo) { e.preventDefault(); document.getElementById('inputBusqueda').focus(); return; }
+        if (enCampo) return;
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); moverFilaActiva(e.key === 'ArrowDown' ? 1 : -1); }
+        else if (e.key === 'Enter' && filaActivaFila !== null) { alternarFicha(filaActivaFila); }
+      });
+
+      // ---------- Atajos de teclado (ayuda) ----------
+      document.getElementById('btnAtajos').addEventListener('click', function(e) {
+        var d = document.createElement('div'); d.className = 'menu-atajos';
+        d.innerHTML = '<dl>' +
+          '<dt><kbd>/</kbd></dt><dd>Buscar</dd>' +
+          '<dt><kbd>&uarr;</kbd> <kbd>&darr;</kbd></dt><dd>Moverse por la lista</dd>' +
+          '<dt><kbd>Enter</kbd></dt><dd>Abrir ficha</dd>' +
+          '<dt><kbd>Esc</kbd></dt><dd>Cerrar ficha o menú</dd></dl>';
+        var m = document.getElementById('menuFlotante');
+        cerrarMenu(); m.innerHTML = ''; m.appendChild(d); m.classList.add('visible');
+        var r = e.currentTarget.getBoundingClientRect();
+        m.style.left = Math.min(r.left, window.innerWidth - m.offsetWidth - 8) + 'px';
+        m.style.top = (r.bottom + 4) + 'px';
+        menuItems = [];
+      });
+
+      function fijarSeleccion(p) { pacienteSeleccionado = p; actualizarUiSeleccion(); }
+      function cerrarFicha() { fichaAbierta = false; quitarSeleccion(); }
+      function alternarFicha(fila) {
+        if (fichaAbierta && pacienteSeleccionado && pacienteSeleccionado._fila === fila) { cerrarFicha(); return; }
+        var p = TODOS.find(function(x) { return x._fila === fila; });
+        if (!p) return;
+        fichaAbierta = true;
+        fijarSeleccion(p);
+      }
+
+      // Las acciones reutilizan los botones (ocultos) de la barra, con todos sus flujos ya existentes.
+      async function accionPaciente(acc, fila) {
+        var p = TODOS.find(function(x) { return x._fila === fila; });
+        if (!p) return;
+        if (acc === 'hc') {
+          var url = COL_HISTORIA ? p[COL_HISTORIA] : '';
+          if (esUrl(url)) { window.open(url.trim(), '_blank', 'noopener'); return; }
+          if (!(await mostrarConfirm('¿Crear la Historia Clínica de ' + p['Nombre'] + '?'))) return;
+          acc = 'crearhc';
+        }
+        fijarSeleccion(p);
+        var btn = document.getElementById(MAPA_ACC[acc]);
+        if (btn) btn.click();
+      }
+
+      // ---------- Menús flotantes ----------
+      var menuItems = null, menuAncla = null;
+      function cerrarMenu() {
+        var m = document.getElementById('menuFlotante');
+        if (menuAncla && menuAncla.setAttribute) menuAncla.setAttribute('aria-expanded', 'false');
+        menuItems = null; menuAncla = null;
+        m.classList.remove('visible'); m.removeAttribute('role');
+      }
+      function abrirMenu(items, ancla, izq) {
+        cerrarMenu();
+        var m = document.getElementById('menuFlotante');
+        m.setAttribute('role', 'menu');
+        m.innerHTML = items.map(function(it, i) {
+          if (it.sep) return '<div class="menu-sep" role="separator"></div>';
+          var rol = it.marcado !== undefined ? 'menuitemcheckbox" aria-checked="' + (it.marcado ? 'true' : 'false') : 'menuitem';
+          return '<button type="button" role="' + rol + '" class="menu-item' + (it.peligro ? ' peligro' : '') + '" data-i="' + i + '">' +
+            (it.punto !== undefined ? '<span class="punto ' + it.punto + '"></span>' : it.icono ? '<span class="material-symbols-outlined">' + it.icono + '</span>' : '') +
+            '<span>' + esc(it.texto) + '</span>' + (it.n !== undefined ? '<span class="menu-n">' + it.n + '</span>' : '') + (it.marcado ? '<span class="material-symbols-outlined check">check</span>' : '') + '</button>';
+        }).join('');
+        m.classList.add('visible');
+        var r = ancla.getBoundingClientRect(), mw = m.offsetWidth, mh = m.offsetHeight;
+        var x = Math.min(Math.max(8, izq ? r.left : r.right - mw), window.innerWidth - mw - 8), y = r.bottom + 4;
+        if (y + mh > window.innerHeight - 8) y = Math.max(8, r.top - mh - 4);
+        m.style.left = x + 'px'; m.style.top = y + 'px';
+        menuItems = items; menuAncla = ancla;
+        if (ancla.setAttribute) ancla.setAttribute('aria-expanded', 'true');
+        var primero = m.querySelector('.menu-item[aria-checked="true"]') || m.querySelector('.menu-item');
+        if (primero) primero.focus({ preventScroll: true });
+      }
+      // Teclado dentro de un menú abierto: flechas, Inicio/Fin, Tab cierra (Enter/Espacio activan el botón enfocado; Esc se gestiona aparte).
+      function tecladoMenu(e) {
+        if (e.key === 'Tab') { cerrarMenu(); return; }
+        var its = Array.prototype.slice.call(document.querySelectorAll('#menuFlotante .menu-item'));
+        if (!its.length) return;
+        var i = its.indexOf(document.activeElement);
+        if (e.key === 'ArrowDown') i = (i + 1) % its.length;
+        else if (e.key === 'ArrowUp') i = i <= 0 ? its.length - 1 : i - 1;
+        else if (e.key === 'Home') i = 0;
+        else if (e.key === 'End') i = its.length - 1;
+        else return;
+        e.preventDefault();
+        its[i].focus();
+      }
+      document.getElementById('menuFlotante').addEventListener('click', function(e) {
+        var b = e.target.closest('.menu-item');
+        if (!b || !menuItems) return;
+        var it = menuItems[Number(b.dataset.i)];
+        cerrarMenu();
+        if (it && it.fn) it.fn();
+      });
+      document.addEventListener('click', function(e) { if (menuItems && !e.target.closest('#menuFlotante')) cerrarMenu(); }, true);
+      document.getElementById('tablaWrap').addEventListener('scroll', cerrarMenu, { passive: true });
+
+      function menuMas(fila, ancla) {
+        var p = TODOS.find(function(x) { return x._fila === fila; });
+        if (!p) return;
+        var tieneHC = esUrl(COL_HISTORIA ? p[COL_HISTORIA] : '');
+        var a = function(acc) { return function() { accionPaciente(acc, fila); }; };
+        abrirMenu([
+          { icono: 'assignment', texto: 'Valoración', fn: a('valoracion') },
+          { sep: true },
+          tieneHC ? { icono: 'sync', texto: 'Actualizar Historia Clínica', fn: a('actualizarhc') } : { icono: 'note_add', texto: 'Crear Historia Clínica', fn: a('crearhc') },
+          tieneHC ? null : { icono: 'manage_search', texto: 'Buscar HC huérfana', fn: a('buscarhc') },
+          { icono: 'how_to_reg', texto: 'Dar de alta', fn: a('alta') },
+          { sep: true },
+          { icono: 'delete', texto: 'Eliminar usuario', peligro: true, fn: a('eliminar') }
+        ].filter(Boolean), ancla);
+      }
+
+      // ---------- Cambio de estado en línea ----------
+      function estadosDisponibles() {
+        var porClase = {}, extra = [];
+        ESTADOS_BASE.forEach(function(e) { porClase[claseParaEstado(e)] = e; });
+        TODOS.forEach(function(p) {
+          var e = (p['Estado'] || '').toString().trim();
+          if (!e) return;
+          var c = claseParaEstado(e);
+          if (c) porClase[c] = e; else if (extra.indexOf(e) === -1) extra.push(e);
+        });
+        return ['activo', 'espera', 'contactara', 'no-responde', 'alta'].map(function(c) { return porClase[c]; }).filter(Boolean).concat(extra);
+      }
+
+      function menuEstado(fila, ancla) {
+        var p = TODOS.find(function(x) { return x._fila === fila; });
+        if (!p) return;
+        var actual = normalizar(dato(p, 'Estado'));
+        abrirMenu(estadosDisponibles().map(function(e) {
+          return { punto: claseParaEstado(e), texto: textoEstado(e), marcado: normalizar(e) === actual, fn: function() { cambiarEstado(fila, e); } };
+        }), ancla);
+      }
+
+      function cambiarEstado(fila, valor) {
+        var p = TODOS.find(function(x) { return x._fila === fila; });
+        if (!p) return;
+        var hEst = hdr('Estado') || 'Estado', antes = p[hEst];
+        if (normalizar(antes) === normalizar(valor)) return;
+        if (claseParaEstado(valor) === 'alta') { accionPaciente('alta', fila); return; } // el alta tiene su propio flujo (fechas e HC)
+        p[hEst] = valor;
+        refrescarVista();
+        function revertir(msg) { p[hEst] = antes; refrescarVista(); mostrarAviso(msg); }
+        google.script.run
+          .withSuccessHandler(function(res) {
+            if (!res || !res.success) { revertir((res && res.message) || 'No se pudo cambiar el estado.'); return; }
+            mostrarAviso('Estado cambiado a ' + textoEstado(valor) + '.');
+          })
+          .withFailureHandler(function(err) { revertir('Error al cambiar el estado: ' + err); })
+          .cambiarEstadoPacienteWeb(fila, valor, p['Nombre']);
+      }
+
+      // ---------- Copiar al portapapeles ----------
+      function copiarTexto(txt, etiqueta) {
+        var ok = false;
+        try {
+          var ta = document.createElement('textarea');
+          ta.value = txt; ta.style.cssText = 'position:fixed;opacity:0;top:0;left:0';
+          document.body.appendChild(ta); ta.select(); ok = document.execCommand('copy'); ta.remove();
+        } catch (err) { ok = false; }
+        if (!ok && navigator.clipboard) { navigator.clipboard.writeText(txt); ok = true; }
+        mostrarAviso(ok ? (etiqueta || 'Texto') + ' copiado.' : 'No se pudo copiar.');
+      }
+
+      // ---------- Ficha lateral ----------
+      function htmlCampo(etq, h, p) {
+        var v = h && p[h] !== undefined && p[h] !== null ? String(p[h]).trim() : '';
+        var esTel = normalizar(etq).indexOf('telefono') === 0, copiable = etq === 'DNI' || esTel;
+        var mostrar = esTel ? formatearTel(v) : v;
+        if (etq === 'Fecha nacimiento' && v && edadTxt(p)) mostrar = v + ' · ' + edadTxt(p);
+        var cont;
+        if (!v) cont = '<span class="f-vacio">—</span>';
+        else if (copiable) cont = '<button type="button" class="f-copia" data-copiar="' + esc(v) + '" data-etiqueta="' + esc(etq) + '" title="Copiar">' + esc(mostrar) + '<span class="material-symbols-outlined">content_copy</span></button>';
+        else if (etq === 'Gravedad') cont = chipGravedad(v);
+        else cont = '<span class="f-val">' + esc(textoEstado(mostrar) === mostrar || etq !== 'Tipo de Ingreso' ? mostrar : textoEstado(mostrar)) + '</span>';
+        return '<div class="f-campo' + (etq === 'Observaciones' ? ' largo' : '') + '"><div class="f-etq">' + (etq === 'Observaciones' ? '' : esc(etq)) + '</div>' + cont + '</div>';
+      }
+
+      function htmlFicha(p) {
+        var usados = { 'Nombre': true }, tieneHC = esUrl(COL_HISTORIA ? p[COL_HISTORIA] : '');
+        [hdr('Nombre'), hdr('Estado'), hdr('Edad'), COL_HISTORIA, colPrioridad()].forEach(function(h) { if (h) usados[h] = true; });
+        var acc = function(a, icono, texto) { return '<button type="button" class="ficha-acc" data-acc="' + a + '">' + contenidoIcono(icono) + texto + '</button>'; };
+        var sec = function(a, icono, texto, cls) { return '<button type="button" class="ficha-sec ' + (cls || '') + '" data-acc="' + a + '"><span class="material-symbols-outlined">' + icono + '</span>' + texto + '</button>'; };
+        var html = '<div class="ficha-cab">' + avatarHtml(p['Nombre'], 'grande') + '<div class="ficha-tit"><div class="ficha-nombre">' + esc(p['Nombre']) + '</div><div class="ficha-sub">' +
+            esc([dato(p, 'DNI'), edadTxt(p)].filter(Boolean).join(' · ')) + '</div></div>' +
+            '<button type="button" class="ficha-cerrar" data-ficha="cerrar" title="Cerrar (Esc)"><span class="material-symbols-outlined">close</span></button></div>' +
+          '<div class="ficha-estado">' + badgeEstado(p) + (prioridadNum(p) !== null ? '<span class="chip-prioridad" title="Puntuación de \'Ordenar Usuarios\'">Prioridad ' + esc(prioridadTxt(p)) + '</span>' : '') + '</div>' +
+          '<div class="ficha-acciones">' + acc('whatsapp', 'whatsapp', 'WhatsApp') + acc('hc', 'description', tieneHC ? 'Historia' : 'Crear HC') + acc('editar', 'edit', 'Editar') +
+            acc('cita', 'event', 'Cita') + acc('valoracion', 'assignment', 'Valoración') + '</div><div class="ficha-cuerpo">';
+        GRUPOS_FICHA.forEach(function(g) {
+          var campos = g[1].map(function(c) { var h = hdr(c); if (h) usados[h] = true; return h ? htmlCampo(c, h, p) : ''; }).join('');
+          if (campos) html += '<section class="f-sec"><h3>' + g[0] + '</h3>' + campos + '</section>';
+        });
+        var otros = HEADERS.filter(function(h) { return !usados[h] && p[h] !== undefined && p[h] !== null && String(p[h]).trim() !== ''; })
+          .map(function(h) { return htmlCampo(h, h, p); }).join('');
+        if (otros) html += '<section class="f-sec"><h3>Otros datos</h3>' + otros + '</section>';
+        return html + '</div><div class="ficha-pie">' +
+          (tieneHC ? sec('actualizarhc', 'sync', 'Actualizar HC') : sec('crearhc', 'note_add', 'Crear HC') + sec('buscarhc', 'manage_search', 'Buscar HC')) +
+          sec('alta', 'how_to_reg', 'Alta') + sec('eliminar', 'delete', 'Eliminar', 'peligro') + '</div>';
+      }
+
+      function renderFicha() {
+        var el = document.getElementById('ficha'), p = pacienteSeleccionado, abierta = fichaAbierta && !!p;
+        document.body.classList.toggle('con-ficha', abierta);
+        el.classList.toggle('abierta', abierta);
+        el.setAttribute('aria-hidden', abierta ? 'false' : 'true');
+        if (abierta) {
+          var scroll = (el.querySelector('.ficha-cuerpo') || {}).scrollTop || 0;
+          el.innerHTML = htmlFicha(p);
+          var cuerpo = el.querySelector('.ficha-cuerpo');
+          if (cuerpo) cuerpo.scrollTop = scroll;
+        }
+      }
+
+      document.getElementById('ficha').addEventListener('click', function(e) {
+        var t = e.target, c;
+        if ((c = t.closest('[data-copiar]'))) { copiarTexto(c.dataset.copiar, c.dataset.etiqueta); return; }
+        if ((c = t.closest('.estado-btn'))) { menuEstado(Number(c.dataset.estadoFila), c); return; }
+        if (t.closest('[data-ficha="cerrar"]')) { cerrarFicha(); return; }
+        if ((c = t.closest('[data-acc]')) && pacienteSeleccionado) accionPaciente(c.dataset.acc, pacienteSeleccionado._fila);
+      });
+
+      document.getElementById('tablaWrap').addEventListener('click', function(e) {
+        var t = e.target, c;
+        if ((c = t.closest('[data-copiar]'))) { e.stopPropagation(); copiarTexto(c.dataset.copiar, c.dataset.etiqueta); return; }
+        if ((c = t.closest('.estado-btn'))) { e.stopPropagation(); menuEstado(Number(c.dataset.estadoFila), c); return; }
+        if ((c = t.closest('.btn-fila'))) {
+          e.stopPropagation();
+          var f = Number(c.dataset.fila);
+          if (c.dataset.acc === 'mas') menuMas(f, c); else accionPaciente(c.dataset.acc, f);
           return;
         }
-        pacienteSeleccionado = TODOS.find(function(p) { return p._fila === fila; }) || null;
-        actualizarUiSeleccion();
-      }
+        var tr = t.closest('tbody tr[data-fila]');
+        if (tr) alternarFicha(Number(tr.dataset.fila));
+      });
 
       function quitarSeleccion() {
+        fichaAbierta = false;
         pacienteSeleccionado = null;
         actualizarUiSeleccion();
       }
@@ -453,6 +1226,7 @@
           var fila = parseInt(tr.getAttribute('data-fila'), 10);
           tr.classList.toggle('seleccionada', !!(pacienteSeleccionado && pacienteSeleccionado._fila === fila));
         });
+        renderFicha();
       }
 
       document.getElementById('btnQuitarSeleccion').addEventListener('click', function(e) {
@@ -462,6 +1236,33 @@
 
       <?!= include('JS_Modal_Deshacer'); ?>
 
+
+      // ---------- Avisos ligeros (toasts): sustituyen al modal salvo textos largos o multilínea ----------
+      var contenedorToasts = (function() { var d = document.createElement('div'); d.className = 'toasts'; document.body.appendChild(d); return d; })();
+      function mostrarAviso(mensaje) {
+        var m = (mensaje === null || mensaje === undefined) ? '' : String(mensaje);
+        if (m.indexOf('\n') !== -1 || m.length > 160) return mostrarDialogo(m, false);
+        var t = document.createElement('div'), error = /^error|no se pudo|no se pudieron|bloqueado/i.test(m);
+        t.className = 'toast-aviso' + (error ? ' error' : '');
+        t.setAttribute('role', 'status');
+        t.textContent = m;
+        contenedorToasts.appendChild(t);
+        setTimeout(function() { t.classList.add('saliendo'); setTimeout(function() { t.remove(); }, 260); }, error ? 6000 : 3800);
+        return Promise.resolve(true);
+      }
+
+      // Barra de progreso superior mientras algún botón (oculto o no) muestra "procesando"
+      new MutationObserver(function() {
+        var ocupado = Array.prototype.some.call(document.querySelectorAll('.barra-herramientas button'), function(b) { return b.innerHTML.indexOf('progress_activity') !== -1; });
+        document.body.classList.toggle('ocupado', ocupado);
+      }).observe(document.querySelector('.barra-herramientas'), { childList: true, subtree: true });
+
+      // Esc: cierra primero el menú y después la ficha
+      document.addEventListener('keydown', function(e) {
+        if (e.key !== 'Escape') return;
+        if (menuItems) { var ancla = menuAncla; cerrarMenu(); if (ancla && document.contains(ancla) && ancla.focus) ancla.focus(); return; }
+        if (fichaAbierta && !document.querySelector('.modal-overlay.visible')) cerrarFicha();
+      });
 
       // ---------- Ventana emergente (edición y alta de paciente) ----------
       // Las Web Apps de Apps Script no se pueden embeber en un <iframe>
@@ -536,18 +1337,21 @@
 
       document.getElementById('btnOrdenar').addEventListener('click', function() {
         var btn = document.getElementById('btnOrdenar');
-        var textoOriginal = btn.innerHTML;
+        var icono = btn.querySelector('.material-symbols-outlined');
         btn.disabled = true;
-        btn.innerHTML = '<span class="material-symbols-outlined">progress_activity</span> Ordenando…';
+        icono.textContent = 'progress_activity';
+        icono.classList.add('girando');
         google.script.run
           .withSuccessHandler(function() {
             btn.disabled = false;
-            btn.innerHTML = textoOriginal;
+            icono.textContent = 'sort';
+            icono.classList.remove('girando');
             cargar();
           })
           .withFailureHandler(function(err) {
             btn.disabled = false;
-            btn.innerHTML = textoOriginal;
+            icono.textContent = 'sort';
+            icono.classList.remove('girando');
             mostrarAviso('Error al ordenar: ' + err);
           })
           .ordenarPacientes();
@@ -584,6 +1388,7 @@
         if (!ultimaEliminacion || procesandoDeshacer) return;
         procesandoDeshacer = true;
         var snapshot = ultimaEliminacion;
+        if (Array.isArray(snapshot)) { restaurarEnCadena(snapshot, 0); return; } // eliminación en lote
 
         google.script.run
           .withSuccessHandler(function(res) {
@@ -597,6 +1402,25 @@
             mostrarAviso('Error al deshacer: ' + err); // el botón sigue disponible para reintentar
           })
           .restaurarPacienteWeb(snapshot);
+      }
+
+      // Restaura una lista de fichas de una en una (en orden de fila); si una falla, conserva las pendientes para reintentar.
+      function restaurarEnCadena(lista, i) {
+        if (i >= lista.length) {
+          procesandoDeshacer = false;
+          ocultarDeshacer();
+          cargar();
+          mostrarAviso(lista.length + (lista.length === 1 ? ' usuario restaurado.' : ' usuarios restaurados.'));
+          return;
+        }
+        function fallo(msg) { procesandoDeshacer = false; ultimaEliminacion = lista.slice(i); cargar(); mostrarAviso(msg); }
+        google.script.run
+          .withSuccessHandler(function(res) {
+            if (!res || !res.success) { fallo((res && res.message) || 'No se pudieron restaurar todos los usuarios.'); return; }
+            restaurarEnCadena(lista, i + 1);
+          })
+          .withFailureHandler(function(err) { fallo('Error al deshacer: ' + err); })
+          .restaurarPacienteWeb(lista[i]);
       }
 
       document.getElementById('toastDeshacerBtn').addEventListener('click', ejecutarDeshacer);
@@ -725,8 +1549,31 @@
         abrirVentanaEmergente('valoracion&paciente=' + encodeURIComponent(pacienteSeleccionado['Nombre']));
       });
 
-      document.getElementById('inputBusqueda').addEventListener('input', render);
+      var temporizadorBusqueda = null;
+      document.getElementById('inputBusqueda').addEventListener('input', function() {
+        clearTimeout(temporizadorBusqueda);
+        temporizadorBusqueda = setTimeout(render, 150);
+      });
 
+      var TEMAS = ['auto', 'oscuro', 'claro'], ICONOS_TEMA = { auto: 'contrast', oscuro: 'dark_mode', claro: 'light_mode' };
+      function aplicarTema(t, guardar) {
+        if (t === 'auto') document.documentElement.removeAttribute('data-tema'); else document.documentElement.setAttribute('data-tema', t);
+        var b = document.getElementById('btnTema');
+        b.innerHTML = '<span class="material-symbols-outlined">' + ICONOS_TEMA[t] + '</span>';
+        b.title = 'Tema: ' + t + ' (clic para cambiar)';
+        b.dataset.tema = t;
+        if (guardar) { try { localStorage.setItem('temaApp', t); } catch (err) { /* sin almacenamiento */ } }
+      }
+      document.getElementById('btnTema').addEventListener('click', function() {
+        aplicarTema(TEMAS[(TEMAS.indexOf(this.dataset.tema || 'auto') + 1) % TEMAS.length], true);
+      });
+      (function() {
+        var t = 'auto';
+        try { t = localStorage.getItem('temaApp') || 'auto'; } catch (err) { /* sin almacenamiento */ }
+        aplicarTema(TEMAS.indexOf(t) === -1 ? 'auto' : t, false);
+      })();
+
+      restaurarVista();
       cargar();
     </script>
   </body>

@@ -146,3 +146,119 @@ function restaurarPacienteWeb(datosPaciente) {
     return { success: false, message: e.message };
   }
 }
+
+/**
+ * Cambia solo el Estado de un usuario (menú de estado en línea de la Base de Datos Web).
+ * "Alta" se rechaza aquí a propósito: tiene su propio flujo (darDeAltaPacienteWeb) que
+ * actualiza también fechas, tipo de ingreso y la Historia Clínica.
+ * `nombreEsperado` protege frente a filas que hayan cambiado de número (p. ej. tras ordenar).
+ */
+function cambiarEstadoPacienteWeb(fila, nuevoEstado, nombreEsperado) {
+  const lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(10000);
+
+    const sheet = getSS().getSheetByName(SHEETS.MAESTRA);
+    if (!sheet) return { success: false, message: `No se encontró la hoja "${SHEETS.MAESTRA}".` };
+
+    const rowIdx = parseInt(fila, 10);
+    const estado = (nuevoEstado === null || nuevoEstado === undefined) ? '' : String(nuevoEstado).trim();
+    if (!rowIdx || rowIdx < 2 || rowIdx > sheet.getLastRow()) return { success: false, message: 'Fila no válida.' };
+    if (!estado || estado.length > 60) return { success: false, message: 'Estado no válido.' };
+    if (/(^|[^a-záéíóúñ])alta([^a-záéíóúñ]|$)/i.test(estado)) {
+      return { success: false, message: 'Para dar de alta usa el botón "Alta": actualiza también fechas e Historia Clínica.' };
+    }
+
+    const lastCol = sheet.getLastColumn();
+    const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(h => h.toString().trim());
+    let colEstado = headers.indexOf(COLUMNAS.MAESTRA.ESTADO);
+    if (colEstado === -1) colEstado = COLUMNAS_NUM.MAESTRA.ESTADO - 1;
+
+    const colNombre = headers.indexOf(COLUMNAS.MAESTRA.NOMBRE);
+    if (nombreEsperado && colNombre !== -1) {
+      const actual = sheet.getRange(rowIdx, colNombre + 1).getValue().toString().trim();
+      if (actual !== String(nombreEsperado).trim()) {
+        return { success: false, message: 'La lista ha cambiado desde que se cargó. Recarga la página e inténtalo de nuevo.' };
+      }
+    }
+
+    sheet.getRange(rowIdx, colEstado + 1).setValue(estado);
+    SpreadsheetApp.flush();
+    return { success: true, message: 'Estado actualizado.' };
+  } catch (e) {
+    Logger.log('Error en cambiarEstadoPacienteWeb: ' + e.message);
+    return { success: false, message: e.message };
+  } finally {
+    try { lock.releaseLock(); } catch (err) { /* sin bloqueo que liberar */ }
+  }
+}
+
+/**
+ * Cambia el Estado de varios usuarios a la vez (barra de acciones en lote de
+ * la Base de Datos Web). "Alta" se rechaza aquí: el cliente ya evita
+ * enviarla, pero se comprueba también en el servidor por si acaso.
+ */
+function cambiarEstadoLoteWeb(filas, nuevoEstado) {
+  const estado = (nuevoEstado === null || nuevoEstado === undefined) ? '' : String(nuevoEstado).trim();
+  if (!estado || estado.length > 60) return { success: false, message: 'Estado no válido.' };
+  if (/(^|[^a-záéíóúñ])alta([^a-záéíóúñ]|$)/i.test(estado)) {
+    return { success: false, message: 'Para dar de alta hazlo usuario por usuario: actualiza también fechas e Historia Clínica.' };
+  }
+  if (!Array.isArray(filas) || filas.length === 0) return { success: false, message: 'No hay usuarios seleccionados.' };
+
+  const lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(10000);
+    const sheet = getSS().getSheetByName(SHEETS.MAESTRA);
+    if (!sheet) return { success: false, message: `No se encontró la hoja "${SHEETS.MAESTRA}".` };
+
+    const lastCol = sheet.getLastColumn(), lastRow = sheet.getLastRow();
+    const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(h => h.toString().trim());
+    let colEstado = headers.indexOf(COLUMNAS.MAESTRA.ESTADO);
+    if (colEstado === -1) colEstado = COLUMNAS_NUM.MAESTRA.ESTADO - 1;
+
+    const filasValidas = filas.map(f => parseInt(f, 10)).filter(f => f >= 2 && f <= lastRow);
+    if (!filasValidas.length) return { success: false, message: 'Filas no válidas.' };
+
+    const rangos = filasValidas.map(f => sheet.getRange(f, colEstado + 1).getA1Notation());
+    sheet.getRangeList(rangos).setValue(estado);
+
+    SpreadsheetApp.flush();
+    return { success: true, message: 'Estado actualizado en ' + filasValidas.length + (filasValidas.length === 1 ? ' usuario.' : ' usuarios.') };
+  } catch (e) {
+    Logger.log('Error en cambiarEstadoLoteWeb: ' + e.message);
+    return { success: false, message: e.message };
+  } finally {
+    try { lock.releaseLock(); } catch (err) { /* sin bloqueo que liberar */ }
+  }
+}
+
+/**
+ * Elimina varias filas de la Maestra a la vez (borrado real de fila, no solo
+ * de contenido). Borra de abajo hacia arriba para que borrar una fila no
+ * desplace el número de las que aún faltan por borrar.
+ * Igual que eliminarPacienteWeb: no toca Agenda ni Valoraciones.
+ */
+function eliminarPacientesLoteWeb(filas) {
+  if (!Array.isArray(filas) || filas.length === 0) return { success: false, message: 'No hay usuarios seleccionados.' };
+
+  const lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(10000);
+    const sheet = getSS().getSheetByName(SHEETS.MAESTRA);
+    if (!sheet) return { success: false, message: `No se encontró la hoja "${SHEETS.MAESTRA}".` };
+
+    const lastRow = sheet.getLastRow();
+    const filasValidas = Array.from(new Set(filas.map(f => parseInt(f, 10)).filter(f => f >= 2 && f <= lastRow)));
+    if (!filasValidas.length) return { success: false, message: 'Filas no válidas.' };
+
+    filasValidas.sort((a, b) => b - a).forEach(f => sheet.deleteRow(f));
+
+    return { success: true, message: filasValidas.length + (filasValidas.length === 1 ? ' usuario eliminado.' : ' usuarios eliminados.') };
+  } catch (e) {
+    Logger.log('Error en eliminarPacientesLoteWeb: ' + e.message);
+    return { success: false, message: e.message };
+  } finally {
+    try { lock.releaseLock(); } catch (err) { /* sin bloqueo que liberar */ }
+  }
+}
