@@ -291,11 +291,16 @@ function obtenerOpcionesListaDesplegable_(sheet, colIdx1based) {
 // Cualquier otro nombre de columna que llegue a actualizarCampoAgendaWeb se
 // rechaza — evita que un fallo de cliente escriba donde no debe (p.ej. pisar
 // el Rich Text de Historia Clínica con texto plano).
-const CAMPOS_EDITABLES_AGENDA = [
-  COLUMNAS.AGENDA.ASISTENCIA,
-  COLUMNAS.AGENDA.NOTAS,
-  COLUMNAS.AGENDA.SESION
-];
+// Función en vez de constante global: así COLUMNAS (core/Config.gs) se lee al USAR la
+// lista y no al cargar el archivo, y el orden de los archivos en el proyecto deja
+// de importar.
+function camposEditablesAgenda_() {
+  return [
+    COLUMNAS.AGENDA.ASISTENCIA,
+    COLUMNAS.AGENDA.NOTAS,
+    COLUMNAS.AGENDA.SESION
+  ];
+}
 
 /**
  * Escribe un valor suelto (Asistencia, Notas o Sesión) en la fila `fila` de
@@ -303,7 +308,7 @@ const CAMPOS_EDITABLES_AGENDA = [
  */
 function actualizarCampoAgendaWeb(fila, campo, valor) {
   try {
-    if (CAMPOS_EDITABLES_AGENDA.indexOf(campo) === -1) {
+    if (camposEditablesAgenda_().indexOf(campo) === -1) {
       return { success: false, message: 'Ese campo no se puede editar desde aquí.' };
     }
 
@@ -331,15 +336,18 @@ function actualizarCampoAgendaWeb(fila, campo, valor) {
 
 // Columnas que se vacían al liberar un hueco. Fecha, Día y Hora NO se tocan
 // porque son el propio "esqueleto" del hueco horario, no datos de la cita.
-const CAMPOS_A_BORRAR_AGENDA = [
-  COLUMNAS.AGENDA.USUARIO,
-  COLUMNAS.AGENDA.TELEFONO,
-  COLUMNAS.AGENDA.SESION,
-  COLUMNAS.AGENDA.ASISTENCIA,
-  COLUMNAS.AGENDA.ID_EVENTO_CALENDAR,
-  COLUMNAS.AGENDA.HISTORIA_CLINICA,
-  COLUMNAS.AGENDA.NOTAS
-];
+// Función en vez de constante global (mismo motivo que camposEditablesAgenda_).
+function camposABorrarAgenda_() {
+  return [
+    COLUMNAS.AGENDA.USUARIO,
+    COLUMNAS.AGENDA.TELEFONO,
+    COLUMNAS.AGENDA.SESION,
+    COLUMNAS.AGENDA.ASISTENCIA,
+    COLUMNAS.AGENDA.ID_EVENTO_CALENDAR,
+    COLUMNAS.AGENDA.HISTORIA_CLINICA,
+    COLUMNAS.AGENDA.NOTAS
+  ];
+}
 
 /**
  * Vacía todos los datos de la cita en la fila `fila`, dejándola como un
@@ -358,7 +366,7 @@ function eliminarDatosFilaAgendaWeb(fila) {
     const lastCol = sheet.getLastColumn();
     const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(h => h.toString().trim());
 
-    CAMPOS_A_BORRAR_AGENDA.forEach(nombreCampo => {
+    camposABorrarAgenda_().forEach(nombreCampo => {
       const colIdx = headers.indexOf(nombreCampo);
       if (colIdx !== -1) sheet.getRange(rowIdx, colIdx + 1).clearContent();
     });
@@ -387,7 +395,7 @@ function eliminarVariasCitasWeb(filas) {
     const lastCol = sheet.getLastColumn();
     const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(h => h.toString().trim());
 
-    const columnasABorrar = CAMPOS_A_BORRAR_AGENDA
+    const columnasABorrar = camposABorrarAgenda_()
       .map(nombreCampo => headers.indexOf(nombreCampo))
       .filter(colIdx => colIdx !== -1);
 
@@ -442,7 +450,7 @@ function restaurarCitasWeb(snapshots) {
       const fila = parseInt(snap.fila, 10);
       if (!fila || fila < 2 || fila > lastRow) return;
 
-      CAMPOS_A_BORRAR_AGENDA.forEach(nombreCampo => {
+      camposABorrarAgenda_().forEach(nombreCampo => {
         const colIdx = headers.indexOf(nombreCampo);
         if (colIdx === -1) return;
         const valor = snap.valores ? snap.valores[nombreCampo] : undefined;
@@ -986,7 +994,7 @@ function moverCitaWeb(filaOrigen, filaDestino) {
     // Escritura en destino (la Historia Clínica conserva su enlace en RichText)
     const rtvHC = colHC !== -1 ? sheet.getRange(rowOrig, colHC + 1).getRichTextValue() : null;
     const colsMovidas = [];
-    CAMPOS_A_BORRAR_AGENDA.forEach(nombreCampo => {
+    camposABorrarAgenda_().forEach(nombreCampo => {
       const c = headers.indexOf(nombreCampo);
       if (c === -1) return;
       colsMovidas.push(c);
@@ -1047,7 +1055,7 @@ function intercambiarCitasWeb(filaA, filaB) {
     const rtA = colHC !== -1 ? sheet.getRange(rA, colHC + 1).getRichTextValue() : null;
     const rtB = colHC !== -1 ? sheet.getRange(rB, colHC + 1).getRichTextValue() : null;
 
-    CAMPOS_A_BORRAR_AGENDA.forEach(nombreCampo => {
+    camposABorrarAgenda_().forEach(nombreCampo => {
       const c = headers.indexOf(nombreCampo);
       if (c === -1) return;
       [[rA, vB, rtB], [rB, vA, rtA]].forEach(par => {
