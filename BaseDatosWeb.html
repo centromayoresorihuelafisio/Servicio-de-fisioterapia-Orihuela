@@ -936,6 +936,9 @@
         var copias = filas.map(function(f) { return TODOS.find(function(x) { return x._fila === f; }); })
           .filter(Boolean).map(function(p) { return Object.assign({}, p); })
           .sort(function(a, b) { return a._fila - b._fila; });
+        // Nombre que tenía cada fila al cargar: el servidor lo comprueba antes de borrar.
+        var nombresEsperados = {};
+        copias.forEach(function(p) { nombresEsperados[p._fila] = p['Nombre']; });
         google.script.run
           .withSuccessHandler(function(res) {
             seleccionMultiple.clear();
@@ -945,7 +948,7 @@
             else mostrarAviso((res && res.message) || (res && res.success ? 'Usuarios eliminados.' : 'No se pudo eliminar.'));
           })
           .withFailureHandler(function(err) { cargar(); mostrarAviso('Error al eliminar: ' + err); })
-          .eliminarPacientesLoteWeb(filas);
+          .eliminarPacientesLoteWeb(filas, nombresEsperados);
       });
 
       // ---------- Navegación por teclado ----------
@@ -1381,7 +1384,7 @@
             btn.disabled = !pacienteSeleccionado;
             mostrarAviso('Error al eliminar: ' + err);
           })
-          .eliminarPacienteWeb(pacienteSeleccionado._fila);
+          .eliminarPacienteWeb(snapshot._fila, snapshot['Nombre']);
       });
 
       function ejecutarDeshacer() {

@@ -4,6 +4,24 @@
 function onEdit(e) {
   if (!e) return; // Evita errores al ejecutar manualmente
 
+  try {
+    onEditPrincipal_(e);
+  } finally {
+    // Una edición manual en una hoja Agenda no pasa por las funciones de
+    // Agenda Web.gs, así que hay que invalidar aquí la caché de la Agenda Web
+    // (si no, la web sirve la semana cacheada hasta 90 s). Se hace al FINAL y
+    // en un finally para que también cuente lo que escribe onEditPrincipal_
+    // (teléfono, Historia Clínica) y para que ningún return anticipado se lo salte.
+    try {
+      var hojaEditada = e.range.getSheet();
+      if (hojaEditada.getName().startsWith('Agenda')) invalidarCacheAgenda_(hojaEditada);
+    } catch (err) { /* la caché es opcional: nunca debe romper la edición */ }
+  }
+}
+
+function onEditPrincipal_(e) {
+  if (!e) return;
+
   var hoja = e.range.getSheet();
   var fila = e.range.getRow();
   var col = e.range.getColumn();

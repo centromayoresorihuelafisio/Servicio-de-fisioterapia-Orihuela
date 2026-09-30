@@ -78,12 +78,40 @@ function obtenerBaseDatosCompletaWeb() {
 }
 
 /**
+ * Posición (0-based) de la columna Nombre en la Maestra, buscada por cabecera
+ * y, si no aparece, por la posición fija de Config.gs.
+ */
+function indiceColumnaNombreMaestra_(sheet) {
+  const lastCol = sheet.getLastColumn();
+  const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(h => h.toString().trim());
+  const idx = headers.indexOf(COLUMNAS.MAESTRA.NOMBRE);
+  return idx !== -1 ? idx : COLUMNAS_NUM.MAESTRA.NOMBRE - 1;
+}
+
+/**
+ * Comprueba que la fila `fila` de la Maestra sigue siendo la del paciente que
+ * el cliente cargó (mismo criterio que cambiarEstadoPacienteWeb): si la hoja
+ * se ha ordenado o editado mientras la web estaba abierta, el número de fila
+ * ya no apunta a la misma persona. Si el cliente no envía nombre, no se puede
+ * comprobar y se da por buena.
+ */
+function filaMaestraEsElPaciente_(sheet, fila, nombreEsperado) {
+  const esperado = (nombreEsperado === undefined || nombreEsperado === null) ? '' : String(nombreEsperado).trim();
+  if (!esperado) return true;
+  const actual = sheet.getRange(fila, indiceColumnaNombreMaestra_(sheet) + 1).getValue().toString().trim();
+  return actual === esperado;
+}
+
+/**
  * Borra por completo la fila de un paciente en la Maestra (borrado real de
  * la fila, no solo de su contenido). Es una acción irreversible: no toca las
  * hojas de Agenda ni Valoraciones, así que si ese paciente tenía citas o
  * valoraciones seguirán apareciendo ahí con su nombre.
+ *
+ * `nombreEsperado` protege frente a filas que hayan cambiado de número (p. ej.
+ * tras ordenar): si el nombre de esa fila ya no coincide, no se borra nada.
  */
-function eliminarPacienteWeb(fila) {
+function eliminarPacienteWeb(fila, nombreEsperado) {
   try {
     const ss = getSS();
     const sheet = ss.getSheetByName(SHEETS.MAESTRA);
@@ -92,6 +120,10 @@ function eliminarPacienteWeb(fila) {
     const filaNum = parseInt(fila, 10);
     if (!filaNum || filaNum < 2 || filaNum > sheet.getLastRow()) {
       return { success: false, message: 'Fila no válida.' };
+    }
+
+    if (!filaMaestraEsElPaciente_(sheet, filaNum, nombreEsperado)) {
+      return { success: false, message: 'La lista ha cambiado desde que se cargó. Recarga la página e inténtalo de nuevo.' };
     }
 
     sheet.deleteRow(filaNum);
@@ -113,6 +145,10 @@ function eliminarPacienteWeb(fila) {
  * — el dato no se pierde, pero para que vuelva a verse como un enlace bonito
  * habría que regenerarlo o pegarlo de nuevo desde Historia Clínica → Enlace HC.
  *
+ * Las fechas llegan del cliente como texto "dd/MM/yyyy" (así se sirven en
+ * obtenerBaseDatosCompletaWeb): aquí se convierten de nuevo a fecha real para
+ * que la celda no quede como texto según la configuración regional de la hoja.
+ *
  * @param {object} datosPaciente La ficha completa tal cual la tenía el
  *   cliente (incluye _fila, la fila original que ocupaba).
  */
@@ -122,7 +158,7 @@ function restaurarPacienteWeb(datosPaciente) {
     const sheet = ss.getSheetByName(SHEETS.MAESTRA);
     if (!sheet) return { success: false, message: `No se encontró la hoja "${SHEETS.MAESTRA}".` };
 
-    if (!datosPaciente || !datosPaciente['Nombre']) {
+    if (!datosPaciente || !datosPaciente[COLUMNAS.MAESTRA.NOMBRE]) {
       return { success: false, message: 'No hay datos que restaurar.' };
     }
 
@@ -134,7 +170,7 @@ function restaurarPacienteWeb(datosPaciente) {
 
     const valores = headers.map(h => {
       const v = datosPaciente[h];
-      return (v === undefined || v === null) ? '' : v;
+      return (v === undefined || v === null) ? '' : fechaTextoADate_(v);
     });
 
     sheet.insertRowBefore(fila);
@@ -145,6 +181,21 @@ function restaurarPacienteWeb(datosPaciente) {
     Logger.log('Error en restaurarPacienteWeb: ' + e.message);
     return { success: false, message: e.message };
   }
+}
+
+/**
+ * Convierte un texto "dd/MM/yyyy" en un objeto Date (medianoche, en la zona
+ * horaria del script). Cualquier otro valor —incluido un texto con formato de
+ * fecha imposible como 31/02/2026— se devuelve tal cual.
+ */
+function fechaTextoADate_(valor) {
+  if (typeof valor !== 'string') return valor;
+  const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(valor.trim());
+  if (!m) return valor;
+  const dia = Number(m[1]), mes = Number(m[2]), anio = Number(m[3]);
+  const d = new Date(anio, mes - 1, dia);
+  if (d.getFullYear() !== anio || d.getMonth() !== mes - 1 || d.getDate() !== dia) return valor;
+  return d;
 }
 
 /**
@@ -238,8 +289,12 @@ function cambiarEstadoLoteWeb(filas, nuevoEstado) {
  * de contenido). Borra de abajo hacia arriba para que borrar una fila no
  * desplace el número de las que aún faltan por borrar.
  * Igual que eliminarPacienteWeb: no toca Agenda ni Valoraciones.
+ *
+ * `nombresEsperados` es un objeto { fila: nombre } con lo que el cliente cargó.
+ * La comprobación es de todo o nada: si CUALQUIER fila ya no corresponde a su
+ * nombre (o ya no existe), no se borra ninguna.
  */
-function eliminarPacientesLoteWeb(filas) {
+function eliminarPacientesLoteWeb(filas, nombresEsperados) {
   if (!Array.isArray(filas) || filas.length === 0) return { success: false, message: 'No hay usuarios seleccionados.' };
 
   const lock = LockService.getScriptLock();
@@ -251,6 +306,21 @@ function eliminarPacientesLoteWeb(filas) {
     const lastRow = sheet.getLastRow();
     const filasValidas = Array.from(new Set(filas.map(f => parseInt(f, 10)).filter(f => f >= 2 && f <= lastRow)));
     if (!filasValidas.length) return { success: false, message: 'Filas no válidas.' };
+
+    if (nombresEsperados && typeof nombresEsperados === 'object') {
+      const pedidas = new Set(filas.map(f => parseInt(f, 10)));
+      if (filasValidas.length !== pedidas.size) {
+        return { success: false, message: 'La lista ha cambiado desde que se cargó. Recarga la página e inténtalo de nuevo.' };
+      }
+      const colNombre = indiceColumnaNombreMaestra_(sheet);
+      const nombresHoja = sheet.getRange(2, colNombre + 1, lastRow - 1, 1).getValues();
+      const cambiada = filasValidas.some(f => {
+        const esperado = nombresEsperados[f];
+        if (esperado === undefined || esperado === null) return true;
+        return nombresHoja[f - 2][0].toString().trim() !== String(esperado).trim();
+      });
+      if (cambiada) return { success: false, message: 'La lista ha cambiado desde que se cargó. Recarga la página e inténtalo de nuevo.' };
+    }
 
     filasValidas.sort((a, b) => b - a).forEach(f => sheet.deleteRow(f));
 

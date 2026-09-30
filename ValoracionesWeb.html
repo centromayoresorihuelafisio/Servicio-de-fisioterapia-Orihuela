@@ -303,6 +303,7 @@
       var pacienteSeleccionado = null; // nombre (string) o null
       var metricaActual = 'funcionGlobal';
       var filaEnEdicion = null;
+      var nombreEnEdicion = null, fechaEnEdicion = null; // para que el servidor compruebe que la fila sigue siendo la misma
       var ordenCampo = null, ordenDir = 1; // 1 = asc, -1 = desc
       var ultimosFiltrados = [], filaActiva = null;
 
@@ -647,6 +648,8 @@
       }
       function abrirModalEditar(registro) {
         filaEnEdicion = registro._fila;
+        nombreEnEdicion = pacienteSeleccionado;
+        fechaEnEdicion = registro.fecha || '';
         document.getElementById('editFecha').value = registro.fecha || '';
         document.getElementById('editTipo').value = registro.tipo || 'Inicial';
         document.getElementById('editTelefono').value = registro.telefono || '';
@@ -663,6 +666,8 @@
       }
       function cerrarModalEditar() {
         filaEnEdicion = null;
+        nombreEnEdicion = null;
+        fechaEnEdicion = null;
         document.getElementById('modalEditarOverlay').classList.remove('visible');
       }
       document.getElementById('btnCancelarEdicion').addEventListener('click', cerrarModalEditar);
@@ -674,6 +679,8 @@
 
         var datos = {
           fila: filaEnEdicion,
+          nombreEsperado: nombreEnEdicion,
+          fechaOriginal: fechaEnEdicion,
           fecha: fecha,
           tipo: document.getElementById('editTipo').value,
           telefono: document.getElementById('editTelefono').value,
@@ -731,7 +738,7 @@
             mostrarDeshacer(snapshot, 'Valoración eliminada.');
           })
           .withFailureHandler(function(err) { ocupado(-1); mostrarAviso('Error al eliminar: ' + err); })
-          .eliminarValoracionWeb(registro._fila);
+          .eliminarValoracionWeb(registro._fila, snapshot.nombre, registro.fecha || '');
       }
 
       <?!= include('JS_Modal_Deshacer'); ?>

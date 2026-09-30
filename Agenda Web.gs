@@ -506,21 +506,28 @@ function asignarPacienteHuecoWeb(fila, nombrePaciente) {
       const headersM = maestra.getRange(1, 1, 1, lastColM).getValues()[0].map(h => h.toString().trim());
       const colHcM = headersM.indexOf(COLUMNAS.MAESTRA.HISTORIA_CLINICA);
 
-      const rangoM = maestra.getRange(2, 1, maestra.getLastRow() - 1, lastColM);
-      const dataM = rangoM.getValues();
-      const richTextM = rangoM.getRichTextValues();
-      const formulasM = rangoM.getFormulas();
-
-      for (let i = 0; i < dataM.length; i++) {
-        const nombreFila = dataM[i][COLUMNAS_NUM.MAESTRA.NOMBRE - 1]
-          ? dataM[i][COLUMNAS_NUM.MAESTRA.NOMBRE - 1].toString().trim()
-          : '';
+      // OPTIMIZACIÓN DE RENDIMIENTO: antes se leían valores, texto enriquecido
+      // y fórmulas de TODA la Maestra (todas las columnas de todos los
+      // pacientes) solo para quedarse con una fila. Ahora se lee únicamente la
+      // columna Nombre para localizar al paciente, y después solo lo que hace
+      // falta de esa fila (su fila para el teléfono y la celda de Historia
+      // Clínica para el enlace).
+      const nombresM = maestra.getRange(2, COLUMNAS_NUM.MAESTRA.NOMBRE, maestra.getLastRow() - 1, 1).getValues();
+      let filaMaestra = -1;
+      for (let i = 0; i < nombresM.length; i++) {
+        const nombreFila = nombresM[i][0] ? nombresM[i][0].toString().trim() : '';
         if (nombreFila.toLowerCase() === nombre.toLowerCase()) {
-          telefono = dataM[i][COLUMNAS_NUM.MAESTRA.TELEFONO - 1] || '';
-          if (colHcM !== -1) {
-            historiaClinicaUrl = extraerUrlHistoriaClinica(dataM[i][colHcM], richTextM[i][colHcM], formulasM[i][colHcM]);
-          }
+          filaMaestra = i + 2; // fila real en la hoja
           break;
+        }
+      }
+
+      if (filaMaestra !== -1) {
+        const valoresFila = maestra.getRange(filaMaestra, 1, 1, lastColM).getValues()[0];
+        telefono = valoresFila[COLUMNAS_NUM.MAESTRA.TELEFONO - 1] || '';
+        if (colHcM !== -1) {
+          const celdaHC = maestra.getRange(filaMaestra, colHcM + 1);
+          historiaClinicaUrl = extraerUrlHistoriaClinica(valoresFila[colHcM], celdaHC.getRichTextValue(), celdaHC.getFormula());
         }
       }
     }

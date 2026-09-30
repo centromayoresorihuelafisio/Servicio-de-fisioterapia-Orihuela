@@ -90,6 +90,29 @@ function numeroOVacio_(valor) {
 }
 
 /**
+ * Comprueba que la fila `fila` de la hoja Valoraciones sigue siendo la que el
+ * cliente cargó: mismo nombre de paciente y misma fecha (yyyy-MM-dd). Hace
+ * falta la fecha además del nombre porque un mismo paciente tiene varias
+ * valoraciones. Cada dato que el cliente no envíe simplemente no se comprueba.
+ */
+function filaValoracionCoincide_(sheet, fila, nombreEsperado, fechaEsperadaISO) {
+  const hayNombre = nombreEsperado !== undefined && nombreEsperado !== null && String(nombreEsperado).trim() !== '';
+  const hayFecha = fechaEsperadaISO !== undefined && fechaEsperadaISO !== null;
+  if (!hayNombre && !hayFecha) return true;
+
+  const C = COLUMNAS_NUM.VALORACIONES;
+  const celdas = sheet.getRange(fila, 1, 1, Math.max(C.NOMBRE, C.FECHA)).getValues()[0];
+
+  if (hayNombre && (celdas[C.NOMBRE - 1] || '').toString().trim() !== String(nombreEsperado).trim()) return false;
+  if (hayFecha) {
+    const celdaFecha = celdas[C.FECHA - 1];
+    const iso = celdaFecha instanceof Date ? Utilities.formatDate(celdaFecha, Session.getScriptTimeZone(), 'yyyy-MM-dd') : '';
+    if (iso !== String(fechaEsperadaISO)) return false;
+  }
+  return true;
+}
+
+/**
  * Sobrescribe una valoración ya guardada (fila existente de la hoja
  * "Valoraciones") con los datos corregidos — pensado para arreglar una fecha
  * equivocada o cualquier otro dato mal introducido. A diferencia del
@@ -99,7 +122,9 @@ function numeroOVacio_(valor) {
  *
  * @param {object} datos { fila, fecha (yyyy-MM-dd), tipo, telefono,
  *   pegDolor, pegActividad, pegVida, mediaColumna, mediaMS, mediaMI,
- *   funcionGlobal, analgesicos, notas }
+ *   funcionGlobal, analgesicos, notas, nombreEsperado, fechaOriginal } —
+ *   `nombreEsperado` y `fechaOriginal` (la fecha ANTES de corregirla) sirven para
+ *   comprobar que la fila sigue siendo la misma valoración.
  */
 function actualizarValoracionWeb(datos) {
   try {
@@ -110,6 +135,9 @@ function actualizarValoracionWeb(datos) {
     const fila = parseInt(datos.fila, 10);
     if (!fila || fila < 2 || fila > sheet.getLastRow()) {
       return { success: false, message: 'Fila no válida.' };
+    }
+    if (!filaValoracionCoincide_(sheet, fila, datos.nombreEsperado, datos.fechaOriginal)) {
+      return { success: false, message: 'La lista ha cambiado desde que se cargó. Recarga la página e inténtalo de nuevo.' };
     }
 
     const fecha = parsearFechaISO_(datos.fecha);
@@ -150,8 +178,11 @@ function actualizarValoracionWeb(datos) {
 /**
  * Elimina por completo una fila de la hoja "Valoraciones" (borrado real de
  * la fila, no solo de su contenido).
+ *
+ * `nombreEsperado` y `fechaEsperada` (yyyy-MM-dd) protegen frente a filas que
+ * hayan cambiado de número: si ya no coinciden, no se borra nada.
  */
-function eliminarValoracionWeb(fila) {
+function eliminarValoracionWeb(fila, nombreEsperado, fechaEsperada) {
   try {
     const ss = getSS();
     const sheet = ss.getSheetByName(SHEETS.VALORACIONES);
@@ -160,6 +191,10 @@ function eliminarValoracionWeb(fila) {
     const filaNum = parseInt(fila, 10);
     if (!filaNum || filaNum < 2 || filaNum > sheet.getLastRow()) {
       return { success: false, message: 'Fila no válida.' };
+    }
+
+    if (!filaValoracionCoincide_(sheet, filaNum, nombreEsperado, fechaEsperada)) {
+      return { success: false, message: 'La lista ha cambiado desde que se cargó. Recarga la página e inténtalo de nuevo.' };
     }
 
     sheet.deleteRow(filaNum);
