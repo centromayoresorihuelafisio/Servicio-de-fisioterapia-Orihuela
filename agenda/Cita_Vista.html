@@ -1,0 +1,1011 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agenda de Citas - Material Design 3</title>
+  
+  <!-- Fuentes M3: Roboto Flex y Material Symbols Outlined -->
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300;8..144,400;8..144,500;8..144,600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+  
+  <style>
+    :root {
+      /* — Primary (Azul Acero Desaturado y Profesional) — */
+      --md-primary:            #2b5c75; 
+      --md-on-primary:         #ffffff;
+      --md-primary-container:  #e0f1fc;
+      --md-on-primary-container: #001d2c;
+
+      /* — Secondary — */
+      --md-secondary:          #556066;
+      --md-on-secondary:       #ffffff;
+      --md-secondary-container:#e4edf2;
+      --md-on-secondary-container: #111d22;
+
+      /* — Tertiary — */
+      --md-tertiary:           #5d5b75;
+      --md-on-tertiary:        #ffffff;
+      --md-tertiary-container: #e6e3f5;
+      --md-on-tertiary-container: #19182a;
+
+      /* — Error — */
+      --md-error:              #b63636; 
+      --md-on-error:           #ffffff;
+      --md-error-container:    #fce8e6;
+      --md-on-error-container: #4a0c0c;
+
+      /* — Success — */
+      --md-success:           #2a7047;
+      --md-success-container: #e5f6eb;
+
+      /* — Surface — */
+      --md-surface:            #fafbfe;
+      --md-on-surface:         #1b1c1e;
+      --md-surface-variant:    #e0e4e7;
+      --md-on-surface-variant: #43484b;
+
+      /* — Surface containers (elevation layers) — */
+      --md-surface-container-lowest:  #ffffff;
+      --md-surface-container-low:     #f2f5f8;
+      --md-surface-container:         #eaedf1;
+      --md-surface-container-high:    #e2e6ea;
+      --md-surface-container-highest: #dadfe3;
+
+      /* — Outline — */
+      --md-outline:         #737c81;
+      --md-outline-variant: #c3cbcf;
+
+      /* — Shape M3 — */
+      --md-shape-xs:    4px;
+      --md-shape-sm:    8px;
+      --md-shape-md:    12px;
+      --md-shape-lg:    16px;
+      --md-shape-xl:    28px;
+      --md-shape-full:  100px;
+
+      /* — Sombras Tonales teñidas de Primary — */
+      --md-elev-1: 0 1px 3px rgba(43,92,117,.08), 0 1px 2px rgba(43,92,117,.12);
+      --md-elev-2: 0 3px 6px rgba(43,92,117,.12), 0 2px 8px rgba(43,92,117,.08);
+      --md-elev-3: 0 8px 16px rgba(43,92,117,.16), 0 4px 12px rgba(43,92,117,.08);
+
+      /* — Motion M3 — */
+      --md-duration-short:  180ms;
+      --md-duration-medium: 280ms;
+      --md-duration-long:   380ms;
+      --md-easing:          cubic-bezier(.3,0,0,1);
+      --md-easing-decel:    cubic-bezier(0,0,.2,1);
+
+      /* — Typography — */
+      --md-font: 'Roboto Flex', system-ui, sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--md-font);
+      background: var(--md-surface-container-low);
+      min-height: 100vh;
+      padding: 1.5rem 1rem 5rem;
+      color: var(--md-on-surface);
+      -webkit-font-smoothing: antialiased;
+      font-size: 14px;
+    }
+
+    /* Iconos */
+    .ms {
+      font-family: 'Material Symbols Outlined';
+      font-weight: 400;
+      font-style: normal;
+      font-size: 20px;
+      line-height: 1;
+      letter-spacing: normal;
+      text-transform: none;
+      display: inline-block;
+      white-space: nowrap;
+      word-wrap: normal;
+      direction: ltr;
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+      user-select: none;
+      flex-shrink: 0;
+      color: var(--md-on-surface-variant);
+      transition: transform var(--md-duration-short) var(--md-easing), color var(--md-duration-short) var(--md-easing);
+    }
+    .ms-sm { font-size: 16px; }
+
+    /* Ripple Effect Base */
+    .ripple-target {
+      position: relative;
+      overflow: hidden;
+    }
+    .ripple {
+      position: absolute;
+      border-radius: 50%;
+      transform: scale(0);
+      animation: ripple-animation 600ms linear;
+      background-color: rgba(43, 92, 117, 0.15);
+      pointer-events: none;
+    }
+    .ripple-light {
+      background-color: rgba(255, 255, 255, 0.25);
+    }
+    @keyframes ripple-animation {
+      to {
+        transform: scale(4);
+        opacity: 0;
+      }
+    }
+
+    /* ── Header de Página ── */
+    .page-header {
+      max-width: 900px;
+      margin: 0 auto 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 1.25rem;
+      padding: .75rem 0;
+      animation: md-fade-down 350ms var(--md-easing-decel) both;
+    }
+    .logo-mark {
+      width: 56px; height: 56px;
+      background: var(--md-primary-container);
+      border-radius: var(--md-shape-lg);
+      display: grid; place-items: center;
+      flex-shrink: 0;
+      box-shadow: var(--md-elev-1);
+    }
+    .logo-mark .ms { font-size: 28px; color: var(--md-on-primary-container); font-variation-settings: 'FILL' 1, 'wght' 300; }
+    
+    .header-text h1 {
+      font-size: 1.5rem; font-weight: 500; letter-spacing: -.01em; color: var(--md-on-surface); line-height: 1.2;
+    }
+    .header-text p {
+      font-size: .875rem; color: var(--md-on-surface-variant); margin-top: .25rem; font-weight: 400; letter-spacing: .01em;
+    }
+
+    .badge-date {
+      margin-left: auto;
+      display: inline-flex; align-items: center; gap: .5rem;
+      font-size: .8125rem; font-weight: 500; color: var(--md-on-surface-variant);
+      background: var(--md-surface-container-lowest);
+      border: 1px solid var(--md-outline-variant);
+      padding: .5rem 1rem;
+      border-radius: var(--md-shape-full);
+      white-space: nowrap;
+    }
+
+    /* ── Tarjeta Principal (M3 Card) ── */
+    .card {
+      background: var(--md-surface-container-lowest);
+      border-radius: var(--md-shape-xl);
+      box-shadow: var(--md-elev-2);
+      max-width: 900px;
+      margin: 0 auto;
+      overflow: visible;
+      animation: md-fade-up 450ms 50ms var(--md-easing-decel) both;
+      border: 1px solid rgba(43, 92, 117, 0.05);
+    }
+
+    .card-section {
+      padding: 2rem;
+      border-bottom: 1px solid var(--md-outline-variant);
+    }
+    .card-section:last-child { border-bottom: none; }
+
+    .section-label { display: flex; align-items: center; gap: .5rem; margin-bottom: 1.5rem; }
+    .section-label-chip {
+      display: inline-flex; align-items: center; gap: .375rem;
+      font-size: .6875rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase;
+      color: var(--md-primary); background: var(--md-primary-container);
+      padding: .35rem .875rem .35rem .75rem; border-radius: var(--md-shape-full);
+    }
+    .section-label-chip .ms { font-size: 15px; color: var(--md-primary); }
+    .section-divider { flex: 1; height: 1px; background: var(--md-outline-variant); }
+
+    /* ── Grid Layout ── */
+    .grid-3 { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 1.25rem; }
+
+    /* ── Fields Outlined (M3 Real Specs) ── */
+    .md-field {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+    .md-field-inner {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+    
+    .md-field-inner .leading-icon {
+      position: absolute; 
+      left: 16px; 
+      top: 50%; 
+      transform: translateY(-50%); 
+      pointer-events: none; 
+      z-index: 2;
+    }
+    
+    .md-field label {
+      position: absolute; 
+      left: 48px; 
+      top: 50%; 
+      transform: translateY(-50%);
+      font-size: .9375rem; 
+      font-weight: 400; 
+      color: var(--md-on-surface-variant);
+      pointer-events: none; 
+      background: var(--md-surface-container-lowest); 
+      padding: 0 6px;
+      transition: all var(--md-duration-medium) var(--md-easing); 
+      z-index: 2; 
+      white-space: nowrap;
+    }
+
+    /* Animación Floating Label */
+    .md-field input:focus ~ label,
+    .md-field input:not(:placeholder-shown) ~ label,
+    .md-field textarea:focus ~ label,
+    .md-field textarea:not(:placeholder-shown) ~ label,
+    .md-field.has-value label {
+      top: 0; 
+      left: 12px;
+      font-size: .75rem; 
+      font-weight: 500; 
+      transform: translateY(-50%); 
+      color: var(--md-primary);
+    }
+    
+    .md-field input:not(:focus):not(:placeholder-shown) ~ label,
+    .md-field textarea:not(:focus):not(:placeholder-shown) ~ label,
+    .md-field.has-value:not(:focus-within) label {
+      color: var(--md-on-surface-variant);
+    }
+
+    .md-field input, .md-field textarea {
+      width: 100%; 
+      padding: 16px 16px 16px 48px;
+      border: 1.5px solid var(--md-outline); 
+      border-radius: var(--md-shape-lg);
+      background: transparent; 
+      color: var(--md-on-surface);
+      font-family: var(--md-font); 
+      font-size: .9375rem; 
+      outline: none;
+      transition: all var(--md-duration-medium) var(--md-easing);
+      z-index: 1;
+    }
+    
+    .md-field input::placeholder, .md-field textarea::placeholder { opacity: 0; }
+    
+    /* Hover e Interacción M3 */
+    .md-field input:hover:not(:disabled), .md-field textarea:hover:not(:disabled) { 
+      border-color: var(--md-on-surface); 
+      background-color: rgba(43,92,117,0.01); 
+    }
+    
+    /* Focus State con Brillo de Foco M3 */
+    .md-field input:focus, .md-field textarea:focus {
+      border-color: var(--md-primary); 
+      border-width: 2px; 
+      background-color: #fff;
+      box-shadow: 0 0 0 3px rgba(43, 92, 117, 0.12);
+    }
+    
+    .md-field input:disabled { 
+      background: var(--md-surface-container-low); 
+      color: var(--md-on-surface-variant); 
+      border-color: var(--md-outline-variant); 
+      cursor: not-allowed; 
+      opacity: 0.7;
+    }
+    
+    .md-field:focus-within .leading-icon .ms { 
+      color: var(--md-primary); 
+      transform: scale(1.08); 
+    }
+    
+    /* Textarea específico */
+    .md-field textarea { resize: vertical; min-height: 90px; padding-top: 18px; }
+    .md-field.is-textarea label { top: 22px; transform: translateY(-50%); }
+    .md-field.is-textarea:focus-within label, 
+    .md-field.is-textarea.has-value label,
+    .md-field.is-textarea textarea:not(:placeholder-shown) ~ label { 
+      top: 0; 
+      transform: translateY(-50%); 
+    }
+    .md-field.is-textarea .leading-icon { top: 24px; transform: none; }
+
+    /* Estado de Error */
+    .md-field.has-error input, .md-field.has-error textarea {
+      border-color: var(--md-error) !important;
+      box-shadow: 0 0 0 3px rgba(182, 54, 54, 0.12) !important;
+    }
+    .md-field.has-error label {
+      color: var(--md-error) !important;
+    }
+    .md-field.has-error .leading-icon .ms {
+      color: var(--md-error) !important;
+    }
+
+    /* ── Autocomplete Menu M3 ── */
+    .autocomplete-wrapper { position: relative; }
+    .ms-menu {
+      position: absolute; top: calc(100% + 6px); left: 0; right: 0; z-index: 30;
+      background: var(--md-surface-container-lowest); 
+      border-radius: var(--md-shape-md); 
+      box-shadow: var(--md-elev-3);
+      max-height: 240px; 
+      overflow-y: auto; 
+      display: none;
+      border: 1px solid var(--md-outline-variant);
+    }
+    .ms-menu.open { display: block; animation: md-pop-in 260ms var(--md-easing) both; }
+    .ms-item {
+      padding: .85rem 1.25rem; 
+      cursor: pointer; 
+      font-size: .9375rem; 
+      color: var(--md-on-surface);
+      transition: background var(--md-duration-short) var(--md-easing);
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+    }
+    .ms-item:hover { background: rgba(43,92,117,.06); }
+
+    /* ── Botones M3 ── */
+    .submit-section {
+      display: flex; align-items: center; gap: 1.5rem; margin-top: 1.5rem; flex-wrap: wrap;
+    }
+    .btn-primary {
+      display: inline-flex; align-items: center; justify-content: center; gap: .5rem;
+      padding: 0 2rem; height: 48px; 
+      background: var(--md-primary-container); 
+      color: var(--md-on-primary-container);
+      border: none; border-radius: var(--md-shape-full); 
+      font-family: var(--md-font); font-size: .9375rem; font-weight: 500;
+      cursor: pointer; transition: all var(--md-duration-medium) var(--md-easing); 
+      position: relative;
+    }
+    .btn-primary:hover:not(:disabled) { 
+      box-shadow: var(--md-elev-2); 
+      transform: translateY(-2px); 
+      background: #d1e9fa; /* Hover tint */
+    }
+    .btn-primary:active:not(:disabled) { transform: translateY(0) scale(0.98); }
+    .btn-primary:disabled { 
+      background: rgba(24,28,31,.12); 
+      color: rgba(24,28,31,.38); 
+      cursor: not-allowed; 
+      box-shadow: none; 
+    }
+    .btn-primary .ms { font-size: 18px; color: var(--md-on-primary-container); }
+    .submit-hint { font-size: .8125rem; color: var(--md-on-surface-variant); line-height: 1.5; }
+
+    /* ── Navegación de Semanas ── */
+    .week-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
+    .nav-btn {
+      width: 44px; height: 44px; border-radius: var(--md-shape-full); border: 1px solid var(--md-outline-variant);
+      background: var(--md-surface-container-lowest); color: var(--md-on-surface-variant);
+      display: grid; place-items: center; cursor: pointer; transition: all var(--md-duration-short) var(--md-easing);
+    }
+    .nav-btn:hover:not(:disabled) { background: var(--md-surface-container-low); color: var(--md-on-surface); border-color: var(--md-outline); }
+    .nav-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    #currentWeekLabel { font-size: 1.05rem; font-weight: 500; color: var(--md-on-surface); }
+
+    /* ── Calendario Grid Adaptativo ── */
+    .calendar-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1rem; }
+    
+    .day-column {
+      background: var(--md-surface-container-low); 
+      border: 1px solid var(--md-outline-variant);
+      border-radius: var(--md-shape-lg); 
+      padding: 1.25rem .85rem; 
+      display: flex; 
+      flex-direction: column; 
+      gap: .6rem;
+      transition: background-color var(--md-duration-medium) var(--md-easing);
+    }
+    .day-label { text-align: center; margin-bottom: .5rem; padding-bottom: .85rem; border-bottom: 1px solid var(--md-outline-variant); }
+    .day-label .day-name { font-size: .875rem; font-weight: 600; color: var(--md-on-surface); text-transform: uppercase; }
+    .day-label .day-date { font-size: .75rem; color: var(--md-on-surface-variant); margin-top: .2rem; }
+
+    /* Botón de Hora (Células M3) */
+    .hour-button {
+      width: 100%; 
+      padding: .65rem .25rem; 
+      border: 1.5px solid transparent; 
+      border-radius: var(--md-shape-md);
+      cursor: pointer; 
+      font-family: var(--md-font); 
+      font-size: .8125rem; 
+      font-weight: 500; 
+      text-align: center;
+      transition: all var(--md-duration-short) var(--md-easing); 
+      line-height: 1.2;
+    }
+    .turno-manana { background: var(--md-secondary-container); color: var(--md-on-secondary-container); }
+    .turno-tarde { background: var(--md-surface-variant); color: var(--md-on-surface-variant); }
+    
+    .hour-button:hover:not(.selected) { 
+      transform: translateY(-2px); 
+      filter: brightness(0.96); 
+      box-shadow: var(--md-elev-1); 
+    }
+    
+    /* MODIFICADO: Color seleccionado a azul pastel suave desaturado */
+    .hour-button.selected {
+      background: #bcdbeb !important; 
+      color: #1a3d54 !important;
+      border-color: #9ac2da !important; 
+      box-shadow: var(--md-elev-2); 
+      transform: translateY(-3px) scale(1.02);
+    }
+    .slot-empty { font-size: .8125rem; color: var(--md-on-surface-variant); text-align: center; padding: .75rem 0; font-style: italic; }
+
+    /* Leyenda */
+    .legend-container {
+      display: flex; gap: 1.5rem; margin-top: 1.5rem; flex-wrap: wrap; justify-content: flex-start;
+    }
+    .legend-item {
+      display: flex; align-items: center; gap: .5rem; font-size: .8125rem; color: var(--md-on-surface-variant); font-weight: 500;
+    }
+    .legend-color { width: 14px; height: 14px; border-radius: var(--md-shape-xs); }
+
+    /* ── Cuadro de Mensajes M3 ── */
+    #messageBox {
+      display: none; max-width: 900px; margin: 1.5rem auto 0; padding: 1.15rem 1.5rem;
+      border-radius: var(--md-shape-lg); font-size: .9375rem; font-weight: 500; 
+      animation: md-fade-up 300ms var(--md-easing-decel) both;
+      box-shadow: var(--md-elev-1);
+    }
+    #messageBox.success { background: var(--md-success-container); color: var(--md-success); border-left: 5px solid var(--md-success); }
+    #messageBox.error { background: var(--md-error-container); color: var(--md-error); border-left: 5px solid var(--md-error); }
+
+    /* ── Animaciones M3 ── */
+    @keyframes md-fade-down { from { opacity: 0; transform: translateY(-16px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes md-fade-up { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes md-pop-in { from { opacity: 0; transform: scaleY(.85) translateY(-10px); transform-origin: top; } to { opacity: 1; transform: scaleY(1) translateY(0); } }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner { animation: spin .8s linear infinite; }
+
+    /* Responsividad */
+    @media (max-width: 768px) {
+      body { padding: 1rem .5rem 4rem; }
+      .card-section { padding: 1.5rem 1.25rem; }
+      .grid-3 { grid-template-columns: 1fr; gap: 1rem; }
+      .calendar-grid { grid-template-columns: repeat(3, 1fr); gap: .75rem; }
+    }
+    @media (max-width: 480px) { 
+      .calendar-grid { grid-template-columns: repeat(2, 1fr); } 
+      .page-header { flex-direction: column; align-items: flex-start; gap: .75rem; }
+      .badge-date { margin-left: 0; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Cabecera de Página -->
+  <header class="page-header">
+    <div class="logo-mark"><span class="ms">event_available</span></div>
+    <div class="header-text">
+      <h1>Agenda de Citas</h1>
+      <p>Selecciona un paciente y un hueco disponible para la cita</p>
+    </div>
+    <div class="badge-date"><span class="ms ms-sm">calendar_today</span> <span id="badgeDate"></span></div>
+  </header>
+
+  <!-- Tarjeta Contenedora Principal -->
+  <div class="card">
+    
+    <!-- Sección: Datos del Paciente -->
+    <div class="card-section">
+      <div class="section-label">
+        <div class="section-label-chip">
+          <span class="ms ms-sm">person_search</span> Datos del Paciente
+        </div>
+        <div class="section-divider"></div>
+      </div>
+
+      <div class="grid-3">
+        <!-- Autocomplete input -->
+        <div class="md-field autocomplete-wrapper" id="field-paciente">
+          <div class="md-field-inner">
+            <div class="leading-icon"><span class="ms">person</span></div>
+            <input type="text" id="nombreUsuarioInput" placeholder=" " disabled autocomplete="off">
+            <label for="nombreUsuarioInput">Paciente</label>
+          </div>
+          <div id="autocomplete-list" class="ms-menu"></div>
+        </div>
+
+        <!-- Teléfono -->
+        <div class="md-field" id="field-telefono">
+          <div class="md-field-inner">
+            <div class="leading-icon"><span class="ms">call</span></div>
+            <input type="text" id="telefonoUsuario" placeholder=" ">
+            <label for="telefonoUsuario">Teléfono</label>
+          </div>
+        </div>
+
+        <!-- Número de Sesión -->
+        <div class="md-field" id="field-sesion">
+          <div class="md-field-inner">
+            <div class="leading-icon"><span class="ms">tag</span></div>
+            <input type="text" id="numSesion" placeholder=" ">
+            <label for="numSesion">Sesión</label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Notas Clínicas -->
+      <div class="md-field is-textarea" style="margin-top: 1.5rem;" id="field-notas">
+        <div class="md-field-inner">
+          <div class="leading-icon"><span class="ms">notes</span></div>
+          <textarea id="notas" rows="2" placeholder=" "></textarea>
+          <label for="notas">Notas clínicas o información relevante para la cita...</label>
+        </div>
+      </div>
+
+      <div class="submit-section">
+        <button class="btn-primary ripple-target" id="btnGuardar" onclick="enviarCita()" disabled>
+          <span class="ms" id="btnIcon">save</span>
+          <span id="btnText">Registrar Citas Seleccionadas</span>
+        </button>
+        <p class="submit-hint">Pulsa <kbd style="background:var(--md-surface-variant);padding:.15rem .4rem;border-radius:4px;border:1px solid var(--md-outline-variant);">Esc</kbd> para limpiar la selección activa.</p>
+      </div>
+    </div>
+
+    <!-- Sección: Agenda Semanal -->
+    <div class="card-section">
+      <div class="section-label">
+        <div class="section-label-chip">
+          <span class="ms ms-sm">calendar_month</span> Agenda Semanal
+        </div>
+        <div class="section-divider"></div>
+      </div>
+
+      <!-- Navegación de Semanas -->
+      <div class="week-nav">
+        <button class="nav-btn ripple-target" onclick="changeWeek(-1)" id="prevWeekBtn" disabled>
+          <span class="ms">chevron_left</span>
+        </button>
+        <div id="currentWeekLabel">Cargando agenda…</div>
+        <button class="nav-btn ripple-target" onclick="changeWeek(1)" id="nextWeekBtn" disabled>
+          <span class="ms">chevron_right</span>
+        </button>
+      </div>
+
+      <!-- Grid del Calendario -->
+      <div id="calendarGrid" class="calendar-grid"></div>
+
+      <!-- Leyenda Desaturada M3 (Color Seleccionado Modificado) -->
+      <div class="legend-container">
+        <span class="legend-item">
+          <span class="legend-color" style="background: var(--md-secondary-container);"></span>Turno mañana
+        </span>
+        <span class="legend-item">
+          <span class="legend-color" style="background: var(--md-surface-variant);"></span>Turno tarde
+        </span>
+        <span class="legend-item">
+          <span class="legend-color" style="background: #bcdbeb; border: 1.5px solid #9ac2da;"></span>Seleccionado
+        </span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Alerta de Respuesta -->
+  <div id="messageBox"></div>
+
+  <script>
+    window.CONTEXTO_FORM = '<?= contexto ?>';
+    window.BASE_URL_FORM = '<?= baseUrl ?>';
+  </script>
+  <?!= include('ui/JS_Cierre_Formulario'); ?>
+
+  <script>
+    // ── Ripple Effect dinámico de Material Design ──
+    document.addEventListener('click', function(e) {
+      const target = e.target.closest('.ripple-target');
+      if (!target) return;
+
+      const ripple = document.createElement('span');
+      ripple.className = 'ripple';
+      
+      // Aplicar color de ripple claro para botones primarios oscuros
+      if (target.classList.contains('btn-primary') || target.classList.contains('hour-button-dark')) {
+        ripple.classList.add('ripple-light');
+      }
+
+      const rect = target.getBoundingClientRect();
+      const size = Math.max(rect.width, rect.height);
+      const x = e.clientX - rect.left - size / 2;
+      const y = e.clientY - rect.top - size / 2;
+
+      ripple.style.width = ripple.style.height = `${size}px`;
+      ripple.style.left = `${x}px`;
+      ripple.style.top = `${y}px`;
+
+      target.appendChild(ripple);
+
+      ripple.addEventListener('animationend', () => {
+        ripple.remove();
+      });
+    });
+
+    // ── Floating Labels e Inputs ──
+    function checkInputValue(el) {
+      const field = el.closest('.md-field');
+      if (field) {
+        if (el.value.trim() !== '') {
+          field.classList.add('has-value');
+        } else {
+          field.classList.remove('has-value');
+        }
+      }
+    }
+
+    document.querySelectorAll('.md-field input, .md-field textarea').forEach(el => {
+      el.addEventListener('input', () => checkInputValue(el));
+      el.addEventListener('blur', () => checkInputValue(el));
+      el.addEventListener('focus', () => {
+        // Al enfocarse se quitan errores visuales previos del campo
+        el.closest('.md-field').classList.remove('has-error');
+      });
+    });
+
+    function setFieldValue(inputEl, value) {
+      inputEl.value = value;
+      checkInputValue(inputEl);
+    }
+
+    // ── Elementos DOM ──
+    const calendarGrid       = document.getElementById('calendarGrid');
+    const currentWeekLabel   = document.getElementById('currentWeekLabel');
+    const btnGuardar         = document.getElementById('btnGuardar');
+    const btnText            = document.getElementById('btnText');
+    const btnIcon            = document.getElementById('btnIcon');
+    const msgBox             = document.getElementById('messageBox');
+    const numSesionInput     = document.getElementById('numSesion');
+    const notasTextarea      = document.getElementById('notas');
+    const nombreUsuarioInput = document.getElementById('nombreUsuarioInput');
+    const autocompleteList   = document.getElementById('autocomplete-list');
+    const telefonoUsuarioInput = document.getElementById('telefonoUsuario');
+
+    // Paciente ya elegido desde la Base de Datos Web (viene de ?paciente=...).
+    // Vacío cuando se abre desde el menú de Sheets o el índice de la Web App.
+    var PACIENTE_PRESELECCIONADO = <?!= JSON.stringify(pacientePreseleccionado || '') ?>;
+    // ── Datos de Estado ──
+    let semanasData      = [];
+    let currentWeekIndex = 0;
+    let selectedHuecos   = [];
+    let currentUserName  = '';
+    let currentUserPhone = '';
+    let allPatientsList  = [];
+    let allPatientsData  = {};
+
+    const EXCLUDED_TIMES = ["","","","","00:30"];
+    const DIA_ORDEN = { Lunes:1, Martes:2, 'Miércoles':3, Jueves:4, Viernes:5 };
+
+    // Badge Fecha actual
+    document.getElementById('badgeDate').textContent = new Date().toLocaleDateString('es-ES', { weekday:'short', day:'numeric', month:'short', year:'numeric' });
+
+    // ── Mostrar feedback / alertas M3 ──
+    function mostrarFeedback(message, isSuccess) {
+      msgBox.style.display = 'block';
+      msgBox.innerHTML = message;
+      msgBox.className = isSuccess ? 'success' : 'error';
+      
+      // Auto-ocultar si todo fue exitoso
+      if (isSuccess) {
+        setTimeout(() => { msgBox.style.display = 'none'; }, 6000);
+      }
+    }
+
+    // ── Spinner / Guardando ──
+    function toggleLoading(isLoading) {
+      btnGuardar.disabled = isLoading;
+      if(isLoading) {
+        btnIcon.textContent = 'autorenew';
+        btnIcon.classList.add('spinner');
+        btnText.textContent = 'Guardando cita...';
+      } else {
+        btnIcon.textContent = 'save';
+        btnIcon.classList.remove('spinner');
+        updateSaveButtonState();
+      }
+    }
+
+    // ── Orden y estructura de Calendario ──
+    function sortDaysByDate(dias) {
+      return Object.keys(dias).sort((a, b) => {
+        const [da, ma, ya] = a.split('/');
+        const [db, mb, yb] = b.split('/');
+        return new Date(ya, ma-1, da) - new Date(yb, mb-1, db);
+      });
+    }
+
+    function filterAndSortDays(diasData) {
+      const sorted = sortDaysByDate(diasData);
+      const map = {};
+      sorted.forEach(key => {
+        const d = diasData[key];
+        const name = d.label.split(' ')[0].trim();
+        if (DIA_ORDEN[name] && !map[name]) {
+          d.huecos = d.huecos.filter(h => !EXCLUDED_TIMES.includes(h.hora));
+          map[name] = d;
+        }
+      });
+      return Object.values(map).sort((a,b) => DIA_ORDEN[a.label.split(' ')[0]] - DIA_ORDEN[b.label.split(' ')[0]]);
+    }
+
+    function getTurnoClass(hora) {
+      const [h, m] = hora.split(':').map(Number);
+      const t = h * 60 + m;
+      if (t >= 480 && t <= 840) return 'turno-manana';
+      if (t >= 850) return 'turno-tarde';
+      return '';
+    }
+
+    // ── Renderizado de Celdas de la Semana ──
+    function renderWeek() {
+      if (!semanasData.length) {
+        calendarGrid.innerHTML = '<p style="color:var(--md-on-surface-variant);text-align:center;grid-column:1/-1;padding:2rem;">No hay semanas disponibles.</p>';
+        currentWeekLabel.textContent = 'Sin datos';
+        return;
+      }
+      currentWeekIndex = Math.max(0, Math.min(currentWeekIndex, semanasData.length - 1));
+      const week = semanasData[currentWeekIndex];
+      if (week.error) { currentWeekLabel.textContent = 'Error'; calendarGrid.innerHTML = `<p style="color:var(--md-error)">${week.error}</p>`; return; }
+
+      currentWeekLabel.textContent = week.label;
+      calendarGrid.innerHTML = '';
+
+      filterAndSortDays(week.dias).forEach(dayData => {
+        const col = document.createElement('div');
+        col.className = 'day-column';
+
+        const [dayName, fullDate] = dayData.label.split(' ');
+        const parts = fullDate.split('/');
+        const shortDate = `${parts[0]}/${parts[1]}/${parts[2].slice(-2)}`;
+
+        const lbl = document.createElement('div');
+        lbl.className = 'day-label';
+        lbl.innerHTML = `<div class="day-name">${dayName}</div><div class="day-date">${shortDate}</div>`;
+        col.appendChild(lbl);
+
+        if (!dayData.huecos.length) {
+          const empty = document.createElement('p');
+          empty.className = 'slot-empty';
+          empty.textContent = 'Completo';
+          col.appendChild(empty);
+        } else {
+          dayData.huecos.forEach(hueco => {
+            const btn = document.createElement('button');
+            btn.className = 'hour-button ripple-target ' + getTurnoClass(hueco.hora);
+            btn.textContent = hueco.hora;
+            btn.setAttribute('data-value', hueco.value);
+            btn.onclick = selectHueco;
+            if (selectedHuecos.includes(hueco.value)) btn.classList.add('selected');
+            col.appendChild(btn);
+          });
+        }
+        calendarGrid.appendChild(col);
+      });
+
+      document.getElementById('prevWeekBtn').disabled = currentWeekIndex === 0;
+      document.getElementById('nextWeekBtn').disabled = currentWeekIndex === semanasData.length - 1;
+      updateSaveButtonState();
+    }
+
+    function changeWeek(delta) {
+      const n = currentWeekIndex + delta;
+      if (n >= 0 && n < semanasData.length) { currentWeekIndex = n; renderWeek(); }
+    }
+
+    function selectHueco(e) {
+      e.target.classList.toggle('selected');
+      selectedHuecos = Array.from(document.querySelectorAll('.hour-button.selected')).map(b => b.getAttribute('data-value'));
+      updateSaveButtonState();
+    }
+
+    function deselectHueco() {
+      if (!selectedHuecos.length) return;
+      document.querySelectorAll('.hour-button.selected').forEach(b => b.classList.remove('selected'));
+      selectedHuecos = [];
+      updateSaveButtonState();
+      mostrarFeedback('Selección de horas cancelada.', false);
+    }
+
+    function updateSaveButtonState() {
+      const valid = !!currentUserName && currentUserName !== 'NOT_FOUND' && currentUserName !== 'HEADER_ROW';
+      btnGuardar.disabled = !selectedHuecos.length || !valid;
+      const c = selectedHuecos.length;
+      btnText.textContent = c > 1 ? `Registrar ${c} Citas` : c === 1 ? 'Registrar 1 Cita' : 'Registrar Citas Seleccionadas';
+    }
+
+    // ── Autocompletado Moderno M3 ──
+    function renderPatientSelect(names, defaultName) {
+      allPatientsList = names;
+      nombreUsuarioInput.disabled = false;
+      if (defaultName && defaultName !== 'NOT_FOUND' && defaultName !== 'HEADER_ROW') {
+        setFieldValue(nombreUsuarioInput, defaultName);
+        currentUserName = defaultName;
+      }
+      updateSaveButtonState();
+    }
+
+    // ── Normalizador de nombre (igual que en el formulario de inscripción) ──
+    function sanitizeName(input) {
+      let v = input.value.toUpperCase()
+        .replace(/[ÁÀÄÂÃ]/g,'A').replace(/[ÉÈËÊ]/g,'E')
+        .replace(/[ÍÌÏÎ]/g,'I').replace(/[ÓÒÖÔÕ]/g,'O')
+        .replace(/[ÚÙÜÛ]/g,'U').replace(/[ÝŸ]/g,'Y')
+        .replace(/[^A-ZÑ ]/g,'');
+      input.value = v;
+    }
+
+    // ── Quita tildes solo para comparar (no toca lo que ves en pantalla) ──
+    function stripAccents(str) {
+      return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    }
+
+    nombreUsuarioInput.addEventListener('input', function () {
+    sanitizeName(this);
+    const val = stripAccents(this.value.toLowerCase());
+    autocompleteList.innerHTML = '';
+    currentUserName = '';
+    
+    if (!val) {
+      autocompleteList.classList.remove('open');
+      return;
+    }
+  
+  const filtered = allPatientsList.filter(n => stripAccents(n.toLowerCase()).includes(val));
+      if(filtered.length > 0) {
+        autocompleteList.classList.add('open');
+      } else {
+        autocompleteList.classList.remove('open');
+      }
+
+      filtered.forEach(name => {
+        const item = document.createElement('div');
+        item.className = 'ms-item';
+        item.innerHTML = `<span class="ms ms-sm">person</span> <span>${name}</span>`;
+        item.addEventListener('click', () => {
+          setFieldValue(nombreUsuarioInput, name);
+          currentUserName = name;
+          currentUserPhone = allPatientsData[name] || '';
+          setFieldValue(telefonoUsuarioInput, currentUserPhone);
+          setFieldValue(numSesionInput, '');
+          setFieldValue(notasTextarea, '');
+          
+          document.getElementById('field-paciente').classList.remove('has-error');
+          mostrarFeedback(`Paciente asignado: <strong>${name}</strong>`, true);
+          autocompleteList.classList.remove('open');
+          autocompleteList.innerHTML = '';
+          updateSaveButtonState();
+        });
+        autocompleteList.appendChild(item);
+      });
+    });
+
+    document.addEventListener('click', e => {
+      if (e.target !== nombreUsuarioInput) {
+        autocompleteList.classList.remove('open');
+        autocompleteList.innerHTML = '';
+      }
+    });
+
+    // ── Carga de Datos desde Google Sheets ──
+    function loadPatientData() {
+      setFieldValue(nombreUsuarioInput, '');
+      nombreUsuarioInput.disabled = true;
+
+      if (typeof google === 'undefined') return;
+
+      google.script.run
+        .withSuccessHandler(data => {
+          let name  = data.name  || 'NOT_FOUND';
+          let phone = data.phone || '';
+          allPatientsData = data.allPatientsData || {};
+
+          // Sin sesión de Sheets (Web App) no hay "fila activa": si venimos de la
+          // Base de Datos con un paciente ya elegido, lo usamos en su lugar.
+          if (PACIENTE_PRESELECCIONADO && allPatientsData[PACIENTE_PRESELECCIONADO] !== undefined) {
+            name = PACIENTE_PRESELECCIONADO;
+            phone = allPatientsData[PACIENTE_PRESELECCIONADO];
+          }
+
+          renderPatientSelect(Object.keys(allPatientsData), name);
+
+          if (name && name !== 'HEADER_ROW' && name !== 'NOT_FOUND') {
+            currentUserName  = name;
+            currentUserPhone = phone;
+            setFieldValue(telefonoUsuarioInput, phone);
+            mostrarFeedback(`Cita para: <strong>${name}</strong>`, true);
+          } else {
+            currentUserName = '';
+            const msg = name === 'HEADER_ROW' ? '🛑 Por favor, selecciona un paciente de la lista.' : 'Selecciona un paciente para registrar su cita.';
+            mostrarFeedback(msg, false);
+          }
+          updateSaveButtonState();
+        })
+        .withFailureHandler(err => {
+          nombreUsuarioInput.disabled = false;
+          mostrarFeedback('Error al cargar pacientes: ' + err, false);
+        })
+        .obtenerNombreDeFilaActiva();
+    }
+
+    function loadInitialData() {
+      loadPatientData();
+      currentWeekLabel.textContent = 'Cargando agenda…';
+      if (typeof google === 'undefined') return;
+
+      toggleLoading(true);
+      google.script.run
+        .withSuccessHandler(res => {
+          toggleLoading(false);
+          semanasData = res.semanas;
+          if (semanasData && semanasData.length) { 
+            currentWeekIndex = res.index; 
+            renderWeek(); 
+          }
+        })
+        .withFailureHandler(err => {
+          toggleLoading(false);
+          mostrarFeedback('Error al obtener la agenda de turnos: ' + err, false);
+        })
+        .obtenerSemanasYHuecos();
+    }
+
+    function enviarCita() {
+      // Validaciones estéticas M3
+      if (!currentUserName) { 
+        document.getElementById('field-paciente').classList.add('has-error');
+        mostrarFeedback('🛑 Selecciona un paciente válido desde la lista autocompletable.', false); 
+        return; 
+      }
+
+      toggleLoading(true);
+      if (typeof google === 'undefined') { 
+        setTimeout(() => { toggleLoading(false); }, 1000); 
+        return; 
+      }
+
+      google.script.run
+        .withSuccessHandler(res => {
+          toggleLoading(false);
+          mostrarFeedback(res.success ? `✅ ${res.message}` : `⚠️ ${res.message}`, res.success);
+          if (res.success) { 
+            setFieldValue(numSesionInput, ''); 
+            setFieldValue(notasTextarea, ''); 
+            selectedHuecos=[]; 
+            // Cierre unificado (mismo que el resto de formularios).
+            finalizarFormulario({ guardado: true });
+          }
+          // Si se ha guardado, el formulario se cierra: no recargamos (pisaría el mensaje de éxito).
+          if (!res.success) loadInitialData();
+        })
+        .withFailureHandler(err => {
+          toggleLoading(false);
+          mostrarFeedback('Error al registrar la cita: ' + err, false);
+        })
+        .guardarCitasMultiples({
+          nombreUsuario:  currentUserName,
+          telefonoUsuario: telefonoUsuarioInput.value.trim(),
+          huecosJson:     selectedHuecos,
+          numSesion:      numSesionInput.value.trim(),
+          notas:          notasTextarea.value.trim()
+        });
+    }
+
+    // Cancelar selección activa con Esc
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') deselectHueco(); });
+    
+    // Ejecución inicial
+    loadInitialData();
+  </script>
+</body>
+</html>

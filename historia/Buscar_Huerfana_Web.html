@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <style>
+    body { font-family: Arial, sans-serif; font-size: 13px; padding: 16px 20px; }
+    h3 { margin-bottom: 4px; }
+    .paciente { color: #555; margin-bottom: 12px; }
+    .aviso { background: #fff4e5; border: 1px solid #f0c36d; padding: 8px 10px; border-radius: 4px; margin-bottom: 12px; }
+    .candidato { border: 1px solid #ddd; border-radius: 6px; padding: 8px 10px; margin-bottom: 8px; cursor: pointer; }
+    .candidato:hover { background: #f7f7f7; }
+    .candidato.seleccionado { border-color: #4285f4; background: #eef4ff; }
+    .nombre-archivo { font-weight: bold; }
+    .score { color: #777; font-size: 12px; }
+    .sin-resultados { color: #777; font-style: italic; }
+    .botones { margin-top: 16px; text-align: right; }
+    button { padding: 8px 16px; margin-left: 8px; cursor: pointer; font-size: 13px; }
+    #btnVincular { background: #4285f4; color: white; border: none; border-radius: 4px; }
+    #btnVincular:disabled { background: #aac6f7; cursor: not-allowed; }
+    #estado { margin-top: 10px; font-size: 12px; color: #555; }
+    .loader { text-align: center; padding: 20px; color: #777; }
+  </style>
+</head>
+<body>
+  <h3>Buscar Historia Clínica</h3>
+  <div id="contenido" class="loader">Buscando candidatos…</div>
+  <div class="botones" id="botonesFinales" style="display:none;">
+    <button id="btnCancelar">Cancelar</button>
+    <button id="btnVincular" disabled>Vincular seleccionada</button>
+  </div>
+  <div id="estado"></div>
+
+  <script>
+    window.CONTEXTO_FORM = 'popup';
+  </script>
+  <?!= include('ui/JS_Cierre_Formulario'); ?>
+
+  <script>
+    var FILA = <?= fila ?>;
+    var fileIdSeleccionado = null;
+
+    function cargarCandidatos() {
+      google.script.run
+        .withSuccessHandler(mostrarCandidatos)
+        .withFailureHandler(mostrarError)
+        .obtenerCandidatosHistoriaClinica(FILA);
+    }
+
+    function mostrarError(err) {
+      document.getElementById('contenido').innerHTML =
+        '<div class="aviso">Error: ' + (err.message || err) + '</div>';
+    }
+
+    function mostrarCandidatos(resp) {
+      if (!resp.success) {
+        document.getElementById('contenido').innerHTML = '<div class="aviso">' + resp.message + '</div>';
+        return;
+      }
+
+      var html = '<div class="paciente"><b>Paciente:</b> ' + resp.nombre +
+                  (resp.dni ? ' &nbsp;|&nbsp; <b>DNI:</b> ' + resp.dni : ' &nbsp;|&nbsp; <i>sin DNI</i>') + '</div>';
+
+      if (resp.yaEnlazada) {
+        html += '<div class="aviso">Esta fila ya tiene una historia clínica enlazada. ' +
+                'Si seleccionas y vinculas otra, se sustituirá el enlace actual.</div>';
+      }
+
+      if (resp.candidatos.length === 0) {
+        html += '<div class="sin-resultados">No se encontraron archivos con nombre parecido en la carpeta.</div>';
+      } else {
+        resp.candidatos.forEach(function(c) {
+          var pct = Math.round(c.score * 100);
+          html += '<div class="candidato" data-fileid="' + c.fileId + '" onclick="seleccionar(this)">' +
+                    '<div class="nombre-archivo">' + c.fileName + '</div>' +
+                    '<div class="score">Coincidencia: ' + pct + '%</div>' +
+                  '</div>';
+        });
+      }
+
+      document.getElementById('contenido').innerHTML = html;
+      document.getElementById('botonesFinales').style.display = 'block';
+    }
+
+    function seleccionar(el) {
+      document.querySelectorAll('.candidato').forEach(function(c) { c.classList.remove('seleccionado'); });
+      el.classList.add('seleccionado');
+      fileIdSeleccionado = el.getAttribute('data-fileid');
+      document.getElementById('btnVincular').disabled = false;
+    }
+
+    document.getElementById('btnCancelar').addEventListener('click', function() {
+      finalizarFormulario({ demora: 0 });
+    });
+
+    document.getElementById('btnVincular').addEventListener('click', function() {
+      if (!fileIdSeleccionado) return;
+      document.getElementById('btnVincular').disabled = true;
+      document.getElementById('estado').innerText = 'Vinculando…';
+
+      google.script.run
+        .withSuccessHandler(function(resp) {
+          if (resp.success) {
+            document.getElementById('estado').innerText = resp.message;
+            finalizarFormulario({ guardado: true });
+          } else {
+            document.getElementById('estado').innerText = 'Error: ' + resp.message;
+            document.getElementById('btnVincular').disabled = false;
+          }
+        })
+        .withFailureHandler(function(err) {
+          document.getElementById('estado').innerText = 'Error: ' + (err.message || err);
+          document.getElementById('btnVincular').disabled = false;
+        })
+        .vincularHistoriaClinicaHuerfana(FILA, fileIdSeleccionado);
+    });
+
+    cargarCandidatos();
+  </script>
+</body>
+</html>

@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gestión de Agenda</title>
+  
+  <!-- Tipografías -->
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Configuración de Tailwind (Sistema de Diseño Clínico) -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            bg: '#f0f2f5',
+            surface: '#ffffff',
+            'surface-2': '#f7f9fb',
+            border: '#dce2ea',
+            'border-focus': '#475569',
+            'text-1': '#0f1923',
+            'text-2': '#4a5568',
+            'text-3': '#94a3b8',
+            accent: '#475569',
+            'accent-light': '#f1f5f9',
+            success: '#059669',
+            'success-light': '#ecfdf5',
+            error: '#dc2626',
+            'error-light': '#fef2f2',
+            warning: '#d97706',
+          },
+          fontFamily: {
+            sans: ['"DM Sans"', 'sans-serif'],
+            mono: ['"DM Mono"', 'monospace'],
+          },
+          boxShadow: {
+            card: '0 1px 3px rgba(0,0,0,.08), 0 4px 16px rgba(0,0,0,.06)',
+            focus: '0 0 0 3px rgba(71,85,105,.15)',
+          },
+          animation: {
+            'fade-down': 'fadeDown .5s ease both',
+            'fade-up': 'fadeUp .5s .1s ease both',
+          },
+          keyframes: {
+            fadeDown: {
+              '0%': { opacity: '0', transform: 'translateY(-14px)' },
+              '100%': { opacity: '1', transform: 'translateY(0)' },
+            },
+            fadeUp: {
+              '0%': { opacity: '0', transform: 'translateY(12px)' },
+              '100%': { opacity: '1', transform: 'translateY(0)' },
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Transiciones suaves para inputs */
+    input[type="text"],
+    input[type="date"],
+    select {
+      transition: border-color 180ms ease, box-shadow 180ms ease, background 180ms ease;
+    }
+    input:hover, select:hover {
+      border-color: #b6c2d4;
+    }
+    input:focus, select:focus {
+      outline: none;
+      border-color: var(--border-focus);
+      box-shadow: var(--shadow-focus);
+      background: var(--surface);
+    }
+    
+    /* Personalización de la flecha del select */
+    select {
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 0.75rem center;
+      background-size: 1rem;
+      padding-right: 2.5rem;
+    }
+  </style>
+</head>
+<body class="bg-bg text-text-1 min-h-screen py-10 px-5 font-sans antialiased flex flex-col items-center">
+
+  <!-- Header -->
+  <header class="w-full max-w-[600px] mb-7 flex items-center gap-4 animate-fade-down">
+    <div class="w-12 h-12 bg-slate-700 rounded-xl flex items-center justify-center shrink-0 shadow-sm">
+      <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+      </svg>
+    </div>
+    <div>
+      <h1 class="text-[1.35rem] font-semibold tracking-tight leading-tight text-text-1">Gestión de Agenda</h1>
+      <p class="text-[0.8125rem] text-text-3 mt-0.5">Añade una nota informativa o bloquea un día festivo</p>
+    </div>
+  </header>
+
+  <!-- Main Card -->
+  <div class="bg-surface rounded-[14px] shadow-card border border-border w-full max-w-[600px] overflow-hidden animate-fade-up">
+    <form id="eventoForm" class="flex flex-col" onsubmit="enviarFormulario(event)" novalidate>
+
+      <!-- SECCIÓN: Detalles del Evento -->
+      <div class="p-7">
+        <div class="flex items-center gap-2 text-[0.6875rem] font-semibold tracking-[0.08em] uppercase text-text-3 mb-5 after:content-[''] after:flex-1 after:h-px after:bg-border">
+          <span class="w-1.5 h-1.5 rounded-full bg-accent shrink-0"></span>Detalles del Evento
+        </div>
+
+        <div class="space-y-5">
+          <!-- Fecha -->
+          <div class="flex flex-col gap-1.5">
+            <label for="fecha" class="flex items-center gap-1.5 text-[0.78rem] font-medium text-text-2">
+              <svg class="w-3.5 h-3.5 text-text-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+              Fecha del evento <span class="text-accent ml-0.5">*</span>
+            </label>
+            <input type="date" id="fecha" name="fecha" required
+                   class="w-full px-3.5 py-2.5 border-[1.5px] border-border rounded-lg bg-surface-2 text-text-1 text-[0.875rem] cursor-pointer">
+          </div>
+
+          <!-- Tipo de Aviso -->
+          <div class="flex flex-col gap-1.5">
+            <label for="tipo" class="flex items-center gap-1.5 text-[0.78rem] font-medium text-text-2">
+              <svg class="w-3.5 h-3.5 text-text-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>
+              Tipo de aviso <span class="text-accent ml-0.5">*</span>
+            </label>
+            <select id="tipo" name="tipo" required
+                    class="w-full px-3.5 py-2.5 border-[1.5px] border-border rounded-lg bg-surface-2 text-text-1 text-[0.875rem] cursor-pointer">
+              <option value="Nota">📝 Nota informativa</option>
+              <option value="Festivo">🚩 Día Festivo / Bloqueo</option>
+              <option value="Blog">📱 Publicación Blog</option>
+            </select>
+          </div>
+
+          <!-- Descripción -->
+          <div class="flex flex-col gap-1.5">
+            <label for="evento" class="flex items-center gap-1.5 text-[0.78rem] font-medium text-text-2">
+              <svg class="w-3.5 h-3.5 text-text-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+              Descripción <span class="text-accent ml-0.5">*</span>
+            </label>
+            <input type="text" id="evento" name="evento" placeholder="Ej: Vacaciones, Reunión de equipo, Festivo local..." required
+                   class="w-full px-3.5 py-2.5 border-[1.5px] border-border rounded-lg bg-surface-2 text-text-1 text-[0.875rem]">
+          </div>
+        </div>
+      </div>
+
+      <!-- Submit Section -->
+      <div class="p-6 sm:px-7 sm:py-6 bg-surface-2 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4">
+        <button type="submit" id="btnGuardar" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-accent hover:bg-slate-700 text-white rounded-lg font-sans text-[0.875rem] font-semibold transition-all shadow-sm hover:shadow-md active:translate-y-px disabled:opacity-70 disabled:cursor-not-allowed">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+          Guardar y Sincronizar
+        </button>
+        <p class="text-[0.75rem] text-text-3 hidden sm:block">Sincronización directa con la agenda principal</p>
+      </div>
+
+    </form>
+  </div>
+
+  <!-- Message / Feedback Box -->
+  <div id="messageBox" class="hidden w-full max-w-[600px] mt-4 p-3.5 rounded-lg text-[0.875rem] font-medium border-[1.5px] animate-fade-up text-center shadow-sm"></div>
+
+  <?!= include('ui/JS_Cierre_Formulario'); ?>
+
+  <script>
+    function enviarFormulario(e) {
+      e.preventDefault();
+      const form = document.getElementById('eventoForm');
+      const btn = document.getElementById('btnGuardar');
+      const msgBox = document.getElementById('messageBox');
+      
+      // Resetear mensajes
+      msgBox.classList.add('hidden');
+      msgBox.className = 'hidden w-full max-w-[600px] mt-4 p-3.5 rounded-lg text-[0.875rem] font-medium border-[1.5px] animate-fade-up text-center shadow-sm';
+
+      // Validación HTML5 nativa
+      if (!form.checkValidity()) { 
+        form.reportValidity(); 
+        return; 
+      }
+
+      // Validacion técnica manual
+      if(!form.fecha.value || !form.evento.value) {
+        showError("Por favor, completa los campos requeridos marcados con asterisco.");
+        return;
+      }
+
+      const datos = {
+        fecha: form.fecha.value,
+        tipo: form.tipo.value,
+        evento: form.evento.value
+      };
+
+      // Estado de carga UI
+      btn.disabled = true;
+      btn.innerHTML = `<svg class="animate-spin w-4 h-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Sincronizando...`;
+      
+      // Mostrar feedback visual informando de la sincronización
+      msgBox.textContent = "Sincronizando con la Agenda... por favor, espera.";
+      msgBox.classList.remove('hidden');
+      msgBox.classList.add('bg-accent-light', 'text-accent', 'border-border', 'animate-pulse');
+
+      // Entorno sin Google Apps Script (Fallback / Test visual)
+      if (typeof google === 'undefined' || typeof google.script === 'undefined') {
+        setTimeout(() => {
+          showError("Estás fuera del entorno de Google Sheets. La sincronización simulada ha finalizado.");
+        }, 1500);
+        return;
+      }
+
+      // Ejecución en el servidor de Google
+      google.script.run
+        .withSuccessHandler(() => {
+          msgBox.classList.remove('animate-pulse', 'bg-accent-light', 'text-accent', 'border-border');
+          msgBox.classList.add('bg-success-light', 'text-success', 'border-[#6ee7b7]');
+          msgBox.textContent = "¡Evento sincronizado con éxito!";
+          
+          btn.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg> Guardado`;
+          
+          finalizarFormulario({ guardado: true });
+        })
+        .withFailureHandler((err) => {
+          showError("Error en el servidor: " + err.message);
+        })
+        .guardarEventoDesdeForm(datos);
+    }
+
+    function showError(msg) {
+      const btn = document.getElementById('btnGuardar');
+      const msgBox = document.getElementById('messageBox');
+      
+      // Reset UI Button
+      btn.disabled = false;
+      btn.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg> Guardar y Sincronizar`;
+      
+      // Show Error Message Box
+      msgBox.className = 'w-full max-w-[600px] mt-4 p-3.5 rounded-lg text-[0.875rem] font-medium border-[1.5px] animate-fade-up text-center shadow-sm'; // Reset clases base
+      msgBox.classList.remove('hidden');
+      msgBox.classList.add('bg-error-light', 'text-error', 'border-[#fca5a5]');
+      msgBox.textContent = msg;
+    }
+  </script>
+</body>
+</html>
