@@ -790,6 +790,7 @@
           '<td data-label="Inscripción">' + (dato(p, 'Fecha inscripción') ? esc(dato(p, 'Fecha inscripción')) : '<span class="vacio">—</span>') + '</td>' +
           '<td class="acciones-fila">' +
             btnFila('hc', p, 'description', tieneHC ? 'Abrir Historia Clínica' : 'Sin Historia Clínica · clic para crearla', tieneHC ? 'con-hc' : 'sin-hc') +
+            (tieneHC ? btnFila('actualizarhc', p, 'sync', 'Actualizar Historia Clínica') : '') +
             btnFila('whatsapp', p, 'whatsapp', 'Abrir WhatsApp') + btnFila('cita', p, 'event', 'Nueva cita') + btnFila('editar', p, 'edit', 'Editar') + btnFila('mas', p, 'more_vert', 'Más acciones') +
           '</td></tr>';
       }
@@ -1075,7 +1076,7 @@
         abrirMenu([
           { icono: 'assignment', texto: 'Valoración', fn: a('valoracion') },
           { sep: true },
-          tieneHC ? { icono: 'sync', texto: 'Actualizar Historia Clínica', fn: a('actualizarhc') } : { icono: 'note_add', texto: 'Crear Historia Clínica', fn: a('crearhc') },
+          tieneHC ? null : { icono: 'note_add', texto: 'Crear Historia Clínica', fn: a('crearhc') },
           tieneHC ? null : { icono: 'manage_search', texto: 'Buscar HC huérfana', fn: a('buscarhc') },
           { icono: 'how_to_reg', texto: 'Dar de alta', fn: a('alta') },
           { sep: true },

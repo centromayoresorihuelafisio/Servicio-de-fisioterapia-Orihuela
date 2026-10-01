@@ -593,6 +593,52 @@ function generarUrlWhatsappParaAgendaWeb(fila) {
 }
 
 /**
+ * Da de alta al paciente de una cita de la Agenda: localiza su fila en la
+ * Maestra por el nombre (igual que el botón de WhatsApp de la Agenda) y
+ * reutiliza darDeAltaPacienteWeb(), el mismo proceso del botón Alta de la
+ * Base de Datos Web (Estado, fechas y fecha de alta en la Historia Clínica).
+ */
+function darDeAltaPacienteParaAgendaWeb(fila) {
+  try {
+    const sheet = obtenerHojaAgenda();
+    const rowIdx = parseInt(fila, 10);
+    if (!rowIdx || rowIdx < 2 || rowIdx > sheet.getLastRow()) {
+      return { success: false, message: 'Fila no válida.' };
+    }
+
+    const lastCol = sheet.getLastColumn();
+    const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(h => h.toString().trim());
+    const colUsuario = headers.indexOf(COLUMNAS.AGENDA.USUARIO);
+    if (colUsuario === -1) return { success: false, message: 'No se encontró la columna "Usuario" en la Agenda.' };
+
+    const nombreCompleto = sheet.getRange(rowIdx, colUsuario + 1).getValue();
+    if (!nombreCompleto || nombreCompleto.toString().trim() === '') {
+      return { success: false, message: 'Esa fila no tiene paciente asignado.' };
+    }
+
+    const maestra = getSS().getSheetByName(SHEETS.MAESTRA);
+    if (!maestra) return { success: false, message: "No se encontró la hoja 'Base de Datos Maestra'." };
+    const lastRow = maestra.getLastRow();
+    if (lastRow < 2) return { success: false, message: 'No hay pacientes registrados en la Maestra.' };
+
+    const buscado = nombreCompleto.toString().trim();
+    const nombres = maestra.getRange(2, indiceColumnaNombreMaestra_(maestra) + 1, lastRow - 1, 1).getValues();
+    let filaMaestra = -1;
+    for (let i = 0; i < nombres.length; i++) {
+      if (String(nombres[i][0]).trim() === buscado) { filaMaestra = i + 2; break; }
+    }
+    if (filaMaestra === -1) {
+      return { success: false, message: 'No se encontró a "' + buscado + '" en la Base de Datos Maestra.' };
+    }
+
+    return darDeAltaPacienteWeb(filaMaestra);
+  } catch (e) {
+    Logger.log('Error en darDeAltaPacienteParaAgendaWeb: ' + e.message);
+    return { success: false, message: e.message };
+  }
+}
+
+/**
  * Construye, en una sola lectura de toda la Agenda, un índice
  * "yyyy-MM-dd|H:mm" → número de fila. Lo usa _prepararCopiaCita() (llamada
  * desde copiarVariasCitasWeb) para localizar la cita destino sin depender de

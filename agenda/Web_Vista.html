@@ -429,6 +429,7 @@
       .btn-asis.ok:hover    { background: rgba(30,142,62,.15);  color: #1b6a33; }
       .btn-asis.mal:hover   { background: rgba(217,48,37,.13);  color: #a52f29; }
       .btn-asis.aviso:hover { background: rgba(240,165,0,.20);  color: #7a5200; }
+      .btn-asis.neutro:hover { background: rgba(88,96,116,.14); color: #4a5265; }
       .btn-asis-lg {
         width: auto; height: 28px; border-radius: 999px; padding: 0 .65rem 0 .3rem; gap: .2rem;
         font-size: .76rem; font-weight: 600; border: 1px solid var(--ag-line); color: var(--ag-text-med); font-family: var(--font);
@@ -439,8 +440,8 @@
         display: inline-flex; align-items: center; justify-content: center; min-width: 24px; height: 24px;
         padding: 0 .4rem; border-radius: 999px; font-size: .8rem; font-weight: 700;
       }
-      .badge-sesion.s1 { background: var(--ag-container); color: var(--ag-accent-dark); }
-      .badge-sesion.sn { background: rgba(0,74,119,.08); color: var(--ag-text-med); }
+      .badge-sesion.s1, .badge-sesion.sn { background: rgba(0,74,119,.08); color: var(--ag-text-med); }
+      .badge-sesion.s1 { box-shadow: inset 0 0 0 1.5px var(--ag-accent); } /* primera sesión: mismo gris + anillo azul fino */
       .ic-nota { font-size: 16px; vertical-align: -3px; margin-right: .3rem; color: var(--ag-text-low); }
       .btn-fila {
         display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px;
@@ -449,6 +450,7 @@
       }
       .btn-fila:hover { background: var(--ag-accent-soft); color: var(--ag-accent-dark); }
       .btn-fila.peligro:hover { background: var(--ag-error-bg); color: var(--ag-error); }
+      .btn-fila.btn-whatsapp:hover { color: #25d366; }
       .btn-fila .material-symbols-outlined { font-size: 18px; }
       .acciones-fila .btn-fila { opacity: 0; }
       tbody tr:hover .acciones-fila .btn-fila, tbody tr.seleccionada .acciones-fila .btn-fila, .acciones-fila .btn-fila:focus-visible { opacity: 1; }
@@ -497,6 +499,7 @@
       .tarjeta.hueco { border-style: dashed; background: transparent; cursor: default; flex-direction: row; align-items: center; gap: .8rem; }
       .tarjeta.hueco:hover { box-shadow: none; }
       .tj-top { display: flex; align-items: center; gap: .55rem; }
+      .tj-acciones { display: inline-flex; flex-shrink: 0; }
       .tj-hora { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; }
       .tj-fill { flex: 1; }
       .tj-nombre { font-weight: 600; font-size: .95rem; line-height: 1.3; }
@@ -652,7 +655,7 @@
       body.arrastrando-cita .cal-hueco { background: var(--ag-drop); }
       .cal-hueco.destino-drop, .cal-cita.destino-drop { background: var(--ag-container) !important; box-shadow: 0 0 0 2px var(--ag-accent); }
       thead th.th-notas { width: auto; }
-      thead th:last-child, tbody td.acciones-fila { width: 144px; padding: 0 .5rem; text-align: right; white-space: nowrap; overflow: visible; text-overflow: clip; }
+      thead th:last-child, tbody td.acciones-fila { width: 176px; padding: 0 .5rem; text-align: right; white-space: nowrap; overflow: visible; text-overflow: clip; }
       .btn-fila.con-hc { color: var(--ag-accent); }
       .btn-fila.sin-hc .material-symbols-outlined { opacity: .35; }
     </style>
@@ -1010,13 +1013,19 @@
           var just = ops.filter(function(op) { return /justific/.test(normalizar(op)); });
           if (just.length) return just[0];
         }
+        if (clase === 'neutro') {
+          // Lo no reconocido también cae en 'neutro': aquí solo vale una opción "Pendiente".
+          var pend = ops.filter(function(op) { return /pendient/.test(normalizar(op)); });
+          return pend[0] || '';
+        }
         return ops[0] || '';
       }
 
       var ASIS_RAPIDA = [
-        { clase: 'ok',    icono: 'check_circle' },
-        { clase: 'mal',   icono: 'cancel' },
-        { clase: 'aviso', icono: 'event_busy' }
+        { clase: 'ok',     icono: 'check_circle' },
+        { clase: 'mal',    icono: 'cancel' },
+        { clase: 'aviso',  icono: 'event_busy' },
+        { clase: 'neutro', icono: 'hourglass_empty' }
       ];
 
       function htmlAsistenciaRapida(conTexto) {
@@ -1032,8 +1041,12 @@
       function badgeSesion(v) {
         var t = (v + '').trim();
         if (!/^\d+$/.test(t)) return escapar(v);
-        return '<span class="badge-sesion ' + (t === '1' ? 's1' : 'sn') + '" title="Sesión ' + t + '">' + t + '</span>';
+        return '<span class="badge-sesion ' + (t === '1' ? 's1' : 'sn') + '" title="' + (t === '1' ? 'Primera sesión' : 'Sesión ' + t) + '">' + t + '</span>';
       }
+
+      // Mismo icono de WhatsApp que usa la Base de Datos.
+      var SVG_WHATSAPP = '<svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 16 16" fill="currentColor">' +
+        '<path d="M13.601 2.326A7.854 7.854 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.933 7.933 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.898 7.898 0 0 0 13.6 2.326zM7.994 14.521a6.573 6.573 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.557 6.557 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592zm3.615-4.934c-.197-.099-1.17-.578-1.353-.646-.182-.065-.315-.099-.445.099-.133.197-.513.646-.627.775-.114.133-.232.148-.43.05-.197-.1-.836-.308-1.592-.985-.59-.525-.985-1.175-1.103-1.372-.114-.198-.011-.304.088-.403.087-.088.197-.232.296-.346.1-.114.133-.198.198-.33.065-.134.034-.248-.015-.347-.05-.099-.445-1.076-.612-1.47-.16-.389-.323-.335-.445-.34-.114-.007-.247-.007-.38-.007a.729.729 0 0 0-.529.247c-.182.198-.691.677-.691 1.654 0 .977.71 1.916.81 2.049.098.133 1.394 2.132 3.383 2.992.47.205.84.326 1.129.418.475.152.904.129 1.246.08.38-.058 1.171-.48 1.338-.943.164-.464.164-.86.114-.943-.049-.084-.182-.133-.38-.232z"/></svg>';
 
       function htmlBotonesFila(fila, cita) {
         var btnHC = '';
@@ -1044,8 +1057,9 @@
             (tiene ? 'Abrir Historia Clínica' : 'Sin Historia Clínica enlazada') + '"><span class="material-symbols-outlined">description</span></button>';
         }
         return btnHC +
-          '<button type="button" class="btn-fila" data-accion="whatsapp" data-fila="' + fila + '" title="Abrir WhatsApp"><span class="material-symbols-outlined">chat</span></button>' +
+          '<button type="button" class="btn-fila btn-whatsapp" data-accion="whatsapp" data-fila="' + fila + '" title="Abrir WhatsApp">' + SVG_WHATSAPP + '</button>' +
           '<button type="button" class="btn-fila" data-accion="valoracion" data-fila="' + fila + '" title="Valoración"><span class="material-symbols-outlined">assignment</span></button>' +
+          '<button type="button" class="btn-fila" data-accion="alta" data-fila="' + fila + '" title="Dar de alta"><span class="material-symbols-outlined">how_to_reg</span></button>' +
           '<button type="button" class="btn-fila peligro" data-accion="borrar" data-fila="' + fila + '" title="Liberar este hueco (borra todos los datos de la cita)"><span class="material-symbols-outlined">delete</span></button>';
       }
 
@@ -1289,7 +1303,7 @@
 
         var vAsis = c['Asistencia'];
         var asis = vacioTxt(vAsis)
-          ? '<div class="tj-asis"><span class="asis-rapida">' + htmlAsistenciaRapida(true) + '</span></div>'
+          ? '<div class="tj-asis"><span class="asis-rapida">' + htmlAsistenciaRapida(false) + '</span></div>'
           : '<div class="tj-asis editable" data-campo="Asistencia" data-fila="' + c._fila + '" data-valor="' + escapar(vAsis) + '"><span class="chip chip-' + estiloAsistencia(vAsis) + '">' + escapar(vAsis) + '</span></div>';
 
         var vNotas = c['Notas'];
@@ -1305,7 +1319,7 @@
         var meta = (vacioTxt(c['Sesión']) ? '' : badgeSesion(c['Sesión'])) + (vacioTxt(tel) ? '' : '<span>' + escapar(tel) + '</span>');
 
         return '<div class="' + clases.join(' ') + '" data-fila="' + c._fila + '">' +
-          '<div class="tj-top"><span class="asa material-symbols-outlined" title="Arrastra para mover la cita a otro hueco libre">drag_indicator</span><span class="chk"></span><span class="tj-hora">' + escapar(hora) + '</span>' + tagTxt + '<span class="tj-fill"></span>' + htmlBotonesFila(c._fila) + '</div>' +
+          '<div class="tj-top"><span class="asa material-symbols-outlined" title="Arrastra para mover la cita a otro hueco libre">drag_indicator</span><span class="chk"></span><span class="tj-hora">' + escapar(hora) + '</span>' + tagTxt + '<span class="tj-fill"></span><span class="tj-acciones">' + htmlBotonesFila(c._fila) + '</span></div>' +
           '<div class="tj-nombre" title="' + escapar(c['Usuario']) + '">' + avatarHtml(c['Usuario']) + '<span class="nombre-u">' + escapar(c['Usuario']) + '</span></div>' +
           '<div class="tj-meta">' + meta + '</div>' + asis + notas + '<div class="tj-pie">' + pie + '</div></div>';
       }
@@ -1608,6 +1622,7 @@
           if (acc === 'hc') abrirHCFila(f);
           else if (acc === 'borrar') manejarBorrarFila(f);
           else if (acc === 'whatsapp') abrirWhatsappFila(f);
+          else if (acc === 'alta') manejarAltaFila(f);
           else if (acc === 'valoracion') {
             var ci = CITAS.find(function(c) { return c._fila == f; });
             if (ci) abrirValoracionCita(ci['Usuario']);
@@ -1704,6 +1719,20 @@
             mostrarAviso('Error al abrir WhatsApp: ' + err);
           })
           .generarUrlWhatsappParaAgendaWeb(fila);
+      }
+
+      // Dar de alta al paciente de la cita (mismo proceso que el botón Alta de la Base de Datos).
+      async function manejarAltaFila(fila) {
+        var cita = CITAS.find(function(c) { return c._fila == fila; });
+        var nombre = cita ? (cita['Usuario'] || '') : '';
+        if (!nombre) { mostrarAviso('Esa fila no tiene paciente asignado.'); return; }
+        var confirmado = await mostrarConfirm('¿Dar de alta a ' + nombre + '?');
+        if (!confirmado) return;
+
+        google.script.run
+          .withSuccessHandler(function(res) { mostrarAviso(res.message); })
+          .withFailureHandler(function(err) { mostrarAviso('Error al dar de alta: ' + err); })
+          .darDeAltaPacienteParaAgendaWeb(fila);
       }
 
       document.getElementById('btnValoracion').addEventListener('click', function() {
