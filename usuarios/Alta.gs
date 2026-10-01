@@ -18,57 +18,56 @@ function actualizarFechaAltaEnDoc(docUrl) {
     // 2. Abrir el documento
     const doc = DocumentApp.openById(docId);
     const body = doc.getBody();
-    
+
     const newText = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "dd/MM/yyyy");
     let altaActualizada = false;
 
     // 3. Buscar la tabla de ASISTENCIA
     for (let i = 0; i < body.getNumChildren(); i++) {
       const child = body.getChild(i);
-      
+
       if (child.getType() === DocumentApp.ElementType.TABLE) {
         const table = child.asTable();
-        
+
         // Verificamos si la tabla contiene los encabezados relevantes.
         try {
-            const firstCellText = table.getCell(0, 0).getText().trim().toUpperCase();
-            Logger.log("Checking table: First cell text is '" + firstCellText + "'");
-            
-            if (firstCellText.includes("INGRESO") || firstCellText.includes("FECHA") || firstCellText.includes("ASISTENCIA")) {
-                Logger.log("FOUND ASISTENCIA TABLE. Searching for empty ALTA cell...");
-                
-                // Iteramos sobre las filas de la tabla, empezando desde la segunda fila (índice 1)
-                for (let r = 1; r < table.getNumRows(); r++) {
-                    // Columna 1 (ALTA) - Recordar que la columna 0 es INGRESO, la 1 es ALTA
-                    const altaCell = table.getCell(r, 1); 
-                    
-                    const cellContent = altaCell.getText().trim().toLowerCase();
-                    Logger.log(`Row ${r}: ALTA cell content is '${cellContent}'`);
+          const firstCellText = table.getCell(0, 0).getText().trim().toUpperCase();
+          Logger.log("Checking table: First cell text is '" + firstCellText + "'");
 
-                    // Si la celda de ALTA está vacía o tiene el texto de placeholder "Fecha", escribimos la fecha
-                    if (cellContent === "" || cellContent === "fecha") {
-                        altaCell.setText(newText);
-                        altaActualizada = true;
-                        Logger.log(`Date written to row ${r}.`);
-                        break; // Salimos del bucle de filas
-                    }
-                }
+          if (firstCellText.includes("INGRESO") || firstCellText.includes("FECHA") || firstCellText.includes("ASISTENCIA")) {
+            Logger.log("FOUND ASISTENCIA TABLE. Searching for empty ALTA cell...");
+
+            // Iteramos sobre las filas de la tabla, empezando desde la segunda fila (índice 1)
+            for (let r = 1; r < table.getNumRows(); r++) {
+              // Columna 1 (ALTA) - Recordar que la columna 0 es INGRESO, la 1 es ALTA
+              const altaCell = table.getCell(r, 1);
+
+              const cellContent = altaCell.getText().trim().toLowerCase();
+              Logger.log(`Row ${r}: ALTA cell content is '${cellContent}'`);
+
+              // Si la celda de ALTA está vacía o tiene el texto de placeholder "Fecha", escribimos la fecha
+              if (cellContent === "" || cellContent === "fecha") {
+                altaCell.setText(newText);
+                altaActualizada = true;
+                Logger.log(`Date written to row ${r}.`);
+                break; // Salimos del bucle de filas
+              }
             }
-        } catch(e) {
-            // Ignorar errores al acceder a celdas si la tabla no es la correcta
-            Logger.log("Error checking cell in table (expected for non-matching tables): " + e);
-            continue;
+          }
+        } catch (e) {
+          // Ignorar errores al acceder a celdas si la tabla no es la correcta
+          Logger.log("Error checking cell in table (expected for non-matching tables): " + e);
+          continue;
         }
-
       }
-      
+
       if (altaActualizada) break; // Salimos del bucle de children
     }
 
     doc.saveAndClose();
 
     if (altaActualizada) {
-      return `✅ Fecha de alta (${newText}) actualizada.`;
+      return `📅 Fecha de alta (${newText}).`;
     } else {
       return "⚠️ No se encontró la tabla de ASISTENCIA/ALTA o no hay celdas de ALTA vacías disponibles en el documento.";
     }
@@ -80,12 +79,26 @@ function actualizarFechaAltaEnDoc(docUrl) {
   }
 }
 
-// ... Resto de la función darDeAltaPaciente() queda igual
-
+/**
+ * Versión de menú: da de alta al paciente de la fila seleccionada
+ * en la hoja maestra.
+ */
 function darDeAltaPaciente() {
   const ui = SpreadsheetApp.getUi();
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName(SHEETS.MAESTRA);
+
+  if (!sheet) {
+    ui.alert("No se encontró la hoja maestra de pacientes.");
+    return;
+  }
+
+  // La selección activa pertenece a la hoja que está abierta: si no es la
+  // maestra, la fila seleccionada no corresponde a ningún paciente.
+  if (ss.getActiveSheet().getName() !== sheet.getName()) {
+    ui.alert("Ve a la hoja '" + sheet.getName() + "' y selecciona la fila del paciente.");
+    return;
+  }
 
   const activeRow = sheet.getActiveRange().getRow();
   if (activeRow === 1) {
@@ -115,11 +128,11 @@ function darDeAltaPacienteWeb(fila) {
 }
 
 /**
- * Lógica compartida (antes dentro de darDeAltaPaciente): busca columnas por
- * sinónimos, valida el estado actual, actualiza Estado/Tipo de Ingreso/Fechas
- * y, si es posible, escribe la fecha de alta en el documento de Historia
- * Clínica enlazado. Devuelve { success, message } en vez de usar ui.alert,
- * para poder reutilizarse tanto desde el menú como desde la Web App.
+ * Lógica compartida: busca columnas por sinónimos, valida el estado actual,
+ * actualiza Estado, Tipo de Ingreso y Última visita (la Fecha de inscripción
+ * se conserva) y, si es posible, escribe la fecha de alta en el documento de
+ * Historia Clínica enlazado. Devuelve { success, message } en vez de usar
+ * ui.alert, para poder reutilizarse tanto desde el menú como desde la Web App.
  */
 function _ejecutarAltaEnFila(sheet, activeRow) {
   const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
@@ -134,24 +147,27 @@ function _ejecutarAltaEnFila(sheet, activeRow) {
       .replace(/columna/g, "");
   }
 
+  // Los sinónimos van por orden de prioridad: se busca primero el más
+  // específico, y solo si no aparece se prueba el siguiente.
   const synonyms = {
     estado: ["estado", "status"],
-    tipoIngreso: ["tipo de ingreso", "ingreso", "alta", "origen"],
-    fechaInscripcion: ["fecha inscripción", "inscripción", "alta inicial"],
+    tipoIngreso: ["tipo de ingreso", "ingreso", "origen", "alta"],
     ultimaVisita: ["última visita", "visita"],
     historiaClinica: ["historia clínica", "historia", "enlace"],
   };
 
+  const cleanHeaders = headers.map(clean);
+
   function findColumnIndex(targets) {
-    return headers.findIndex(header => {
-      const cleanHeader = clean(header);
-      return targets.some(t => cleanHeader.includes(clean(t)));
-    });
+    for (const target of targets) {
+      const idx = cleanHeaders.findIndex(h => h.includes(clean(target)));
+      if (idx !== -1) return idx;
+    }
+    return -1;
   }
 
   const estadoCol = findColumnIndex(synonyms.estado);
   const tipoIngresoCol = findColumnIndex(synonyms.tipoIngreso);
-  const fechaInscripcionCol = findColumnIndex(synonyms.fechaInscripcion);
   const ultimaVisitaCol = findColumnIndex(synonyms.ultimaVisita);
   const historiaClinicaCol = findColumnIndex(synonyms.historiaClinica);
 
@@ -169,18 +185,16 @@ function _ejecutarAltaEnFila(sheet, activeRow) {
     return { success: false, message: "El usuario ya está dado de alta." };
   }
 
-  const fechaInscripcionRange = (fechaInscripcionCol !== -1) ? sheet.getRange(activeRow, fechaInscripcionCol + 1) : null;
   const ultimaVisitaRange = (ultimaVisitaCol !== -1) ? sheet.getRange(activeRow, ultimaVisitaCol + 1) : null;
 
   estadoRange.setValue("✔️ Alta");
   tipoIngresoRange.setValue("");
-
-  if (fechaInscripcionRange) fechaInscripcionRange.setValue("");
+  // La Fecha de inscripción NO se toca: se conserva al dar el alta.
 
   let ultimaVisitaMsg = "";
   if (ultimaVisitaRange) {
     ultimaVisitaRange.setValue(new Date());
-    ultimaVisitaMsg = "Fecha ctualizada.";
+    ultimaVisitaMsg = "Fecha actualizada.";
   }
 
   let finalMessage = "✅ Alta correcta.";
@@ -190,6 +204,7 @@ function _ejecutarAltaEnFila(sheet, activeRow) {
     const historiaClinicaRange = sheet.getRange(activeRow, historiaClinicaCol + 1);
     let docUrl = "";
 
+    // 1. Hipervínculo en Rich Text (el caso habitual)
     try {
       const richText = historiaClinicaRange.getRichTextValue();
       if (richText) {
@@ -198,13 +213,15 @@ function _ejecutarAltaEnFila(sheet, activeRow) {
       }
     } catch (e) { /* no era rich text */ }
 
+    // 2. Fórmula HYPERLINK / HIPERVINCULO, o URL escrita como texto
     if (!docUrl) {
       const formula = historiaClinicaRange.getFormula();
-      if (formula.startsWith('=HIPERVINCULO')) {
-        const match = formula.match(/=HIPERVINCULO\s*\(\s*\"(.*?)\"\s*[;,]/i);
-        if (match && match[1]) docUrl = match[1];
-      } else if (typeof historiaClinicaRange.getValue() === 'string' && historiaClinicaRange.getValue().startsWith('http')) {
-        docUrl = historiaClinicaRange.getValue();
+      const match = formula && formula.match(/^=\s*(?:HYPERLINK|HIPERVINCULO)\s*\(\s*"(.*?)"\s*(?:[;,)])/i);
+      if (match && match[1]) {
+        docUrl = match[1];
+      } else {
+        const value = historiaClinicaRange.getValue();
+        if (typeof value === 'string' && value.startsWith('http')) docUrl = value;
       }
     }
 

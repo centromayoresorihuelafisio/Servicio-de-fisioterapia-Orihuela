@@ -13,18 +13,28 @@ function ordenarPacientes() {
     return;
   }
 
-  const headersLower = data[0].map(h => h.toString().trim().toLowerCase());
+  // Encabezados normalizados (minúsculas y sin acentos) para que "Última
+  // visita" y "Ultima visita" se reconozcan igual.
+  const headersNorm = data[0].map(h =>
+    h.toString().trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+  );
 
-  function findColumnIndex(headers, keyword) {
-    return headers.findIndex(h => h.includes(keyword));
+  // Los keywords van por orden de prioridad: se busca primero el más
+  // específico y solo si no aparece se prueba el siguiente.
+  function findColumnIndex(...keywords) {
+    for (const keyword of keywords) {
+      const idx = headersNorm.findIndex(h => h.includes(keyword));
+      if (idx !== -1) return idx;
+    }
+    return -1;
   }
 
-  const idxEstado = findColumnIndex(headersLower, "estado");
-  const idxIngreso = findColumnIndex(headersLower, "ingreso");
-  const idxGravedad = findColumnIndex(headersLower, "gravedad");
-  const idxUltimaVisita = findColumnIndex(headersLower, "última");
-  const idxFechaInscripcion = findColumnIndex(headersLower, "inscripción");
-  const idxHistoria = findColumnIndex(headersLower, "historia");
+  const idxEstado = findColumnIndex("estado");
+  const idxIngreso = findColumnIndex("tipo de ingreso", "ingreso");
+  const idxGravedad = findColumnIndex("gravedad");
+  const idxUltimaVisita = findColumnIndex("ultima visita", "ultima");
+  const idxFechaInscripcion = findColumnIndex("fecha inscripcion", "inscripcion");
+  const idxHistoria = findColumnIndex("historia clinica", "historia");
 
   if (idxEstado === -1 || idxIngreso === -1 || idxGravedad === -1 || idxUltimaVisita === -1 || idxFechaInscripcion === -1) {
     Logger.log("No se encontraron todas las columnas necesarias");
@@ -33,6 +43,7 @@ function ordenarPacientes() {
   }
 
   const now = new Date();
+  const MS_POR_DIA = 1000 * 60 * 60 * 24;
 
   // Cálculo de scores en memoria; los guardamos ya en la propia matriz
   // `data` (columna 1) para no necesitar una escritura aparte.
@@ -46,6 +57,7 @@ function ordenarPacientes() {
     }
 
     const estado = estadoRaw.toString().trim();
+    const esAlta = estado === "✔️ Alta";
     const ingreso = row[idxIngreso].toString().trim();
     const gravedad = row[idxGravedad].toString().trim();
     const fechaUlt = parseFecha(row[idxUltimaVisita]);
@@ -71,12 +83,19 @@ function ordenarPacientes() {
     if (gravedad === "🟠 Moderado") score += 20;
     if (gravedad === "🔴 Urgente") score += 30;
 
-    if (fechaIns) {
-      let diffDays = Math.floor((now - fechaIns) / (1000 * 60 * 60 * 24));
+    // Desempate por fechas:
+    //  - Si NO está de alta y tiene fecha de inscripción: cuenta el tiempo
+    //    de espera desde la inscripción (0,02 puntos por día).
+    //  - En cualquier otro caso (alta, o sin inscripción): cuenta el tiempo
+    //    desde la última visita (0,01 puntos por día).
+    // Así los altas conservan su fecha de inscripción en la hoja sin que
+    // eso altere su posición en la lista.
+    if (fechaIns && !esAlta) {
+      let diffDays = Math.floor((now - fechaIns) / MS_POR_DIA);
       if (diffDays < 0) diffDays = 0;
       score += diffDays * 0.02;
     } else if (fechaUlt) {
-      let diffDays2 = Math.floor((now - fechaUlt) / (1000 * 60 * 60 * 24));
+      let diffDays2 = Math.floor((now - fechaUlt) / MS_POR_DIA);
       if (diffDays2 < 0) diffDays2 = 0;
       score += diffDays2 * 0.01;
     }
