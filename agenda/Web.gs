@@ -1,3 +1,4 @@
+
 // hoja plana que genera "herramientas/Aplanar_Agenda.gs". Reutiliza obtenerHojaAgenda()
 // (core/Utils.gs) para no duplicar la lógica de encontrar la hoja del curso activo,
 // y extraerUrlHistoriaClinica() para leer el enlace igual que en la Base de
@@ -489,7 +490,10 @@ function asignarPacienteHuecoWeb(fila, nombrePaciente) {
       return { success: false, message: 'Fila no válida.' };
     }
 
-    const nombre = (nombrePaciente || '').toString().trim();
+    // Regla única de nombres (core/Utils.gs). Si el paciente existe en la Maestra se usa SU grafía
+    // guardada (la comparación ignora tildes y mayúsculas), así los nombres antiguos con tildes siguen
+    // enlazando aunque se escriban sin ellas.
+    let nombre = normalizarNombreUsuario(nombrePaciente);
     if (!nombre) return { success: false, message: 'Escribe el nombre del paciente.' };
 
     const lastCol = sheet.getLastColumn();
@@ -524,8 +528,9 @@ function asignarPacienteHuecoWeb(fila, nombrePaciente) {
       let filaMaestra = -1;
       for (let i = 0; i < nombresM.length; i++) {
         const nombreFila = nombresM[i][0] ? nombresM[i][0].toString().trim() : '';
-        if (nombreFila.toLowerCase() === nombre.toLowerCase()) {
+        if (nombreFila && normalizarTexto(nombreFila) === normalizarTexto(nombre)) {
           filaMaestra = i + 2; // fila real en la hoja
+          nombre = nombreFila;
           break;
         }
       }
@@ -1125,3 +1130,5 @@ function intercambiarCitasWeb(filaA, filaB) {
     try { lock.releaseLock(); } catch (err) { /* sin bloqueo que liberar */ }
   }
 }
+
+

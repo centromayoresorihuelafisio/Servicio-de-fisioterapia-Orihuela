@@ -1,0 +1,49 @@
+
+<!--
+  ui/JS_Formato_Nombre.html
+  REGLA ÚNICA de formato para nombres de usuario y DNI en todos los formularios y pantallas.
+    · Nombre: MAYÚSCULAS, sin tildes (la Ñ se conserva), solo letras y espacios, sin espacios dobles.
+    · DNI:    MAYÚSCULAS.
+  La misma regla se aplica en el servidor: normalizarNombreUsuario() y normalizarDniUsuario()
+  en core/Utils.gs (si cambias una, cambia la otra).
+
+  Se incluye desde un scriptlet de tipo include('ui/JS_Formato_Nombre') con "!" (fuera de cualquier
+  bloque de script), ANTES del script principal de la página. Uso:
+    enlazarFormatoNombre(inputElemento);   enlazarFormatoDni(inputElemento);
+  Para valores ya escritos: formatoNombreFinal(texto) (quita además los espacios de los extremos).
+-->
+<script>
+  function formatoNombreEscribiendo(v) {
+    return (v || '').toString().normalize('NFC').toUpperCase()
+      .replace(/Ñ/g, '\u0001')                              // aparta la Ñ para que NFD no la reduzca a N
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')      // quita tildes
+      .replace(/\u0001/g, 'Ñ')
+      .replace(/[^A-ZÑ ]/g, '')                              // solo letras y espacios
+      .replace(/^ +/, '')                                    // sin espacios al principio
+      .replace(/ {2,}/g, ' ');                               // sin espacios dobles
+  }
+  function formatoNombreFinal(v) { return formatoNombreEscribiendo(v).trim(); }
+  function formatoDni(v) { return (v || '').toString().toUpperCase(); }
+  function sinTildes(v) { return (v || '').toString().normalize('NFD').replace(/[\u0300-\u036f]/g, ''); }
+
+  // Aplica `fn` al valor del input conservando la posición del cursor (si no cambia nada, no lo toca).
+  function aplicarFormatoInput_(input, fn) {
+    var v = input.value, n = fn(v);
+    if (v === n) return;
+    var pos = input.selectionStart, enfocado = (document.activeElement === input);
+    input.value = n;
+    if (enfocado && pos !== null) {
+      var p = fn(v.slice(0, pos)).length;
+      try { input.setSelectionRange(p, p); } catch (e) { /* tipos de input sin selección */ }
+    }
+  }
+  function sanitizeName(input) { aplicarFormatoInput_(input, formatoNombreEscribiendo); }
+  function sanitizeDni(input)  { aplicarFormatoInput_(input, formatoDni); }
+
+  function enlazarFormatoNombre(input) {
+    if (input) input.addEventListener('input', function (e) { if (!e.isComposing) sanitizeName(input); });
+  }
+  function enlazarFormatoDni(input) {
+    if (input) input.addEventListener('input', function (e) { if (!e.isComposing) sanitizeDni(input); });
+  }
+</script>

@@ -1,3 +1,4 @@
+
 /**
  * Lee una fila de la Maestra y la deja lista para el formulario de edición
  * (cabeceras + valores, con las fechas convertidas a "yyyy-MM-dd" para que
@@ -85,6 +86,26 @@ function actualizarPaciente(updatedData, rowIdx) {
     return value || "";
   });
   
+  // Formato unificado (core/Utils.gs). El DNI siempre en mayúsculas; el nombre solo se
+  // normaliza si se ha modificado, para no reescribir en silencio nombres ya guardados
+  // (que podrían estar enlazados por texto con la Agenda o las Historias Clínicas).
+  const colNombreIdx = headers.indexOf(COLUMNAS.MAESTRA.NOMBRE);
+  const colDniIdx = headers.indexOf(COLUMNAS.MAESTRA.DNI);
+  if (colNombreIdx !== -1 || colDniIdx !== -1) {
+    const filaActual = sheet.getRange(rowIdx, 1, 1, headers.length).getValues()[0];
+    if (colNombreIdx !== -1) {
+      const nombreAntes = (filaActual[colNombreIdx] || '').toString().trim();
+      const nombreEnviado = (newRowValues[colNombreIdx] || '').toString().trim();
+      if (nombreEnviado !== nombreAntes) {
+        const nombreNuevo = normalizarNombreUsuario(nombreEnviado);
+        // throw (no return): el formulario trata cualquier respuesta como "guardado" y solo muestra el aviso si hay error
+        if (!nombreNuevo) throw new Error('El nombre no puede quedar vacío y solo admite letras y espacios.');
+        newRowValues[colNombreIdx] = nombreNuevo;
+      }
+    }
+    if (colDniIdx !== -1) newRowValues[colDniIdx] = normalizarDniUsuario(newRowValues[colDniIdx]);
+  }
+
   const colNacimientoIdx = headers.indexOf(COLUMNAS.MAESTRA.FECHA_NACIMIENTO);
   const colEdadIdx = headers.indexOf(COLUMNAS.MAESTRA.EDAD);
   if (colNacimientoIdx !== -1 && colEdadIdx !== -1) {
@@ -101,3 +122,5 @@ function actualizarPaciente(updatedData, rowIdx) {
   ss.toast("Datos actualizados y guardados en la hoja.", "Éxito ✅", 4);
   return true;
 }
+
+

@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -601,6 +602,7 @@
     window.CONTEXTO_FORM = '<?= contexto ?>';
     window.BASE_URL_FORM = '<?= baseUrl ?>';
   </script>
+  <?!= include('ui/JS_Formato_Nombre'); ?>
   <?!= include('ui/JS_Cierre_Formulario'); ?>
 
   <script>
@@ -835,15 +837,7 @@
       updateSaveButtonState();
     }
 
-    // ── Normalizador de nombre (igual que en el formulario de inscripción) ──
-    function sanitizeName(input) {
-      let v = input.value.toUpperCase()
-        .replace(/[ÁÀÄÂÃ]/g,'A').replace(/[ÉÈËÊ]/g,'E')
-        .replace(/[ÍÌÏÎ]/g,'I').replace(/[ÓÒÖÔÕ]/g,'O')
-        .replace(/[ÚÙÜÛ]/g,'U').replace(/[ÝŸ]/g,'Y')
-        .replace(/[^A-ZÑ ]/g,'');
-      input.value = v;
-    }
+    // sanitizeName() viene de ui/JS_Formato_Nombre (regla única, compartida con el resto de formularios)
 
     // ── Quita tildes solo para comparar (no toca lo que ves en pantalla) ──
     function stripAccents(str) {
@@ -1009,3 +1003,6 @@
   </script>
 </body>
 </html>
+
+
+

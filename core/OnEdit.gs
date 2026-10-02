@@ -1,3 +1,4 @@
+
 /**
  * Se activa automáticamente al editar cualquier celda de la hoja de cálculo.
  */
@@ -27,8 +28,10 @@ function onEditPrincipal_(e) {
   var col = e.range.getColumn();
   var sheetName = hoja.getName();
   
-  // Guardamos el valor editado una sola vez
-  const usuarioBuscado = e.range.getValue() ? e.range.getValue().toString().trim() : "";
+  // 0️⃣ Formato unificado de nombre/DNI al escribir a mano en la hoja (core/Utils.gs).
+  // Guardamos el valor editado una sola vez, ya con el formato aplicado.
+  const valorEditado = aplicarFormatoEscrituraDirecta_(hoja, e.range, e.range.getValue());
+  const usuarioBuscado = valorEditado ? valorEditado.toString().trim() : "";
 
   // ==========================
   // 1️⃣ Calcular edad según fecha de nacimiento
@@ -143,3 +146,37 @@ function onEditPrincipal_(e) {
  * insertarEnlaceHistoriaClinica()... 
  * cargarMapaHistoriasClinicas()...
  */
+
+
+/**
+ * Aplica la regla única de formato cuando alguien escribe directamente en la hoja:
+ *  - Maestra · Nombre  -> normalizarNombreUsuario (mayúsculas, sin tildes, solo letras y espacios)
+ *  - Maestra · DNI     -> mayúsculas
+ *  - Agenda · Usuario  -> solo si el texto son únicamente letras y espacios; los textos con
+ *                         números, símbolos o marcas (p. ej. "🟡 ...") se dejan tal cual.
+ * Solo actúa sobre ediciones de UNA celda con texto (los pegados de varias celdas, fechas y
+ * borrados no se tocan). Devuelve el valor que queda en la celda.
+ */
+function aplicarFormatoEscrituraDirecta_(hoja, rango, valor) {
+  if (rango.getNumRows() !== 1 || rango.getNumColumns() !== 1 || rango.getRow() < 2) return valor;
+  if (typeof valor !== 'string' || !valor) return valor;
+
+  const nombreHoja = hoja.getName();
+  const col = rango.getColumn();
+  let nuevo = valor;
+
+  if (nombreHoja === SHEETS.MAESTRA) {
+    const cabecera = hoja.getRange(1, 1, 1, hoja.getLastColumn()).getValues()[0];
+    if (col === cabecera.indexOf(COLUMNAS.MAESTRA.NOMBRE) + 1) {
+      nuevo = normalizarNombreUsuario(valor);
+      if (!nuevo) return valor; // sin letras (p. ej. solo números): no se borra lo escrito
+    } else if (col === cabecera.indexOf(COLUMNAS.MAESTRA.DNI) + 1) {
+      nuevo = normalizarDniUsuario(valor);
+    }
+  } else if (nombreHoja.startsWith('Agenda') && col === COLUMNAS_NUM.AGENDA.USUARIO) {
+    if (/^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ ]+$/.test(valor.trim())) nuevo = normalizarNombreUsuario(valor);
+  }
+
+  if (nuevo !== valor) rango.setValue(nuevo);
+  return nuevo;
+}

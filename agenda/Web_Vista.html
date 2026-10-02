@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es">
   <head>
@@ -783,6 +784,7 @@
     <div class="tabla-wrap" id="tablaWrap"></div>
 
     <?!= include('ui/Modal_Deshacer'); ?>
+    <?!= include('ui/JS_Formato_Nombre'); ?>
 
     <div class="toast-deshacer" id="toastMover">
       <span id="toastMoverTexto"></span>
@@ -1351,6 +1353,7 @@
         if (campo === 'Usuario') {
           td.innerHTML = '<input class="input-celda" list="listaPacientes" type="text" placeholder="Nombre del usuario…">';
           var inputNombre = td.querySelector('input');
+          enlazarFormatoNombre(inputNombre); // regla única de nombres (ui/JS_Formato_Nombre)
           inputNombre.focus();
           inputNombre.addEventListener('keydown', function(ev) {
             if (ev.key === 'Enter') inputNombre.blur();
@@ -2377,3 +2380,5 @@
     </script>
   </body>
 </html>
+
+

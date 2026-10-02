@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es">
   <head>
@@ -909,6 +910,7 @@
       </div>
     </div>
 
+    <?!= include('ui/JS_Formato_Nombre'); ?>
     <?!= include('ui/JS_Cierre_Formulario'); ?>
 
     <script>
@@ -976,6 +978,11 @@
         inp.value = formatPhone(inp.value);
         inp.addEventListener('input', function() { inp.value = formatPhone(inp.value); });
       });
+
+      // Nombre y DNI: misma regla que en el alta (ui/JS_Formato_Nombre). Solo se aplica al escribir:
+      // los datos ya guardados no se tocan hasta que alguien edite ese campo.
+      enlazarFormatoNombre(document.querySelector('input[name="Nombre"]'));
+      enlazarFormatoDni(document.querySelector('input[name="DNI"]'));
 
       <? headers.forEach(function(h) {
            if (h.indexOf("Patología") !== -1) {
@@ -1132,3 +1139,6 @@
     </script>
   </body>
 </html>
+
+
+

@@ -1,3 +1,4 @@
+
 // ARCHIVO: core/Utils.gs
 // Funciones compartidas y consolidadas (antes duplicadas en varios archivos).
 // Creado el 2026-07-09 para eliminar colisiones de nombres en Apps Script.
@@ -90,6 +91,29 @@ function normalizarTexto(texto) {
 function normalizarFormatoNombre(texto) {
   if (!texto) return '';
   return texto.toString().trim().toUpperCase();
+}
+
+/**
+ * REGLA ÚNICA para escribir el nombre de un usuario: MAYÚSCULAS, sin tildes (la Ñ se
+ * conserva), solo letras y espacios, sin espacios dobles ni en los extremos.
+ * Es la misma regla que aplica el navegador al escribir (ui/JS_Formato_Nombre.html →
+ * formatoNombreFinal): si cambias una, cambia la otra.
+ *   "María  Pérez-Núñez" -> "MARIA PEREZNUNEZ"   (el guion se elimina, igual que en el formulario)
+ */
+function normalizarNombreUsuario(texto) {
+  if (!texto) return '';
+  return texto.toString().normalize('NFC').toUpperCase()
+    .replace(/Ñ/g, '\u0001')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/\u0001/g, 'Ñ')
+    .replace(/[^A-ZÑ ]/g, '')
+    .replace(/ {2,}/g, ' ')
+    .trim();
+}
+
+/** DNI (o SIP) siempre en mayúsculas y sin espacios en los extremos. */
+function normalizarDniUsuario(texto) {
+  return texto ? texto.toString().trim().toUpperCase() : '';
 }
 
 /**
@@ -399,3 +423,5 @@ function calcularEdadDesdeFecha_(fechaNacimiento) {
   }
   return edad;
 }
+
+

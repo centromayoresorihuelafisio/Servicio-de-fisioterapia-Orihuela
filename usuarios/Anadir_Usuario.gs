@@ -1,3 +1,4 @@
+
 /**
  * Abre el diálogo modal con el formulario HTML.
  */
@@ -112,6 +113,13 @@ function guardarPaciente(datos) {
       nuevaFila[i] = valor;
     }
   }
+
+  // Formato unificado (core/Utils.gs): el formulario ya lo aplica al escribir; aquí se
+  // garantiza también en el servidor por si el dato llega de otra vía.
+  const colNombreFormato = encabezados.indexOf(COLUMNAS.MAESTRA.NOMBRE);
+  const colDniFormato = encabezados.indexOf(COLUMNAS.MAESTRA.DNI);
+  if (colNombreFormato !== -1) nuevaFila[colNombreFormato] = normalizarNombreUsuario(nuevaFila[colNombreFormato]);
+  if (colDniFormato !== -1) nuevaFila[colDniFormato] = normalizarDniUsuario(nuevaFila[colDniFormato]);
 
   // --- NUEVA LÓGICA: CÁLCULO AUTOMÁTICO DE LA EDAD ---
   // "Edad" está en columnasNoFormulario (el formulario nunca la rellena), así
@@ -316,7 +324,7 @@ function generarHistoriaClinicaRegistroUsuario(patientData) {
         const rowNombre = dataValues[i][nombreColIndex] ? dataValues[i][nombreColIndex].toString().trim().toUpperCase() : '';
 
         // Criterio de búsqueda: Primero por DNI idéntico, y si no tiene DNI por Nombre coincidente
-        if (dni && rowDni === dni.trim()) {
+        if (dni && rowDni.toUpperCase() === dni.trim().toUpperCase()) {
           targetRow = i + 1;
           break;
         } else if (!dni && rowNombre === nombre.trim().toUpperCase()) {
@@ -378,3 +386,6 @@ function generarHistoriaClinicaRegistroUsuario(patientData) {
     return { success: false, message: error.message };
   }
 }
+
+
+

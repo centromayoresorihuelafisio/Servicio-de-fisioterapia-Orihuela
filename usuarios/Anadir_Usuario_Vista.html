@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -1456,6 +1457,7 @@
     window.CONTEXTO_FORM = '<?= contexto ?>';
     window.BASE_URL_FORM = '<?= baseUrl ?>';
   </script>
+  <?!= include('ui/JS_Formato_Nombre'); ?>
   <?!= include('ui/JS_Cierre_Formulario'); ?>
 
   <!-- ══ Javascript Logics ══ -->
@@ -1508,19 +1510,12 @@
         input.value = f;
     }
 
-    // ── Name sanitizer ──
-    function sanitizeName(input) {
-      let v = input.value.toUpperCase()
-        .replace(/[ÁÀÄÂÃ]/g,'A').replace(/[ÉÈËÊ]/g,'E')
-        .replace(/[ÍÌÏÎ]/g,'I').replace(/[ÓÒÖÔÕ]/g,'O')
-        .replace(/[ÚÙÜÛ]/g,'U').replace(/[ÝŸ]/g,'Y')
-        .replace(/[^A-ZÑ ]/g,'');
-      input.value = v;
-    }
+    // sanitizeName() y sanitizeDni() vienen de ui/JS_Formato_Nombre (regla única, compartida con el resto de formularios)
 
     document.getElementById('telefono1').addEventListener('input', e => formatPhone(e.target));
     document.getElementById('telefono2').addEventListener('input', e => formatPhone(e.target));
     document.getElementById('nombre').addEventListener('input', e => sanitizeName(e.target));
+    document.getElementById('dni').addEventListener('input', e => sanitizeDni(e.target));
 
     // ── MEJORA 4: Validación con estado de error M3 ──
     function setFieldError(inputId, message) {
@@ -1801,6 +1796,10 @@
         msg.className = 'error'; msg.style.display = 'block'; return;
       }
 
+      // Valores finales con la regla única (sin espacios sobrantes) antes de enviar
+      document.getElementById('nombre').value = formatoNombreFinal(document.getElementById('nombre').value);
+      document.getElementById('dni').value = formatoDni(document.getElementById('dni').value).trim();
+
       const fd = new FormData(form);
       const datos = {};
       for (const [k,v] of fd.entries()) {
@@ -1893,3 +1892,6 @@
   </script>
 </body>
 </html>
+
+
+

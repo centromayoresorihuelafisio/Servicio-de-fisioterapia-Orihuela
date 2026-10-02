@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -772,6 +773,7 @@
     window.CONTEXTO_FORM = '<?= contexto ?>';
     window.BASE_URL_FORM = '<?= baseUrl ?>';
   </script>
+  <?!= include('ui/JS_Formato_Nombre'); ?>
   <?!= include('ui/JS_Cierre_Formulario'); ?>
 
   <script>
@@ -840,7 +842,9 @@
 
     /* ── Lógica Autocompletado (Forzada a mayúsculas) ── */
     nombreUsuarioInput.addEventListener('input', function() {
-      const val = this.value.trim().toUpperCase();
+      sanitizeName(this); // regla única (ui/JS_Formato_Nombre)
+      // Comparación sin tildes: así se encuentran también los nombres antiguos que se guardaron con ellas
+      const val = sinTildes(this.value.trim().toUpperCase());
       closeAllLists();
       
       if (!val) { 
@@ -851,7 +855,7 @@
         return; 
       }
       
-      const matches = allPatientsList.filter(name => name.toUpperCase().includes(val));
+      const matches = allPatientsList.filter(name => sinTildes(name.toUpperCase()).includes(val));
       if (matches.length === 0) return;
 
       listContainer.style.display = 'block';
@@ -1149,3 +1153,5 @@
   </script>
 </body>
 </html>
+
+
