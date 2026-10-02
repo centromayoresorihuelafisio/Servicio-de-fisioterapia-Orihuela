@@ -3,2190 +3,778 @@
   <head>
     <base target="_top">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Agenda</title>
+    <title>Valoraciones</title>
 
     <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
 
     <style>
       *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-      button, input, select { font-family: inherit; line-height: inherit; }
+      button, input, select, textarea { font-family: inherit; line-height: inherit; }
 
       <?!= include('ui/CSS_Global'); ?>
 
-      /* Paleta propia de la Agenda: tonos Material 3 desaturados. Los rellenos
-         de fila/día/turno son tintes translúcidos (rgba) que se apilan sobre
-         un fondo blanco opaco, así las columnas fijas no dejan ver lo que hay
-         debajo al desplazarse. */
-      :root {
-        --ag-accent:          #0b57d0;   /* primario: enlaces, foco, casillas */
-        --ag-accent-hover:    #0949b0;
-        --ag-accent-dark:     #004a77;   /* texto sobre contenedor tonal */
-        --ag-container:       #c2e7ff;   /* botón primario y pestaña activa */
-        --ag-container-hover: #a8d9f9;
-        --ag-accent-soft:     rgba(194,231,255,.55);
-
-        --ag-page:          #f8fafd;
-        --ag-surface:       #ffffff;
-        --ag-line:          #e3e8ef;
-        --ag-text:          #1f2430;
-        --ag-text-med:      #586074;
-        --ag-text-low:      #8a93a6;
-
-        --ag-tinte-par:     rgba(0,74,119,.075);
-        --ag-tinte-hover:   rgba(0,120,212,.12);
-        --ag-tinte-sel:     rgba(0,120,212,.22);
-        --ag-tinte-dia:     rgba(0,74,119,.09);
-        --ag-tinte-hoy:     rgba(0,120,212,.20);
-        --ag-tinte-manana:  rgba(0,74,119,.04);
-        --ag-tinte-tarde:   rgba(200,140,0,.10);
-        --ag-day-bg:        #e9eef3;
-
-        --ag-ok-bar:    #4c9f6a;
-        --ag-mal-bar:   #d9706a;
-        --ag-aviso-bar: #e3ad45;
-
-        --ag-error:         #b3261e;
-        --ag-error-bg:      #fdecea;
-        --ag-warning-bg:    #fff4d6;
-        --ag-warning-border:#f0c14b;
-        --ag-warning-text:  #6d5320;
-        --ag-warning-hover: #fdecc0;
-        --ag-toast-bg:      #323232;
-        --ag-toast-action:  #8ab4f8;
-        --ag-overlay:       rgba(32,33,36,.5);
-        --ag-t:             150ms ease;
-        --alto-thead:       36px;
-      }
-
       html, body { height: 100%; }
-      body {
-        font-family: var(--font);
-        background: var(--ag-page);
-        color: var(--ag-text);
-        display: flex;
-        flex-direction: column;
-        font-size: 14px;
-        line-height: 1.5;
-      }
+      body { font-family: var(--font); background: var(--md-bg); color: var(--md-on-surface); display: flex; flex-direction: column; font-size: 13px; }
 
-      .btn-toolbar:focus-visible, .btn-fila:focus-visible, .btn-asis:focus-visible, .seg:focus-visible, .chip-filtro:focus-visible, .menu-item:focus-visible,
-      nav.tabs-cambio a.tab-cambio:focus-visible, td a.link-hc:focus-visible {
-        outline: 2px solid var(--ag-accent); outline-offset: 2px;
-      }
-      .toast-deshacer button:focus-visible { outline: 2px solid var(--ag-toast-action); outline-offset: 2px; }
-      .buscador:focus-within, .selector-semana:focus-within { box-shadow: 0 0 0 2px var(--ag-accent); }
+      /* ===== Tema claro / oscuro (mismos tokens y misma clave 'temaApp' que Base de Datos y Agenda) ===== */
+      :root, :root[data-tema="claro"] { color-scheme: light; --md-texto-secundario: #45494f; --on-warn: #6b4300; --on-err: #9c2a1f; --on-purple: #5a2596; }
+      :root[data-tema="oscuro"] { --md-texto-secundario: #c7cdd8; --on-warn: #f6d58a; --on-err: #f7c5c2; --on-purple: #dcc3fb; }
+      @media (prefers-color-scheme: dark) { :root:not([data-tema]) { --md-texto-secundario: #c7cdd8; --on-warn: #f6d58a; --on-err: #f7c5c2; --on-purple: #dcc3fb;
+        --md-primary:#8ab4f8;--md-primary-dark:#c2e7ff;--md-primary-light:#1f3a5a;--md-primary-container:#274a72;--md-on-primary:#0b2544;
+        --md-success:#7fd39b;--md-success-bg:#173a24;--md-error:#f2b8b5;--md-error-bg:#3b1f1e;--md-warning:#f0c66a;--md-warning-bg:#3a3120;--md-purple:#c9a6f7;--md-purple-bg:#2f2440;
+        --md-bg:#121418;--md-surface:#1b1e24;--md-surface-variant:#242830;--md-outline:#333944;--md-on-surface:#e6e8ee;--md-on-surface-med:#aab1c0;--md-on-surface-low:#7f8797;--tabs-bg:#1b2733;color-scheme:dark; } }
+      :root[data-tema="oscuro"] { --md-primary:#8ab4f8;--md-primary-dark:#c2e7ff;--md-primary-light:#1f3a5a;--md-primary-container:#274a72;--md-on-primary:#0b2544;
+        --md-success:#7fd39b;--md-success-bg:#173a24;--md-error:#f2b8b5;--md-error-bg:#3b1f1e;--md-warning:#f0c66a;--md-warning-bg:#3a3120;--md-purple:#c9a6f7;--md-purple-bg:#2f2440;
+        --md-bg:#121418;--md-surface:#1b1e24;--md-surface-variant:#242830;--md-outline:#333944;--md-on-surface:#e6e8ee;--md-on-surface-med:#aab1c0;--md-on-surface-low:#7f8797;--tabs-bg:#1b2733;color-scheme:dark; }
 
-      /* ---------- Cabecera ---------- */
-      header.top {
-        background: var(--ag-surface);
-        border-bottom: 1px solid var(--ag-line);
-        padding: .6rem 1rem;
-        flex-shrink: 0;
-      }
-      .barra { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; min-height: 40px; }
-      .espaciador { flex: 1; }
-      .contador { font-size: .8rem; color: var(--ag-text-med); white-space: nowrap; }
-
-      .barra-seleccion { display: none; background: var(--ag-accent-soft); border-radius: 12px; padding: .3rem .6rem; }
-      header.top.con-seleccion .barra-principal { display: none; }
-      header.top.con-seleccion .barra-seleccion { display: flex; }
-      .contador-seleccion { font-size: .85rem; font-weight: 600; color: var(--ag-accent-dark); margin-right: .25rem; }
-      .separador { width: 1px; height: 22px; background: rgba(0,0,0,.15); margin: 0 .25rem; }
-
-      /* ---------- Botones ---------- */
-      .btn-toolbar {
-        display: inline-flex; align-items: center; gap: .35rem;
-        background: var(--ag-surface); border: 1px solid #cfd6e4; color: var(--ag-text);
-        border-radius: 999px; padding: .4rem .9rem; font-size: .82rem; font-weight: 500;
-        cursor: pointer; transition: all var(--ag-t); font-family: var(--font);
-      }
-      .btn-toolbar:hover { background: #eef2f9; }
-      .btn-toolbar.primario { background: var(--ag-container); border-color: var(--ag-container); color: var(--ag-accent-dark); }
-      .btn-toolbar.primario:hover { background: var(--ag-container-hover); border-color: var(--ag-container-hover); }
-      .btn-toolbar.peligro { color: var(--ag-error); }
-      .btn-toolbar.peligro:hover { background: var(--ag-error-bg); border-color: var(--ag-error); }
-      .btn-toolbar:disabled { opacity: .45; cursor: not-allowed; }
-      .btn-toolbar .material-symbols-outlined { font-size: 18px; }
-      .btn-toolbar.btn-nav { padding: .4rem .55rem; }
-      .btn-toolbar.activo { background: var(--ag-container); border-color: var(--ag-container); color: var(--ag-accent-dark); }
-      .btn-toolbar.deshacer { display: none; background: var(--ag-warning-bg); border-color: var(--ag-warning-border); color: var(--ag-warning-text); }
-      .btn-toolbar.deshacer.visible { display: inline-flex; }
-      .btn-toolbar.deshacer:hover { background: var(--ag-warning-hover); }
-      .spin-icon { animation: spin 1s linear infinite; }
-      @keyframes spin { to { transform: rotate(360deg); } }
-
-      .grupo-nav { display: inline-flex; }
-      .grupo-nav .btn-toolbar { border-radius: 0; margin-left: -1px; position: relative; }
-      .grupo-nav .btn-toolbar:first-child { border-radius: 999px 0 0 999px; margin-left: 0; }
-      .grupo-nav .btn-toolbar:last-child { border-radius: 0 999px 999px 0; }
-      .grupo-nav .btn-toolbar:hover, .grupo-nav .btn-toolbar:focus-visible { z-index: 1; }
-
-      .etiqueta-semana {
-        font-size: .82rem; font-weight: 600; color: var(--ag-accent-dark); white-space: nowrap;
-        text-transform: capitalize; background: var(--ag-accent-soft); border-radius: 999px; padding: .3rem .85rem;
-      }
-      .selector-semana {
-        display: flex; align-items: center; gap: .3rem;
-        background: #eef1f7; border-radius: 999px; padding: .3rem .75rem;
-      }
-      .selector-semana .material-symbols-outlined { color: var(--ag-text-low); font-size: 18px; }
-      .selector-semana input { border: none; outline: none; background: transparent; font-family: var(--font); font-size: .82rem; color: var(--ag-text); }
-
-      .buscador {
-        display: flex; align-items: center; gap: .4rem;
-        background: #eef1f7; border-radius: 999px; padding: .4rem .85rem; flex: 0 1 320px; min-width: 200px;
-      }
-      .buscador input { border: none; outline: none; flex: 1; min-width: 0; font-size: .85rem; font-family: var(--font); background: transparent; color: var(--ag-text); }
-      .buscador input::placeholder { color: var(--ag-text-low); }
-      .buscador .material-symbols-outlined { color: var(--ag-text-low); font-size: 18px; }
-
-      /* ---------- Toast de deshacer ---------- */
-      .toast-deshacer {
-        position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%);
-        background: var(--ag-toast-bg); color: #fff; padding: .65rem 1rem; border-radius: 10px;
-        display: flex; align-items: center; gap: 1rem; font-size: .82rem;
-        box-shadow: 0 4px 16px rgba(0,0,0,.25); z-index: 1200;
-        opacity: 0; pointer-events: none; transition: opacity 200ms ease;
-      }
-      .toast-deshacer.visible { opacity: 1; pointer-events: auto; }
-      .toast-deshacer button {
-        background: none; border: none; color: var(--ag-toast-action); font-weight: 700; font-size: .82rem;
-        cursor: pointer; font-family: var(--font); padding: 0; letter-spacing: .02em;
-      }
-      .toast-deshacer button:hover { text-decoration: underline; }
-
-      /* ---------- Tabla ---------- */
-      .tabla-wrap { flex: 1; overflow: auto; background: var(--ag-surface); }
-      table {
-        border-collapse: separate; border-spacing: 0; width: 100%; min-width: 1180px;
-        table-layout: fixed; font-variant-numeric: tabular-nums;
-      }
-      thead th {
-        position: sticky; top: 0; background: #eef2f7; color: var(--ag-text-med);
-        font-size: .7rem; text-transform: uppercase; letter-spacing: .05em; font-weight: 700; text-align: left;
-        height: var(--alto-thead); padding: 0 .8rem; border-bottom: 2px solid var(--ag-line);
-        white-space: nowrap; z-index: 2;
-      }
-      /* Columnas 1 (casilla + Hora) y 2 (Usuario) fijas a la izquierda */
-      thead th:nth-child(1), tbody td:nth-child(1) {
-        position: sticky; left: 0; width: 92px; min-width: 92px; max-width: 92px;
-        background-color: #eef2f7; z-index: 3; box-shadow: 1px 0 0 var(--ag-line);
-      }
-      tbody td:nth-child(1) { background-color: var(--ag-surface); z-index: 1; }
-      thead th:nth-child(2), tbody td:nth-child(2) {
-        position: sticky; left: 92px; width: 320px; min-width: 320px; max-width: 320px;
-        background-color: #eef2f7; z-index: 3; box-shadow: 1px 0 0 var(--ag-line);
-      }
-      tbody td:nth-child(2) { background-color: var(--ag-surface); z-index: 1; font-weight: 600; }
-      thead th:nth-child(3), tbody td:nth-child(3) { width: 116px; }
-      thead th:nth-child(4), tbody td:nth-child(4) { width: 70px; }
-      thead th:nth-child(5), tbody td:nth-child(5) { width: 136px; }
-      thead th:nth-child(6), tbody td:nth-child(6) { width: 120px; }
-
-      /* Relleno de fila = fondo blanco opaco + tinte translúcido (--fila-tinte,
-         que se define por fila y por estado: alterna, hover, seleccionada). */
-      tbody td {
-        background-color: var(--ag-surface);
-        background-image: linear-gradient(var(--fila-tinte, transparent), var(--fila-tinte, transparent));
-        padding: .6rem .8rem; border-bottom: 1px solid var(--ag-line);
-        white-space: nowrap; max-width: 220px; overflow: hidden; text-overflow: ellipsis;
-      }
-      /* Columna de la papelera: sin relleno lateral ni recorte. Con el relleno
-         normal el botón (26px) no cabía en la columna y aparecían los "…". */
-      thead th:nth-child(8), tbody td:nth-child(8) {
-        width: 116px; padding: 0 .5rem; text-align: right; white-space: nowrap; overflow: visible; text-overflow: clip;
-      }
-      td.hora { font-weight: 700; font-size: .92rem; }
-      td.vacio { color: var(--ag-text-low); font-style: italic; }
-      td a.link-hc { color: var(--ag-accent); text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: .2rem; }
-      td a.link-hc:hover { text-decoration: underline; }
-      .ic-15 { font-size: 15px; }
-
-      tbody tr.fila-par { --fila-tinte: var(--ag-tinte-par); }
-      tbody tr.fila-cita { cursor: pointer; }
-      tbody tr.fila-cita:not(.seleccionada):hover { --fila-tinte: var(--ag-tinte-hover); }
-      tbody tr.seleccionada { --fila-tinte: var(--ag-tinte-sel); }
-
-      /* Barra de color de asistencia en el borde izquierdo */
-      tbody tr.asist-ok td:nth-child(1)    { box-shadow: inset 4px 0 0 var(--ag-ok-bar),    1px 0 0 var(--ag-line); }
-      tbody tr.asist-mal td:nth-child(1)   { box-shadow: inset 4px 0 0 var(--ag-mal-bar),   1px 0 0 var(--ag-line); }
-      tbody tr.asist-aviso td:nth-child(1) { box-shadow: inset 4px 0 0 var(--ag-aviso-bar), 1px 0 0 var(--ag-line); }
-
-      /* Casilla de selección */
-      .hora-celda { display: inline-flex; align-items: center; gap: .55rem; }
-      .chk {
-        width: 16px; height: 16px; flex-shrink: 0; position: relative;
-        border: 1.5px solid var(--ag-text-low); border-radius: 4px;
-        background: var(--ag-surface); transition: all var(--ag-t);
-      }
-      .chk.oculto { visibility: hidden; }
-      tbody tr.fila-cita:hover .chk { border-color: var(--ag-accent); }
-      tbody tr.seleccionada .chk { background: var(--ag-accent); border-color: var(--ag-accent); }
-      tbody tr.seleccionada .chk::after {
-        content: ''; position: absolute; left: 4px; top: 0; width: 4px; height: 8px;
-        border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg);
-      }
-
-      /* Cabecera de día: banda tonal, fijada bajo el encabezado de columnas */
-      tbody tr.fila-dia td {
-        position: sticky !important; top: calc(var(--alto-thead) - 1px); left: 0; z-index: 2;
-        width: auto !important; min-width: 0 !important; max-width: none !important;
-        background-color: var(--ag-surface) !important;
-        background-image: linear-gradient(var(--ag-tinte-dia), var(--ag-tinte-dia)) !important;
-        color: var(--ag-text); font-weight: 700; font-size: .88rem; text-transform: capitalize;
-        padding: .6rem .9rem; border-bottom: 1px solid var(--ag-line); white-space: normal; box-shadow: none !important;
-      }
-      tbody tr.fila-dia.hoy td {
-        background-image: linear-gradient(var(--ag-tinte-hoy), var(--ag-tinte-hoy)) !important;
-        color: var(--ag-accent-dark); box-shadow: inset 4px 0 0 var(--ag-accent) !important;
-      }
-      .dia-cab { display: flex; align-items: center; gap: .7rem; }
-      .dia-hoy {
-        background: rgba(255,255,255,.75); color: var(--ag-accent-dark); border-radius: 999px;
-        padding: .05rem .65rem; font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em;
-      }
-      .dia-stats { margin-left: auto; font-size: .76rem; font-weight: 500; color: var(--ag-text-med); text-transform: none; }
-
-      /* Etiqueta de turno */
-      tbody tr.fila-turno td {
-        position: static !important; width: auto !important; min-width: 0 !important; max-width: none !important;
-        font-weight: 700; font-size: .68rem; letter-spacing: .06em; text-transform: uppercase;
-        padding: .3rem .9rem; border-bottom: 1px solid var(--ag-line); box-shadow: none !important;
-      }
-      tbody tr.fila-turno.manana td {
-        background-image: linear-gradient(var(--ag-tinte-manana), var(--ag-tinte-manana)) !important; color: var(--ag-text-med);
-      }
-      tbody tr.fila-turno.tarde td {
-        background-image: linear-gradient(var(--ag-tinte-tarde), var(--ag-tinte-tarde)) !important; color: var(--ag-warning-text);
-      }
-
-      /* Hueco libre */
-      tbody tr.fila-hueco td { color: var(--ag-text-low); }
-      td.hueco-libre { cursor: pointer; }
-      .chip-asignar {
-        display: inline-flex; align-items: center; gap: .1rem;
-        border: 1px dashed var(--ag-accent); color: var(--ag-accent); border-radius: 999px;
-        padding: .02rem .7rem .02rem .35rem; font-size: .74rem; font-weight: 600; font-style: normal;
-        transition: all var(--ag-t);
-      }
-      .chip-asignar .material-symbols-outlined { font-size: 14px; }
-      td.hueco-libre:hover .chip-asignar { background: var(--ag-accent); border-style: solid; color: #fff; }
-
-      /* Chips de asistencia */
-      .chip {
-        display: inline-flex; align-items: center; gap: .35rem; max-width: 100%;
-        padding: .15rem .7rem; border-radius: 999px;
-        font-size: .76rem; font-weight: 600; font-style: normal; white-space: nowrap;
-        overflow: hidden; text-overflow: ellipsis;
-      }
-      .chip::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
-      .chip-ok { background: rgba(30,142,62,.15); color: #1b6a33; }
-      .chip-mal { background: rgba(217,48,37,.13); color: #a52f29; }
-      .chip-aviso { background: rgba(240,165,0,.20); color: #7a5200; }
-      .chip-neutro { background: rgba(88,96,116,.14); color: #4a5265; }
-
-      td.celda-notas { white-space: normal; max-width: none; }
-      .notas-clamp {
-        display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
-        overflow: hidden; word-break: break-word; line-height: 1.35;
-      }
-
-      /* Edición en línea */
-      td.editable { cursor: pointer; }
-      td.editable:hover { --fila-tinte: var(--ag-tinte-hover); }
-      td.editando, div.editando { padding: .25rem .4rem; overflow: visible; position: relative; }
-      .estado-guardado {
-        position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
-        font-size: .8rem; font-weight: 700; pointer-events: none;
-      }
-      .estado-guardado.progreso { color: var(--ag-text-low); font-weight: 400; }
-      .estado-guardado.ok { color: var(--ag-ok-bar); }
-      .estado-guardado.fallo { color: var(--ag-mal-bar); }
-      .input-celda {
-        width: 100%; font-family: var(--font); font-size: .85rem; color: var(--ag-text);
-        border: 1px solid var(--ag-accent); border-radius: 6px; padding: .25rem .4rem;
-        background: var(--ag-surface); outline: none;
-      }
-      .estado-vacio { text-align: center; color: var(--ag-text-med); padding: 3rem 1rem; font-size: .9rem; }
-
-      /* Esqueleto de carga */
-      .esqueleto { background: var(--ag-surface); }
-      .esq-dia { height: 36px; background: var(--ag-day-bg); }
-      .esq-fila { display: flex; align-items: center; gap: 1.5rem; padding: .85rem 1rem; border-bottom: 1px solid var(--ag-line); }
-      .esq-barra {
-        display: block; height: 12px; border-radius: 6px;
-        background: linear-gradient(90deg, #eef1f7 25%, #e0e5ee 50%, #eef1f7 75%);
-        background-size: 200% 100%; animation: destello 1.3s linear infinite;
-      }
-      .esq-flex { flex: 1; }
-      @keyframes destello { from { background-position: 200% 0; } to { background-position: -200% 0; } }
-
-      /* ---------- Modal propio ---------- */
-      .modal-overlay {
-        display: none; position: fixed; inset: 0; background: var(--ag-overlay);
-        align-items: center; justify-content: center; z-index: 1000; padding: 1rem;
-      }
-      .modal-overlay.visible { display: flex; }
-      .modal-box {
-        background: var(--ag-surface); border-radius: 14px; padding: 1.25rem 1.5rem;
-        max-width: 360px; width: 100%; box-shadow: 0 4px 20px rgba(0,0,0,.25);
-      }
-      .modal-mensaje { font-size: .88rem; color: var(--ag-text); white-space: pre-line; line-height: 1.45; margin-bottom: 1.15rem; }
-      .modal-botones { display: flex; justify-content: flex-end; gap: .5rem; }
-
-      /* Pestañas Agenda / Base de Datos / Valoraciones (enlaces con recarga,
-         porque las Web Apps de Apps Script no se pueden embeber en iframe) */
-      nav.tabs-cambio {
-        display: flex; gap: .25rem; flex-shrink: 0;
-        background: var(--ag-page); padding: .5rem .75rem 0;
-        border-bottom: 1px solid var(--ag-line);
-      }
-      nav.tabs-cambio a.tab-cambio {
-        display: inline-flex; align-items: center; gap: .35rem;
-        background: transparent; color: var(--ag-accent-dark); text-decoration: none;
-        font-family: var(--font); font-weight: 600; font-size: .82rem;
-        padding: .5rem 1rem; border-radius: 8px 8px 0 0; transition: all var(--ag-t);
-      }
+      /* ===== Pestañas ===== */
+      nav.tabs-cambio { display: flex; gap: .25rem; flex-shrink: 0; background: var(--md-bg); padding: .5rem .75rem 0; border-bottom: 1px solid var(--md-outline); }
+      nav.tabs-cambio a.tab-cambio { display: inline-flex; align-items: center; gap: .4rem; background: transparent; color: var(--md-primary-dark); text-decoration: none; font-family: var(--font); font-weight: 600; font-size: .82rem; padding: .5rem 1rem; border-radius: 8px 8px 0 0; transition: var(--transition); }
       nav.tabs-cambio a.tab-cambio:hover { background: rgba(0,74,119,.05); }
-      nav.tabs-cambio a.tab-cambio.activo { background: var(--ag-container); color: var(--ag-accent-dark); cursor: default; }
+      nav.tabs-cambio a.tab-cambio.activo { background: var(--md-primary-container); color: var(--md-primary-dark); cursor: default; }
       nav.tabs-cambio a.tab-cambio .material-symbols-outlined { font-size: 18px; }
 
-      /* ===== Barra secundaria: vista, filtros rápidos, densidad ===== */
-      .barra-filtros { margin-top: .5rem; min-height: 32px; }
-      .segmentado { display: inline-flex; background: #eef1f7; border-radius: 999px; padding: 2px; }
-      .seg {
-        border: none; background: transparent; padding: .25rem .9rem; border-radius: 999px;
-        font-size: .8rem; font-weight: 600; color: var(--ag-text-med); cursor: pointer;
-        font-family: var(--font); transition: all var(--ag-t);
-      }
-      .seg.activo { background: var(--ag-container); color: var(--ag-accent-dark); }
-      .chip-filtro {
-        display: inline-flex; align-items: center; gap: .35rem; border: 1px solid #cfd6e4;
-        background: var(--ag-surface); color: var(--ag-text-med); border-radius: 999px;
-        padding: .22rem .75rem; font-size: .78rem; font-weight: 600; cursor: pointer;
-        font-family: var(--font); transition: all var(--ag-t);
-      }
-      .chip-filtro:hover { background: #eef2f9; }
-      .chip-filtro.activo { background: var(--ag-container); border-color: var(--ag-container); color: var(--ag-accent-dark); }
-      .chip-filtro .cnt { font-size: .7rem; background: rgba(0,74,119,.09); border-radius: 999px; padding: 0 .4rem; }
+      /* ===== Cabecera ===== */
+      header.top { background: var(--md-surface); border-bottom: 1px solid var(--md-outline); padding: .75rem 1rem; flex-shrink: 0; box-shadow: 0 1px 4px rgba(32,33,36,.08); position: relative; z-index: 5; }
+      header.top h1 { font-size: 1.05rem; font-weight: 600; display: flex; align-items: center; gap: .5rem; margin-bottom: .6rem; }
+      h1 .material-symbols-outlined { font-size: 22px; color: var(--md-primary); }
+      header.top .contador { font-size: .78rem; color: var(--md-on-surface-med); font-weight: 400; }
+      .barra-herramientas { display: flex; gap: .4rem; flex-wrap: wrap; align-items: center; margin-bottom: .6rem; }
+      .controles { display: flex; gap: .5rem; flex-wrap: wrap; align-items: center; }
+      .separador-toolbar { width: 1px; align-self: stretch; background: var(--md-outline); margin: .2rem .3rem; }
 
-      /* ===== Menú desplegable (Copiar) ===== */
-      .menu-wrap { position: relative; display: inline-block; }
-      .menu {
-        display: none; position: absolute; top: calc(100% + 4px); left: 0; min-width: 250px;
-        background: var(--ag-surface); border: 1px solid var(--ag-line); border-radius: 14px;
-        padding: .35rem; box-shadow: 0 6px 20px rgba(0,0,0,.18); z-index: 1500;
-      }
-      .menu-wrap.abierto .menu { display: block; }
-      .menu-item {
-        display: flex; align-items: center; gap: .6rem; width: 100%; text-align: left; background: transparent;
-        border: none; border-radius: 10px; padding: .5rem .7rem; font-size: .84rem; color: var(--ag-text);
-        cursor: pointer; font-family: var(--font);
-      }
-      .menu-item:hover:not(:disabled) { background: var(--ag-accent-soft); }
-      .menu-item:disabled { opacity: .45; cursor: not-allowed; }
-      .menu-item small { display: block; color: var(--ag-text-med); font-size: .72rem; }
+      .btn-toolbar { display: inline-flex; align-items: center; gap: .3rem; background: var(--md-surface); border: 1px solid var(--md-outline); color: var(--md-on-surface); border-radius: var(--radius-pill); padding: .35rem .8rem; font-size: .8rem; font-weight: 500; cursor: pointer; transition: var(--transition); }
+      .btn-toolbar:hover { background: var(--md-surface-variant); }
+      .btn-toolbar.primario { background: var(--md-primary-container); border-color: transparent; color: var(--md-primary-dark); }
+      .btn-toolbar.primario:hover { filter: brightness(.96); background: var(--md-primary-container); }
+      .btn-toolbar:disabled { opacity: .45; cursor: not-allowed; }
+      .btn-toolbar .material-symbols-outlined { font-size: 17px; }
+      .btn-nav { width: 38px; padding: 0; justify-content: center; }
+      .btn-toolbar.deshacer { display: none; background: var(--md-warning-bg); border-color: var(--md-warning); color: var(--on-warn); }
+      .btn-toolbar.deshacer.visible { display: inline-flex; }
+      .btn-toolbar:focus-visible, .btn-fila:focus-visible, .chip-met:focus-visible, .ficha-acc:focus-visible, .ficha-sec:focus-visible, nav.tabs-cambio a:focus-visible { outline: 2px solid var(--md-primary); outline-offset: 2px; }
 
-      /* ===== Banda de día: plegable + progreso ===== */
-      tbody tr.fila-dia { cursor: pointer; }
-      .dia-chevron { font-size: 20px; margin-left: -.3rem; opacity: .7; }
-      .prog { width: 72px; height: 6px; border-radius: 999px; background: rgba(0,74,119,.12); overflow: hidden; flex-shrink: 0; }
-      .prog > span { display: block; height: 100%; background: var(--ag-ok-bar); border-radius: 999px; }
+      .buscador { display: flex; align-items: center; gap: .4rem; background: var(--md-surface-variant); border-radius: var(--radius-pill); padding: .4rem .8rem; flex: 0 1 420px; min-width: 220px; min-height: 34px; }
+      .buscador:focus-within { box-shadow: 0 0 0 2px var(--md-primary); }
+      .buscador input { border: none; outline: none; flex: 1; font-size: .85rem; background: transparent; color: var(--md-on-surface); min-width: 0; }
+      .buscador .material-symbols-outlined { color: var(--md-on-surface-low); font-size: 18px; }
+      mark { background: #fff1a8; color: inherit; border-radius: 3px; padding: 0 1px; }
+      :root[data-tema="oscuro"] mark { background: #5c4d0f; }
+      @media (prefers-color-scheme: dark) { :root:not([data-tema]) mark { background: #5c4d0f; } }
 
-      /* ===== Ahora / próxima / ya terminadas ===== */
-      tbody tr.fila-ahora td {
-        position: static !important; width: auto !important; min-width: 0 !important; max-width: none !important;
-        padding: 0; height: 0; border: 0; overflow: visible !important; box-shadow: none !important;
-        background-image: none !important; background-color: transparent !important;
-      }
-      .ahora-linea { position: relative; height: 2px; background: var(--ag-accent); }
-      .ahora-linea span {
-        position: absolute; left: .6rem; top: -9px; z-index: 4; background: var(--ag-accent); color: #fff;
-        font-size: .66rem; font-weight: 700; padding: .02rem .55rem; border-radius: 999px;
-      }
-      tbody tr.en-curso:not(.seleccionada) { --fila-tinte: rgba(11,87,208,.10); }
-      tbody tr.en-curso td.hora { color: var(--ag-accent); }
-      tbody tr.pasada td { color: var(--ag-text-low); }
-      tbody tr.pasada td.hora, tbody tr.pasada td:nth-child(2) { color: var(--ag-text-med); }
-      .pto-t { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-      .pto-t.ahora { background: var(--ag-accent); animation: pulso 1.8s infinite; }
-      .pto-t.proxima { border: 2px solid var(--ag-accent); }
-      @keyframes pulso { 0% { box-shadow: 0 0 0 0 rgba(11,87,208,.45); } 70%, 100% { box-shadow: 0 0 0 7px rgba(11,87,208,0); } }
-      @media (prefers-reduced-motion: reduce) { .pto-t.ahora { animation: none; } }
-      .tag-t { font-size: .66rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; padding: .05rem .55rem; border-radius: 999px; }
-      .tag-t.ahora { background: var(--ag-accent); color: #fff; }
-      .tag-t.proxima { background: var(--ag-container); color: var(--ag-accent-dark); }
+      /* ===== Tabla principal (filas de dos líneas, acciones al hover) ===== */
+      .tabla-wrap { flex: 1; overflow: auto; min-height: 0; scrollbar-width: thin; scrollbar-color: #c4c9d0 transparent; }
+      table { border-collapse: collapse; width: 100%; min-width: 1180px; }
+      thead th { position: sticky; top: 0; background: var(--md-surface-variant); color: var(--md-on-surface-med); font-size: .68rem; text-transform: uppercase; letter-spacing: .02em; font-weight: 600; text-align: left; padding: .55rem .8rem; border-bottom: 1px solid var(--md-outline); white-space: nowrap; z-index: 2; }
+      thead th.ordenable { cursor: pointer; user-select: none; }
+      thead th.ordenable:hover { color: var(--md-primary); }
+      thead th.ordenable .material-symbols-outlined { font-size: 15px; vertical-align: -3px; opacity: 0; transition: opacity 120ms; }
+      thead th.ordenable:hover .material-symbols-outlined { opacity: .5; }
+      thead th.orden-asc .material-symbols-outlined, thead th.orden-desc .material-symbols-outlined { opacity: 1 !important; color: var(--md-primary); }
+      thead th.orden-desc .material-symbols-outlined { transform: rotate(180deg); }
+      thead th.col-usuario, tbody td.col-usuario { position: sticky; left: 0; width: 300px; min-width: 300px; max-width: 300px; z-index: 3; box-shadow: 1px 0 0 var(--md-outline); }
+      tbody tr { cursor: pointer; background: var(--md-surface); transition: background-color 120ms; }
+      tbody tr:hover { background: var(--md-primary-light); }
+      tbody tr.seleccionada { background: var(--md-primary-container); }
+      tbody tr.seleccionada td.col-usuario { box-shadow: inset 3px 0 0 var(--md-primary), 1px 0 0 var(--md-outline); }
+      tbody tr.fila-activa td.col-usuario { box-shadow: inset 3px 0 0 var(--md-on-surface-low), 1px 0 0 var(--md-outline); }
+      tbody tr > td { background-color: inherit; padding: .55rem .8rem; border-bottom: 1px solid var(--md-outline); white-space: nowrap; vertical-align: middle; }
+      td.notas { max-width: 240px; overflow: hidden; text-overflow: ellipsis; color: var(--md-on-surface-med); }
+      .vacio { color: var(--md-on-surface-low); font-style: italic; }
 
-      /* ===== Asistencia con un clic ===== */
-      .asis-rapida { display: none; align-items: center; gap: .1rem; }
-      tbody tr.fila-cita:hover .asis-guion { display: none; }
-      tbody tr.fila-cita:hover .asis-rapida { display: inline-flex; }
-      .btn-asis {
-        width: 26px; height: 26px; border: none; background: transparent; border-radius: 50%; cursor: pointer;
-        display: inline-flex; align-items: center; justify-content: center; color: var(--ag-text-low); transition: all var(--ag-t);
-      }
-      .btn-asis .material-symbols-outlined { font-size: 20px; }
-      .btn-asis.ok:hover    { background: rgba(30,142,62,.15);  color: #1b6a33; }
-      .btn-asis.mal:hover   { background: rgba(217,48,37,.13);  color: #a52f29; }
-      .btn-asis.aviso:hover { background: rgba(240,165,0,.20);  color: #7a5200; }
-      .btn-asis.neutro:hover { background: rgba(88,96,116,.14); color: #4a5265; }
-      .btn-asis-lg {
-        width: auto; height: 28px; border-radius: 999px; padding: 0 .65rem 0 .3rem; gap: .2rem;
-        font-size: .76rem; font-weight: 600; border: 1px solid var(--ag-line); color: var(--ag-text-med); font-family: var(--font);
+      .avatar { width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; font-size: .8rem; font-weight: 700; background: hsl(var(--h) 55% 88%); color: hsl(var(--h) 45% 28%); }
+      :root[data-tema="oscuro"] .avatar { background: hsl(var(--h) 55% 26%); color: hsl(var(--h) 45% 82%); }
+      @media (prefers-color-scheme: dark) { :root:not([data-tema]) .avatar { background: hsl(var(--h) 55% 26%); color: hsl(var(--h) 45% 82%); } }
+      .avatar.grande { width: 52px; height: 52px; font-size: 1.1rem; }
+      .celda-u { display: flex; align-items: center; gap: .7rem; min-width: 0; }
+      .doble { display: flex; flex-direction: column; min-width: 0; }
+      .u-nombre { font-weight: 600; font-size: .88rem; overflow: hidden; text-overflow: ellipsis; }
+      .u-sub, .c-sub { font-size: .78rem; font-weight: 500; color: var(--md-texto-secundario); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; }
+      .f-fecha { font-weight: 600; font-size: .88rem; font-variant-numeric: tabular-nums; }
+
+      /* Píldoras de severidad, chips de tipo y evolución */
+      .badge { font-size: .76rem; font-weight: 600; padding: .15rem .6rem; border-radius: var(--radius-pill); white-space: nowrap; font-variant-numeric: tabular-nums; }
+      .badge.sev-ok    { background: var(--md-success-bg); color: var(--md-success); }
+      .badge.sev-medio { background: var(--md-warning-bg); color: var(--on-warn); }
+      .badge.sev-alto  { background: var(--md-error-bg);   color: var(--on-err); }
+      .badge.sev-vacio { background: var(--md-surface-variant); color: var(--md-on-surface-low); }
+      .tipo-chip { font-size: .72rem; font-weight: 600; padding: .14rem .6rem; border-radius: 999px; background: var(--md-surface-variant); color: var(--md-on-surface-med); }
+      .tipo-chip.inicial { background: var(--md-purple-bg); color: var(--on-purple); }
+      .tipo-chip.seguimiento { background: var(--md-primary-light); color: var(--md-primary-dark); }
+      .tipo-chip.final { background: var(--md-success-bg); color: var(--md-success); }
+      .delta { display: inline-flex; align-items: center; gap: .05rem; font-size: .78rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+      .delta .material-symbols-outlined { font-size: 16px; }
+      .delta.mejora { color: var(--md-success); } .delta.empeora { color: var(--md-error); } .delta.igual { color: var(--md-on-surface-low); }
+
+      td.acciones-fila { text-align: right; width: 56px; }
+      .btn-fila { width: 30px; height: 30px; border-radius: 50%; border: none; background: transparent; color: var(--md-on-surface-med); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 120ms, background 120ms; }
+      tbody tr:hover .btn-fila, tbody tr.seleccionada .btn-fila, .hist:hover .btn-fila, .btn-fila:focus-visible { opacity: 1; }
+      .btn-fila:hover { background: rgba(0,0,0,.07); color: var(--md-primary); }
+      .btn-fila.peligro:hover { background: var(--md-error-bg); color: var(--md-error); }
+      .btn-fila .material-symbols-outlined { font-size: 19px; }
+      @media (hover: none) { .btn-fila { opacity: 1; } }
+
+      .estado-vacio { display: flex; flex-direction: column; align-items: center; gap: .6rem; text-align: center; color: var(--md-on-surface-med); padding: 3rem 1rem; font-size: .9rem; }
+      .estado-vacio .material-symbols-outlined.grande { font-size: 40px; color: var(--md-on-surface-low); }
+      .skeleton-fila { display: flex; align-items: center; gap: .7rem; padding: .7rem 1.2rem; border-bottom: 1px solid var(--md-outline); }
+      .sk { background: linear-gradient(90deg, var(--md-surface-variant) 25%, var(--md-outline) 50%, var(--md-surface-variant) 75%); background-size: 200% 100%; animation: sk-anim 1.3s infinite; border-radius: 8px; }
+      @keyframes sk-anim { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+
+      /* ===== Ficha lateral: evolución + historial ===== */
+      .ficha { position: fixed; top: 0; right: 0; bottom: 0; width: 520px; max-width: 100%; z-index: 900; display: flex; flex-direction: column; background: var(--md-surface); border-left: 1px solid var(--md-outline); box-shadow: -6px 0 24px rgba(0,0,0,.08); transform: translateX(100%); visibility: hidden; transition: transform 160ms cubic-bezier(.2,0,0,1), visibility 0s 160ms; will-change: transform; }
+      .ficha.abierta { transform: none; visibility: visible; transition-delay: 0s; }
+      .ficha-cab { display: flex; align-items: center; gap: .9rem; padding: 1rem 1rem .6rem 1.2rem; }
+      .ficha-tit { flex: 1; min-width: 0; }
+      .ficha-nombre { font-size: 1.05rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; }
+      .ficha-sub { font-size: .78rem; color: var(--md-on-surface-med); margin-top: 2px; }
+      .ficha-cerrar { border: none; background: none; cursor: pointer; width: 34px; height: 34px; border-radius: 50%; color: var(--md-on-surface-med); align-self: flex-start; }
+      .ficha-cerrar:hover { background: var(--md-surface-variant); }
+      .kpis { display: flex; gap: .6rem; padding: 0 1.2rem .8rem; }
+      .kpi { flex: 1; background: var(--md-surface-variant); border-radius: 12px; padding: .6rem .8rem; }
+      .kpi-etq { font-size: .66rem; text-transform: uppercase; letter-spacing: .06em; color: var(--md-on-surface-low); font-weight: 600; margin-bottom: .35rem; }
+      .kpi-val { display: flex; align-items: center; gap: .6rem; }
+      .kpi-val .badge { font-size: .95rem; padding: .15rem .7rem; }
+      .ficha-acciones { display: flex; gap: .4rem; padding: 0 1.2rem .9rem; border-bottom: 1px solid var(--md-outline); }
+      .ficha-acc { display: inline-flex; align-items: center; gap: .3rem; border: 1px solid var(--md-outline); background: var(--md-surface); border-radius: 999px; padding: .35rem .8rem; font-size: .78rem; font-weight: 500; cursor: pointer; color: var(--md-on-surface); }
+      .ficha-acc.primario { background: var(--md-primary-container); border-color: transparent; color: var(--md-primary-dark); }
+      .ficha-acc:hover { background: var(--md-surface-variant); }
+      .ficha-acc .material-symbols-outlined { font-size: 17px; }
+      .ficha-cuerpo { flex: 1; overflow: auto; padding: .4rem 1.2rem 1.2rem; }
+      .f-sec { padding: .8rem 0; border-bottom: 1px solid var(--md-outline); }
+      .f-sec:last-child { border-bottom: none; }
+      .f-sec h3 { font-size: .66rem; text-transform: uppercase; letter-spacing: .06em; color: var(--md-on-surface-low); font-weight: 600; margin-bottom: .55rem; }
+      .chips-met { display: flex; flex-wrap: wrap; gap: .3rem; margin-bottom: .6rem; }
+      .chip-met { border: 1px solid var(--md-outline); background: var(--md-surface); color: var(--md-on-surface-med); border-radius: 999px; padding: .2rem .7rem; font-size: .74rem; font-weight: 600; cursor: pointer; transition: var(--transition); }
+      .chip-met:hover { background: var(--md-surface-variant); }
+      .chip-met.activo { background: var(--md-primary-container); border-color: transparent; color: var(--md-primary-dark); }
+
+      .grafica-evolucion { display: block; width: 100%; height: auto; }
+      .linea-grafica { stroke: var(--md-primary); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
+      .area-grafica { fill: var(--md-primary); fill-opacity: .1; }
+      .guia-grafica { stroke: var(--md-outline); stroke-width: 1; stroke-dasharray: 2,3; }
+      .etiqueta-grafica { font-size: 11px; fill: var(--md-on-surface-low); font-family: var(--font); }
+      .valor-grafica { font-size: 11px; font-weight: 700; fill: var(--md-on-surface); font-family: var(--font); }
+      .punto-grafica { stroke: var(--md-surface); stroke-width: 2; }
+      .punto-grafica.sev-ok { fill: var(--md-success); } .punto-grafica.sev-medio { fill: var(--md-warning); } .punto-grafica.sev-alto { fill: var(--md-error); }
+      .sin-datos-grafica { color: var(--md-on-surface-low); font-size: .82rem; font-style: italic; }
+
+      .hist { border: 1px solid var(--md-outline); border-radius: 14px; padding: .65rem .8rem; margin-bottom: .55rem; }
+      .hist:hover { background: var(--md-surface-variant); }
+      .hist-cab { display: flex; align-items: center; gap: .5rem; margin-bottom: .5rem; }
+      .hist-cab .f-fecha { font-size: .86rem; }
+      .hist-cab .espaciador { flex: 1; }
+      .hist-cab .btn-fila { width: 28px; height: 28px; }
+      .hist-vals { display: grid; grid-template-columns: repeat(4, 1fr); gap: .45rem .5rem; }
+      .mv { display: flex; flex-direction: column; gap: .15rem; align-items: flex-start; }
+      .mv-etq { font-size: .62rem; text-transform: uppercase; letter-spacing: .04em; color: var(--md-on-surface-low); font-weight: 600; }
+      .hist-notas { margin-top: .5rem; font-size: .8rem; color: var(--md-on-surface-med); overflow-wrap: anywhere; }
+
+      @media (min-width: 900px) {
+        body.con-ficha nav.tabs-cambio, body.con-ficha header.top, body.con-ficha .tabla-wrap { margin-right: 520px; }
+        body.con-ficha table { min-width: 0; }
+        body.con-ficha thead th.sec, body.con-ficha tbody td.sec { display: none; }
+        body.con-ficha thead th.col-usuario, body.con-ficha tbody td.col-usuario { width: 260px; min-width: 260px; max-width: 260px; }
       }
 
-      /* ===== Sesión, notas, acciones por fila ===== */
-      .badge-sesion {
-        display: inline-flex; align-items: center; justify-content: center; min-width: 24px; height: 24px;
-        padding: 0 .4rem; border-radius: 999px; font-size: .8rem; font-weight: 700;
-      }
-      .badge-sesion.s1, .badge-sesion.sn { background: rgba(0,74,119,.08); color: var(--ag-text-med); }
-      .badge-sesion.s1 { box-shadow: inset 0 0 0 1.5px var(--ag-accent); } /* primera sesión: mismo gris + anillo azul fino */
-      .ic-nota { font-size: 16px; vertical-align: -3px; margin-right: .3rem; color: var(--ag-text-low); }
-      .btn-fila {
-        display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px;
-        border-radius: 50%; border: none; background: transparent; color: var(--ag-text-low); cursor: pointer;
-        transition: all var(--ag-t);
-      }
-      .btn-fila:hover { background: var(--ag-accent-soft); color: var(--ag-accent-dark); }
-      .btn-fila.peligro:hover { background: var(--ag-error-bg); color: var(--ag-error); }
-      .btn-fila.btn-whatsapp:hover { color: #25d366; }
-      .btn-fila .material-symbols-outlined { font-size: 18px; }
-      .acciones-fila .btn-fila { opacity: 0; }
-      tbody tr:hover .acciones-fila .btn-fila, tbody tr.seleccionada .acciones-fila .btn-fila, .acciones-fila .btn-fila:focus-visible { opacity: 1; }
-      @media (hover: none) {
-        .acciones-fila .btn-fila { opacity: 1; }
-        tbody tr.fila-cita .asis-guion { display: none; }
-        tbody tr.fila-cita .asis-rapida { display: inline-flex; }
-      }
-
-      /* ===== Densidad compacta ===== */
-      body.compacto tbody td:not(.acciones-fila) { padding-top: .2rem; padding-bottom: .2rem; }
-      body.compacto td.hora { font-size: .85rem; }
-      body.compacto tbody td { font-size: .82rem; }
-      body.compacto .chip { padding-top: .05rem; padding-bottom: .05rem; }
-      body.compacto .btn-fila { width: 24px; height: 24px; }
-
-      /* ===== Estado vacío ===== */
-      .estado-icono { font-size: 44px; color: var(--ag-text-low); }
-      .estado-titulo { font-weight: 600; font-size: 1rem; color: var(--ag-text); margin-top: .3rem; }
-      .estado-texto { margin: .2rem 0 1rem; }
-      .esq-turno { height: 24px; background: rgba(0,74,119,.04); border-bottom: 1px solid var(--ag-line); }
-
-      /* ===== Vista "Hoy": tarjetas ===== */
-      .tj-cab {
-        position: sticky; top: 0; z-index: 3; padding: .6rem 1rem; background-color: var(--ag-surface);
-        background-image: linear-gradient(var(--ag-tinte-hoy), var(--ag-tinte-hoy)); color: var(--ag-accent-dark);
-        font-weight: 700; font-size: .9rem; text-transform: capitalize; border-bottom: 1px solid var(--ag-line);
-      }
-      .tj-turnos { padding: .25rem 1rem 1.5rem; background: var(--ag-page); }
-      .tj-turno-titulo { font-size: .7rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--ag-text-med); margin: 1rem 0 .5rem; }
-      .tj-turno-titulo.tarde { color: var(--ag-warning-text); }
-      .tj-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); gap: .75rem; }
-      .tarjeta {
-        background: var(--ag-surface); border: 1px solid var(--ag-line); border-left: 5px solid var(--ag-line);
-        border-radius: 16px; padding: .8rem 1rem; display: flex; flex-direction: column; gap: .45rem;
-        cursor: pointer; transition: box-shadow var(--ag-t), background-color var(--ag-t);
-      }
-      .tarjeta:hover { box-shadow: 0 2px 10px rgba(0,74,119,.12); }
-      .tarjeta.asist-ok    { border-left-color: var(--ag-ok-bar); }
-      .tarjeta.asist-mal   { border-left-color: var(--ag-mal-bar); }
-      .tarjeta.asist-aviso { border-left-color: var(--ag-aviso-bar); }
-      .tarjeta.pasada .tj-hora, .tarjeta.pasada .tj-nombre { color: var(--ag-text-med); }
-      .tarjeta.en-curso { border-color: var(--ag-accent); box-shadow: 0 0 0 1px var(--ag-accent); border-left-width: 5px; }
-      .tarjeta.proxima { border-color: var(--ag-container-hover); }
-      .tarjeta.seleccionada { background-image: linear-gradient(var(--ag-tinte-sel), var(--ag-tinte-sel)); }
-      .tarjeta.hueco { border-style: dashed; background: transparent; cursor: default; flex-direction: row; align-items: center; gap: .8rem; }
-      .tarjeta.hueco:hover { box-shadow: none; }
-      .tj-top { display: flex; align-items: center; gap: .55rem; }
-      .tj-acciones { display: inline-flex; flex-shrink: 0; }
-      .tj-hora { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; }
-      .tj-fill { flex: 1; }
-      .tj-nombre { font-weight: 600; font-size: .95rem; line-height: 1.3; }
-      .tj-meta { display: flex; align-items: center; gap: .6rem; color: var(--ag-text-med); font-size: .82rem; }
-      .tj-asis { min-height: 28px; display: flex; align-items: center; gap: .4rem; }
-      .tj-asis .asis-rapida { display: inline-flex; gap: .35rem; }
-      .tj-notas { font-size: .82rem; color: var(--ag-text-med); padding: .3rem .5rem; border-radius: 8px; min-height: 1.9rem; }
-      .tj-notas:hover { background: var(--ag-accent-soft); }
-      .tj-notas.editando { padding: 0; }
-      .tj-notas-vacia { color: var(--ag-text-low); font-style: italic; }
-      .tj-pie { display: flex; align-items: center; gap: .5rem; margin-top: auto; }
-      .tj-meta { flex-wrap: wrap; }
-      .tj-linea-nota { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; margin-top: auto; }
-      .tj-linea-nota .tj-notas { flex: 1; min-width: 0; }
-      .tj-linea-nota .tj-notas.editando { flex: 1 1 100%; } /* al escribir, la nota usa todo el ancho */
-      .tj-linea-nota .tj-pie { margin-top: 0; flex-shrink: 0; }
-      .tj-btn { text-decoration: none; }
-      .tj-sinhc { font-size: .8rem; color: var(--ag-text-low); font-style: italic; }
-      .tarjeta .chk { flex-shrink: 0; }
-      .tarjeta:hover .chk { border-color: var(--ag-accent); }
-      .tarjeta.seleccionada .chk { background: var(--ag-accent); border-color: var(--ag-accent); }
-      .tarjeta.seleccionada .chk::after {
-        content: ''; position: absolute; left: 4px; top: 0; width: 4px; height: 8px;
-        border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg);
-      }
-      .editable { cursor: pointer; }
-      /* ===== Mejoras visuales + arrastrar y soltar ===== */
-      .tabla-wrap { scrollbar-width: thin; scrollbar-color: #c5cddb transparent; }
-      .tabla-wrap::-webkit-scrollbar { width: 10px; height: 10px; }
-      .tabla-wrap::-webkit-scrollbar-thumb { background: #c5cddb; border-radius: 999px; border: 2px solid var(--ag-surface); }
-      header.top { position: relative; z-index: 5; box-shadow: 0 1px 4px rgba(31,36,48,.07); }
-      .btn-toolbar { box-shadow: 0 1px 1px rgba(31,36,48,.05); }
-      .btn-toolbar:hover:not(:disabled) { box-shadow: 0 2px 6px rgba(31,36,48,.14); }
-      .btn-toolbar:active:not(:disabled) { transform: translateY(1px); box-shadow: none; }
-      thead th { border-bottom: 1px solid var(--ag-line); box-shadow: 0 2px 0 rgba(0,74,119,.06); }
-      tbody td { border-bottom-color: rgba(227,232,239,.8); }
-      td.hora { letter-spacing: .01em; }
-      tbody tr.fila-dia td { border-top: 1px solid var(--ag-line); font-size: .92rem; }
-      tbody tr.fila-dia:hover td { filter: brightness(.97); }
-      .dia-stats { background: rgba(255,255,255,.65); padding: .1rem .65rem; border-radius: 999px; }
-      .chip { font-weight: 700; letter-spacing: .01em; }
-      .tarjeta { border-radius: 18px; }
-      .tarjeta:hover { box-shadow: 0 4px 14px rgba(0,74,119,.16); transform: translateY(-1px); }
-      .tarjeta { transition: box-shadow var(--ag-t), transform var(--ag-t), background-color var(--ag-t); }
-
-      /* Columna Hora más ancha para alojar el asa de arrastre */
-      thead th:nth-child(1), tbody td:nth-child(1) { width: 132px; min-width: 132px; max-width: 132px; }
-      thead th:nth-child(2), tbody td:nth-child(2) { left: 132px; }
-      table { min-width: 1220px; }
-
-      .asa {
-        width: 18px; height: 18px; overflow: hidden; flex-shrink: 0; font-size: 18px; margin-left: -.3rem;
-        color: var(--ag-text-low); opacity: .3; cursor: grab; touch-action: none;
-        user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; transition: opacity var(--ag-t);
-      }
-      tbody tr.fila-cita:hover .asa, .tarjeta:hover .asa, .asa:hover { opacity: .95; color: var(--ag-accent); }
-      @media (hover: none) { .asa { opacity: .7; } }
-
-      body.arrastrando-cita, body.arrastrando-cita * { cursor: grabbing !important; }
-      body.arrastrando-cita { user-select: none; -webkit-user-select: none; }
-      tr.arrastrando td, .tarjeta.arrastrando { opacity: .4; }
-      body.arrastrando-cita tbody tr.fila-hueco td { background-color: var(--ag-drop); color: var(--ag-accent-dark); }
-      body.arrastrando-cita .tarjeta.hueco { background: var(--ag-drop); border-color: var(--ag-accent); }
-      tbody tr.destino-drop td, tbody tr.destino-drop td.editable:hover {
-        --fila-tinte: rgba(11,87,208,.24) !important;
-        box-shadow: inset 0 2px 0 var(--ag-accent), inset 0 -2px 0 var(--ag-accent) !important;
-      }
-      .tarjeta.destino-drop { background: var(--ag-container) !important; border-style: solid; box-shadow: 0 0 0 2px var(--ag-accent); }
-      .ghost-cita {
-        position: fixed; left: 0; top: 0; z-index: 2000; pointer-events: none; display: flex; align-items: center; gap: .55rem;
-        background: var(--ag-surface); border: 1px solid var(--ag-accent); border-left: 5px solid var(--ag-accent);
-        border-radius: 12px; padding: .45rem .85rem; font-size: .85rem; font-weight: 600; white-space: nowrap;
-        box-shadow: 0 10px 26px rgba(0,74,119,.3); will-change: transform;
-      }
-      .ghost-cita small { color: var(--ag-text-med); font-weight: 500; font-size: .78rem; }
-
-      @media (max-width: 900px) {
-        .buscador { flex: 1 1 100%; }
-        .barra-filtros { overflow-x: auto; flex-wrap: nowrap; scrollbar-width: none; }
-        .barra-filtros > * { flex-shrink: 0; }
-      }
-      @media (prefers-reduced-motion: reduce) { .tarjeta, .btn-toolbar { transition: none; } .tarjeta:hover { transform: none; } }
-      /* ===== Tema, avisos, avatares, ocupación, cuadrícula, animaciones ===== */
-      :root { --ag-ctl:#eef1f7; --ag-ctl-border:#cfd6e4; --ag-ctl-hover:#eef2f9; --ag-th:#eef2f7; --ag-pill:rgba(255,255,255,.65); --ag-drop:#eef5ff;
-        --chip-ok:#1b6a33; --chip-mal:#a52f29; --chip-aviso:#7a5200; --chip-neutro:#4a5265; --av-bg:88%; --av-fg:28%; color-scheme: light; }
-      @media (prefers-color-scheme: dark) { :root:not([data-tema]) {
-        --ag-accent:#8ab4f8;--ag-accent-hover:#a8c7fa;--ag-accent-dark:#c2e7ff;--ag-container:#1f3a5a;--ag-container-hover:#274a72;--ag-accent-soft:rgba(138,180,248,.16);
-        --ag-page:#121418;--ag-surface:#1b1e24;--ag-line:#2c313a;--ag-text:#e6e8ee;--ag-text-med:#aab1c0;--ag-text-low:#7f8797;
-        --ag-tinte-par:rgba(138,180,248,.05);--ag-tinte-hover:rgba(138,180,248,.10);--ag-tinte-sel:rgba(138,180,248,.20);--ag-tinte-dia:rgba(138,180,248,.10);
-        --ag-tinte-hoy:rgba(138,180,248,.22);--ag-tinte-manana:rgba(138,180,248,.035);--ag-tinte-tarde:rgba(240,190,80,.10);--ag-day-bg:#232830;
-        --ag-ok-bar:#5bb37d;--ag-mal-bar:#e57f78;--ag-aviso-bar:#e8b95a;--ag-error:#f2b8b5;--ag-error-bg:#3b1f1e;
-        --ag-warning-bg:#3a3120;--ag-warning-border:#6b5a2a;--ag-warning-text:#f0d894;--ag-warning-hover:#4a3f26;--ag-toast-bg:#2d3038;--ag-overlay:rgba(0,0,0,.6);
-        --ag-ctl:#262b33;--ag-ctl-border:#3a404b;--ag-ctl-hover:#2c323b;--ag-th:#232830;--ag-pill:rgba(0,0,0,.28);--ag-drop:#1f2b3d;
-        --chip-ok:#7fd39b;--chip-mal:#f2a19b;--chip-aviso:#f0c66a;--chip-neutro:#b8bfcd;--av-bg:26%;--av-fg:82%;color-scheme:dark; } }
-      :root[data-tema="oscuro"] {
-        --ag-accent:#8ab4f8;--ag-accent-hover:#a8c7fa;--ag-accent-dark:#c2e7ff;--ag-container:#1f3a5a;--ag-container-hover:#274a72;--ag-accent-soft:rgba(138,180,248,.16);
-        --ag-page:#121418;--ag-surface:#1b1e24;--ag-line:#2c313a;--ag-text:#e6e8ee;--ag-text-med:#aab1c0;--ag-text-low:#7f8797;
-        --ag-tinte-par:rgba(138,180,248,.05);--ag-tinte-hover:rgba(138,180,248,.10);--ag-tinte-sel:rgba(138,180,248,.20);--ag-tinte-dia:rgba(138,180,248,.10);
-        --ag-tinte-hoy:rgba(138,180,248,.22);--ag-tinte-manana:rgba(138,180,248,.035);--ag-tinte-tarde:rgba(240,190,80,.10);--ag-day-bg:#232830;
-        --ag-ok-bar:#5bb37d;--ag-mal-bar:#e57f78;--ag-aviso-bar:#e8b95a;--ag-error:#f2b8b5;--ag-error-bg:#3b1f1e;
-        --ag-warning-bg:#3a3120;--ag-warning-border:#6b5a2a;--ag-warning-text:#f0d894;--ag-warning-hover:#4a3f26;--ag-toast-bg:#2d3038;--ag-overlay:rgba(0,0,0,.6);
-        --ag-ctl:#262b33;--ag-ctl-border:#3a404b;--ag-ctl-hover:#2c323b;--ag-th:#232830;--ag-pill:rgba(0,0,0,.28);--ag-drop:#1f2b3d;
-        --chip-ok:#7fd39b;--chip-mal:#f2a19b;--chip-aviso:#f0c66a;--chip-neutro:#b8bfcd;--av-bg:26%;--av-fg:82%;color-scheme:dark; }
-      .btn-toolbar, .chip-filtro { border-color: var(--ag-ctl-border); }
-      .btn-toolbar:hover:not(:disabled):not(.primario):not(.activo):not(.deshacer):not(.peligro), .chip-filtro:hover:not(.activo) { background: var(--ag-ctl-hover); }
-      .selector-semana, .buscador, .segmentado { background: var(--ag-ctl); }
-      thead th, thead th:nth-child(1), thead th:nth-child(2) { background-color: var(--ag-th); }
-      .chip-ok { color: var(--chip-ok); } .chip-mal { color: var(--chip-mal); } .chip-aviso { color: var(--chip-aviso); } .chip-neutro { color: var(--chip-neutro); }
-      .dia-stats, .dia-hoy { background: var(--ag-pill); }
-      .esq-barra { background: linear-gradient(90deg, var(--ag-ctl) 25%, var(--ag-line) 50%, var(--ag-ctl) 75%); background-size: 200% 100%; }
-
+      /* ===== Avisos, modales, progreso ===== */
+      .toast-deshacer { position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%); background: #323232; color: #fff; padding: .65rem 1rem; border-radius: 10px; display: flex; align-items: center; gap: 1rem; font-size: .82rem; box-shadow: 0 4px 16px rgba(0,0,0,.25); z-index: 1200; opacity: 0; visibility: hidden; pointer-events: none; transition: opacity 200ms ease, visibility 0s 200ms; }
+      .toast-deshacer.visible { opacity: 1; visibility: visible; pointer-events: auto; transition: opacity 200ms ease; }
+      .toast-deshacer button { background: none; border: none; color: #8ab4f8; font-weight: 700; font-size: .82rem; cursor: pointer; padding: 0; letter-spacing: .02em; }
+      .toast-deshacer button:hover { text-decoration: underline; }
       .toasts { position: fixed; left: 50%; bottom: 78px; transform: translateX(-50%); display: flex; flex-direction: column; gap: .4rem; align-items: center; z-index: 1300; pointer-events: none; }
-      .toast-aviso { background: var(--ag-toast-bg); color: #fff; padding: .6rem 1rem; border-radius: 10px; font-size: .82rem; box-shadow: 0 4px 16px rgba(0,0,0,.25); max-width: min(92vw, 460px); animation: entra-toast .2s ease; transition: opacity .25s, transform .25s; }
+      .toast-aviso { background: #323232; color: #fff; padding: .6rem 1rem; border-radius: 10px; font-size: .82rem; box-shadow: 0 4px 16px rgba(0,0,0,.25); max-width: min(92vw, 460px); animation: entra-toast .2s ease; transition: opacity .25s, transform .25s; }
       .toast-aviso.error { background: #8c1d18; }
       .toast-aviso.saliendo { opacity: 0; transform: translateY(6px); }
       @keyframes entra-toast { from { opacity: 0; transform: translateY(8px); } }
+      .barra-progreso { position: fixed; top: 0; left: 0; right: 0; height: 3px; z-index: 1400; opacity: 0; pointer-events: none; transition: opacity 150ms; background: linear-gradient(90deg, transparent, var(--md-primary), transparent); background-size: 40% 100%; background-repeat: no-repeat; }
+      body.ocupado .barra-progreso { opacity: 1; animation: barrido 1s linear infinite; }
+      @keyframes barrido { from { background-position: -40% 0; } to { background-position: 140% 0; } }
 
-      .avatar { width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center;
-        font-size: .68rem; font-weight: 700; letter-spacing: .02em; background: hsl(var(--h) 55% var(--av-bg)); color: hsl(var(--h) 45% var(--av-fg)); }
-      .celda-usuario, .tj-nombre { display: flex; align-items: center; gap: .55rem; min-width: 0; }
-      .nombre-u { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-      .tj-nombre .nombre-u { white-space: normal; }
-      body.compacto .avatar { width: 20px; height: 20px; font-size: .6rem; }
-
-      .ocup { display: flex; width: 96px; height: 8px; border-radius: 999px; overflow: hidden; background: var(--ag-line); flex-shrink: 0; }
-      .ocup > span { display: block; height: 100%; }
-      .ocup .o-reg { background: var(--ag-ok-bar); } .ocup .o-cita { background: var(--ag-accent); }
-
-      .ghost-dest { color: var(--ag-accent-dark); font-weight: 700; font-size: .78rem; border-left: 1px solid var(--ag-line); padding-left: .55rem; }
-      .tabla-wrap.desplazado thead th:nth-child(2), .tabla-wrap.desplazado tbody tr:not(.fila-dia):not(.fila-turno):not(.fila-ahora) td:nth-child(2) { box-shadow: 8px 0 10px -8px rgba(0,0,0,.35); }
-      tr.saliendo-fila td, .tarjeta.saliendo-fila, .cal-cita.saliendo-fila { opacity: 0; transition: opacity .25s; }
-      .tarjeta.saliendo-fila { transform: scale(.97); }
-      tr.recien td, .tarjeta.recien, .cal-cita.recien { animation: flash-mov 1.2s ease-out; }
-      @keyframes flash-mov { from { box-shadow: inset 0 0 0 999px rgba(11,87,208,.28); } to { box-shadow: inset 0 0 0 999px rgba(11,87,208,0); } }
-
-      .cal { display: grid; min-width: 760px; background: var(--ag-surface); }
-      .cal-cab { position: sticky; top: 0; z-index: 4; background: var(--ag-th); border-bottom: 1px solid var(--ag-line); padding: .6rem; text-align: center;
-        font-size: .78rem; font-weight: 700; text-transform: capitalize; color: var(--ag-text-med); }
-      .cal-cab.hoy { background: var(--ag-container); color: var(--ag-accent-dark); }
-      .cal-esq { left: 0; z-index: 5; }
-      .cal-hora { position: sticky; left: 0; z-index: 3; background: var(--ag-surface); border-bottom: 1px solid var(--ag-line); padding: .5rem; text-align: right;
-        font-size: .74rem; font-weight: 700; color: var(--ag-text-med); font-variant-numeric: tabular-nums; }
-      .cal-celda { border-bottom: 1px solid var(--ag-line); border-left: 1px solid var(--ag-line); padding: 4px; min-height: 50px; display: flex; }
-      .cal-celda.hoy { background-image: linear-gradient(var(--ag-tinte-hoy), var(--ag-tinte-hoy)); background-blend-mode: normal; }
-      .cal-celda.vacia { background: repeating-linear-gradient(45deg, transparent 0 6px, var(--ag-tinte-manana) 6px 7px); }
-      .cal-cita { flex: 1; min-width: 0; display: flex; align-items: center; gap: .4rem; padding: .3rem .5rem; border-radius: 10px; border: 1px solid var(--ag-line);
-        border-left: 4px solid var(--ag-line); background: var(--ag-surface); font-size: .8rem; font-weight: 600; cursor: pointer; transition: box-shadow var(--ag-t); }
-      .cal-cita:hover { box-shadow: 0 2px 8px rgba(0,74,119,.18); }
-      .cal-cita.asist-ok { border-left-color: var(--ag-ok-bar); } .cal-cita.asist-mal { border-left-color: var(--ag-mal-bar); } .cal-cita.asist-aviso { border-left-color: var(--ag-aviso-bar); }
-      .cal-cita.en-curso { border-color: var(--ag-accent); box-shadow: 0 0 0 1px var(--ag-accent); }
-      .cal-cita.proxima { border-color: var(--ag-container-hover); }
-      .cal-cita.pasada { opacity: .6; }
-      .cal-cita.seleccionada { background-image: linear-gradient(var(--ag-tinte-sel), var(--ag-tinte-sel)); }
-      .cal-cita.atenuada { opacity: .25; }
-      .cal-cita.arrastrando { opacity: .4; }
-      .cal-hueco { flex: 1; display: flex; align-items: center; justify-content: center; border: 1px dashed transparent; border-radius: 10px; color: var(--ag-text-low); cursor: pointer; opacity: 0; transition: all var(--ag-t); }
-      .cal-celda:hover .cal-hueco, body.arrastrando-cita .cal-hueco { opacity: 1; border-color: var(--ag-accent); color: var(--ag-accent); }
-      body.arrastrando-cita .cal-hueco { background: var(--ag-drop); }
-      .cal-hueco.destino-drop, .cal-cita.destino-drop { background: var(--ag-container) !important; box-shadow: 0 0 0 2px var(--ag-accent); }
-      thead th.th-notas { width: auto; }
-      thead th:last-child, tbody td.acciones-fila { width: 176px; padding: 0 .5rem; text-align: right; white-space: nowrap; overflow: visible; text-overflow: clip; }
-      .btn-fila.con-hc { color: var(--ag-accent); }
-      .btn-fila.sin-hc .material-symbols-outlined { opacity: .35; }
+      .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(32,33,36,.5); align-items: center; justify-content: center; z-index: 1000; padding: 1rem; }
+      .modal-overlay.visible { display: flex; }
+      .modal-box { background: var(--md-surface); border-radius: 14px; padding: 1.25rem 1.5rem; max-width: 360px; width: 100%; box-shadow: 0 4px 20px rgba(0,0,0,.25); }
+      .modal-box.modal-box-ancho { max-width: 520px; max-height: 90vh; overflow: auto; }
+      .modal-titulo { font-size: 1rem; font-weight: 600; margin-bottom: 1rem; }
+      .modal-mensaje { font-size: .88rem; color: var(--md-on-surface); white-space: pre-line; line-height: 1.45; margin-bottom: 1.15rem; }
+      .modal-botones { display: flex; justify-content: flex-end; gap: .5rem; margin-top: 1.1rem; }
+      .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .7rem .9rem; }
+      .form-grid label { font-size: .76rem; color: var(--md-on-surface-med); font-weight: 500; display: flex; flex-direction: column; gap: .25rem; }
+      .form-grid label.campo-ancho { grid-column: 1 / -1; }
+      .form-grid input, .form-grid select, .form-grid textarea { font-size: .85rem; color: var(--md-on-surface); border: 1px solid var(--md-outline); border-radius: 8px; padding: .45rem .6rem; background: var(--md-surface); outline: none; }
+      .form-grid input:focus, .form-grid select:focus, .form-grid textarea:focus { border-color: var(--md-primary); box-shadow: 0 0 0 1px var(--md-primary); }
+      .form-grid textarea { resize: vertical; min-height: 2.2rem; }
     </style>
   </head>
   <body>
     <nav class="tabs-cambio">
       <a class="tab-cambio" href="<?= baseUrl ?>?page=baseDatos" target="_top"><span class="material-symbols-outlined">folder_shared</span>Base de Datos</a>
-      <a class="tab-cambio activo" href="<?= baseUrl ?>?page=agenda" target="_top"><span class="material-symbols-outlined">calendar_month</span>Agenda</a>
-      <a class="tab-cambio" href="<?= baseUrl ?>?page=valoraciones" target="_top"><span class="material-symbols-outlined">monitoring</span>Valoraciones</a>
+      <a class="tab-cambio" href="<?= baseUrl ?>?page=agenda" target="_top"><span class="material-symbols-outlined">calendar_month</span>Agenda</a>
+      <a class="tab-cambio activo" href="<?= baseUrl ?>?page=valoraciones" target="_top"><span class="material-symbols-outlined">monitoring</span>Valoraciones</a>
     </nav>
-    <header class="top" id="cabecera">
+    <header class="top">
+      <h1><span class="material-symbols-outlined">monitoring</span> Valoraciones <span class="contador" id="contador"></span></h1>
 
-      <!-- Barra principal -->
-      <div class="barra barra-principal">
-        <div class="grupo-nav">
-          <button class="btn-toolbar btn-nav" id="btnSemanaAnterior" title="Semana anterior (←)">
-            <span class="material-symbols-outlined">chevron_left</span>
-          </button>
-          <button class="btn-toolbar" id="btnHoy" title="Ir a hoy (T)">
-            <span class="material-symbols-outlined">today</span> Hoy
-          </button>
-          <button class="btn-toolbar btn-nav" id="btnSemanaSiguiente" title="Semana siguiente (→)">
-            <span class="material-symbols-outlined">chevron_right</span>
-          </button>
-        </div>
-        <span class="etiqueta-semana" id="etiquetaSemana"></span>
-        <div class="selector-semana">
-          <span class="material-symbols-outlined">calendar_month</span>
-          <input type="date" id="inputSemana" title="Ir a la semana que contiene esta fecha">
-        </div>
-        <span class="contador" id="contador"></span>
-
-        <div class="buscador">
-          <span class="material-symbols-outlined">search</span>
-          <input type="text" id="inputBusqueda" placeholder="Buscar por usuario, sesión o notas…  ( / )">
-        </div>
-
-        <span class="espaciador"></span>
-
-        <button class="btn-toolbar" id="btnHuecos">
-          <span class="material-symbols-outlined">event_available</span> Mostrar citas disponibles
-        </button>
-        <button class="btn-toolbar primario" id="btnJornada" title="Abre las Historias Clínicas del turno actual de hoy">
-          <span class="material-symbols-outlined">today</span> Preparar Jornada
-        </button>
-        <button class="btn-toolbar" id="btnCopiarSemana" title="Copia miércoles y jueves (doble sesión) y viernes (simple) a la semana siguiente, sin necesidad de seleccionar nada">
-          <span class="material-symbols-outlined">event_repeat</span> Copiar Semana
+      <div class="barra-herramientas">
+        <button class="btn-toolbar primario" id="btnNuevaValoracion">
+          <span class="material-symbols-outlined">assignment</span> Nueva Valoración
         </button>
         <button class="btn-toolbar deshacer" id="btnDeshacer" title="Deshacer la última eliminación">
           <span class="material-symbols-outlined">undo</span> Deshacer
         </button>
+        <span class="separador-toolbar"></span>
+        <button type="button" class="btn-toolbar btn-nav" id="btnTema" title="Cambiar tema"></button>
       </div>
 
-      <!-- Barra contextual: sustituye a la principal con citas seleccionadas -->
-      <div class="barra barra-seleccion" id="barraSeleccion">
-        <button class="btn-toolbar btn-nav" id="btnQuitarSeleccion" title="Quitar selección">
-          <span class="material-symbols-outlined">close</span>
-        </button>
-        <span class="contador-seleccion" id="contadorSeleccion"></span>
-
-        <span class="separador"></span>
-
-        <button class="btn-toolbar" id="btnEnlazarHC" disabled title="Busca y enlaza la Historia Clínica a las citas seleccionadas">
-          <span class="material-symbols-outlined">link</span> Enlazar HC
-        </button>
-        <button class="btn-toolbar" id="btnValoracion" disabled>
-          <span class="material-symbols-outlined">assignment</span> Valoración
-        </button>
-        <button class="btn-toolbar" id="btnWhatsapp" disabled>
-          <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" fill="currentColor" viewBox="0 0 16 16">
-            <path d="M13.601 2.326A7.854 7.854 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.933 7.933 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.898 7.898 0 0 0 13.6 2.326zM7.994 14.521a6.573 6.573 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.557 6.557 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592zm3.615-4.934c-.197-.099-1.17-.578-1.353-.646-.182-.065-.315-.099-.445.099-.133.197-.513.646-.627.775-.114.133-.232.148-.43.05-.197-.1-.836-.308-1.592-.985-.59-.525-.985-1.175-1.103-1.372-.114-.198-.011-.304.088-.403.087-.088.197-.232.296-.346.1-.114.133-.198.198-.33.065-.134.034-.248-.015-.347-.05-.099-.445-1.076-.612-1.47-.16-.389-.323-.335-.445-.34-.114-.007-.247-.007-.38-.007a.729.729 0 0 0-.529.247c-.182.198-.691.677-.691 1.654 0 .977.71 1.916.81 2.049.098.133 1.394 2.132 3.383 2.992.47.205.84.326 1.129.418.475.152.904.129 1.246.08.38-.058 1.171-.48 1.338-.943.164-.464.164-.86.114-.943-.049-.084-.182-.133-.38-.232z"/>
-          </svg> WhatsApp
-        </button>
-
-        <span class="separador"></span>
-
-        <div class="menu-wrap" id="menuCopiarWrap">
-          <button class="btn-toolbar" id="btnMenuCopiar" disabled aria-haspopup="true" aria-expanded="false">
-            <span class="material-symbols-outlined">content_copy</span> Copiar
-            <span class="material-symbols-outlined">arrow_drop_down</span>
-          </button>
-          <div class="menu" role="menu">
-            <button class="menu-item" id="btnCopiarCita" disabled role="menuitem" title="Copia la(s) cita(s) seleccionada(s) al siguiente día alterno (L/M→+2, M/J→+5, V→+7)">
-              <span class="material-symbols-outlined">content_copy</span>
-              <span>Siguiente cita<small>Al siguiente día alterno</small></span>
-            </button>
-            <button class="menu-item" id="btnCopiarCita2" disabled role="menuitem" title="Copia la(s) cita(s) seleccionada(s) a las dos siguientes fechas alternas (usuarios de doble sesión semanal)">
-              <span class="material-symbols-outlined">library_add</span>
-              <span>Siguientes 2 citas<small>Doble sesión semanal</small></span>
-            </button>
-          </div>
+      <div class="controles">
+        <div class="buscador">
+          <span class="material-symbols-outlined">search</span>
+          <input type="text" id="inputBusqueda" placeholder="Buscar por usuario…  ( / )">
         </div>
-
-        <span class="espaciador"></span>
-
-        <button class="btn-toolbar peligro" id="btnEliminarCitas" disabled title="Libera la(s) cita(s) seleccionada(s) (borra usuario, teléfono, sesión, asistencia, notas e historia clínica)">
-          <span class="material-symbols-outlined">delete</span> Eliminar
-        </button>
-      </div>
-
-      <!-- Barra secundaria: vista, filtros rápidos y densidad -->
-      <div class="barra barra-filtros">
-        <div class="segmentado" role="group" aria-label="Vista">
-          <button type="button" class="seg activo" id="btnVistaSemana" title="Tabla de la semana">Semana</button>
-          <button type="button" class="seg" id="btnVistaHoy" title="Tarjetas con las citas de hoy">Hoy</button>
-          <button type="button" class="seg" id="btnVistaCal" title="Cuadrícula semanal tipo calendario">Cuadrícula</button>
-        </div>
-        <span class="separador"></span>
-        <button type="button" class="chip-filtro" data-filtro="sinAsistencia" title="Citas de hoy o anteriores sin asistencia registrada">Sin asistencia <span class="cnt"></span></button>
-        <button type="button" class="chip-filtro" data-filtro="sinHC" title="Citas sin Historia Clínica enlazada">Sin HC <span class="cnt"></span></button>
-        <button type="button" class="chip-filtro" data-filtro="conNotas" title="Citas con notas">Con notas <span class="cnt"></span></button>
-        <span class="espaciador"></span>
-        <button type="button" class="btn-toolbar" id="btnDensidad" title="Cambiar la altura de las filas">
-          <span class="material-symbols-outlined">density_medium</span> <span id="txtDensidad">Cómodo</span>
-        </button>
-        <button type="button" class="btn-toolbar btn-nav" id="btnTema"></button>
-        <button type="button" class="btn-toolbar btn-nav" id="btnAtajos" title="Atajos de teclado">
-          <span class="material-symbols-outlined">keyboard</span>
-        </button>
       </div>
     </header>
 
-    <datalist id="listaPacientes"></datalist>
+    <div class="tabla-wrap" id="tablaWrap">
+      <div class="skeleton-fila"><div class="sk" style="width:36px;height:36px;border-radius:50%"></div><div style="flex:1;display:flex;flex-direction:column;gap:.4rem"><div class="sk" style="height:11px;width:34%"></div><div class="sk" style="height:11px;width:20%"></div></div></div>
+      <div class="skeleton-fila"><div class="sk" style="width:36px;height:36px;border-radius:50%"></div><div style="flex:1;display:flex;flex-direction:column;gap:.4rem"><div class="sk" style="height:11px;width:28%"></div><div class="sk" style="height:11px;width:16%"></div></div></div>
+      <div class="skeleton-fila"><div class="sk" style="width:36px;height:36px;border-radius:50%"></div><div style="flex:1;display:flex;flex-direction:column;gap:.4rem"><div class="sk" style="height:11px;width:40%"></div><div class="sk" style="height:11px;width:22%"></div></div></div>
+    </div>
 
-    <div class="tabla-wrap" id="tablaWrap"></div>
+    <aside class="ficha" id="ficha" aria-hidden="true"></aside>
+    <div class="barra-progreso"></div>
 
     <?!= include('ui/Modal_Deshacer'); ?>
 
-    <div class="toast-deshacer" id="toastMover">
-      <span id="toastMoverTexto"></span>
-      <button type="button" id="toastMoverBtn">DESHACER</button>
+    <!-- Modal de edición de una valoración guardada (fecha incluida). -->
+    <div class="modal-overlay" id="modalEditarOverlay">
+      <div class="modal-box modal-box-ancho">
+        <h3 class="modal-titulo">Editar valoración</h3>
+        <div class="form-grid">
+          <label>Fecha
+            <input type="date" id="editFecha">
+          </label>
+          <label>Tipo
+            <select id="editTipo">
+              <option value="Inicial">Inicial</option>
+              <option value="Seguimiento">Seguimiento</option>
+              <option value="Final">Final</option>
+            </select>
+          </label>
+          <label>Teléfono
+            <input type="text" id="editTelefono">
+          </label>
+          <label>Analgésicos (0-5)
+            <input type="number" id="editAnalgesicos" min="0" max="5" step="1">
+          </label>
+          <label>PEG Dolor (0-10)
+            <input type="number" id="editPegDolor" min="0" max="10" step="0.1">
+          </label>
+          <label>PEG Actividad (0-10)
+            <input type="number" id="editPegActividad" min="0" max="10" step="0.1">
+          </label>
+          <label>PEG Vida (0-10)
+            <input type="number" id="editPegVida" min="0" max="10" step="0.1">
+          </label>
+          <label>Función Global (0-10)
+            <input type="number" id="editFuncionGlobal" min="0" max="10" step="0.1">
+          </label>
+          <label>Columna (0-10)
+            <input type="number" id="editMediaColumna" min="0" max="10" step="0.1">
+          </label>
+          <label>Miembro Superior (0-10)
+            <input type="number" id="editMediaMS" min="0" max="10" step="0.1">
+          </label>
+          <label>Miembro Inferior (0-10)
+            <input type="number" id="editMediaMI" min="0" max="10" step="0.1">
+          </label>
+          <label class="campo-ancho">Notas
+            <textarea id="editNotas" rows="2"></textarea>
+          </label>
+        </div>
+        <div class="modal-botones">
+          <button class="btn-toolbar" id="btnCancelarEdicion">Cancelar</button>
+          <button class="btn-toolbar primario" id="btnGuardarEdicion">Guardar</button>
+        </div>
+      </div>
     </div>
 
     <script>
-      // Hora ("HH:mm") a partir de la cual una cita es "de tarde".
-      var HORA_CORTE_TARDE = '14:00';
-
       var BASE_URL = '<?= baseUrl ?>';
-      var filasSeleccionadas = new Set();
+      var PACIENTES = [];
+      var pacienteSeleccionado = null; // nombre (string) o null
+      var metricaActual = 'funcionGlobal';
+      var filaEnEdicion = null;
+      var nombreEnEdicion = null, fechaEnEdicion = null; // para que el servidor compruebe que la fila sigue siendo la misma
+      var ordenCampo = null, ordenDir = 1; // 1 = asc, -1 = desc
+      var ultimosFiltrados = [], filaActiva = null;
 
-      // Columnas de Sheets que no se muestran (normalizadas: sin mayúsculas ni acentos).
-      var COLUMNAS_OCULTAS = ['fecha', 'dia', 'id evento calendar', 'historia clinica'];
-
-      var HEADERS = [];
-      var HEADERS_VISIBLES = [];
-      var CITAS = [];
-      var COL_HISTORIA = null;
-      var semanaActual = null; // lunes de la semana mostrada, "yyyy-MM-dd"
-      var mostrarHuecos = false;
-      var OPCIONES_ASISTENCIA = [];
-      var NOMBRES_PACIENTES = [];
-      var vista = 'semana';            // 'semana' (tabla) | 'hoy' (tarjetas del día de hoy)
-      var filtrosActivos = new Set();  // 'sinAsistencia' | 'sinHC' | 'conNotas'
-      var plegadoManual = {};          // fechaISO -> true/false: días plegados o desplegados a mano
-      var DURACION_CITA_MIN = 30;      // para marcar "Ahora" y atenuar las citas ya terminadas
-
-      // Color del chip según el texto de Asistencia. Se evalúa EN ORDEN y gana
-      // la primera coincidencia: primero las negativas ("No asistió", "Falta"),
-      // después "pendiente" (gris), después avisos (ámbar) y por último las
-      // positivas (verde). Lo que no encaje sale en gris neutro.
-      var ESTILOS_ASISTENCIA = [
-        { clase: 'mal',    patron: /^no\b|^sin asist|falt|ausen|plant|no (vino|asist|acud|se present)/ },
-        { clase: 'neutro', patron: /pendient|por confirmar|sin confirmar|sin registrar/ },
-        { clase: 'aviso',  patron: /cancel|anul|aplaz|recuper|justific|retras/ },
-        { clase: 'ok',     patron: /asist|vino|presente|realiz|acudi|^si$|^ok$/ }
+      // Columnas de la tabla principal. sec = se oculta con la ficha abierta para que la tabla quepa.
+      var COLS = [
+        { k: 'pegDolor', etq: 'PEG Dolor' }, { k: 'pegActividad', etq: 'PEG Actividad' }, { k: 'pegVida', etq: 'PEG Vida' },
+        { k: 'mediaColumna', etq: 'Columna', sec: true }, { k: 'mediaMS', etq: 'M. Superior', sec: true }, { k: 'mediaMI', etq: 'M. Inferior', sec: true },
+        { k: 'funcionGlobal', etq: 'Función Global' }, { k: 'analgesicos', etq: 'Analgésicos', sec: true }
       ];
+      var METRICAS = [
+        { k: 'pegDolor', etq: 'PEG Dolor' }, { k: 'pegActividad', etq: 'PEG Actividad' }, { k: 'pegVida', etq: 'PEG Vida' },
+        { k: 'analgesicos', etq: 'Analgésicos' }, { k: 'funcionGlobal', etq: 'Función Global' },
+        { k: 'mediaColumna', etq: 'Columna' }, { k: 'mediaMS', etq: 'Miembro Superior' }, { k: 'mediaMI', etq: 'Miembro Inferior' }
+      ];
+      // Máximo de cada escala para la gráfica (Analgésicos es 0-5; el resto 0-10).
+      var ESCALA_MAX = { analgesicos: 5 };
+      var ETQ_CORTA = { pegDolor: 'Dolor', pegActividad: 'Actividad', pegVida: 'Vida', analgesicos: 'Analgés.', mediaColumna: 'Columna', mediaMS: 'M. Sup.', mediaMI: 'M. Inf.', funcionGlobal: 'F. Global' };
+      var ORDEN_MINI = ['pegDolor', 'pegActividad', 'pegVida', 'analgesicos', 'mediaColumna', 'mediaMS', 'mediaMI', 'funcionGlobal'];
 
-      function estiloAsistencia(valor) {
-        var v = normalizar(valor);
-        if (!v) return '';
-        for (var i = 0; i < ESTILOS_ASISTENCIA.length; i++) {
-          if (ESTILOS_ASISTENCIA[i].patron.test(v)) return ESTILOS_ASISTENCIA[i].clase;
-        }
-        return 'neutro';
+      // ---------- Utilidades ----------
+      function normalizar(txt) { return (txt || '').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim(); }
+      function esc(t) { return (t === null || t === undefined ? '' : String(t)).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
+      function resalta(txt, termino) {
+        var s = esc(txt || '');
+        if (!termino) return s;
+        try { return s.replace(new RegExp('(' + termino.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'ig'), '<mark>$1</mark>'); } catch (err) { return s; }
       }
-
-      function htmlEsqueleto() {
-        var anchos = [44, 170, 90, 36, 80];
-        var fila = '<div class="esq-fila">' +
-          anchos.map(function(w) { return '<span class="esq-barra" style="width:' + w + 'px"></span>'; }).join('') +
-          '<span class="esq-barra esq-flex"></span></div>';
-        function filas(n) { var h = ''; for (var i = 0; i < n; i++) h += fila; return h; }
-        return '<div class="esqueleto" aria-busy="true" aria-label="Cargando agenda">' +
-          '<div class="esq-dia"></div><div class="esq-turno"></div>' + filas(5) +
-          '<div class="esq-turno"></div>' + filas(4) +
-          '<div class="esq-dia"></div><div class="esq-turno"></div>' + filas(4) + '</div>';
+      function formatearFechaCorta(fechaISO) {
+        if (!fechaISO) return '—';
+        var partes = fechaISO.split('-'); // yyyy-MM-dd
+        return partes[2] + '/' + partes[1] + '/' + partes[0].slice(2);
       }
-
-      function cargarListaPacientes() {
-        google.script.run
-          .withSuccessHandler(function(res) {
-            NOMBRES_PACIENTES = Object.keys(res.allPatientsData || {});
-            document.getElementById('listaPacientes').innerHTML =
-              NOMBRES_PACIENTES.map(function(n) { return '<option value="' + escapar(n) + '">'; }).join('');
-          })
-          .withFailureHandler(function() { /* no crítico */ })
-          .obtenerListaPacientesWeb();
+      function formatearTel(t) {
+        var s = String(t || '').replace(/[^\d+]/g, ''), pref = '', num = s, m = s.match(/^(\+\d{1,3})(\d{9})$/);
+        if (m) { pref = m[1] + ' '; num = m[2]; }
+        return /^\d{9}$/.test(num) ? pref + num.replace(/(\d{3})(\d{3})(\d{3})/, '$1 $2 $3') : String(t || '').trim();
       }
+      function avatarHtml(nombre, extra) {
+        var n = (nombre || '').toString().trim();
+        if (!n) return '';
+        var p = n.split(/\s+/), ini = (p[0].charAt(0) + (p.length > 1 ? p[1].charAt(0) : p[0].charAt(1))).toUpperCase(), hue = 0, low = n.toLowerCase();
+        for (var i = 0; i < low.length; i++) hue = (hue * 31 + low.charCodeAt(i)) % 360;
+        return '<span class="avatar' + (extra ? ' ' + extra : '') + '" style="--h:' + hue + '">' + esc(ini) + '</span>';
+      }
+      var pendientes = 0;
+      function ocupado(d) { pendientes = Math.max(0, pendientes + d); document.body.classList.toggle('ocupado', pendientes > 0); }
 
       // ---------- Carga de datos ----------
-      // `silencioso`: refrescos en segundo plano (sin esqueleto y SIN mover el
-      // scroll). Una carga no silenciosa (primera carga, Hoy, flechas, selector
-      // de fecha) deja la vista centrada en el día de hoy si está en la semana.
-      function cargar(fechaISO, silencioso) {
-        var irAHoy = !silencioso;
-        if (!silencioso) {
-          document.getElementById('tablaWrap').innerHTML = htmlEsqueleto();
+      function cargar() {
+        ocupado(1);
+        google.script.run
+          .withSuccessHandler(function(res) {
+            ocupado(-1);
+            if (res.error) { mostrarError(res.error); return; }
+            PACIENTES = res.pacientes || [];
+            render();
+            // Si había un paciente con el ficha abierta, se refresca con los datos nuevos (o se cierra si ya no existe).
+            renderFicha();
+          })
+          .withFailureHandler(function(err) { ocupado(-1); mostrarError(err); })
+          .obtenerValoracionesWeb();
+      }
+      function mostrarError(err) {
+        document.getElementById('tablaWrap').innerHTML =
+          '<div class="estado-vacio"><span class="material-symbols-outlined grande">error</span>No se pudieron cargar las valoraciones.<div>' + esc(err && err.message ? err.message : err) + '</div></div>';
+      }
+
+      // ---------- Píldoras de severidad ----------
+      // La dirección del color depende del tipo de escala (ver valoraciones/Guardar_Vista.html):
+      // - PEG Dolor/Actividad/Vida: 0-10, ALTO = MALO.
+      // - Columna/M.Superior/M.Inferior/Función Global: 0-10, ALTO = BUENO.
+      // - Analgésicos: 0-5, ALTO = MALO.
+      function claseSeveridadDolor(v) { return v <= 3 ? 'sev-ok' : v <= 6 ? 'sev-medio' : 'sev-alto'; }
+      function claseSeveridadFuncion(v) { return v <= 3 ? 'sev-alto' : v <= 7 ? 'sev-medio' : 'sev-ok'; }
+      function claseSeveridadAnalgesicos(v) { return v <= 2 ? 'sev-ok' : v === 3 ? 'sev-medio' : 'sev-alto'; }
+      var TIPO_METRICA = {
+        pegDolor: 'dolor', pegActividad: 'dolor', pegVida: 'dolor',
+        mediaColumna: 'funcion', mediaMS: 'funcion', mediaMI: 'funcion', funcionGlobal: 'funcion',
+        analgesicos: 'analg'
+      };
+      function claseSeveridad(valor, campo) {
+        var tipo = TIPO_METRICA[campo] || 'dolor';
+        if (tipo === 'funcion') return claseSeveridadFuncion(valor);
+        if (tipo === 'analg') return claseSeveridadAnalgesicos(valor);
+        return claseSeveridadDolor(valor);
+      }
+      function renderPill(valor, campo) {
+        if (valor === null || valor === undefined) return '<span class="badge sev-vacio">—</span>';
+        return '<span class="badge ' + claseSeveridad(valor, campo) + '">' + valor + '</span>';
+      }
+      function chipTipo(tipo) {
+        if (!tipo) return '<span class="vacio">—</span>';
+        var c = normalizar(tipo);
+        return '<span class="tipo-chip ' + (c === 'inicial' ? 'inicial' : c === 'seguimiento' ? 'seguimiento' : c === 'final' ? 'final' : '') + '">' + esc(tipo) + '</span>';
+      }
+
+      // ---------- Evolución respecto a la valoración anterior ----------
+      // Compara las dos últimas valoraciones que tienen valor en esa métrica.
+      // Mejora = sube en escalas de función, baja en dolor y analgésicos.
+      function deltaHtml(historial, campo) {
+        var v = [];
+        for (var i = historial.length - 1; i >= 0 && v.length < 2; i--) {
+          if (historial[i][campo] !== null && historial[i][campo] !== undefined) v.push(historial[i][campo]);
         }
+        if (v.length < 2) return '<span class="vacio">—</span>';
+        var d = Math.round((v[0] - v[1]) * 10) / 10;
+        var mejora = TIPO_METRICA[campo] === 'funcion' ? d > 0 : d < 0;
+        var cls = d === 0 ? 'igual' : (mejora ? 'mejora' : 'empeora');
+        var ico = d === 0 ? 'remove' : (d > 0 ? 'arrow_upward' : 'arrow_downward');
+        return '<span class="delta ' + cls + '" title="Respecto a la valoración anterior"><span class="material-symbols-outlined">' + ico + '</span>' + (d > 0 ? '+' : '') + d + '</span>';
+      }
+
+      // ---------- Tabla principal ----------
+      function thCol(campo, texto, clase) {
+        var dir = ordenCampo === campo ? (ordenDir === 1 ? 'orden-asc' : 'orden-desc') : '';
+        return '<th class="ordenable ' + (clase || '') + ' ' + dir + '" data-orden="' + campo + '">' + texto + '<span class="material-symbols-outlined">arrow_upward</span></th>';
+      }
+      function claveOrden(p) {
+        if (ordenCampo === 'nombre') return normalizar(p.nombre);
+        if (ordenCampo === 'fecha') return p.ultima.fecha || '';
+        var v = p.ultima[ordenCampo];
+        return (v === null || v === undefined) ? -Infinity : v;
+      }
+      function ordenarFiltrados(lista) {
+        if (!ordenCampo) return lista; // orden del servidor: última valoración más reciente primero
+        return lista.slice().sort(function(a, b) {
+          var x = claveOrden(a), y = claveOrden(b);
+          return (x < y ? -1 : x > y ? 1 : 0) * ordenDir;
+        });
+      }
+
+      function htmlFila(p, termino) {
+        var u = p.ultima, sel = pacienteSeleccionado === p.nombre;
+        return '<tr data-nombre="' + esc(p.nombre) + '" class="' + (sel ? 'seleccionada' : '') + '">' +
+          '<td class="col-usuario"><div class="celda-u">' + avatarHtml(p.nombre) + '<div class="doble"><div class="u-nombre">' + resalta(p.nombre, termino) + '</div><div class="u-sub">' +
+            (p.telefono ? esc(formatearTel(p.telefono)) : 'Sin teléfono') + ' · ' + p.numValoraciones + (p.numValoraciones === 1 ? ' valoración' : ' valoraciones') + '</div></div></div></td>' +
+          '<td><div class="doble"><div class="f-fecha">' + formatearFechaCorta(u.fecha) + '</div><div class="c-sub">' + chipTipo(u.tipo) + '</div></div></td>' +
+          COLS.map(function(c) { return '<td' + (c.sec ? ' class="sec"' : '') + '>' + renderPill(u[c.k], c.k) + '</td>'; }).join('') +
+          '<td>' + deltaHtml(p.historial, 'funcionGlobal') + '</td>' +
+          '<td class="notas sec' + (u.notas ? '' : ' vacio') + '" title="' + esc(u.notas || '') + '">' + (u.notas ? esc(u.notas) : '—') + '</td>' +
+          '</tr>';
+      }
+
+      function render() {
+        var termino = document.getElementById('inputBusqueda').value.trim();
+        var terminoNorm = normalizar(termino);
+        var filtrados = PACIENTES.filter(function(p) { return !terminoNorm || normalizar(p.nombre).indexOf(terminoNorm) !== -1; });
+        filtrados = ordenarFiltrados(filtrados);
+        ultimosFiltrados = filtrados;
+        document.getElementById('contador').textContent = filtrados.length + ' de ' + PACIENTES.length;
+
+        var cont = document.getElementById('tablaWrap'), scroll = cont.scrollTop;
+        if (PACIENTES.length === 0) {
+          cont.innerHTML = '<div class="estado-vacio"><span class="material-symbols-outlined grande">monitoring</span>Todavía no hay valoraciones registradas.</div>';
+          return;
+        }
+        if (filtrados.length === 0) {
+          cont.innerHTML = '<div class="estado-vacio"><span class="material-symbols-outlined grande">search_off</span>No se encontró ningún usuario con ese criterio.</div>';
+          return;
+        }
+        cont.innerHTML = '<table><thead><tr>' +
+          thCol('nombre', 'Usuario', 'col-usuario') + thCol('fecha', 'Última valoración') +
+          COLS.map(function(c) { return thCol(c.k, c.etq, c.sec ? 'sec' : ''); }).join('') +
+          '<th title="Variación de Función Global respecto a la valoración anterior">Evolución</th><th class="sec">Notas</th></tr></thead><tbody>' +
+          filtrados.map(function(p) { return htmlFila(p, termino); }).join('') + '</tbody></table>';
+        cont.scrollTop = scroll;
+        marcarFilaActiva();
+      }
+
+      document.getElementById('tablaWrap').addEventListener('click', function(e) {
+        var th = e.target.closest('th.ordenable');
+        if (th) {
+          // Ciclo: dirección inicial → inversa → sin orden (vuelve al orden del servidor).
+          var campo = th.dataset.orden, inicial = campo === 'nombre' ? 1 : -1;
+          if (ordenCampo !== campo) { ordenCampo = campo; ordenDir = inicial; }
+          else if (ordenDir === inicial) ordenDir = -inicial;
+          else { ordenCampo = null; ordenDir = 1; }
+          render();
+          return;
+        }
+        var tr = e.target.closest('tbody tr[data-nombre]');
+        if (!tr) return;
+        var nombre = tr.getAttribute('data-nombre');
+        if (pacienteSeleccionado === nombre) cerrarDetalle(); else mostrarDetalle(nombre);
+      });
+
+      // ---------- Navegación con teclado ----------
+      function marcarFilaActiva() {
+        document.querySelectorAll('tbody tr').forEach(function(tr) { tr.classList.toggle('fila-activa', tr.getAttribute('data-nombre') === filaActiva); });
+      }
+      function moverFilaActiva(delta) {
+        if (!ultimosFiltrados.length) return;
+        var idx = -1;
+        ultimosFiltrados.forEach(function(p, i) { if (p.nombre === filaActiva) idx = i; });
+        idx = Math.min(ultimosFiltrados.length - 1, Math.max(0, idx + delta));
+        filaActiva = ultimosFiltrados[idx].nombre;
+        marcarFilaActiva();
+        var el = document.querySelector('tbody tr.fila-activa');
+        if (el) el.scrollIntoView({ block: 'nearest' });
+      }
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+          if (document.getElementById('modalEditarOverlay').classList.contains('visible')) { cerrarModalEditar(); return; }
+          if (pacienteSeleccionado && !document.querySelector('.modal-overlay.visible')) cerrarDetalle();
+          return;
+        }
+        var enCampo = /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName);
+        if (e.key === '/' && !enCampo) { e.preventDefault(); document.getElementById('inputBusqueda').focus(); return; }
+        if (enCampo || document.querySelector('.modal-overlay.visible')) return;
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); moverFilaActiva(e.key === 'ArrowDown' ? 1 : -1); }
+        else if (e.key === 'Enter' && filaActiva) { if (pacienteSeleccionado === filaActiva) cerrarDetalle(); else mostrarDetalle(filaActiva); }
+      });
+
+      // ---------- Ficha lateral (evolución + historial) ----------
+      function pacienteActual() {
+        return PACIENTES.find(function(x) { return x.nombre === pacienteSeleccionado; }) || null;
+      }
+      function mostrarDetalle(nombre) {
+        if (!PACIENTES.some(function(x) { return x.nombre === nombre; })) { cerrarDetalle(); return; }
+        pacienteSeleccionado = nombre;
+        filaActiva = nombre;
+        renderFicha();
+        document.querySelectorAll('#tablaWrap tbody tr').forEach(function(tr) { tr.classList.toggle('seleccionada', tr.getAttribute('data-nombre') === nombre); });
+        marcarFilaActiva();
+      }
+      function cerrarDetalle() {
+        pacienteSeleccionado = null;
+        renderFicha();
+        document.querySelectorAll('#tablaWrap tbody tr').forEach(function(tr) { tr.classList.remove('seleccionada'); });
+      }
+
+      function renderFicha() {
+        var el = document.getElementById('ficha'), p = pacienteSeleccionado ? pacienteActual() : null;
+        if (pacienteSeleccionado && !p) pacienteSeleccionado = null; // ya no tiene valoraciones (p.ej. se borró la última)
+        document.body.classList.toggle('con-ficha', !!p);
+        el.classList.toggle('abierta', !!p);
+        el.setAttribute('aria-hidden', p ? 'false' : 'true');
+        if (!p) return;
+        var cuerpo = el.querySelector('.ficha-cuerpo'), scroll = cuerpo ? cuerpo.scrollTop : 0;
+        el.innerHTML = htmlFicha(p);
+        cuerpo = el.querySelector('.ficha-cuerpo');
+        if (cuerpo) cuerpo.scrollTop = scroll;
+        document.querySelectorAll('#tablaWrap tbody tr').forEach(function(tr) { tr.classList.toggle('seleccionada', tr.getAttribute('data-nombre') === p.nombre); });
+      }
+
+      function htmlFicha(p) {
+        var u = p.ultima, h = p.historial;
+        var kpi = function(campo, etq) { return '<div class="kpi"><div class="kpi-etq">' + etq + '</div><div class="kpi-val">' + renderPill(u[campo], campo) + deltaHtml(h, campo) + '</div></div>'; };
+        var chips = METRICAS.map(function(m) { return '<button type="button" class="chip-met' + (m.k === metricaActual ? ' activo' : '') + '" data-metrica="' + m.k + '">' + m.etq + '</button>'; }).join('');
+        return '<div class="ficha-cab">' + avatarHtml(p.nombre, 'grande') + '<div class="ficha-tit"><div class="ficha-nombre">' + esc(p.nombre) + '</div><div class="ficha-sub">' +
+            (p.telefono ? esc(formatearTel(p.telefono)) : 'Sin teléfono') + ' · ' + p.numValoraciones + (p.numValoraciones === 1 ? ' valoración' : ' valoraciones') + '</div></div>' +
+            '<button type="button" class="ficha-cerrar" data-ficha="cerrar" title="Cerrar (Esc)"><span class="material-symbols-outlined">close</span></button></div>' +
+          '<div class="kpis">' + kpi('funcionGlobal', 'Función Global') + kpi('pegDolor', 'PEG Dolor') + '</div>' +
+          '<div class="ficha-acciones"><button type="button" class="ficha-acc primario" data-acc="nueva"><span class="material-symbols-outlined">assignment</span>Nueva valoración</button>' +
+            (p.telefono ? '<button type="button" class="ficha-acc" data-acc="copiar-tel"><span class="material-symbols-outlined">content_copy</span>Copiar teléfono</button>' : '') + '</div>' +
+          '<div class="ficha-cuerpo">' +
+            '<section class="f-sec"><h3>Evolución</h3><div class="chips-met">' + chips + '</div>' + htmlGrafica(h) + '</section>' +
+            '<section class="f-sec"><h3>Historial</h3>' + h.slice().reverse().map(htmlHistorial).join('') + '</section>' +
+          '</div>';
+      }
+
+      function htmlHistorial(r) {
+        return '<article class="hist"><div class="hist-cab"><span class="f-fecha">' + formatearFechaCorta(r.fecha) + '</span>' + chipTipo(r.tipo) + '<span class="espaciador"></span>' +
+          '<button type="button" class="btn-fila" data-fila="' + r._fila + '" data-accion="editar" title="Editar valoración"><span class="material-symbols-outlined">edit</span></button>' +
+          '<button type="button" class="btn-fila peligro" data-fila="' + r._fila + '" data-accion="eliminar" title="Eliminar valoración"><span class="material-symbols-outlined">delete</span></button></div>' +
+          '<div class="hist-vals">' + ORDEN_MINI.map(function(k) { return '<div class="mv"><span class="mv-etq">' + ETQ_CORTA[k] + '</span>' + renderPill(r[k], k) + '</div>'; }).join('') + '</div>' +
+          (r.notas ? '<div class="hist-notas">' + esc(r.notas) + '</div>' : '') + '</article>';
+      }
+
+      // ---------- Gráfica de evolución (SVG, sin librerías externas) ----------
+      function htmlGrafica(historial) {
+        // Proporción fija: el CSS (width:100% + height:auto) la escala sin distorsión.
+        var W = 480, H = 210, padL = 26, padR = 18, padT = 22, padB = 26, n = historial.length;
+        var puntos = [];
+        historial.forEach(function(h, i) {
+          var v = h[metricaActual];
+          if (v !== null && v !== undefined) puntos.push({ i: i, v: v, fecha: h.fecha, tipo: h.tipo });
+        });
+        if (puntos.length === 0) return '<p class="sin-datos-grafica">Sin datos suficientes para graficar esta métrica.</p>';
+
+        var x = function(i) { return n <= 1 ? (padL + (W - padL - padR) / 2) : padL + (i / (n - 1)) * (W - padL - padR); };
+        var max = ESCALA_MAX[metricaActual] || 10;
+        var y = function(v) { return padT + (1 - v / max) * (H - padT - padB); };
+        var linea = puntos.map(function(p, k) { return (k === 0 ? 'M' : 'L') + x(p.i).toFixed(1) + ',' + y(p.v).toFixed(1); }).join(' ');
+        var area = puntos.length > 1 ? linea + ' L' + x(puntos[puntos.length - 1].i).toFixed(1) + ',' + y(0).toFixed(1) + ' L' + x(puntos[0].i).toFixed(1) + ',' + y(0).toFixed(1) + ' Z' : '';
+        var guias = (max === 5 ? [0, 1, 2, 3, 4, 5] : [0, 5, 10]).map(function(v) {
+          var yy = y(v).toFixed(1);
+          return '<line x1="' + padL + '" x2="' + (W - padR) + '" y1="' + yy + '" y2="' + yy + '" class="guia-grafica" /><text x="2" y="' + (parseFloat(yy) + 4) + '" class="etiqueta-grafica">' + v + '</text>';
+        }).join('');
+        var circulos = puntos.map(function(p) {
+          return '<circle cx="' + x(p.i).toFixed(1) + '" cy="' + y(p.v).toFixed(1) + '" r="5" class="punto-grafica ' + claseSeveridad(p.v, metricaActual) + '"><title>' +
+            formatearFechaCorta(p.fecha) + ' (' + esc(p.tipo) + '): ' + p.v + '</title></circle>';
+        }).join('');
+        var valores = puntos.length <= 8 ? puntos.map(function(p) {
+          return '<text x="' + x(p.i).toFixed(1) + '" y="' + (y(p.v) - 10).toFixed(1) + '" text-anchor="middle" class="valor-grafica">' + p.v + '</text>';
+        }).join('') : '';
+        var fechas = historial.map(function(h, i) {
+          if (n > 6 && i !== 0 && i !== n - 1) return '';
+          var ancla = n === 1 ? 'middle' : (i === 0 ? 'start' : (i === n - 1 ? 'end' : 'middle'));
+          var xx = i === 0 && n > 1 ? padL : (i === n - 1 && n > 1 ? W - padR : x(i));
+          return '<text x="' + xx.toFixed(1) + '" y="' + (H - 6) + '" text-anchor="' + ancla + '" class="etiqueta-grafica">' + formatearFechaCorta(h.fecha) + '</text>';
+        }).join('');
+        return '<svg viewBox="0 0 ' + W + ' ' + H + '" class="grafica-evolucion">' + guias + (area ? '<path d="' + area + '" class="area-grafica" />' : '') +
+          '<path d="' + linea + '" class="linea-grafica" fill="none" />' + circulos + valores + fechas + '</svg>';
+      }
+
+      document.getElementById('ficha').addEventListener('click', function(e) {
+        var t = e.target, c;
+        if (t.closest('[data-ficha="cerrar"]')) { cerrarDetalle(); return; }
+        if ((c = t.closest('[data-metrica]'))) { metricaActual = c.dataset.metrica; renderFicha(); return; }
+        if ((c = t.closest('[data-acc]'))) {
+          if (c.dataset.acc === 'nueva') document.getElementById('btnNuevaValoracion').click();
+          else if (c.dataset.acc === 'copiar-tel') { var p = pacienteActual(); if (p) copiarTexto(p.telefono, 'Teléfono'); }
+          return;
+        }
+        if ((c = t.closest('[data-accion]'))) {
+          var p2 = pacienteActual();
+          if (!p2) return;
+          var fila = parseInt(c.dataset.fila, 10);
+          var registro = p2.historial.find(function(h) { return h._fila === fila; });
+          if (!registro) return;
+          if (c.dataset.accion === 'editar') abrirModalEditar(registro); else eliminarValoracion(registro);
+        }
+      });
+
+      // ---------- Copiar al portapapeles ----------
+      function copiarTexto(txt, etiqueta) {
+        var ok = false;
+        try {
+          var ta = document.createElement('textarea');
+          ta.value = txt; ta.style.cssText = 'position:fixed;opacity:0;top:0;left:0';
+          document.body.appendChild(ta); ta.select(); ok = document.execCommand('copy'); ta.remove();
+        } catch (err) { ok = false; }
+        if (!ok && navigator.clipboard) { navigator.clipboard.writeText(txt); ok = true; }
+        mostrarAviso(ok ? (etiqueta || 'Texto') + ' copiado.' : 'No se pudo copiar.');
+      }
+
+      // ---------- Editar valoración ----------
+      function valorInputONulo_(id) {
+        var v = document.getElementById(id).value;
+        return v === '' ? null : Number(v);
+      }
+      function abrirModalEditar(registro) {
+        filaEnEdicion = registro._fila;
+        nombreEnEdicion = pacienteSeleccionado;
+        fechaEnEdicion = registro.fecha || '';
+        document.getElementById('editFecha').value = registro.fecha || '';
+        document.getElementById('editTipo').value = registro.tipo || 'Inicial';
+        document.getElementById('editTelefono').value = registro.telefono || '';
+        document.getElementById('editAnalgesicos').value = registro.analgesicos === null ? '' : registro.analgesicos;
+        document.getElementById('editPegDolor').value = registro.pegDolor === null ? '' : registro.pegDolor;
+        document.getElementById('editPegActividad').value = registro.pegActividad === null ? '' : registro.pegActividad;
+        document.getElementById('editPegVida').value = registro.pegVida === null ? '' : registro.pegVida;
+        document.getElementById('editFuncionGlobal').value = registro.funcionGlobal === null ? '' : registro.funcionGlobal;
+        document.getElementById('editMediaColumna').value = registro.mediaColumna === null ? '' : registro.mediaColumna;
+        document.getElementById('editMediaMS').value = registro.mediaMS === null ? '' : registro.mediaMS;
+        document.getElementById('editMediaMI').value = registro.mediaMI === null ? '' : registro.mediaMI;
+        document.getElementById('editNotas').value = registro.notas || '';
+        document.getElementById('modalEditarOverlay').classList.add('visible');
+      }
+      function cerrarModalEditar() {
+        filaEnEdicion = null;
+        nombreEnEdicion = null;
+        fechaEnEdicion = null;
+        document.getElementById('modalEditarOverlay').classList.remove('visible');
+      }
+      document.getElementById('btnCancelarEdicion').addEventListener('click', cerrarModalEditar);
+
+      document.getElementById('btnGuardarEdicion').addEventListener('click', function() {
+        if (!filaEnEdicion) return;
+        var fecha = document.getElementById('editFecha').value;
+        if (!fecha) { mostrarAviso('La fecha es obligatoria.'); return; }
+
+        var datos = {
+          fila: filaEnEdicion,
+          nombreEsperado: nombreEnEdicion,
+          fechaOriginal: fechaEnEdicion,
+          fecha: fecha,
+          tipo: document.getElementById('editTipo').value,
+          telefono: document.getElementById('editTelefono').value,
+          analgesicos: valorInputONulo_('editAnalgesicos'),
+          pegDolor: valorInputONulo_('editPegDolor'),
+          pegActividad: valorInputONulo_('editPegActividad'),
+          pegVida: valorInputONulo_('editPegVida'),
+          funcionGlobal: valorInputONulo_('editFuncionGlobal'),
+          mediaColumna: valorInputONulo_('editMediaColumna'),
+          mediaMS: valorInputONulo_('editMediaMS'),
+          mediaMI: valorInputONulo_('editMediaMI'),
+          notas: document.getElementById('editNotas').value
+        };
+
+        var btn = this;
+        var textoOriginal = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = 'Guardando…';
+        ocupado(1);
 
         google.script.run
           .withSuccessHandler(function(res) {
-            if (res.error) { mostrarError(res.error); return; }
-            HEADERS = res.headers || [];
-            HEADERS_VISIBLES = HEADERS.filter(function(h) { return COLUMNAS_OCULTAS.indexOf(normalizar(h)) === -1; });
-            CITAS = res.citas || [];
-            OPCIONES_ASISTENCIA = res.opcionesAsistencia || [];
-            COL_HISTORIA = HEADERS.find(function(h) { return h.toLowerCase().indexOf('historia') !== -1; });
-
-            if (res.semana) {
-              semanaActual = res.semana.lunes;
-              document.getElementById('etiquetaSemana').textContent = res.semana.etiqueta;
-              document.getElementById('inputSemana').value = res.semana.lunes;
-            }
-            render();
-            if (irAHoy) scrollAHoy();
+            ocupado(-1);
+            btn.disabled = false;
+            btn.textContent = textoOriginal;
+            if (!res.success) { mostrarAviso(res.message || 'No se pudo guardar la valoración.'); return; }
+            cerrarModalEditar();
+            mostrarAviso('Valoración actualizada.');
+            cargar();
           })
-          .withFailureHandler(mostrarError)
-          .obtenerAgendaSemanaWeb(fechaISO || null);
-      }
-
-      // Coloca la cabecera del día de hoy justo bajo el encabezado de columnas,
-      // para no tener que hacer scroll hacia abajo un viernes. Si hoy no está
-      // en la semana mostrada, vuelve arriba.
-      function scrollAHoy() {
-        var wrap = document.getElementById('tablaWrap');
-        var filaHoy = wrap.querySelector('tr.fila-dia.hoy');
-        if (!filaHoy) { wrap.scrollTop = 0; return; }
-        var thead = wrap.querySelector('thead');
-        var alto = thead ? thead.offsetHeight : 0;
-        var destino = filaHoy.getBoundingClientRect().top - wrap.getBoundingClientRect().top - alto + wrap.scrollTop;
-        wrap.scrollTop = Math.max(0, destino);
-      }
-
-      function mostrarError(err) {
-        document.getElementById('tablaWrap').innerHTML =
-          '<div class="estado-vacio">⚠️ No se pudo cargar la agenda.<br>' + escapar(err && err.message ? err.message : err) + '</div>';
-      }
-
-      function normalizar(txt) {
-        return (txt || '').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
-      }
-
-      function esUrl(valor) { return typeof valor === 'string' && /^https?:\/\//i.test(valor.trim()); }
-
-      // Escapado completo (& < > " '). Sirve tanto para texto como para
-      // valores de atributo: antes solo se escapaba "<", y una comilla doble
-      // en una nota cortaba el value="..." del campo de edición.
-      function escapar(txt) {
-        return (txt === null || txt === undefined ? '' : txt + '')
-          .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-          .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-      }
-
-      var CAMPOS_EDITABLES = ['Asistencia', 'Notas', 'Sesión'];
-
-      // ---------- Utilidades de fecha/hora y estado ----------
-      function vacioTxt(v) { return v === '' || v === null || v === undefined; }
-      function pad2(n) { return (n < 10 ? '0' : '') + n; }
-      function ahoraHHmm() { var d = new Date(); return pad2(d.getHours()) + ':' + pad2(d.getMinutes()); }
-
-      function finCita(hora) {
-        var m = /^(\d{1,2}):(\d{2})$/.exec(hora || '');
-        if (!m) return '';
-        var t = parseInt(m[1], 10) * 60 + parseInt(m[2], 10) + DURACION_CITA_MIN;
-        return pad2(Math.floor(t / 60)) + ':' + pad2(t % 60);
-      }
-
-      // '' | 'pasada' (ya terminó) | 'en-curso'. Solo tiene sentido para citas de hoy.
-      function estadoTemporal(hora, ahora) {
-        var fin = finCita(hora);
-        if (!fin) return '';
-        if (fin <= ahora) return 'pasada';
-        if (hora <= ahora) return 'en-curso';
-        return '';
-      }
-
-      function filaProxima(hoy, ahora) {
-        return CITAS.find(function(c) { return c._fechaISO === hoy && !c._hueco && (c['Hora'] || '') > ahora; }) || null;
-      }
-
-      function sumarDiasISO(iso, n) {
-        var p = iso.split('-').map(Number);
-        return formatoISO(new Date(p[0], p[1] - 1, p[2] + n));
-      }
-
-      function semanaContieneHoy() {
-        if (!semanaActual) return false;
-        var h = hoyISO();
-        return h >= semanaActual && h <= sumarDiasISO(semanaActual, 6);
-      }
-
-      // Días pasados de la semana actual: plegados por defecto (en semanas
-      // pasadas o futuras se muestra todo). Lo que el usuario pliega o
-      // despliega a mano manda sobre el valor por defecto.
-      function diaPlegado(fechaISO) {
-        if (Object.prototype.hasOwnProperty.call(plegadoManual, fechaISO)) return plegadoManual[fechaISO];
-        return semanaContieneHoy() && fechaISO < hoyISO();
-      }
-
-      function hayBusqueda() {
-        return normalizar(document.getElementById('inputBusqueda').value) !== '' || filtrosActivos.size > 0;
-      }
-
-      function calcularTotalesDia() {
-        var tot = {};
-        CITAS.forEach(function(c) {
-          var t = tot[c._fechaISO] || (tot[c._fechaISO] = { citas: 0, libres: 0, registradas: 0 });
-          if (c._hueco) t.libres++;
-          else { t.citas++; if (!vacioTxt(c['Asistencia'])) t.registradas++; }
-        });
-        return tot;
-      }
-
-      // ---------- Filtros rápidos ----------
-      function cumpleFiltro(c, filtro) {
-        if (c._hueco) return false;
-        if (filtro === 'sinAsistencia') return c._fechaISO <= hoyISO() && vacioTxt(c['Asistencia']);
-        if (filtro === 'sinHC') return !!COL_HISTORIA && vacioTxt(c[COL_HISTORIA]);
-        if (filtro === 'conNotas') return !vacioTxt(c['Notas']);
-        return true;
-      }
-
-      function pasaFiltrosRapidos(c) {
-        var ok = true;
-        filtrosActivos.forEach(function(f) { if (!cumpleFiltro(c, f)) ok = false; });
-        return ok;
-      }
-
-      function actualizarChipsFiltros() {
-        var hoy = hoyISO();
-        var base = CITAS.filter(function(c) { return !c._hueco && (vista !== 'hoy' || c._fechaISO === hoy); });
-        document.querySelectorAll('.chip-filtro').forEach(function(b) {
-          var k = b.dataset.filtro;
-          b.classList.toggle('activo', filtrosActivos.has(k));
-          b.querySelector('.cnt').textContent = base.filter(function(c) { return cumpleFiltro(c, k); }).length;
-        });
-      }
-
-      // ---------- Asistencia con un clic ----------
-      // Cada botón busca en las opciones reales de tu desplegable la que
-      // corresponde a su color (verde/rojo/ámbar), igual que los chips.
-      function opcionAsistencia(clase) {
-        var ops = OPCIONES_ASISTENCIA.filter(function(op) { return estiloAsistencia(op) === clase; });
-        if (clase === 'aviso') {
-          var just = ops.filter(function(op) { return /justific/.test(normalizar(op)); });
-          if (just.length) return just[0];
-        }
-        if (clase === 'neutro') {
-          // Lo no reconocido también cae en 'neutro': aquí solo vale una opción "Pendiente".
-          var pend = ops.filter(function(op) { return /pendient/.test(normalizar(op)); });
-          return pend[0] || '';
-        }
-        return ops[0] || '';
-      }
-
-      var ASIS_RAPIDA = [
-        { clase: 'ok',     icono: 'check_circle' },
-        { clase: 'mal',    icono: 'cancel' },
-        { clase: 'aviso',  icono: 'event_busy' },
-        { clase: 'neutro', icono: 'hourglass_empty' }
-      ];
-
-      function htmlAsistenciaRapida(conTexto) {
-        return ASIS_RAPIDA.map(function(a) {
-          var op = opcionAsistencia(a.clase);
-          if (!op) return '';
-          return '<button type="button" class="btn-asis ' + a.clase + (conTexto ? ' btn-asis-lg' : '') +
-            '" data-asis="' + escapar(op) + '" title="' + escapar(op) + '"><span class="material-symbols-outlined">' + a.icono + '</span>' +
-            (conTexto ? escapar(op) : '') + '</button>';
-        }).join('');
-      }
-
-      function badgeSesion(v) {
-        var t = (v + '').trim();
-        if (!/^\d+$/.test(t)) return escapar(v);
-        return '<span class="badge-sesion ' + (t === '1' ? 's1' : 'sn') + '" title="' + (t === '1' ? 'Primera sesión' : 'Sesión ' + t) + '">' + t + '</span>';
-      }
-
-      // Mismo icono de WhatsApp que usa la Base de Datos.
-      var SVG_WHATSAPP = '<svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 16 16" fill="currentColor">' +
-        '<path d="M13.601 2.326A7.854 7.854 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.933 7.933 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.898 7.898 0 0 0 13.6 2.326zM7.994 14.521a6.573 6.573 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.557 6.557 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592zm3.615-4.934c-.197-.099-1.17-.578-1.353-.646-.182-.065-.315-.099-.445.099-.133.197-.513.646-.627.775-.114.133-.232.148-.43.05-.197-.1-.836-.308-1.592-.985-.59-.525-.985-1.175-1.103-1.372-.114-.198-.011-.304.088-.403.087-.088.197-.232.296-.346.1-.114.133-.198.198-.33.065-.134.034-.248-.015-.347-.05-.099-.445-1.076-.612-1.47-.16-.389-.323-.335-.445-.34-.114-.007-.247-.007-.38-.007a.729.729 0 0 0-.529.247c-.182.198-.691.677-.691 1.654 0 .977.71 1.916.81 2.049.098.133 1.394 2.132 3.383 2.992.47.205.84.326 1.129.418.475.152.904.129 1.246.08.38-.058 1.171-.48 1.338-.943.164-.464.164-.86.114-.943-.049-.084-.182-.133-.38-.232z"/></svg>';
-
-      function htmlBotonesFila(fila, cita) {
-        var btnHC = '';
-        if (cita) {
-          var url = COL_HISTORIA ? cita[COL_HISTORIA] : '';
-          var tiene = esUrl(url);
-          btnHC = '<button type="button" class="btn-fila ' + (tiene ? 'con-hc' : 'sin-hc') + '" data-accion="hc" data-fila="' + fila + '" title="' +
-            (tiene ? 'Abrir Historia Clínica' : 'Sin Historia Clínica enlazada') + '"><span class="material-symbols-outlined">description</span></button>';
-        }
-        return btnHC +
-          '<button type="button" class="btn-fila btn-whatsapp" data-accion="whatsapp" data-fila="' + fila + '" title="Abrir WhatsApp">' + SVG_WHATSAPP + '</button>' +
-          '<button type="button" class="btn-fila" data-accion="valoracion" data-fila="' + fila + '" title="Valoración"><span class="material-symbols-outlined">assignment</span></button>' +
-          '<button type="button" class="btn-fila" data-accion="alta" data-fila="' + fila + '" title="Dar de alta"><span class="material-symbols-outlined">how_to_reg</span></button>' +
-          '<button type="button" class="btn-fila peligro" data-accion="borrar" data-fila="' + fila + '" title="Liberar este hueco (borra todos los datos de la cita)"><span class="material-symbols-outlined">delete</span></button>';
-      }
-
-      function htmlStatsDia(t, fechaISO) {
-        var txt = t.citas === 0 ? 'Sin citas' : t.citas + (t.citas === 1 ? ' cita' : ' citas');
-        if (t.libres > 0) txt += ' · ' + t.libres + (t.libres === 1 ? ' libre' : ' libres');
-        if (t.citas > 0 && fechaISO <= hoyISO()) txt += ' · ' + t.registradas + ' de ' + t.citas + ' registradas';
-        var total = t.citas + t.libres, barra = '';
-        if (total > 0) {
-          var sin = t.citas - t.registradas;
-          barra = '<span class="ocup" title="' + t.registradas + ' registradas · ' + sin + ' sin registrar · ' + t.libres + ' libres">' +
-            '<span class="o-reg" style="width:' + (100 * t.registradas / total) + '%"></span><span class="o-cita" style="width:' + (100 * sin / total) + '%"></span></span>';
-        }
-        return '<span class="dia-stats">' + txt + '</span>' + barra;
-      }
-
-      function htmlLineaAhora(ahora, numColumnas) {
-        return '<tr class="fila-ahora"><td colspan="' + numColumnas + '"><div class="ahora-linea"><span>' + ahora + '</span></div></td></tr>';
-      }
-
-      function renderCelda(header, valor, fila, esHueco, tag) {
-        var vacio = vacioTxt(valor);
-
-        if (header === 'Hora') {
-          var casilla = '<span class="chk' + (esHueco ? ' oculto' : '') + '"></span>';
-          var punto = tag ? '<span class="pto-t ' + tag + '" title="' + (tag === 'ahora' ? 'En curso' : 'Próxima cita') + '"></span>' : '';
-          var asa = '<span class="asa material-symbols-outlined"' + (esHueco ? ' style="visibility:hidden"' : ' title="Arrastra para mover la cita a otro hueco libre"') + '>' + (esHueco ? '' : 'drag_indicator') + '</span>';
-          return '<td class="hora"><span class="hora-celda">' + asa + casilla + (vacio ? '—' : escapar(valor)) + punto + '</span></td>';
-        }
-
-        if (header === 'Usuario' && esHueco) {
-          return '<td class="editable hueco-libre" data-campo="Usuario" data-fila="' + fila + '" data-valor=""><span class="chip-asignar"><span class="material-symbols-outlined">add</span>Asignar</span></td>';
-        }
-
-        if (esHueco && vacio) return '<td class="vacio"></td>';
-
-        if (header === COL_HISTORIA) {
-          if (vacio) return '<td class="vacio">Sin enlace</td>';
-          return esUrl(valor)
-            ? '<td><a class="link-hc" href="' + escapar(valor.trim()) + '" target="_blank" rel="noopener"><span class="material-symbols-outlined ic-15">description</span>Abrir</a></td>'
-            : '<td>' + escapar(valor) + '</td>';
-        }
-
-        if (!esHueco && CAMPOS_EDITABLES.indexOf(header) !== -1) {
-          var valorAttr = vacio ? '' : escapar(valor);
-          var contenido;
-          if (header === 'Asistencia') {
-            var rapidas = htmlAsistenciaRapida(false);
-            contenido = vacio
-              ? (rapidas ? '<span class="asis-guion">—</span><span class="asis-rapida">' + rapidas + '</span>' : '—')
-              : '<span class="chip chip-' + estiloAsistencia(valor) + '">' + escapar(valor) + '</span>';
-          }
-          else if (vacio) contenido = '—';
-          else if (header === 'Notas') contenido = '<div class="notas-clamp" title="' + valorAttr + '"><span class="material-symbols-outlined ic-nota">sticky_note_2</span>' + escapar(valor) + '</div>';
-          else if (header === 'Sesión') contenido = badgeSesion(valor);
-          else contenido = escapar(valor);
-
-          var clases = 'editable' + (vacio ? ' vacio' : '') + (header === 'Notas' ? ' celda-notas' : '');
-          return '<td class="' + clases + '" data-campo="' + escapar(header) + '" data-fila="' + fila + '" data-valor="' + valorAttr + '">' + contenido + '</td>';
-        }
-
-        var titulo = (header === 'Usuario' && !vacio) ? ' title="' + escapar(valor) + '"' : '';
-        var interior = vacio ? '—' : escapar(valor);
-        if (header === 'Usuario' && !vacio && !esHueco) interior = '<div class="celda-usuario">' + avatarHtml(valor) + '<span class="nombre-u">' + escapar(valor) + '</span></div>';
-        return '<td class="' + (vacio ? 'vacio' : '') + '"' + titulo + '>' + interior + '</td>';
-      }
-
-      // ---------- Estado vacío con acción ----------
-      function htmlVacio() {
-        var titulo, texto, boton = '';
-        if (hayBusqueda()) {
-          titulo = 'Ninguna cita coincide';
-          texto = 'Prueba con otro término o quita los filtros.';
-          boton = '<button type="button" class="btn-toolbar" data-vacio="limpiar"><span class="material-symbols-outlined">filter_alt_off</span> Quitar filtros</button>';
-        } else {
-          titulo = vista === 'hoy' ? 'Hoy no hay citas asignadas' : 'Esta semana no tiene citas asignadas';
-          texto = mostrarHuecos ? 'Todos los huecos están libres.' : 'Puedes mostrar los huecos libres para asignar usuarios.';
-          if (!mostrarHuecos) boton = '<button type="button" class="btn-toolbar" data-vacio="huecos"><span class="material-symbols-outlined">event_available</span> Mostrar citas disponibles</button>';
-        }
-        return '<div class="estado-vacio"><span class="material-symbols-outlined estado-icono">event_busy</span>' +
-          '<div class="estado-titulo">' + titulo + '</div><div class="estado-texto">' + texto + '</div>' + boton + '</div>';
-      }
-
-      // ---------- Render ----------
-      function render() {
-        var cont = document.getElementById('tablaWrap');
-        var scrollPrevio = cont.scrollTop; // se conserva al repintar (ediciones, selección, refrescos)
-        var termino = normalizar(document.getElementById('inputBusqueda').value);
-        var hoy = hoyISO();
-
-        var filtradas = CITAS.filter(function(c) {
-          if (vista === 'hoy' && c._fechaISO !== hoy) return false;
-          if (arrastre && c._hueco) return true;
-          if (filtrosActivos.size > 0) {
-            if (!pasaFiltrosRapidos(c)) return false;
-          } else if (!mostrarHuecos && c._hueco) {
-            return false;
-          }
-          if (!termino) return true;
-          var campos = [c['Usuario'], c['Notas'], c['Sesión']];
-          return campos.some(function(v) { return normalizar(v).indexOf(termino) !== -1; });
-        });
-
-        var numCitas = filtradas.filter(function(c) { return !c._hueco; }).length;
-        document.getElementById('contador').textContent = numCitas + (numCitas === 1 ? ' cita' : ' citas');
-        actualizarChipsFiltros();
-
-        if ((filtradas.length === 0 && vista !== 'cuadricula') || (vista === 'cuadricula' && CITAS.length === 0)) {
-          cont.innerHTML = htmlVacio();
-          return;
-        }
-
-        cont.innerHTML = vista === 'hoy' ? htmlTarjetas(filtradas) : (vista === 'cuadricula' ? htmlCuadricula(filtradas) : htmlTabla(filtradas));
-        cont.scrollTop = scrollPrevio;
-        reaplicarArrastre();
-        animarCambios();
-      }
-
-      function htmlTabla(filtradas) {
-        var totalesDia = calcularTotalesDia();
-        var hoy = hoyISO(), ahora = ahoraHHmm(), buscando = hayBusqueda();
-        var proxima = filaProxima(hoy, ahora);
-
-        var numColumnas = HEADERS_VISIBLES.length + 1;
-        var thead = '<thead><tr>' + HEADERS_VISIBLES.map(function(h) { return '<th' + (h === 'Notas' ? ' class="th-notas"' : '') + '>' + escapar(h) + '</th>'; }).join('') + '<th></th></tr></thead>';
-
-        var grupos = [];
-        filtradas.forEach(function(c) {
-          var ultimo = grupos[grupos.length - 1];
-          if (!ultimo || ultimo.fechaISO !== c._fechaISO) {
-            grupos.push({ fechaISO: c._fechaISO, dia: c['Día'], fecha: c['Fecha'], citas: [c] });
-          } else {
-            ultimo.citas.push(c);
-          }
-        });
-
-        var contadorFila = 0;
-
-        var tbody = '<tbody>' + grupos.map(function(g) {
-          var etiquetaDia = (g.dia ? escapar(g.dia) + ' · ' : '') + escapar(g.fecha);
-          var t = totalesDia[g.fechaISO] || { citas: 0, libres: 0, registradas: 0 };
-          var esHoy = g.fechaISO === hoy;
-          var plegado = !buscando && diaPlegado(g.fechaISO);
-
-          var cabecera = '<tr class="fila-dia' + (esHoy ? ' hoy' : '') + (plegado ? ' plegado' : '') + '" data-dia="' + g.fechaISO + '"><td colspan="' + numColumnas + '">' +
-            '<div class="dia-cab"><span class="material-symbols-outlined dia-chevron">' + (plegado ? 'chevron_right' : 'expand_more') + '</span>' +
-            '<span>' + etiquetaDia + '</span>' +
-            (esHoy ? '<span class="dia-hoy">Hoy</span>' : '') +
-            htmlStatsDia(t, g.fechaISO) + '</div></td></tr>';
-
-          if (plegado) return cabecera;
-
-          var turnoPrevio = null, lineaPuesta = false;
-
-          var filasDia = g.citas.map(function(c) {
-            var hora = c['Hora'] || '';
-            var prefijo = '';
-
-            // Línea de "ahora": justo antes de la primera fila posterior a la hora actual
-            if (esHoy && !lineaPuesta && hora > ahora) { prefijo += htmlLineaAhora(ahora, numColumnas); lineaPuesta = true; }
-
-            var tempo = (esHoy && !c._hueco) ? estadoTemporal(hora, ahora) : '';
-            var tag = tempo === 'en-curso' ? 'ahora' : ((esHoy && proxima && proxima._fila === c._fila) ? 'proxima' : '');
-
-            var celdas = HEADERS_VISIBLES.map(function(h) { return renderCelda(h, c[h], c._fila, c._hueco, tag); }).join('');
-            var celdaAcciones = c._hueco ? '<td></td>' : '<td class="acciones-fila">' + htmlBotonesFila(c._fila, c) + '</td>';
-
-            var esManana = hora < HORA_CORTE_TARDE;
-            var turno = esManana ? 'manana' : 'tarde';
-            if (turno !== turnoPrevio) {
-              prefijo += '<tr class="fila-turno ' + turno + '"><td colspan="' + numColumnas + '">' + (esManana ? 'Turno de mañana' : 'Turno de tarde') + '</td></tr>';
-            }
-            turnoPrevio = turno;
-
-            var clases = [];
-            if (c._hueco) {
-              clases.push('fila-hueco');
-            } else {
-              clases.push('fila-cita');
-              var estado = estiloAsistencia(c['Asistencia']);
-              if (estado && estado !== 'neutro') clases.push('asist-' + estado);
-            }
-            if (tempo) clases.push(tempo);
-            if (contadorFila % 2 === 1) clases.push('fila-par');
-            if (filasSeleccionadas.has(c._fila)) clases.push('seleccionada');
-            contadorFila++;
-
-            return prefijo + '<tr class="' + clases.join(' ') + '" data-fila="' + c._fila + '">' + celdas + celdaAcciones + '</tr>';
-          }).join('');
-
-          return cabecera + filasDia;
-        }).join('') + '</tbody>';
-
-        return '<table>' + thead + tbody + '</table>';
-      }
-
-      // ---------- Vista "Hoy": tarjetas ----------
-      function htmlTarjetas(citas) {
-        var hoy = hoyISO(), ahora = ahoraHHmm();
-        var t = calcularTotalesDia()[hoy] || { citas: 0, libres: 0, registradas: 0 };
-        var proxima = filaProxima(hoy, ahora);
-        var primera = citas[0];
-
-        var html = '<div class="tj-cab"><div class="dia-cab"><span>' + (primera['Día'] ? escapar(primera['Día']) + ' · ' : '') + escapar(primera['Fecha']) +
-          '</span><span class="dia-hoy">Hoy</span>' + htmlStatsDia(t, hoy) + '</div></div><div class="tj-turnos">';
-
-        var turnoPrevio = null, abierto = false;
-        citas.forEach(function(c) {
-          var esManana = (c['Hora'] || '') < HORA_CORTE_TARDE;
-          var turno = esManana ? 'manana' : 'tarde';
-          if (turno !== turnoPrevio) {
-            if (abierto) html += '</div>';
-            html += '<div class="tj-turno-titulo ' + turno + '">' + (esManana ? 'Turno de mañana' : 'Turno de tarde') + '</div><div class="tj-grid">';
-            abierto = true;
-            turnoPrevio = turno;
-          }
-          html += htmlTarjeta(c, ahora, proxima);
-        });
-        if (abierto) html += '</div>';
-        return html + '</div>';
-      }
-
-      function htmlTarjeta(c, ahora, proxima) {
-        var hora = c['Hora'] || '—';
-
-        if (c._hueco) {
-          return '<div class="tarjeta hueco" data-fila="' + c._fila + '"><div class="tj-hora">' + escapar(hora) + '</div>' +
-            '<div class="editable hueco-libre" data-campo="Usuario" data-fila="' + c._fila + '" data-valor=""><span class="chip-asignar"><span class="material-symbols-outlined">add</span>Asignar</span></div></div>';
-        }
-
-        var tempo = estadoTemporal(c['Hora'] || '', ahora);
-        var esProxima = !!(proxima && proxima._fila === c._fila);
-        var clases = ['tarjeta'];
-        var estado = estiloAsistencia(c['Asistencia']);
-        if (estado && estado !== 'neutro') clases.push('asist-' + estado);
-        if (tempo) clases.push(tempo);
-        if (esProxima) clases.push('proxima');
-        if (filasSeleccionadas.has(c._fila)) clases.push('seleccionada');
-
-        var tagTxt = tempo === 'en-curso' ? '<span class="tag-t ahora">Ahora</span>' : (esProxima ? '<span class="tag-t proxima">Próxima</span>' : '');
-
-        var vAsis = c['Asistencia'];
-        var asis = vacioTxt(vAsis)
-          ? '<div class="tj-asis"><span class="asis-rapida">' + htmlAsistenciaRapida(false) + '</span></div>'
-          : '<div class="tj-asis editable" data-campo="Asistencia" data-fila="' + c._fila + '" data-valor="' + escapar(vAsis) + '"><span class="chip chip-' + estiloAsistencia(vAsis) + '">' + escapar(vAsis) + '</span></div>';
-
-        var vNotas = c['Notas'];
-        var notas = '<div class="tj-notas editable" data-campo="Notas" data-fila="' + c._fila + '" data-valor="' + (vacioTxt(vNotas) ? '' : escapar(vNotas)) + '">' +
-          (vacioTxt(vNotas) ? '<span class="tj-notas-vacia">Añadir nota…</span>' : '<span class="material-symbols-outlined ic-nota">sticky_note_2</span>' + escapar(vNotas)) + '</div>';
-
-        var hc = COL_HISTORIA ? c[COL_HISTORIA] : '';
-        var pie = esUrl(hc)
-          ? '<a class="btn-toolbar tj-btn" href="' + escapar(hc.trim()) + '" target="_blank" rel="noopener"><span class="material-symbols-outlined">description</span> Historia clínica</a>'
-          : '<span class="tj-sinhc">Sin Historia Clínica enlazada</span>';
-
-        var tel = c['Teléfono'];
-        var meta = (vacioTxt(c['Sesión']) ? '' : badgeSesion(c['Sesión'])) + (vacioTxt(tel) ? '' : '<span>' + escapar(tel) + '</span>');
-
-        return '<div class="' + clases.join(' ') + '" data-fila="' + c._fila + '">' +
-          '<div class="tj-top"><span class="asa material-symbols-outlined" title="Arrastra para mover la cita a otro hueco libre">drag_indicator</span><span class="chk"></span><span class="tj-hora">' + escapar(hora) + '</span>' + tagTxt + '<span class="tj-fill"></span><span class="tj-acciones">' + htmlBotonesFila(c._fila) + '</span></div>' +
-          '<div class="tj-nombre" title="' + escapar(c['Usuario']) + '">' + avatarHtml(c['Usuario']) + '<span class="nombre-u">' + escapar(c['Usuario']) + '</span></div>' +
-          // Compacto: la asistencia va en la misma línea que sesión y teléfono, y el botón de
-          // Historia clínica en la misma línea que la nota (antes eran dos filas más por tarjeta).
-          '<div class="tj-meta">' + meta + '<span class="tj-fill"></span>' + asis + '</div>' +
-          '<div class="tj-linea-nota">' + notas + '<div class="tj-pie">' + pie + '</div></div></div>';
+          .withFailureHandler(function(err) {
+            ocupado(-1);
+            btn.disabled = false;
+            btn.textContent = textoOriginal;
+            mostrarAviso('Error al guardar: ' + err);
+          })
+          .actualizarValoracionWeb(datos);
+      });
+
+      // ---------- Eliminar valoración ----------
+      async function eliminarValoracion(registro) {
+        var confirmado = await mostrarConfirm('¿Eliminar esta valoración?');
+        if (!confirmado) return;
+
+        // Foto completa de la valoración ANTES de borrarla (con el nombre del
+        // paciente, que el registro no trae por sí solo), para poder deshacer.
+        var snapshot = Object.assign({ nombre: pacienteSeleccionado }, registro);
+        ocupado(1);
+
+        google.script.run
+          .withSuccessHandler(function(res) {
+            ocupado(-1);
+            if (!res.success) { mostrarAviso(res.message || 'No se pudo eliminar la valoración.'); return; }
+            cargar();
+            mostrarDeshacer(snapshot, 'Valoración eliminada.');
+          })
+          .withFailureHandler(function(err) { ocupado(-1); mostrarAviso('Error al eliminar: ' + err); })
+          .eliminarValoracionWeb(registro._fila, snapshot.nombre, registro.fecha || '');
       }
 
       <?!= include('ui/JS_Modal_Deshacer'); ?>
-
-      // ---------- Edición en línea ----------
-      function activarEdicion(td) {
-        var campo = td.dataset.campo;
-        var fila = td.dataset.fila;
-        var valorActual = td.dataset.valor || '';
-
-        td.classList.add('editando');
-
-        if (campo === 'Asistencia') {
-          var opciones = '<option value="">—</option>' + OPCIONES_ASISTENCIA.map(function(op) {
-            return '<option value="' + escapar(op) + '"' + (op === valorActual ? ' selected' : '') + '>' + escapar(op) + '</option>';
-          }).join('');
-          td.innerHTML = '<select class="input-celda">' + opciones + '</select>';
-          var select = td.querySelector('select');
-          select.focus();
-          select.addEventListener('change', function() { guardarCampo(fila, campo, select.value); });
-          select.addEventListener('blur', function() {
-            setTimeout(function() { if (td.classList.contains('editando')) render(); }, 150);
-          });
-          return;
-        }
-
-        if (campo === 'Usuario') {
-          td.innerHTML = '<input class="input-celda" list="listaPacientes" type="text" placeholder="Nombre del usuario…">';
-          var inputNombre = td.querySelector('input');
-          inputNombre.focus();
-          inputNombre.addEventListener('keydown', function(ev) {
-            if (ev.key === 'Enter') inputNombre.blur();
-            if (ev.key === 'Escape') render();
-          });
-          inputNombre.addEventListener('blur', function() {
-            var nombre = inputNombre.value.trim();
-            if (!nombre) { render(); return; }
-            asignarPaciente(fila, nombre);
-          });
-          return;
-        }
-
-        // Notas y Sesión: texto libre con autoguardado tras una pausa al escribir.
-        // Enter guarda y sale; Escape cancela el guardado pendiente.
-        td.innerHTML = '<input class="input-celda" type="text" value="' + escapar(valorActual) + '">';
-        var input = td.querySelector('input');
-        input.focus();
-        input.select();
-
-        var autoguardadoPendiente = null;
-
-        input.addEventListener('input', function() {
-          if (autoguardadoPendiente) clearTimeout(autoguardadoPendiente);
-          autoguardadoPendiente = setTimeout(function() {
-            autoguardadoPendiente = null;
-            guardarCampoSilencioso(fila, campo, input.value, td);
-          }, 700);
-        });
-
-        input.addEventListener('keydown', function(ev) {
-          if (ev.key === 'Enter') {
-            if (autoguardadoPendiente) { clearTimeout(autoguardadoPendiente); autoguardadoPendiente = null; }
-            input.blur();
-          }
-          if (ev.key === 'Escape') {
-            if (autoguardadoPendiente) { clearTimeout(autoguardadoPendiente); autoguardadoPendiente = null; }
-            render();
-          }
-        });
-        input.addEventListener('blur', function() {
-          if (autoguardadoPendiente) { clearTimeout(autoguardadoPendiente); autoguardadoPendiente = null; }
-          guardarCampo(fila, campo, input.value);
-        });
-      }
-
-      function mostrarEstadoGuardado(td, estado) {
-        if (!td || !td.classList.contains('editando')) return;
-        var marca = td.querySelector('.estado-guardado');
-        if (!marca) {
-          marca = document.createElement('span');
-          marca.className = 'estado-guardado';
-          td.appendChild(marca);
-        }
-        if (estado === 'progreso') {
-          marca.className = 'estado-guardado progreso';
-          marca.textContent = '…';
-          marca.title = 'Guardando…';
-        } else if (estado === 'ok') {
-          marca.className = 'estado-guardado ok';
-          marca.textContent = '✓';
-          marca.title = 'Guardado';
-          setTimeout(function() { if (marca) marca.textContent = ''; }, 1200);
-        } else {
-          marca.className = 'estado-guardado fallo';
-          marca.textContent = '⚠';
-          marca.title = 'No se pudo guardar';
-        }
-      }
-
-      function guardarCampoSilencioso(fila, campo, valor, td) {
-        mostrarEstadoGuardado(td, 'progreso');
-        google.script.run
-          .withSuccessHandler(function(res) {
-            var cita = CITAS.find(function(c) { return c._fila == fila; });
-            if (cita) cita[campo] = valor;
-            mostrarEstadoGuardado(td, res.success ? 'ok' : 'fallo');
-          })
-          .withFailureHandler(function() { mostrarEstadoGuardado(td, 'fallo'); })
-          .actualizarCampoAgendaWeb(fila, campo, valor);
-      }
-
-      function guardarCampo(fila, campo, valor) {
-        google.script.run
-          .withSuccessHandler(function(res) {
-            if (!res.success) { mostrarAviso(res.message || 'No se pudo guardar el cambio.'); render(); return; }
-            var cita = CITAS.find(function(c) { return c._fila == fila; });
-            if (cita) cita[campo] = valor;
-            render();
-          })
-          .withFailureHandler(function(err) {
-            mostrarAviso('Error al guardar: ' + err);
-            render();
-          })
-          .actualizarCampoAgendaWeb(fila, campo, valor);
-      }
-
-      function asignarPaciente(fila, nombre) {
-        google.script.run
-          .withSuccessHandler(function(res) {
-            if (!res.success) { mostrarAviso(res.message || 'No se pudo asignar el usuario.'); render(); return; }
-            var cita = CITAS.find(function(c) { return c._fila == fila; });
-            if (cita) {
-              cita['Usuario'] = res.usuario;
-              cita['Teléfono'] = res.telefono;
-              if (COL_HISTORIA) cita[COL_HISTORIA] = res.historiaClinica;
-              cita._hueco = false;
-            }
-            render();
-          })
-          .withFailureHandler(function(err) {
-            mostrarAviso('Error al asignar el usuario: ' + err);
-            render();
-          })
-          .asignarPacienteHuecoWeb(fila, nombre);
-      }
-
-      async function manejarBorrarFila(fila) {
-        var confirmado = await mostrarConfirm('¿Eliminar cita? Se borrarán los datos de la cita');
-        if (!confirmado) return;
-
-        var citaOriginal = CITAS.find(function(c) { return c._fila == fila; });
-        marcarSaliendo(fila);
-        var snapshot = citaOriginal ? [{ fila: fila, valores: Object.assign({}, citaOriginal) }] : null;
-
-        google.script.run
-          .withSuccessHandler(function(res) {
-            if (!res.success) { mostrarAviso(res.message || 'No se pudo liberar el hueco.'); render(); return; }
-            var cita = CITAS.find(function(c) { return c._fila == fila; });
-            if (cita) {
-              cita['Usuario'] = '';
-              cita['Teléfono'] = '';
-              cita['Sesión'] = '';
-              cita['Asistencia'] = '';
-              cita['ID Evento Calendar'] = '';
-              if (COL_HISTORIA) cita[COL_HISTORIA] = '';
-              cita['Notas'] = '';
-              cita._hueco = true;
-            }
-            render();
-            actualizarBotonesSeleccion();
-            if (snapshot) mostrarDeshacer(snapshot, 'Cita eliminada.');
-          })
-          .withFailureHandler(function(err) {
-            mostrarAviso('Error: ' + err);
-            render();
-          })
-          .eliminarDatosFilaAgendaWeb(fila);
-      }
-
-      // ---------- Eliminar varias citas ----------
-      async function manejarEliminarSeleccionadas() {
-        var sel = citasSeleccionadas();
-        if (sel.length === 0) return;
-
-        var confirmado = await mostrarConfirm('¿Eliminar cita? Se borrarán los datos de la cita');
-        if (!confirmado) return;
-
-        var snapshot = sel.map(function(c) { return { fila: c._fila, valores: Object.assign({}, c) }; });
-        sel.forEach(function(c) { marcarSaliendo(c._fila); });
-        var filas = sel.map(function(c) { return c._fila; });
-
-        google.script.run
-          .withSuccessHandler(function(res) {
-            if (!res.success) { mostrarAviso(res.message || 'No se pudieron eliminar las citas.'); return; }
-            mostrarAviso(res.message);
-            quitarSeleccion();
-            cargar(semanaActual, true);
-            mostrarDeshacer(snapshot, snapshot.length === 1 ? 'Cita eliminada.' : snapshot.length + ' citas eliminadas.');
-          })
-          .withFailureHandler(function(err) { mostrarAviso('Error: ' + err); })
-          .eliminarVariasCitasWeb(filas);
-      }
-
-      document.getElementById('btnEliminarCitas').addEventListener('click', manejarEliminarSeleccionadas);
 
       function ejecutarDeshacer() {
         if (!ultimaEliminacion || procesandoDeshacer) return;
         procesandoDeshacer = true;
         var snapshot = ultimaEliminacion;
+        ocupado(1);
 
         google.script.run
           .withSuccessHandler(function(res) {
+            ocupado(-1);
             procesandoDeshacer = false;
-            if (!res.success) { mostrarAviso(res.message || 'No se pudo deshacer.'); return; }
+            if (!res.success) { mostrarAviso(res.message || 'No se pudo deshacer.'); return; } // el botón sigue disponible para reintentar
             ocultarDeshacer();
-            cargar(semanaActual, true);
+            cargar();
           })
           .withFailureHandler(function(err) {
+            ocupado(-1);
             procesandoDeshacer = false;
-            mostrarAviso('Error al deshacer: ' + err);
+            mostrarAviso('Error al deshacer: ' + err); // el botón sigue disponible para reintentar
           })
-          .restaurarCitasWeb(snapshot);
+          .restaurarValoracionWeb(snapshot);
       }
 
       document.getElementById('toastDeshacerBtn').addEventListener('click', ejecutarDeshacer);
       document.getElementById('btnDeshacer').addEventListener('click', ejecutarDeshacer);
 
-      // ---------- Selección múltiple (el clic añade o quita de la selección) ----------
-      var BOTONES_UNA_SOLA = ['btnValoracion', 'btnWhatsapp'].map(function(id) { return document.getElementById(id); });
-      var BOTONES_UNA_O_MAS = ['btnEnlazarHC', 'btnMenuCopiar', 'btnCopiarCita', 'btnCopiarCita2', 'btnEliminarCitas'].map(function(id) { return document.getElementById(id); });
-
-      function citasSeleccionadas() {
-        return CITAS.filter(function(c) { return filasSeleccionadas.has(c._fila) && !c._hueco; });
-      }
-
-      function alternarSeleccionFila(cita) {
-        if (filasSeleccionadas.has(cita._fila)) filasSeleccionadas.delete(cita._fila);
-        else filasSeleccionadas.add(cita._fila);
-        render();
-        actualizarBotonesSeleccion();
-      }
-
-      function quitarSeleccion() {
-        filasSeleccionadas.clear();
-        render();
-        actualizarBotonesSeleccion();
-      }
-
-      function actualizarBotonesSeleccion() {
-        var n = citasSeleccionadas().length;
-        if (n === 0) document.getElementById('menuCopiarWrap').classList.remove('abierto');
-        BOTONES_UNA_SOLA.forEach(function(btn) {
-          btn.disabled = (n !== 1);
-          btn.style.display = (n === 1) ? '' : 'none';
-        });
-        BOTONES_UNA_O_MAS.forEach(function(btn) { btn.disabled = (n === 0); });
-
-        var contador = document.getElementById('contadorSeleccion');
-        contador.textContent = n > 0 ? (n + (n === 1 ? ' cita seleccionada' : ' citas seleccionadas')) : '';
-
-        document.getElementById('cabecera').classList.toggle('con-seleccion', n > 0);
-      }
-
-      document.getElementById('btnQuitarSeleccion').addEventListener('click', quitarSeleccion);
-
-      function alternarPlegado(fechaISO) {
-        var nuevo = !diaPlegado(fechaISO);
-        plegadoManual[fechaISO] = nuevo;
-        if (nuevo) {
-          CITAS.forEach(function(c) { if (c._fechaISO === fechaISO) filasSeleccionadas.delete(c._fila); });
-          actualizarBotonesSeleccion();
-        }
-        render();
-      }
-
-      function limpiarFiltros() {
-        filtrosActivos.clear();
-        document.getElementById('inputBusqueda').value = '';
-        render();
-      }
-
-      document.getElementById('tablaWrap').addEventListener('click', function(e) {
-        var t = e.target;
-        if (t.closest('.editando')) return; // no seleccionar mientras se edita
-
-        // Asistencia con un clic (icono ✓ / ✕ / aviso)
-        var btnAsis = t.closest('[data-asis]');
-        if (btnAsis) {
-          var contenedor = btnAsis.closest('[data-fila]');
-          if (contenedor) guardarCampo(contenedor.dataset.fila, 'Asistencia', btnAsis.dataset.asis);
-          return;
-        }
-
-        // Acciones rápidas de la fila / tarjeta
-        var btnFila = t.closest('.btn-fila');
-        if (btnFila) {
-          var f = btnFila.dataset.fila, acc = btnFila.dataset.accion;
-          if (acc === 'hc') abrirHCFila(f);
-          else if (acc === 'borrar') manejarBorrarFila(f);
-          else if (acc === 'whatsapp') abrirWhatsappFila(f);
-          else if (acc === 'alta') manejarAltaFila(f);
-          else if (acc === 'valoracion') {
-            var ci = CITAS.find(function(c) { return c._fila == f; });
-            if (ci) abrirValoracionCita(ci['Usuario']);
-          }
-          return;
-        }
-
-        // Botones de los estados vacíos
-        var vacio = t.closest('[data-vacio]');
-        if (vacio) {
-          if (vacio.dataset.vacio === 'limpiar') limpiarFiltros();
-          else if (vacio.dataset.vacio === 'huecos') { mostrarHuecos = true; actualizarBotonHuecos(); render(); }
-          return;
-        }
-
-        var editable = t.closest('.editable');
-        if (editable) { activarEdicion(editable); return; }
-
-        var banda = t.closest('tr.fila-dia');
-        if (banda) { alternarPlegado(banda.dataset.dia); return; }
-
-        if (t.closest('a')) return; // los enlaces (Historia clínica) no seleccionan la cita
-
-        var fil = t.closest('tr[data-fila], .tarjeta[data-fila], .cal-cita[data-fila]');
-        if (fil) {
-          var cita = CITAS.find(function(c) { return c._fila == fil.dataset.fila; });
-          if (cita && !cita._hueco) alternarSeleccionFila(cita);
-        }
-      });
-
-      // ---------- Preparar Jornada ----------
-      function mostrarLanzadorHCs(urls, turno) {
-        var overlay = document.getElementById('modalOverlay');
-        var btnCancelar = document.getElementById('modalBtnCancelar');
-        var btnAceptar = document.getElementById('modalBtnAceptar');
-
-        document.getElementById('modalMensaje').textContent =
-          'Se van a abrir ' + urls.length + (urls.length === 1 ? ' pestaña' : ' pestañas') +
-          ' de Historia Clínica del turno de ' + turno + '. Si el navegador bloquea las ventanas emergentes, permite los popups de este sitio y vuelve a intentarlo.';
-        btnCancelar.style.display = 'inline-flex';
-        btnAceptar.textContent = 'Abrir Historias Clínicas';
-        overlay.classList.add('visible');
-
-        function limpiar() {
-          overlay.classList.remove('visible');
-          btnAceptar.textContent = 'Aceptar';
-          btnAceptar.removeEventListener('click', onAbrir);
-          btnCancelar.removeEventListener('click', onCancelar);
-        }
-        // Las ventanas se abren DENTRO del clic para que cuenten como gesto directo.
-        function onAbrir() { urls.forEach(function(url) { window.open(url, '_blank'); }); limpiar(); }
-        function onCancelar() { limpiar(); }
-
-        btnAceptar.addEventListener('click', onAbrir);
-        btnCancelar.addEventListener('click', onCancelar);
-      }
-
-      document.getElementById('btnJornada').addEventListener('click', function() {
-        google.script.run
-          .withSuccessHandler(function(res) {
-            if (res.error) { mostrarAviso(res.error); return; }
-            if (!res.urls || res.urls.length === 0) {
-              mostrarAviso('No hay citas con Historia Clínica para el turno de ' + res.turno + ' de hoy.');
-              return;
-            }
-            mostrarLanzadorHCs(res.urls, res.turno);
-          })
-          .withFailureHandler(function(err) { mostrarAviso('Error: ' + err); })
-          .obtenerEnlacesJornadaWeb();
-      });
-
-      var ventanaActiva = null;
-
-      // ---------- Valoración y WhatsApp (barra de selección y acciones por fila) ----------
-      function abrirValoracionCita(nombre) {
-        var url = BASE_URL + '?page=valoracion&paciente=' + encodeURIComponent(nombre) + '&embed=1';
-        ventanaActiva = window.open(url, 'ventanaValoracionAgenda', 'width=850,height=900');
-      }
-
-      function abrirWhatsappFila(fila) {
-        // La ventana se abre en el propio clic (síncrono) para que no la bloquee el navegador.
-        var ventana = window.open('', '_blank');
-        google.script.run
-          .withSuccessHandler(function(res) {
-            if (res.success) {
-              if (ventana) ventana.location.href = res.url;
-            } else {
-              if (ventana) ventana.close();
-              mostrarAviso(res.message);
-            }
-          })
-          .withFailureHandler(function(err) {
-            if (ventana) ventana.close();
-            mostrarAviso('Error al abrir WhatsApp: ' + err);
-          })
-          .generarUrlWhatsappParaAgendaWeb(fila);
-      }
-
-      // Dar de alta al paciente de la cita (mismo proceso que el botón Alta de la Base de Datos).
-      async function manejarAltaFila(fila) {
-        var cita = CITAS.find(function(c) { return c._fila == fila; });
-        var nombre = cita ? (cita['Usuario'] || '') : '';
-        if (!nombre) { mostrarAviso('Esa fila no tiene paciente asignado.'); return; }
-        var confirmado = await mostrarConfirm('¿Dar de alta a ' + nombre + '?');
-        if (!confirmado) return;
-
-        google.script.run
-          .withSuccessHandler(function(res) { mostrarAviso(res.message); })
-          .withFailureHandler(function(err) { mostrarAviso('Error al dar de alta: ' + err); })
-          .darDeAltaPacienteParaAgendaWeb(fila);
-      }
-
-      document.getElementById('btnValoracion').addEventListener('click', function() {
-        var sel = citasSeleccionadas();
-        if (sel.length === 1) abrirValoracionCita(sel[0]['Usuario']);
-      });
-
-      document.getElementById('btnWhatsapp').addEventListener('click', function() {
-        var sel = citasSeleccionadas();
-        if (sel.length === 1) abrirWhatsappFila(sel[0]._fila);
-      });
-
-      // ---------- Copiar Siguiente Cita / ×2 ----------
-      async function manejarCopiarSeleccionadas(doble, forzar) {
-        var sel = citasSeleccionadas();
-        if (sel.length === 0) return;
-        var items = sel.map(function(c) { return { fila: c._fila, doble: doble }; });
-
-        google.script.run
-          .withSuccessHandler(async function(res) {
-            if (res.ocupado && !forzar) {
-              var confirmado = await mostrarConfirm(res.message);
-              if (confirmado) manejarCopiarSeleccionadas(doble, true);
-              return;
-            }
-            if (!res.success) { mostrarAviso(res.message || 'No se pudo copiar.'); return; }
-            mostrarAviso(res.message);
-            quitarSeleccion();
-            cargar(semanaActual, true);
-          })
-          .withFailureHandler(function(err) { mostrarAviso('Error: ' + err); })
-          .copiarVariasCitasWeb(items, !!forzar);
-      }
-
-      document.getElementById('btnCopiarCita').addEventListener('click', function() { manejarCopiarSeleccionadas(false, false); });
-      document.getElementById('btnCopiarCita2').addEventListener('click', function() { manejarCopiarSeleccionadas(true, false); });
-
-      // ---------- Copiar Semana (mié/jue doble, vie simple → semana siguiente) ----------
-      function diaSemanaDeCita(c) {
-        var partes = c._fechaISO.split('-').map(Number);
-        return new Date(partes[0], partes[1] - 1, partes[2]).getDay();
-      }
-
-      async function manejarCopiarSemana(forzar) {
-        var items = CITAS
-          .filter(function(c) {
-            if (c._hueco) return false;
-            var dia = diaSemanaDeCita(c);
-            return dia === 3 || dia === 4 || dia === 5;
-          })
-          .map(function(c) {
-            var dia = diaSemanaDeCita(c);
-            return { fila: c._fila, doble: (dia === 3 || dia === 4) };
-          });
-
-        if (items.length === 0) {
-          mostrarAviso('No hay citas de miércoles, jueves o viernes en esta semana para copiar.');
-          return;
-        }
-
-        google.script.run
-          .withSuccessHandler(async function(res) {
-            if (res.ocupado && !forzar) {
-              var confirmado = await mostrarConfirm(res.message);
-              if (confirmado) manejarCopiarSemana(true);
-              return;
-            }
-            if (!res.success) { mostrarAviso(res.message || 'No se pudo copiar la semana.'); return; }
-            mostrarAviso(res.message);
-            cargar(semanaActual, true);
-          })
-          .withFailureHandler(function(err) { mostrarAviso('Error: ' + err); })
-          .copiarVariasCitasWeb(items, !!forzar);
-      }
-
-      document.getElementById('btnCopiarSemana').addEventListener('click', function() { manejarCopiarSemana(false); });
-
-      // ---------- Navegación de semana ----------
-      function hoyISO() { return formatoISO(new Date()); }
-
-      function formatoISO(d) {
-        var m = (d.getMonth() + 1).toString().padStart(2, '0');
-        var day = d.getDate().toString().padStart(2, '0');
-        return d.getFullYear() + '-' + m + '-' + day;
-      }
-
-      function moverSemana(dias) {
-        if (!semanaActual) return;
-        var partes = semanaActual.split('-').map(Number);
-        var d = new Date(partes[0], partes[1] - 1, partes[2]);
-        d.setDate(d.getDate() + dias);
-        fijarVista('semana');
-        cargar(formatoISO(d));
-      }
-
-      document.getElementById('btnSemanaAnterior').addEventListener('click', function() { moverSemana(-7); });
-      document.getElementById('btnSemanaSiguiente').addEventListener('click', function() { moverSemana(7); });
-
-      // "Hoy": en la vista de tarjetas las refresca; en la tabla, si el día ya
-      // está en la semana cargada solo se desplaza hasta él, y si no, carga la actual.
-      document.getElementById('btnHoy').addEventListener('click', function() {
-        if (vista === 'hoy') { cambiarVista('hoy'); return; }
-        var hoy = hoyISO();
-        if (CITAS.some(function(c) { return c._fechaISO === hoy; })) scrollAHoy();
-        else cargar(hoy);
-      });
-
-      document.getElementById('inputSemana').addEventListener('change', function(e) {
-        if (e.target.value) { fijarVista('semana'); cargar(e.target.value); }
-      });
-
-      document.getElementById('inputBusqueda').addEventListener('input', render);
-
-      document.getElementById('btnHuecos').addEventListener('click', function() {
-        mostrarHuecos = !mostrarHuecos;
-        actualizarBotonHuecos();
-        render();
-      });
-
-      function actualizarBotonHuecos() {
-        var btn = document.getElementById('btnHuecos');
-        btn.innerHTML = mostrarHuecos
-          ? '<span class="material-symbols-outlined">event_busy</span> Ocultar citas disponibles'
-          : '<span class="material-symbols-outlined">event_available</span> Mostrar citas disponibles';
-        btn.classList.toggle('activo', mostrarHuecos);
-      }
-
-      // ---------- Vista Semana / Hoy ----------
-      function fijarVista(v) {
-        vista = v;
-        document.getElementById('btnVistaSemana').classList.toggle('activo', v === 'semana');
-        document.getElementById('btnVistaHoy').classList.toggle('activo', v === 'hoy');
-        document.getElementById('btnVistaCal').classList.toggle('activo', v === 'cuadricula');
-      }
-
-      function cambiarVista(v) {
-        fijarVista(v);
-        if (v === 'hoy' && !CITAS.some(function(c) { return c._fechaISO === hoyISO(); })) {
-          cargar(hoyISO()); // la semana cargada no contiene hoy
-          return;
-        }
-        render();
-        if (v === 'semana') scrollAHoy();
-        else document.getElementById('tablaWrap').scrollTop = 0;
-      }
-
-      document.getElementById('btnVistaSemana').addEventListener('click', function() { cambiarVista('semana'); });
-      document.getElementById('btnVistaHoy').addEventListener('click', function() { cambiarVista('hoy'); });
-      document.getElementById('btnVistaCal').addEventListener('click', function() { cambiarVista('cuadricula'); });
-
-      // ---------- Filtros rápidos ----------
-      document.querySelectorAll('.chip-filtro').forEach(function(b) {
-        b.addEventListener('click', function() {
-          var k = b.dataset.filtro;
-          if (filtrosActivos.has(k)) filtrosActivos.delete(k); else filtrosActivos.add(k);
-          render();
-        });
-      });
-
-      // ---------- Densidad de filas ----------
-      function aplicarDensidad(compacto, guardar) {
-        document.body.classList.toggle('compacto', compacto);
-        document.getElementById('txtDensidad').textContent = compacto ? 'Compacto' : 'Cómodo';
-        if (guardar) { try { localStorage.setItem('agendaDensidad', compacto ? 'compacto' : 'comodo'); } catch (err) { /* sin almacenamiento */ } }
-      }
-      document.getElementById('btnDensidad').addEventListener('click', function() {
-        aplicarDensidad(!document.body.classList.contains('compacto'), true);
-      });
-      (function() {
-        var guardada = null;
-        try { guardada = localStorage.getItem('agendaDensidad'); } catch (err) { /* sin almacenamiento */ }
-        aplicarDensidad(guardada === 'compacto', false);
-      })();
-
-      // ---------- Menú Copiar ----------
-      document.getElementById('btnMenuCopiar').addEventListener('click', function(e) {
-        e.stopPropagation();
-        if (this.disabled) return;
-        var abierto = document.getElementById('menuCopiarWrap').classList.toggle('abierto');
-        this.setAttribute('aria-expanded', abierto ? 'true' : 'false');
-      });
-      document.addEventListener('click', function(e) {
-        if (!e.target.closest('#menuCopiarWrap') || e.target.closest('.menu-item')) {
-          document.getElementById('menuCopiarWrap').classList.remove('abierto');
-        }
-      });
-
-      // ---------- Atajos de teclado ----------
-      document.getElementById('btnAtajos').addEventListener('click', function() {
-        mostrarAviso('Atajos de teclado\n← / →   Semana anterior / siguiente\nT   Ir a hoy\n/   Buscar\nEsc   Quitar selección o filtros');
-      });
-
-      document.getElementById('inputBusqueda').addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') { this.value = ''; this.blur(); render(); }
-      });
-
-      document.addEventListener('keydown', function(e) {
-        if (e.ctrlKey || e.metaKey || e.altKey) return;
-        var modal = document.getElementById('modalOverlay');
-        if (modal && modal.classList.contains('visible')) return;
-        var el = document.activeElement, tag = el ? el.tagName : '';
-        if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA' || (el && el.isContentEditable)) return;
-
-        if (e.key === 'ArrowLeft') { e.preventDefault(); moverSemana(-7); }
-        else if (e.key === 'ArrowRight') { e.preventDefault(); moverSemana(7); }
-        else if (e.key === 't' || e.key === 'T') { document.getElementById('btnHoy').click(); }
-        else if (e.key === '/') { e.preventDefault(); document.getElementById('inputBusqueda').focus(); }
-        else if (e.key === 'Escape') {
-          var wrapMenu = document.getElementById('menuCopiarWrap');
-          if (wrapMenu.classList.contains('abierto')) wrapMenu.classList.remove('abierto');
-          else if (citasSeleccionadas().length) quitarSeleccion();
-          else if (hayBusqueda()) limpiarFiltros();
-        }
-      });
-
-      // Cada minuto: actualiza "ahora", la línea de hora y las citas ya terminadas
-      setInterval(function() {
-        if (document.querySelector('.editando') || arrastre || !CITAS.length) return;
-        if (vista === 'hoy' || CITAS.some(function(c) { return c._fechaISO === hoyISO(); })) render();
-      }, 60000);
-
-      // ---------- Arrastrar y soltar: mover una cita a un hueco libre ----------
-      // Pointer Events (ratón, táctil y lápiz). Con ratón se arrastra desde cualquier
-      // parte de la fila/tarjeta (salvo botones, enlaces y celdas editables); con
-      // táctil, desde el asa ⋮⋮. Mientras se arrastra se muestran los huecos libres,
-      // la lista hace autoscroll en los bordes y Esc cancela.
-      var arrastre = null;          // arrastre en curso: { fila, id, x, y, destino, ghost, raf }
-      var candidatoArrastre = null; // pulsación pendiente de superar el umbral de movimiento
-      var ultimoArrastreTs = 0;
-      var UMBRAL_ARRASTRE = 6;
-      var ultimoMovimiento = null, timeoutToastMover = null;
-
-      function citaPorFila(f) { return CITAS.find(function(c) { return c._fila == f; }); }
-
-      function camposMovibles() {
-        var k = ['Usuario', 'Teléfono', 'Sesión', 'Asistencia', 'ID Evento Calendar', 'Notas'];
-        if (COL_HISTORIA) k.push(COL_HISTORIA);
-        return k;
-      }
-
-      // Traspasa los datos de una cita a otro hueco EN MEMORIA (fecha/día/hora no se tocan).
-      function transferirLocal(deFila, aFila) {
-        var o = citaPorFila(deFila), d = citaPorFila(aFila);
-        if (!o || !d) return false;
-        camposMovibles().forEach(function(k) { d[k] = o[k]; o[k] = ''; });
-        o._hueco = true; d._hueco = false;
-        if (filasSeleccionadas.has(deFila)) { filasSeleccionadas.delete(deFila); filasSeleccionadas.add(aFila); }
-        return true;
-      }
-
-      var wrapArrastre = document.getElementById('tablaWrap');
-
-      wrapArrastre.addEventListener('pointerdown', function(e) {
-        if (arrastre || (e.pointerType === 'mouse' && e.button !== 0)) return;
-        if (document.querySelector('.editando')) return;
-        var t = e.target, asa = t.closest('.asa');
-        if (!asa && (e.pointerType !== 'mouse' || t.closest('button, a, input, select, .editable, .chk'))) return;
-        var el = t.closest('tr.fila-cita, .tarjeta:not(.hueco), .cal-cita');
-        if (!el) return;
-        candidatoArrastre = { fila: Number(el.dataset.fila), id: e.pointerId, x: e.clientX, y: e.clientY };
-      });
-
-      window.addEventListener('pointermove', function(e) {
-        if (!arrastre && candidatoArrastre && e.pointerId === candidatoArrastre.id) {
-          var dx = e.clientX - candidatoArrastre.x, dy = e.clientY - candidatoArrastre.y;
-          if (dx * dx + dy * dy > UMBRAL_ARRASTRE * UMBRAL_ARRASTRE) iniciarArrastre(e);
-        }
-        if (arrastre && e.pointerId === arrastre.id) {
-          arrastre.x = e.clientX; arrastre.y = e.clientY;
-          if (e.cancelable) e.preventDefault();
-          posicionarGhost();
-        }
-      }, { passive: false });
-
-      window.addEventListener('pointerup', function(e) {
-        candidatoArrastre = null;
-        if (arrastre && e.pointerId === arrastre.id) finalizarArrastre(true);
-      });
-      window.addEventListener('pointercancel', function() { candidatoArrastre = null; if (arrastre) finalizarArrastre(false); });
-      document.addEventListener('selectstart', function(e) { if (arrastre) e.preventDefault(); });
-      document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape' && arrastre) { e.stopPropagation(); finalizarArrastre(false); }
-      }, true);
-
-      // El clic que sigue a soltar no debe seleccionar/editar nada.
-      wrapArrastre.addEventListener('click', function(e) {
-        if (Date.now() - ultimoArrastreTs < 350) { e.stopPropagation(); e.preventDefault(); }
-      }, true);
-
-      function iniciarArrastre(e) {
-        var cita = citaPorFila(candidatoArrastre.fila);
-        if (!cita || cita._hueco) { candidatoArrastre = null; return; }
-        arrastre = { fila: cita._fila, id: candidatoArrastre.id, x: e.clientX, y: e.clientY, destino: null, ghost: null, raf: 0 };
-        candidatoArrastre = null;
-        try { wrapArrastre.setPointerCapture(e.pointerId); } catch (err) { /* no crítico */ }
-
-        var g = document.createElement('div');
-        g.className = 'ghost-cita';
-        g.innerHTML = '<span class="material-symbols-outlined" style="font-size:18px">event</span><span>' + escapar(cita['Usuario']) +
-          '</span><small>' + escapar(cita['Hora']) + '</small><span class="ghost-dest" style="display:none"></span>';
-        document.body.appendChild(g);
-        arrastre.ghost = g;
-        document.body.classList.add('arrastrando-cita');
-        try { window.getSelection().removeAllRanges(); } catch (err) { /* no crítico */ }
-
-        render(); // enseña los huecos libres mientras se arrastra
-        posicionarGhost();
-        arrastre.raf = requestAnimationFrame(bucleArrastre);
-      }
-
-      function posicionarGhost() {
-        if (arrastre && arrastre.ghost) arrastre.ghost.style.transform = 'translate3d(' + (arrastre.x + 14) + 'px,' + (arrastre.y + 10) + 'px,0)';
-      }
-
-      function reaplicarArrastre() {
-        if (!arrastre) return;
-        var o = document.querySelector('tr.fila-cita[data-fila="' + arrastre.fila + '"], .tarjeta[data-fila="' + arrastre.fila + '"], .cal-cita[data-fila="' + arrastre.fila + '"]');
-        if (o) o.classList.add('arrastrando');
-        arrastre.destino = null;
-      }
-
-      function bucleArrastre() {
-        if (!arrastre) return;
-        var r = wrapArrastre.getBoundingClientRect(), th = wrapArrastre.querySelector('thead');
-        var arriba = r.top + (th ? th.offsetHeight : 0) + 60, abajo = r.bottom - 60, v = 0;
-        if (arrastre.y < arriba) v = -(arriba - arrastre.y) / 4;
-        else if (arrastre.y > abajo) v = (arrastre.y - abajo) / 4;
-        if (v) wrapArrastre.scrollTop += Math.max(-22, Math.min(22, v));
-        marcarDestino();
-        arrastre.raf = requestAnimationFrame(bucleArrastre);
-      }
-
-      function marcarDestino() {
-        var el = document.elementFromPoint(arrastre.x, arrastre.y);
-        var obj = el && el.closest ? el.closest('tr.fila-hueco, tr.fila-cita, .tarjeta, .cal-cita, .cal-hueco') : null;
-        var fila = obj ? Number(obj.dataset.fila) : null;
-        if (fila === arrastre.fila) { obj = null; fila = null; }
-        if (fila === arrastre.destino) return;
-        var prev = document.querySelector('.destino-drop');
-        if (prev) prev.classList.remove('destino-drop');
-        arrastre.destino = fila;
-        if (obj) obj.classList.add('destino-drop');
-        etiquetaDestino(fila ? citaPorFila(fila) : null);
-      }
-
-      function finalizarArrastre(soltar) {
-        var a = arrastre;
-        if (!a) return;
-        cancelAnimationFrame(a.raf);
-        if (soltar) marcarDestino();
-        var destino = soltar ? a.destino : null;
-        if (a.ghost) a.ghost.remove();
-        document.body.classList.remove('arrastrando-cita');
-        try { wrapArrastre.releasePointerCapture(a.id); } catch (err) { /* ya liberado */ }
-        ultimoArrastreTs = Date.now();
-        arrastre = null;
-        if (destino) moverCitaUI(a.fila, destino, false);
-        else { render(); actualizarBotonesSeleccion(); }
-      }
-
-      // Actualiza la pantalla al instante y confirma con el servidor; si falla, revierte.
-      function elFila(f) {
-        return document.querySelector('tr[data-fila="' + f + '"], .tarjeta[data-fila="' + f + '"], .cal-cita[data-fila="' + f + '"], .cal-hueco[data-fila="' + f + '"]');
-      }
-
-      function etiquetaDestino(d) {
-        var s = arrastre && arrastre.ghost && arrastre.ghost.querySelector('.ghost-dest');
-        if (!s) return;
-        if (!d) { s.style.display = 'none'; s.textContent = ''; return; }
-        s.style.display = '';
-        s.textContent = d._hueco ? '→ ' + (d['Día'] ? d['Día'] + ' ' : '') + d['Hora'] : '⇄ ' + d['Usuario'] + ' · ' + d['Hora'];
-      }
-
-      // Intercambia en memoria los datos de dos citas ocupadas.
-      function intercambiarLocal(a, b) {
-        var x = citaPorFila(a), y = citaPorFila(b);
-        if (!x || !y) return false;
-        camposMovibles().forEach(function(k) { var v = x[k]; x[k] = y[k]; y[k] = v; });
-        var sa = filasSeleccionadas.has(a), sb = filasSeleccionadas.has(b);
-        filasSeleccionadas.delete(a); filasSeleccionadas.delete(b);
-        if (sa) filasSeleccionadas.add(b);
-        if (sb) filasSeleccionadas.add(a);
-        return true;
-      }
-
-      // Mover a un hueco libre, o intercambiar si el destino está ocupado.
-      // Actualiza la pantalla al instante y confirma con el servidor; si falla, revierte.
-      function moverCitaUI(filaO, filaD, esDeshacer) {
-        var d = citaPorFila(filaD), intercambio = !!(d && !d._hueco);
-        function pos(f, haciaFila) { var e = elFila(f); if (!e) return null; var r = e.getBoundingClientRect(); return { fila: haciaFila, x: r.left, y: r.top }; }
-        var flips = [pos(filaO, filaD)];
-        if (intercambio) flips.push(pos(filaD, filaO));
-        pendienteFLIP = flips.filter(Boolean);
-
-        if (!(intercambio ? intercambiarLocal(filaO, filaD) : transferirLocal(filaO, filaD))) { render(); return; }
-        render();
-        actualizarBotonesSeleccion();
-
-        function revertir(msg) {
-          if (intercambio) intercambiarLocal(filaO, filaD); else transferirLocal(filaD, filaO);
-          render();
-          actualizarBotonesSeleccion();
-          mostrarAviso(msg);
-          cargar(semanaActual, true);
-        }
-
-        var runner = google.script.run
-          .withSuccessHandler(function(res) {
-            if (!res || !res.success) { revertir((res && res.message) || 'No se pudo mover la cita.'); return; }
-            if (esDeshacer) ocultarToastMover(); else mostrarToastMover(filaO, filaD, intercambio);
-          })
-          .withFailureHandler(function(err) { revertir('Error al mover la cita: ' + err); });
-        if (intercambio) runner.intercambiarCitasWeb(filaO, filaD); else runner.moverCitaWeb(filaO, filaD);
-      }
-
-      function mostrarToastMover(filaO, filaD, intercambio) {
-        var d = citaPorFila(filaD);
-        ultimoMovimiento = { desde: filaO, hacia: filaD };
-        document.getElementById('toastMoverTexto').textContent = intercambio ? 'Citas intercambiadas.' :
-          'Cita movida' + (d ? ' a ' + (d['Día'] ? d['Día'] + ' ' : '') + d['Hora'] : '') + '.';
-        var toast = document.getElementById('toastMover');
-        toast.classList.add('visible');
-        if (timeoutToastMover) clearTimeout(timeoutToastMover);
-        timeoutToastMover = setTimeout(function() { toast.classList.remove('visible'); }, 6000);
-      }
-
-      function ocultarToastMover() {
-        ultimoMovimiento = null;
-        document.getElementById('toastMover').classList.remove('visible');
-        if (timeoutToastMover) { clearTimeout(timeoutToastMover); timeoutToastMover = null; }
-      }
-
-      document.getElementById('toastMoverBtn').addEventListener('click', function() {
-        var m = ultimoMovimiento;
-        if (!m) return;
-        ocultarToastMover();
-        moverCitaUI(m.hacia, m.desde, true);
-      });
-
       // ---------- Avisos ligeros (toasts): sustituyen al modal salvo textos largos o multilínea ----------
+      // Se define DESPUÉS del include para sustituir al mostrarAviso() de JS_Modal_Deshacer, igual que en Base de Datos y Agenda.
       var contenedorToasts = (function() { var d = document.createElement('div'); d.className = 'toasts'; document.body.appendChild(d); return d; })();
       function mostrarAviso(mensaje) {
         var m = (mensaje === null || mensaje === undefined) ? '' : String(mensaje);
         if (m.indexOf('\n') !== -1 || m.length > 160) return mostrarDialogo(m, false);
-        var t = document.createElement('div');
-        var error = /^error|no se pudo|no se pudieron|ya est/i.test(m);
+        var t = document.createElement('div'), error = /^error|no se pudo|no se pudieron|bloqueado/i.test(m);
         t.className = 'toast-aviso' + (error ? ' error' : '');
         t.setAttribute('role', 'status');
         t.textContent = m;
@@ -2195,16 +783,81 @@
         return Promise.resolve(true);
       }
 
-      // ---------- Avatares con iniciales ----------
-      function avatarHtml(nombre) {
-        var n = (nombre || '').toString().trim();
-        if (!n) return '';
-        var p = n.split(/\s+/), ini = (p[0].charAt(0) + (p.length > 1 ? p[1].charAt(0) : p[0].charAt(1))).toUpperCase(), h = 0, low = n.toLowerCase();
-        for (var i = 0; i < low.length; i++) h = (h * 31 + low.charCodeAt(i)) % 360;
-        return '<span class="avatar" style="--h:' + h + '">' + escapar(ini) + '</span>';
-      }
+      // ---------- Nueva Valoración (ventana emergente) ----------
+      // Las Web Apps de Apps Script no se pueden embeber en un <iframe>
+      // (Google lo bloquea), así que usamos una ventana real con window.open,
+      // igual que hace Base de Datos para Editar/Cita/Valoración.
+      var ventanaActiva = null;
+      var sondeoCierre = null;
 
-      // ---------- Tema: automático / oscuro / claro ----------
+      document.getElementById('btnNuevaValoracion').addEventListener('click', function() {
+        var ruta = 'valoracion' + (pacienteSeleccionado ? '&paciente=' + encodeURIComponent(pacienteSeleccionado) : '');
+        var url = BASE_URL + '?page=' + ruta + '&embed=1';
+
+        ventanaActiva = window.open(url, 'ventanaValoracion', 'width=650,height=800,resizable=yes,scrollbars=yes');
+
+        if (!ventanaActiva) {
+          mostrarAviso('El navegador ha bloqueado la ventana emergente. Permite las ventanas emergentes para esta página e inténtalo de nuevo.');
+          return;
+        }
+
+        // El formulario de Valoración no avisa al cerrarse (no hace postMessage
+        // ni usa localStorage), así que detectamos el cierre por sondeo y
+        // refrescamos la tabla — puede que se haya guardado una valoración nueva.
+        if (sondeoCierre) clearInterval(sondeoCierre);
+        sondeoCierre = setInterval(function() {
+          if (ventanaActiva && ventanaActiva.closed) {
+            clearInterval(sondeoCierre);
+            sondeoCierre = null;
+            cargar();
+          }
+        }, 500);
+      });
+
+      // El formulario avisa por postMessage al guardar o cerrar
+      window.addEventListener('message', function(e) {
+        if (e.data && (e.data.tipo === 'cerrarEdicionPaciente' || e.data.tipo === 'citaGuardada')) {
+          if (sondeoCierre) { clearInterval(sondeoCierre); sondeoCierre = null; }
+          if (e.data.guardado) cargar();
+
+          // La ventana madre cierra la ventana hija
+          if (ventanaActiva && !ventanaActiva.closed) {
+            ventanaActiva.close();
+          }
+        }
+      });
+
+      // Segunda vía de aviso (localStorage)
+      window.addEventListener('storage', function(e) {
+        if (e.key === 'pacienteActualizado') {
+          if (sondeoCierre) { clearInterval(sondeoCierre); sondeoCierre = null; }
+          cargar();
+
+          // La ventana madre cierra la ventana hija
+          if (ventanaActiva && !ventanaActiva.closed) {
+            ventanaActiva.close();
+          }
+        }
+      });
+
+      // Cierre de ventanas emergentes: el formulario (popup) no siempre puede
+      // cerrarse a sí mismo, así que pide a la ventana que la abrió (esta) que
+      // lo haga. e.source es la ventana emergente; close() está permitido
+      // aunque sea de otro origen.
+      window.addEventListener('message', function(e) {
+        if (e.data && e.data.tipo === 'cerrarPopupFormulario' && e.source) {
+          try { e.source.close(); } catch (err) { /* bloqueado por el navegador */ }
+        }
+      });
+
+      // ---------- Búsqueda ----------
+      var temporizadorBusqueda = null;
+      document.getElementById('inputBusqueda').addEventListener('input', function() {
+        clearTimeout(temporizadorBusqueda);
+        temporizadorBusqueda = setTimeout(render, 150);
+      });
+
+      // ---------- Tema: automático / oscuro / claro (compartido con las otras pestañas) ----------
       var TEMAS = ['auto', 'oscuro', 'claro'], ICONOS_TEMA = { auto: 'contrast', oscuro: 'dark_mode', claro: 'light_mode' };
       function aplicarTema(t, guardar) {
         if (t === 'auto') document.documentElement.removeAttribute('data-tema'); else document.documentElement.setAttribute('data-tema', t);
@@ -2223,165 +876,7 @@
         aplicarTema(TEMAS.indexOf(t) === -1 ? 'auto' : t, false);
       })();
 
-      // ---------- Animaciones: desplazamiento al mover, destello y salida al eliminar ----------
-      var pendienteFLIP = [], estadoHuecoPrevio = {};
-      function marcarSaliendo(f) { var e = elFila(f); if (e) e.classList.add('saliendo-fila'); }
-      function animarCambios() {
-        var flips = pendienteFLIP; pendienteFLIP = [];
-        var nuevo = {};
-        CITAS.forEach(function(c) { nuevo[c._fila] = c._hueco; });
-        var reducir = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
-        if (!reducir) {
-          flips.forEach(function(f) {
-            var el = elFila(f.fila);
-            if (!el) return;
-            var r = el.getBoundingClientRect(), dx = f.x - r.left, dy = f.y - r.top;
-            if (dx || dy) el.animate([{ transform: 'translate(' + dx + 'px,' + dy + 'px)', opacity: .55 }, { transform: 'none', opacity: 1 }], { duration: 300, easing: 'cubic-bezier(.2,0,0,1)' });
-          });
-          Object.keys(nuevo).forEach(function(k) {
-            var antes = estadoHuecoPrevio[k];
-            if (antes === undefined || antes === nuevo[k]) return;
-            var el = elFila(k);
-            if (!el) return;
-            if (nuevo[k]) el.animate([{ opacity: .25 }, { opacity: 1 }], { duration: 260 });
-            else { el.classList.add('recien'); setTimeout(function() { el.classList.remove('recien'); }, 1300); }
-          });
-        }
-        estadoHuecoPrevio = nuevo;
-      }
-
-      // Sombra en las columnas fijas al desplazar en horizontal
-      document.getElementById('tablaWrap').addEventListener('scroll', function() { this.classList.toggle('desplazado', this.scrollLeft > 4); }, { passive: true });
-
-      // ---------- Vista Cuadrícula (calendario semanal) ----------
-      function htmlCuadricula(filtradas) {
-        var hoy = hoyISO(), ahora = ahoraHHmm(), buscando = hayBusqueda();
-        var visibles = new Set(filtradas.map(function(c) { return c._fila; }));
-        var dias = [], horas = [], mapa = {}, etiqueta = {};
-        CITAS.forEach(function(c) {
-          var h = c['Hora'] || '';
-          if (dias.indexOf(c._fechaISO) === -1) dias.push(c._fechaISO);
-          if (h && horas.indexOf(h) === -1) horas.push(h);
-          mapa[c._fechaISO + '|' + h] = c;
-          if (!etiqueta[c._fechaISO]) etiqueta[c._fechaISO] = (c['Día'] ? c['Día'] + ' ' : '') + String(c['Fecha'] || '').slice(0, 5);
-        });
-        dias.sort(); horas.sort();
-        var proxima = filaProxima(hoy, ahora);
-        var html = '<div class="cal" style="grid-template-columns:64px repeat(' + dias.length + ',minmax(150px,1fr))"><div class="cal-cab cal-esq"></div>';
-        dias.forEach(function(d) { html += '<div class="cal-cab' + (d === hoy ? ' hoy' : '') + '">' + escapar(etiqueta[d]) + '</div>'; });
-        horas.forEach(function(h) {
-          html += '<div class="cal-hora">' + escapar(h) + '</div>';
-          dias.forEach(function(d) {
-            var c = mapa[d + '|' + h];
-            html += '<div class="cal-celda' + (d === hoy ? ' hoy' : '') + (c ? '' : ' vacia') + '">' +
-              (c ? htmlCeldaCal(c, ahora, proxima, d === hoy, !buscando || visibles.has(c._fila)) : '') + '</div>';
-          });
-        });
-        return html + '</div>';
-      }
-
-      function htmlCeldaCal(c, ahora, proxima, esHoy, visible) {
-        if (c._hueco) return '<div class="cal-hueco editable hueco-libre" data-campo="Usuario" data-fila="' + c._fila + '" data-valor="" title="Asignar usuario"><span class="material-symbols-outlined">add</span></div>';
-        var clases = ['cal-cita'], est = estiloAsistencia(c['Asistencia']);
-        if (est && est !== 'neutro') clases.push('asist-' + est);
-        var tempo = esHoy ? estadoTemporal(c['Hora'] || '', ahora) : '';
-        if (tempo) clases.push(tempo);
-        if (esHoy && proxima && proxima._fila === c._fila) clases.push('proxima');
-        if (filasSeleccionadas.has(c._fila)) clases.push('seleccionada');
-        if (!visible) clases.push('atenuada');
-        var tip = [c['Usuario'], c['Asistencia'], c['Notas']].filter(function(v) { return !vacioTxt(v); }).join(' · ');
-        return '<div class="' + clases.join(' ') + '" data-fila="' + c._fila + '" title="' + escapar(tip) + '">' +
-          '<span class="asa material-symbols-outlined">drag_indicator</span>' + avatarHtml(c['Usuario']) +
-          '<span class="nombre-u">' + escapar(c['Usuario']) + '</span>' + (vacioTxt(c['Sesión']) ? '' : badgeSesion(c['Sesión'])) + '</div>';
-      }
-
-      function abrirHCFila(fila) {
-        var c = citaPorFila(fila), url = c && COL_HISTORIA ? c[COL_HISTORIA] : '';
-        if (esUrl(url)) window.open(url.trim(), '_blank', 'noopener');
-        else mostrarAviso('Esta cita no tiene Historia Clínica enlazada.');
-      }
-
-      // ---------- Enlazar Historia Clínica ----------
-      document.getElementById('btnEnlazarHC').addEventListener('click', function() {
-        var sel = citasSeleccionadas();
-        if (sel.length === 0) return;
-
-        var filas = sel.map(function(c) { return c._fila; });
-        var btn = this;
-        var textoOriginal = btn.innerHTML;
-
-        btn.disabled = true;
-        btn.innerHTML = '<span class="material-symbols-outlined spin-icon">progress_activity</span> Enlazando…';
-
-        google.script.run
-          .withSuccessHandler(function(res) {
-            btn.innerHTML = textoOriginal;
-            if (!res.success) { mostrarAviso(res.message); return; }
-            mostrarAviso(res.message);
-            quitarSeleccion();
-            cargar(semanaActual, true);
-          })
-          .withFailureHandler(function(err) {
-            btn.innerHTML = textoOriginal;
-            mostrarAviso('Error: ' + err);
-          })
-          .insertarEnlaceHistoriaClinicaWeb(filas);
-      });
-
-      // ---------- Auto-refresh: sondeo barato de versión (CacheService) y recarga
-      // silenciosa solo si cambió. Se salta si hay una celda en edición. ----------
-      var ultimaVersionAgenda = null;
-
-      function comprobarVersionAgenda() {
-        if (!semanaActual || arrastre) return;
-        if (document.querySelector('.editando')) return;
-
-        google.script.run
-          .withSuccessHandler(function(res) {
-            if (!res || res.error) return;
-            if (ultimaVersionAgenda === null) { ultimaVersionAgenda = res.version; return; }
-            if (res.version !== ultimaVersionAgenda) {
-              ultimaVersionAgenda = res.version;
-              cargar(semanaActual, true);
-            }
-          })
-          .withFailureHandler(function() { /* se reintenta en el próximo ciclo */ })
-          .obtenerVersionAgendaWeb();
-      }
-
-      var AUTO_REFRESH_MS = 4000;
-      setInterval(comprobarVersionAgenda, AUTO_REFRESH_MS);
-
-      // El formulario de Valoración avisa por postMessage al guardar o cerrar.
-      window.addEventListener('message', function(e) {
-        if (e.data && e.data.tipo === 'cerrarEdicionPaciente') {
-          if (ventanaActiva && !ventanaActiva.closed) {
-            ventanaActiva.close();
-          }
-        }
-      });
-
-      // Los popups piden a la ventana madre que los cierre.
-      window.addEventListener('message', function(e) {
-        if (e.data && e.data.tipo === 'cerrarPopupFormulario' && e.source) {
-          try { e.source.close(); } catch (err) { /* bloqueado por el navegador */ }
-        }
-      });
-
-      // Aviso opcional entre pestañas vía localStorage (no siempre fiable en
-      // Apps Script; el sondeo de arriba lo cubre igualmente).
-      window.addEventListener('storage', function(e) {
-        if (e.key === 'pacienteActualizado' && ventanaActiva && !ventanaActiva.closed) {
-          ventanaActiva.close();
-        }
-        if (e.key === 'pacienteActualizado' && semanaActual) {
-          if (document.querySelector('.editando')) return;
-          cargar(semanaActual, true);
-        }
-      });
-
       cargar();
-      cargarListaPacientes();
     </script>
   </body>
 </html>

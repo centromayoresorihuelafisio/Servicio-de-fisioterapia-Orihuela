@@ -4,17 +4,29 @@
 //   Quién tiene acceso: Solo yo
 // ================================================================================
 
-// ⚠️ Sustituye esto por el ID real de tu hoja de cálculo.
+// ID de la hoja de cálculo. Ahora es solo un RESPALDO: getSS() usa antes la hoja a la
+// que está vinculado el script, y solo recurre a este ID si no hay ninguna.
 // Lo encuentras en la URL: https://docs.google.com/spreadsheets/d/ESTE_ES_EL_ID/edit
 const SPREADSHEET_ID = "1D99N_jIQkZwZJ7IM2elk1nLxrIaUJIaSvldUX9yzQ2A";
 
 /**
- * Abre la hoja de cálculo por ID en vez de "la hoja activa".
+ * Devuelve la hoja de cálculo con la que trabaja el script.
  * Úsalo en lugar de SpreadsheetApp.getActiveSpreadsheet() en cualquier función
  * que deba poder ejecutarse tanto desde el menú como desde la Web App.
+ *
+ * Primero intenta la hoja a la que está vinculado el script, de modo que en una
+ * COPIA de la hoja la Web App y los menús trabajen siempre con la copia (antes la
+ * Web App abría por ID la hoja ORIGINAL aunque estuvieras en una copia). Si en ese
+ * contexto no hay hoja vinculada, abre la del ID de respaldo, como hacía antes.
  */
 function getSS() {
-  return SpreadsheetApp.openById(SPREADSHEET_ID);
+  let ss = null;
+  try {
+    ss = SpreadsheetApp.getActiveSpreadsheet();
+  } catch (e) {
+    ss = null;
+  }
+  return ss || SpreadsheetApp.openById(SPREADSHEET_ID);
 }
 
 /**
