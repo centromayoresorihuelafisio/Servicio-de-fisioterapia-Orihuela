@@ -1,0 +1,538 @@
+<!--
+  usuarios/Panel_Editar.html
+  Formulario de edición de usuario como módulo del panel lateral de la Base de Datos Web.
+  Se incluye desde usuarios/BaseDatos_Vista con <?!= include('usuarios/Panel_Editar'); ?>
+  API: PanelEditar.abrir(contenedor, { fila, nombre, onGuardado, onCancelar })
+  Devuelve { haCambiado(), alEscape() }:
+    · haCambiado() → true si hay cambios sin guardar (la Base de Datos pregunta antes de descartar).
+    · alEscape()   → cierra primero un desplegable abierto; devuelve true si lo ha gestionado.
+  Origen: usuarios/Editar_Usuario_Vista.html (que se mantiene tal cual para el menú de Sheets).
+  Diferencias: el formulario se construye en el navegador con los datos de obtenerDatosEdicionPaciente()
+  (en vez de scriptlets), el CSS va acotado a .pe y usa los tokens de la página (--md-*, así que
+  respeta el tema oscuro), y la revisión de cambios es una capa dentro del propio panel.
+  Guarda con actualizarPaciente(data, fila) (usuarios/Editar_Usuario.gs), igual que el formulario original.
+  Requiere ui/JS_Formato_Nombre en la página (enlazarFormatoNombre / enlazarFormatoDni).
+-->
+<style>
+.pe {
+  --radius-lg: 12px;
+  --elev-3: 0 4px 8px 3px rgba(60,64,67,.15), 0 1px 3px rgba(60,64,67,.3);
+  --pe-mono: 'Roboto Mono', monospace;
+  position: relative; display: flex; flex-direction: column; height: 100%; min-height: 0;
+  font-family: var(--font); font-size: 14px; color: var(--md-on-surface); background: var(--md-surface);
+}
+.pe .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20; line-height: 1; display: inline-block; }
+.pe .ic16 { font-size: 16px; } .pe .ic18 { font-size: 18px; } .pe .ic20 { font-size: 20px; } .pe .ic22 { font-size: 22px; }
+
+.pe .pe-scroll { flex: 1; min-height: 0; overflow: auto; }
+.pe .pe-estado { padding: 2rem 1.25rem; text-align: center; color: var(--md-on-surface-med); font-size: .85rem; }
+.pe .pe-estado.error { color: var(--md-error); }
+
+/* ── Secciones ── */
+.pe .card-section { padding: 1.1rem 1.25rem 1.3rem; border-bottom: 1px solid var(--md-outline); }
+.pe .card-section:last-child { border-bottom: none; }
+.pe .section-label { display: flex; align-items: center; gap: .75rem; margin-bottom: 1.1rem; }
+.pe .section-pill {
+  display: inline-flex; align-items: center; gap: .375rem; padding: .375rem .875rem; border-radius: 999px;
+  background: var(--md-primary-light); color: var(--md-primary-dark);
+  font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .05em;
+}
+.pe .section-divider { flex: 1; height: 1px; background: var(--md-outline); }
+/* a 400 px todo va en una columna */
+.pe .grid-2 { display: grid; grid-template-columns: 1fr; gap: 16px; }
+
+/* ── Campo outlined con etiqueta flotante ── */
+.pe .field { display: flex; flex-direction: column; position: relative; }
+.pe .field-inner { position: relative; display: flex; align-items: center; }
+.pe .field-icon {
+  position: absolute; left: 14px; top: 50%; transform: translateY(-50%); pointer-events: none;
+  display: flex; align-items: center; color: var(--md-on-surface-low); transition: color var(--transition); z-index: 1;
+}
+.pe label.field-label {
+  position: absolute; left: 44px; top: 50%; transform: translateY(-50%);
+  font-size: 15px; font-weight: 400; color: var(--md-on-surface-low); pointer-events: none;
+  background: var(--md-surface); padding: 0 5px; z-index: 1; line-height: 1; white-space: nowrap; letter-spacing: .005em;
+  transition: top 180ms cubic-bezier(.2,0,0,1), font-size 180ms cubic-bezier(.2,0,0,1), color 180ms cubic-bezier(.2,0,0,1), transform 180ms cubic-bezier(.2,0,0,1);
+}
+.pe label.field-label.floated,
+.pe .field-inner:focus-within label.field-label {
+  top: 0; font-size: 11px; font-weight: 500; transform: translateY(-50%); color: var(--md-on-surface-med); letter-spacing: .03em;
+}
+.pe .field-inner:focus-within label.field-label { color: var(--md-primary) !important; }
+.pe .field-inner:focus-within .field-icon { color: var(--md-primary); }
+.pe .readonly-badge {
+  font-size: 10px; font-weight: 500; letter-spacing: .04em; text-transform: uppercase; color: var(--md-on-surface-low);
+  background: var(--md-surface-variant); padding: 1px 6px; border-radius: var(--radius-pill); margin-left: 4px; vertical-align: middle;
+}
+.pe input[type="text"], .pe input[type="date"] {
+  width: 100%; height: 52px; padding: 14px 14px 0 44px; border: 1.5px solid var(--md-outline); border-radius: var(--radius-lg);
+  background: var(--md-surface); color: var(--md-on-surface); font-family: var(--font); font-size: 15px;
+  transition: border-color var(--transition), background-color var(--transition);
+  appearance: none; -webkit-appearance: none; outline: none; color-scheme: light dark;
+}
+.pe input[type="text"]::placeholder, .pe input[type="date"]::placeholder { opacity: 0; }
+.pe input[type="date"]:not(:focus):not(.has-value) { color: transparent; }
+.pe input[type="date"]:focus, .pe input[type="date"].has-value { color: var(--md-on-surface); }
+.pe input[type="text"]:hover, .pe input[type="date"]:hover { border-color: var(--md-on-surface-med); background-color: var(--md-bg); }
+.pe input[type="text"]:focus, .pe input[type="date"]:focus {
+  border-color: var(--md-primary); border-width: 2px; background-color: var(--md-surface); padding: 14px 13px 0 43px;
+}
+.pe input:disabled {
+  background: var(--md-surface-variant); color: var(--md-on-surface-med); cursor: default; border-color: var(--md-outline);
+  font-family: var(--pe-mono); font-size: 13px; padding-top: 14px;
+}
+.pe .field-inner:has(input:disabled) label.field-label {
+  top: 0; font-size: 11px; font-weight: 500; transform: translateY(-50%); color: var(--md-on-surface-low); letter-spacing: .03em;
+  background: var(--md-surface-variant);
+}
+
+/* ── Desplegables (único y múltiple) ── */
+.pe .multiselect { position: relative; }
+.pe .ms-toggle {
+  width: 100%; min-height: 52px; padding: 14px 44px 0 44px; border: 1.5px solid var(--md-outline); border-radius: var(--radius-lg);
+  background: var(--md-surface); cursor: pointer; display: flex; align-items: center; position: relative;
+  font-family: var(--font); font-size: 15px; color: var(--md-on-surface);
+  transition: border-color var(--transition), background-color var(--transition); user-select: none;
+}
+.pe .ms-toggle:hover { border-color: var(--md-on-surface-med); background-color: var(--md-bg); }
+.pe .ms-toggle.open { border-color: var(--md-primary); border-width: 2px; padding: 14px 43px 0 43px; background-color: var(--md-surface); }
+.pe .ms-leading {
+  position: absolute; left: 14px; top: 50%; transform: translateY(-50%); display: flex; align-items: center;
+  color: var(--md-on-surface-low); pointer-events: none; transition: color var(--transition);
+}
+.pe .ms-toggle.open .ms-leading { color: var(--md-primary); }
+.pe .ms-float-label {
+  position: absolute; left: 44px; top: 50%; transform: translateY(-50%); font-size: 15px; font-weight: 400;
+  color: var(--md-on-surface-low); background: var(--md-surface); padding: 0 5px; pointer-events: none; z-index: 1;
+  line-height: 1; white-space: nowrap;
+  transition: top 180ms cubic-bezier(.2,0,0,1), font-size 180ms cubic-bezier(.2,0,0,1), color 180ms cubic-bezier(.2,0,0,1), transform 180ms cubic-bezier(.2,0,0,1);
+}
+.pe .ms-toggle.open .ms-float-label, .pe .ms-toggle.has-value .ms-float-label {
+  top: 0; font-size: 11px; font-weight: 500; transform: translateY(-50%); color: var(--md-on-surface-med); letter-spacing: .03em;
+}
+.pe .ms-toggle.open .ms-float-label { color: var(--md-primary); }
+.pe .ms-display { flex: 1; font-size: 15px; color: var(--md-on-surface); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.3; }
+.pe .ms-toggle:not(.has-value) .ms-display { opacity: 0; pointer-events: none; }
+.pe .ms-arrow {
+  position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: var(--md-on-surface-low);
+  transition: transform 200ms ease, color var(--transition); flex-shrink: 0;
+}
+.pe .ms-toggle.open .ms-arrow { transform: translateY(-50%) rotate(180deg); color: var(--md-primary); }
+.pe .ms-menu {
+  position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 50; background: var(--md-surface);
+  border: 1px solid var(--md-outline); border-radius: var(--radius-lg); box-shadow: var(--elev-3);
+  max-height: 240px; overflow-y: auto; overflow-x: hidden; display: none;
+}
+.pe .ms-menu.open { display: block; animation: pe-pop 220ms cubic-bezier(.34,1.56,.64,1) both; }
+@keyframes pe-pop { from { opacity: 0; transform: scaleY(.88) translateY(-6px); transform-origin: top; } to { opacity: 1; transform: scaleY(1) translateY(0); } }
+.pe .ms-item { display: flex; align-items: center; gap: 12px; padding: 11px 16px; cursor: pointer; font-size: 14px; color: var(--md-on-surface); transition: background var(--transition); }
+.pe .ms-item:hover { background: var(--md-primary-light); }
+.pe .ms-item:has(input:checked), .pe .ms-item.ms-selected { background: var(--md-primary-container); font-weight: 500; }
+.pe .ms-item input[type="checkbox"] { width: 16px; height: 16px; min-width: 16px; accent-color: var(--md-primary); cursor: pointer; flex-shrink: 0; padding: 0; border: none; background: none; }
+
+/* ── Botones y pie fijo ── */
+.pe .panel-pie { flex: none; display: flex; align-items: center; justify-content: flex-end; gap: .5rem; padding: .7rem 1rem; border-top: 1px solid var(--md-outline); background: var(--md-surface); }
+.pe .btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 0 22px; height: 40px; border: none;
+  border-radius: var(--radius-pill); font-family: var(--font); font-size: 14px; font-weight: 500; cursor: pointer; letter-spacing: .01em;
+  transition: background var(--transition), box-shadow var(--transition); position: relative; overflow: hidden;
+}
+.pe .btn::after { content: ''; position: absolute; inset: 0; background: currentColor; opacity: 0; transition: opacity .15s; }
+.pe .btn:active::after { opacity: .1; }
+.pe .btn-ghost { background: transparent; color: var(--md-primary); border: 1px solid var(--md-outline); }
+.pe .btn-ghost:hover { background: var(--md-primary-light); border-color: var(--md-primary); }
+.pe .btn-primary { background: var(--md-primary-container); color: var(--md-primary-dark); font-weight: 600; }
+.pe .btn-primary:hover { filter: brightness(.97); }
+.pe .btn-success { background: var(--md-success-bg); color: var(--md-success); font-weight: 600; }
+.pe .btn-success:hover { filter: brightness(.97); }
+.pe .btn:disabled { background: rgba(128,134,139,.2); color: var(--md-on-surface-low); cursor: not-allowed; box-shadow: none; }
+.pe .spin-icon { animation: pe-spin 1s linear infinite; }
+@keyframes pe-spin { to { transform: rotate(360deg); } }
+
+/* ── Revisión de cambios: capa dentro del propio panel ── */
+.pe .pe-rev { position: absolute; inset: 0; z-index: 10; background: var(--md-surface); display: none; flex-direction: column; }
+.pe .pe-rev.visible { display: flex; }
+.pe .pe-rev-cab { flex: none; padding: 1rem 1.25rem .85rem; border-bottom: 1px solid var(--md-outline); display: flex; align-items: center; gap: 12px; }
+.pe .pe-rev-cab .icon-wrap { width: 40px; height: 40px; background: var(--md-primary-light); border-radius: 50%; display: grid; place-items: center; color: var(--md-primary); flex-shrink: 0; }
+.pe .pe-rev-cab h2 { font-size: 16px; font-weight: 500; color: var(--md-on-surface); }
+.pe .pe-rev-cab p { font-size: 12.5px; color: var(--md-on-surface-med); margin-top: 2px; }
+.pe .pe-rev-cuerpo { flex: 1; min-height: 0; overflow-y: auto; padding: 0 1.25rem; }
+.pe .preview-row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--md-outline); font-size: 13.5px; }
+.pe .preview-row:last-child { border-bottom: none; }
+.pe .preview-key { font-size: 12px; font-weight: 500; color: var(--md-on-surface-med); flex-shrink: 0; max-width: 45%; }
+.pe .preview-val { color: var(--md-on-surface); text-align: right; overflow-wrap: anywhere; }
+.pe .preview-val.empty { color: var(--md-on-surface-low); font-style: italic; }
+.pe .preview-row.changed { background: var(--md-warning-bg); margin: 0 -1.25rem; padding-left: 1.25rem; padding-right: 1.25rem; }
+.pe .preview-row.changed .preview-val { color: var(--md-on-surface); font-weight: 600; }
+.pe .changed-badge {
+  display: inline-flex; align-items: center; font-size: 10px; font-weight: 500; letter-spacing: .04em; text-transform: uppercase;
+  color: #b05e00; background: #fce8b2; border-radius: var(--radius-pill); padding: 1px 6px; margin-left: 6px; vertical-align: middle;
+}
+.pe .pe-rev-msg { flex: none; display: none; padding: .7rem 1.25rem; font-size: 13px; font-weight: 500; background: var(--md-error-bg); color: var(--md-error); }
+.pe .pe-rev-msg.visible { display: block; }
+</style>
+
+<template id="tplPanelEditar"><div class="pe">
+  <div class="pe-scroll">
+    <form class="pe-form" novalidate>
+      <div class="pe-estado"><span class="material-symbols-outlined ic20 spin-icon" style="vertical-align:middle">progress_activity</span> Cargando datos…</div>
+    </form>
+  </div>
+  <div class="panel-pie">
+    <button type="button" class="btn btn-ghost pe-cancelar">Cancelar</button>
+    <button type="button" class="btn btn-primary pe-revisar" disabled>
+      <span class="material-symbols-outlined ic18">visibility</span>Revisar cambios
+    </button>
+  </div>
+
+  <div class="pe-rev" aria-hidden="true">
+    <div class="pe-rev-cab">
+      <div class="icon-wrap"><span class="material-symbols-outlined ic22">rule_folder</span></div>
+      <div>
+        <h2>Confirmar cambios</h2>
+        <p class="pe-rev-sub">Revisa los datos antes de guardar.</p>
+      </div>
+    </div>
+    <div class="pe-rev-cuerpo"></div>
+    <div class="pe-rev-msg" role="alert"></div>
+    <div class="panel-pie">
+      <button type="button" class="btn btn-ghost pe-volver">
+        <span class="material-symbols-outlined ic18">arrow_back</span>Volver a editar
+      </button>
+      <button type="button" class="btn btn-success pe-confirmar">
+        <span class="material-symbols-outlined ic18">check_circle</span>Confirmar y guardar
+      </button>
+    </div>
+  </div>
+</div></template>
+
+<script>
+window.PanelEditar = {
+  abrir: function (host, opts) {
+    opts = opts || {};
+    host.innerHTML = '';
+    host.appendChild(document.getElementById('tplPanelEditar').content.cloneNode(true));
+    var pe = host.querySelector('.pe');
+    function q(sel) { return pe.querySelector(sel); }
+
+    var form = q('.pe-form'), btnRevisar = q('.pe-revisar'), btnCancelar = q('.pe-cancelar');
+    var capa = q('.pe-rev'), capaCuerpo = q('.pe-rev-cuerpo'), capaSub = q('.pe-rev-sub'), capaMsg = q('.pe-rev-msg');
+    var btnVolver = q('.pe-volver'), btnConfirmar = q('.pe-confirmar');
+
+    var OPCIONES_ESTADO    = ["🟢 Activo", "🟡 En espera", "🕐 Contactará", "🚫 No responde", "✔️ Alta"];
+    var OPCIONES_GRAVEDAD  = ["🟢 Leve", "🟠 Moderado", "🔴 Urgente"];
+    var OPCIONES_INGRESO   = ["📄 Volante", "🔁 Derivación propia", "🕰️ Antiguo paciente"];
+    var OPCIONES_PATOLOGIA = ["MS","MI","Dolor Crónico","Cervicalgia","Dorsalgia","Lumbalgia","Omalgia","Coxalgia","Gonalgia","Tendinopatía","Fascitis Plantar","Traumatismo","Caída","Fractura","Luxación","Esguince","Prótesis Hombro","Prótesis Rodilla","Estabilidad","Debilidad Muscular","Limitación Funcional","Alteración Marcha","Hernia Discal","Radiculopatía MS","Radiculopatía MI","Estenosis Medular","Parkinson","Esclerosis","Ictus","Linfedema","Cardiopatía","Enfermedad Respiratoria","Cáncer","Otro"];
+    var SECCIONES = [
+      { name: "Datos Personales",       fields: ["Nombre","DNI","Fecha nacimiento","Fecha inscripción"] },
+      { name: "Estado y Clasificación", fields: ["Estado","Gravedad","Tipo de Ingreso"] },
+      { name: "Contacto",               fields: ["Teléfono 1","Teléfono 2"] },
+      { name: "Diagnóstico",            fields: ["Patología 1","Patología 2"] },
+      { name: "Observaciones",          fields: ["Observaciones"] }
+    ];
+
+    var cargado = false, guardando = false, originalData = {};
+
+    function esc(s) {
+      return String(s === null || s === undefined ? '' : s)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+    function iconFor(h) {
+      var hl = h.toLowerCase();
+      if (hl.indexOf("nombre") !== -1)   return 'person';
+      if (hl.indexOf("fecha") !== -1)    return 'calendar_today';
+      if (hl.indexOf("tel") !== -1)      return 'call';
+      if (hl.indexOf("patolog") !== -1)  return 'monitor_heart';
+      if (hl.indexOf("observ") !== -1)   return 'edit_note';
+      if (hl.indexOf("gravedad") !== -1) return 'emergency';
+      if (hl.indexOf("estado") !== -1)   return 'fact_check';
+      if (hl.indexOf("ingreso") !== -1)  return 'login';
+      return 'horizontal_rule';
+    }
+    function sectionIconFor(name) {
+      var nl = name.toLowerCase();
+      if (nl.indexOf("personal") !== -1) return 'account_circle';
+      if (nl.indexOf("estado") !== -1 || nl.indexOf("clasif") !== -1) return 'analytics';
+      if (nl.indexOf("contacto") !== -1) return 'contact_page';
+      if (nl.indexOf("diagn") !== -1)    return 'medical_information';
+      if (nl.indexOf("observ") !== -1)   return 'note_alt';
+      return 'folder_open';
+    }
+
+    /* ── Construcción del formulario (equivale a los scriptlets del original) ── */
+    function desplegableUnico(h, idSuffix, icon, val, opciones) {
+      var actual = val || opciones[0];
+      return '<div class="multiselect">' +
+        '<div class="ms-toggle has-value" id="pe-toggle' + idSuffix + '" data-suffix="' + esc(idSuffix) + '" data-tipo="unico">' +
+          '<div class="ms-leading"><span class="material-symbols-outlined ic18">' + icon + '</span></div>' +
+          '<span class="ms-float-label">' + esc(h) + '</span>' +
+          '<span class="ms-display" id="pe-label' + idSuffix + '">' + esc(actual) + '</span>' +
+          '<span class="material-symbols-outlined ic20 ms-arrow">expand_more</span>' +
+        '</div>' +
+        '<input type="hidden" name="' + esc(h) + '" id="pe-val' + idSuffix + '" value="' + esc(actual) + '">' +
+        '<div class="ms-menu" id="pe-menu' + idSuffix + '">' +
+          opciones.map(function (opt) {
+            return '<div class="ms-item' + (val === opt ? ' ms-selected' : '') + '" data-suffix="' + esc(idSuffix) + '" data-val="' + esc(opt) + '">' + esc(opt) + '</div>';
+          }).join('') +
+        '</div></div>';
+    }
+    function desplegableMultiple(h, idSuffix, icon, selVals) {
+      return '<div class="multiselect">' +
+        '<div class="ms-toggle' + (selVals.length > 0 && selVals[0] !== '' ? ' has-value' : '') + '" id="pe-toggle' + idSuffix + '" data-suffix="' + esc(idSuffix) + '" data-tipo="multiple" data-name="' + esc(h) + '">' +
+          '<div class="ms-leading"><span class="material-symbols-outlined ic18">' + icon + '</span></div>' +
+          '<span class="ms-float-label">' + esc(h) + '</span>' +
+          '<span class="ms-display" id="pe-label' + idSuffix + '">— Selecciona —</span>' +
+          '<span class="material-symbols-outlined ic20 ms-arrow">expand_more</span>' +
+        '</div>' +
+        '<div class="ms-menu" id="pe-menu' + idSuffix + '">' +
+          OPCIONES_PATOLOGIA.map(function (opt) {
+            return '<label class="ms-item"><input type="checkbox" name="' + esc(h) + '" value="' + esc(opt) + '"' + (selVals.indexOf(opt) !== -1 ? ' checked' : '') + '>' + esc(opt) + '</label>';
+          }).join('') +
+        '</div></div>';
+    }
+    function campoTexto(h, idSuffix, icon, val, isDate, isReadOnly) {
+      return '<div class="field-inner">' +
+        '<div class="field-icon"><span class="material-symbols-outlined ic18">' + icon + '</span></div>' +
+        '<input type="' + (isDate ? 'date' : 'text') + '" id="pe-field_' + idSuffix + '" name="' + esc(h) + '" value="' + esc(val) + '" placeholder=" "' + (isReadOnly ? ' disabled' : '') + '>' +
+        '<label class="field-label" for="pe-field_' + idSuffix + '">' + esc(h) + (isReadOnly ? '<span class="readonly-badge">Solo lectura</span>' : '') + '</label>' +
+      '</div>';
+    }
+    function construirFormulario(headers, rowData) {
+      var headerMap = {};
+      headers.forEach(function (h, i) { headerMap[h] = i; });
+      var asignados = {};
+      SECCIONES.forEach(function (s) { s.fields.forEach(function (f) { asignados[f] = true; }); });
+      var otros = headers.filter(function (h) { return !asignados[h]; });
+
+      function seccion(nombre, lista) {
+        var campos = lista.filter(function (f) { return headerMap[f] !== undefined; });
+        if (!campos.length) return '';
+        var html = '<div class="card-section">' +
+          '<div class="section-label"><span class="section-pill"><span class="material-symbols-outlined ic16">' + sectionIconFor(nombre) + '</span>' + esc(nombre) + '</span><div class="section-divider"></div></div>' +
+          '<div class="grid-2">';
+        campos.forEach(function (h) {
+          var i = headerMap[h];
+          var val = rowData[i] || "";
+          var hl = h.toLowerCase();
+          var isReadOnly = (i === 0 || hl.indexOf("historia") !== -1);
+          var isDate = (hl.indexOf("fecha") !== -1 || hl.indexOf("visita") !== -1 || hl.indexOf("nacimiento") !== -1);
+          var idSuffix = h.replace(/\s/g, "");
+          var icon = iconFor(h);
+          html += '<div><div class="field">';
+          if (h === "Estado")                     html += desplegableUnico(h, idSuffix, icon, val, OPCIONES_ESTADO);
+          else if (h === "Gravedad")              html += desplegableUnico(h, idSuffix, icon, val, OPCIONES_GRAVEDAD);
+          else if (h.indexOf("Ingreso") !== -1)   html += desplegableUnico(h, idSuffix, icon, val, OPCIONES_INGRESO);
+          else if (h.indexOf("Patología") !== -1) html += desplegableMultiple(h, idSuffix, icon, val.toString().split(",").map(function (s) { return s.trim(); }));
+          else                                    html += campoTexto(h, idSuffix, icon, val, isDate, isReadOnly);
+          html += '</div></div>';
+        });
+        return html + '</div></div>';
+      }
+      var out = '';
+      SECCIONES.forEach(function (s) { out += seccion(s.name, s.fields); });
+      if (otros.length) out += seccion("Otros datos", otros);
+      form.innerHTML = out;
+    }
+
+    /* ── Comportamiento de los campos ── */
+    function syncFloated(inp) {
+      var label = inp.parentElement.querySelector('label.field-label');
+      var hasVal = inp.value && inp.value.trim() !== '';
+      if (label) label.classList.toggle('floated', !!hasVal);
+      if (inp.type === 'date') inp.classList.toggle('has-value', !!hasVal);
+    }
+    function formatPhone(val) {
+      var d = val.replace(/\D/g, '').slice(0, 9);
+      var f = d.slice(0, 3);
+      if (d.length > 3) f += ' ' + d.slice(3, 5);
+      if (d.length > 5) f += ' ' + d.slice(5, 7);
+      if (d.length > 7) f += ' ' + d.slice(7, 9);
+      return f;
+    }
+    function byName(name) {
+      return Array.prototype.filter.call(form.querySelectorAll('input'), function (el) { return el.name === name; });
+    }
+    function updateMsLabel(suffix, name) {
+      var values = byName(name).filter(function (cb) { return cb.checked; }).map(function (cb) { return cb.value; });
+      var label = pe.querySelector('#pe-label' + suffix), toggle = pe.querySelector('#pe-toggle' + suffix);
+      label.textContent = values.length ? values.join(', ') : '— Selecciona —';
+      toggle.classList.toggle('has-value', values.length > 0);
+    }
+    function cerrarMenus() {
+      var hubo = false;
+      pe.querySelectorAll('.ms-menu.open').forEach(function (m) {
+        hubo = true;
+        m.classList.remove('open');
+        var tg = m.parentElement.querySelector('.ms-toggle');
+        if (tg) tg.classList.remove('open');
+      });
+      return hubo;
+    }
+    function alternarMenu(toggle) {
+      var menu = pe.querySelector('#pe-menu' + toggle.dataset.suffix);
+      var abierto = menu.classList.contains('open');
+      cerrarMenus();
+      if (!abierto) {
+        menu.classList.add('open');
+        toggle.classList.add('open');
+        // el menú puede abrirse junto al borde inferior: lo traemos a la vista
+        menu.scrollIntoView({ block: 'nearest' });
+      }
+    }
+    function elegirUnico(item) {
+      var s = item.dataset.suffix, value = item.dataset.val;
+      var oculto = pe.querySelector('#pe-val' + s); if (oculto) oculto.value = value;
+      var label = pe.querySelector('#pe-label' + s); if (label) label.textContent = value;
+      var menu = pe.querySelector('#pe-menu' + s);
+      menu.querySelectorAll('.ms-item').forEach(function (it) { it.classList.toggle('ms-selected', it === item); });
+      menu.classList.remove('open');
+      var toggle = pe.querySelector('#pe-toggle' + s);
+      toggle.classList.remove('open'); toggle.classList.add('has-value');
+    }
+
+    function enlazarCampos(headers) {
+      form.querySelectorAll('.field-inner input[type="text"], .field-inner input[type="date"]').forEach(function (inp) {
+        syncFloated(inp);
+        inp.addEventListener('input', function () { syncFloated(inp); });
+        inp.addEventListener('change', function () { syncFloated(inp); });
+      });
+      ['Teléfono 1', 'Teléfono 2'].forEach(function (n) {
+        byName(n).forEach(function (inp) {
+          inp.value = formatPhone(inp.value);
+          inp.addEventListener('input', function () { inp.value = formatPhone(inp.value); });
+        });
+      });
+      // Nombre y DNI: misma regla que en el alta (ui/JS_Formato_Nombre). Solo se aplica al escribir:
+      // los datos ya guardados no se tocan hasta que alguien edite ese campo.
+      enlazarFormatoNombre(byName('Nombre')[0]);
+      enlazarFormatoDni(byName('DNI')[0]);
+      headers.forEach(function (h) {
+        if (h.indexOf("Patología") !== -1) updateMsLabel(h.replace(/\s/g, ''), h);
+      });
+    }
+
+    pe.addEventListener('click', function (e) {
+      var tg = e.target.closest('.ms-toggle');
+      if (tg) { alternarMenu(tg); return; }
+      var it = e.target.closest('.ms-item[data-val]');
+      if (it) { elegirUnico(it); return; }
+      if (!e.target.closest('.multiselect')) cerrarMenus();
+    });
+    pe.addEventListener('change', function (e) {
+      var cb = e.target;
+      if (cb.type === 'checkbox' && cb.closest('.ms-menu')) {
+        var tg = cb.closest('.multiselect').querySelector('.ms-toggle');
+        updateMsLabel(tg.dataset.suffix, tg.dataset.name);
+      }
+    });
+
+    /* ── Datos, cambios y revisión ── */
+    function recogerDatos() {
+      var data = {}, fd = new FormData(form), names = [];
+      fd.forEach(function (val, key) { if (names.indexOf(key) === -1) names.push(key); });
+      names.forEach(function (name) { data[name] = fd.getAll(name).join(', '); });
+      form.querySelectorAll('input:disabled').forEach(function (el) { if (el.name) data[el.name] = el.value; });
+      return data;
+    }
+    function displayVal(val) {
+      if (val && /^\d{4}-\d{2}-\d{2}$/.test(val)) return val.split('-').reverse().join('/');
+      return val;
+    }
+    function contarCambios(data) {
+      var n = 0;
+      for (var key in data) {
+        if (key === 'Nº') continue;
+        if (displayVal(data[key]) !== displayVal(originalData[key] || '')) n++;
+      }
+      return n;
+    }
+    function mostrarResumen() {
+      var data = recogerDatos(), html = '', changedCount = 0;
+      for (var key in data) {
+        if (key === 'Nº') continue;
+        var val = displayVal(data[key]), origVal = displayVal(originalData[key] || '');
+        var changed = val !== origVal;
+        if (changed) changedCount++;
+        html += '<div class="preview-row' + (changed ? ' changed' : '') + '">' +
+                  '<span class="preview-key">' + esc(key) + (changed ? '<span class="changed-badge">modificado</span>' : '') + '</span>' +
+                  '<span class="preview-val' + (!val ? ' empty' : '') + '">' + (val ? esc(val) : '—') + '</span>' +
+                '</div>';
+      }
+      capaSub.textContent = changedCount > 0
+        ? changedCount + ' campo' + (changedCount > 1 ? 's' : '') + ' modificado' + (changedCount > 1 ? 's' : '') + '. Revisa antes de guardar.'
+        : 'No se detectaron cambios respecto a los valores originales.';
+      capaCuerpo.innerHTML = html;
+      capaCuerpo.scrollTop = 0;
+      capaMsg.classList.remove('visible');
+      capa.classList.add('visible');
+      capa.setAttribute('aria-hidden', 'false');
+      btnConfirmar.focus();
+    }
+    function ocultarResumen() {
+      capa.classList.remove('visible');
+      capa.setAttribute('aria-hidden', 'true');
+    }
+    function confirmarEnvio() {
+      if (guardando) return;
+      guardando = true;
+      var data = recogerDatos();
+      capaMsg.classList.remove('visible');
+      btnConfirmar.disabled = true; btnVolver.disabled = true;
+      btnConfirmar.innerHTML = '<span class="material-symbols-outlined ic18 spin-icon">progress_activity</span>Guardando…';
+      google.script.run
+        .withSuccessHandler(function () {
+          guardando = false;
+          originalData = recogerDatos();   // ya guardado: cerrar no debe pedir confirmación
+          btnConfirmar.innerHTML = '<span class="material-symbols-outlined ic18">check_circle</span>Guardado';
+          setTimeout(function () { if (opts.onGuardado) opts.onGuardado(); }, 600);
+        })
+        .withFailureHandler(function (err) {
+          guardando = false;
+          capaMsg.textContent = 'Error al guardar: ' + (err && err.message ? err.message : err);
+          capaMsg.classList.add('visible');
+          btnConfirmar.disabled = false; btnVolver.disabled = false;
+          btnConfirmar.innerHTML = '<span class="material-symbols-outlined ic18">check_circle</span>Confirmar y guardar';
+        })
+        .actualizarPaciente(data, opts.fila);
+    }
+
+    btnCancelar.addEventListener('click', function () { if (opts.onCancelar) opts.onCancelar(); });
+    btnRevisar.addEventListener('click', mostrarResumen);
+    btnVolver.addEventListener('click', ocultarResumen);
+    btnConfirmar.addEventListener('click', confirmarEnvio);
+
+    /* ── Carga de la fila ── */
+    function mostrarEstado(texto, esError) {
+      form.innerHTML = '<div class="pe-estado' + (esError ? ' error' : '') + '">' + esc(texto) + '</div>';
+    }
+    google.script.run
+      .withSuccessHandler(function (d) {
+        var iNombre = d.headers.indexOf('Nombre');
+        // Seguridad: si las filas se han reordenado desde que se cargó la tabla, el panel no debe
+        // editar a otra persona. Solo se comprueba cuando la Base de Datos nos pasa el nombre esperado.
+        function norm(x) { return String(x || '').trim().replace(/\s+/g, ' ').toUpperCase(); }
+        if (opts.nombre && iNombre !== -1 && norm(d.rowData[iNombre]) !== norm(opts.nombre)) {
+          mostrarEstado('Los datos han cambiado de posición desde que cargaste la tabla. Cierra este panel y recarga la Base de Datos.', true);
+          return;
+        }
+        construirFormulario(d.headers, d.rowData);
+        enlazarCampos(d.headers);
+        originalData = recogerDatos();
+        cargado = true;
+        btnRevisar.disabled = false;
+      })
+      .withFailureHandler(function (err) {
+        mostrarEstado('No se pudo cargar el usuario: ' + (err && err.message ? err.message : err), true);
+      })
+      .obtenerDatosEdicionPaciente(opts.fila);
+
+    return {
+      haCambiado: function () { return cargado && !guardando && contarCambios(recogerDatos()) > 0; },
+      alEscape: function () {
+        if (capa.classList.contains('visible')) { if (!guardando) ocultarResumen(); return true; }
+        return cerrarMenus();
+      }
+    };
+  }
+};
+</script>

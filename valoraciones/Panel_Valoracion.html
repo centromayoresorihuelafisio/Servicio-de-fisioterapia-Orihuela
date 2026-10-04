@@ -1,0 +1,1183 @@
+<!--
+  valoraciones/Panel_Valoracion.html
+  Formulario de Valoración como módulo del panel lateral de la Web App.
+  Se incluye desde usuarios/BaseDatos_Vista, agenda/Web_Vista y valoraciones/Web_Vista con
+  <?!= include('valoraciones/Panel_Valoracion'); ?>
+  API: PanelValoracion.abrir(contenedor, { paciente, telefono, onGuardado, onCancelar })
+  Devuelve { haCambiado() } para que la página que lo aloja pregunte antes de descartar un formulario a medias.
+  Generado a partir de valoraciones/Guardar_Vista.html (CSS acotado a .pv, JS en función).
+-->
+<style>
+
+    .pv {
+      /* Primary - Adaptado a Tema Google Tasks */
+      --md-primary:                  #0b57d0;
+      --md-on-primary:               #ffffff;
+      --md-primary-container:        #c2e7ff;
+      --md-on-primary-container:     #001d35;
+
+      /* Secondary */
+      --md-secondary:                #444746;
+      --md-on-secondary:             #ffffff;
+      --md-secondary-container:      #e9eef6;
+      --md-on-secondary-container:   #1f1f1f;
+
+      /* Error */
+      --md-error:                    #b3261e;
+      --md-on-error:                 #ffffff;
+      --md-error-container:          #f9dddb;
+      --md-on-error-container:       #410e0b;
+
+      /* Surfaces - M3 plano, sin sombras duras */
+      --md-surface:                  #f8fafd;
+      --md-on-surface:               #1f1f1f;
+      --md-on-surface-variant:       #444746;
+
+      --md-surface-container-lowest: #ffffff;
+      --md-surface-container-low:    #f0f4f8;
+      --md-surface-container:        #e9eef6;
+      --md-surface-container-high:   #e8eaed;
+      --md-surface-container-highest:#e1e5ea;
+
+      /* Outline */
+      --md-outline:                  #747775;
+      --md-outline-variant:          #e0e0e0;
+
+      /* Semánticos de Dolor */
+      --md-pain-low:           #146c2e;
+      --md-pain-low-bg:        #e6f4ea;
+      --md-pain-mid:           #7a4d00;
+      --md-pain-mid-bg:        #fef1d6;
+      --md-pain-high:          #b3261e;
+      --md-pain-high-bg:       #f9dddb;
+      --md-pain-none:          #444746;
+      --md-pain-none-bg:       #e9eef6;
+
+      /* Analgésicos */
+      --md-analg-ok:           #146c2e;
+      --md-analg-ok-bg:        #e6f4ea;
+      --md-analg-warn:         #7a4d00;
+      --md-analg-warn-bg:      #fef1d6;
+
+      /* Shape - M3 Normativa Fiel */
+      --md-shape-xs:   4px;
+      --md-shape-sm:   8px;
+      --md-shape-md:   12px;
+      --md-shape-lg:   16px;
+      --md-shape-xl:   28px;
+      --md-shape-full: 1000px;
+
+      /* Elevaciones Planas M3 */
+      --md-elev-1: 0px 1px 3px 1px rgba(0,0,0,0.04);
+      
+      --md-dur-short:  150ms;
+      --md-dur-med:    250ms;
+      --md-dur-long:   350ms;
+      --md-ease:       cubic-bezier(0.2, 0, 0, 1);
+
+      --md-font: 'Roboto Flex', system-ui, sans-serif;
+    }
+
+    .pv *, .pv *::before, .pv *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    
+
+    /* ── Material Symbol helper ── */
+    .pv .ms {
+      font-family: 'Material Symbols Outlined';
+      font-weight: 400;
+      font-style: normal;
+      font-size: 20px;
+      line-height: 1;
+      letter-spacing: normal;
+      text-transform: none;
+      display: inline-block;
+      white-space: nowrap;
+      direction: ltr;
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+      user-select: none;
+      flex-shrink: 0;
+      color: inherit;
+    }
+    .pv .ms-fill { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 20; }
+    .pv .ms-sm { font-size: 16px; }
+
+    /* ── Animations ── */
+    @keyframes pv-fade-down {
+      from { opacity: 0; transform: translateY(-10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes pv-fade-up {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes pv-spin { to { transform: rotate(360deg); } }
+    .pv .spinner { animation: pv-spin .8s linear infinite; }
+
+    .pv *:focus-visible {
+      outline: 2px solid var(--md-primary);
+      outline-offset: 2px;
+    }
+
+    /* ── Header ── */
+    .pv .page-header {
+      max-width: 860px;
+      margin: 0 auto 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 1.125rem;
+      padding: .75rem 0;
+      animation: pv-fade-down var(--md-dur-long) var(--md-ease) both;
+    }
+    .pv .logo-mark {
+      width: 48px; height: 48px;
+      background: var(--md-primary-container);
+      color: var(--md-on-primary-container);
+      border-radius: var(--md-shape-lg);
+      display: grid; place-items: center;
+      flex-shrink: 0;
+    }
+    .pv .logo-mark .ms { font-size: 24px; font-variation-settings: 'FILL' 1; }
+    .pv .header-text h1 {
+      font-size: 1.5rem; font-weight: 400; color: var(--md-on-surface);
+      line-height: 1.25; letter-spacing: -0.01em;
+    }
+    .pv .header-text p {
+      font-size: .875rem; color: var(--md-on-surface-variant); margin-top: .25rem;
+    }
+    .pv .badge-date {
+      margin-left: auto; display: inline-flex; align-items: center; gap: .375rem;
+      font-size: .75rem; font-weight: 500; color: var(--md-on-surface-variant);
+      background: var(--md-surface-container-low); border: 1px solid var(--md-outline-variant);
+      padding: .375rem .75rem; border-radius: var(--md-shape-full);
+    }
+
+    /* ── Barra de Progreso Sticky ── */
+    .pv .progress-wrap {
+      position: sticky; top: 0; z-index: 100;
+      background: var(--md-surface); max-width: 860px; margin: 0 auto 1.25rem;
+      padding: 1rem 0; border-bottom: 1px solid var(--md-surface-container-highest);
+      animation: pv-fade-down var(--md-dur-long) var(--md-ease) 50ms both;
+    }
+    .pv .progress-steps {
+      display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
+    }
+    .pv .progress-step {
+      display: flex; align-items: center; gap: 6px;
+      font-size: .6875rem; font-weight: 600;
+      letter-spacing: .05em; text-transform: uppercase;
+      color: var(--md-on-surface-variant); opacity: 0.6;
+      transition: opacity var(--md-dur-short) var(--md-ease), color var(--md-dur-short) var(--md-ease);
+    }
+    .pv .progress-step .dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--md-outline-variant);
+      transition: background var(--md-dur-med) var(--md-ease), transform var(--md-dur-med) var(--md-ease);
+    }
+    .pv .progress-step.active { color: var(--md-primary); opacity: 1; }
+    .pv .progress-step.active .dot { background: var(--md-primary); transform: scale(1.2); }
+    .pv .progress-sep { flex: 1; height: 1px; background: var(--md-surface-container-highest); }
+    
+    .pv .progress-track {
+      width: 100%; height: 4px; background: var(--md-surface-container-highest);
+      border-radius: var(--md-shape-full); overflow: hidden;
+    }
+    .pv .progress-fill {
+      height: 100%; background: var(--md-primary); border-radius: var(--md-shape-full);
+      width: 0%; transition: width var(--md-dur-long) var(--md-ease);
+    }
+
+    /* ── Card Principal M3 ── */
+    .pv .card {
+      background: var(--md-surface-container-lowest);
+      border-radius: var(--md-shape-xl); box-shadow: var(--md-elev-1);
+      max-width: 860px; margin: 0 auto; overflow: hidden;
+      animation: pv-fade-up var(--md-dur-long) var(--md-ease) 100ms both;
+    }
+    .pv .card-section { padding: 2rem 2.25rem; border-bottom: 1px solid var(--md-outline-variant); }
+    .pv .card-section:last-child { border-bottom: none; }
+
+    .pv .section-label { display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem; }
+    .pv .section-label-chip {
+      display: inline-flex; align-items: center; gap: .5rem;
+      font-size: .75rem; font-weight: 600; letter-spacing: .05em; text-transform: uppercase;
+      color: var(--md-on-primary-container); background: var(--md-primary-container);
+      padding: .375rem 1.25rem .375rem 1rem; border-radius: var(--md-shape-full);
+    }
+    .pv .section-label-chip .ms { font-size: 16px; color: var(--md-primary); }
+    .pv .section-divider { flex: 1; height: 1px; background: var(--md-surface-container-highest); }
+
+    .pv .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.25rem; }
+    .pv .grid-peg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; }
+
+    /* ── Autocompletado M3 ── */
+    .pv .ms-autocomplete-wrapper { position: relative; width: 100%; }
+    .pv .ms-menu {
+      position: absolute; top: 100%; left: 0; right: 0;
+      background: var(--md-surface-container-lowest);
+      border-radius: var(--md-shape-sm);
+      box-shadow: var(--md-elev-1);
+      max-height: 220px; overflow-y: auto; z-index: 100;
+      border: 1px solid var(--md-outline-variant);
+      margin-top: 4px; display: none;
+    }
+    .pv .ms-menu-item {
+      padding: 12px 16px; cursor: pointer;
+      font-size: .875rem; color: var(--md-on-surface);
+      border-bottom: 1px solid var(--md-surface-container-highest);
+      transition: background var(--md-dur-short);
+    }
+    .pv .ms-menu-item:last-child { border-bottom: none; }
+    .pv .ms-menu-item:hover { background: var(--md-surface-container-high); }
+
+    /* ── Selector Tipo Valoración (Segmented Buttons M3) ── */
+    .pv .segmented-btn {
+      display: flex; background: var(--md-surface-container-high);
+      border-radius: var(--md-shape-full); overflow: hidden; width: fit-content;
+      padding: 2px; gap: 2px;
+    }
+    .pv .seg-label {
+      padding: 8px 24px; cursor: pointer; font-size: .875rem; font-weight: 500;
+      color: var(--md-on-surface-variant); border-radius: var(--md-shape-full);
+      transition: all var(--md-dur-short) var(--md-ease);
+    }
+    .pv .segmented-btn input[type="radio"] { display: none; }
+    .pv .segmented-btn input[type="radio"]:checked + .seg-label {
+      background: var(--md-primary-container);
+      color: var(--md-on-primary-container);
+    }
+
+    /* ── Textarea M3 ── */
+    .pv .md-textarea {
+      width: 100%; padding: 16px; border: 1px solid var(--md-outline);
+      border-radius: var(--md-shape-md); background: transparent;
+      font-family: var(--md-font); font-size: 1rem; color: var(--md-on-surface);
+      resize: vertical; min-height: 100px;
+      transition: border-color var(--md-dur-short) var(--md-ease);
+    }
+    .pv .md-textarea:focus {
+      border-color: var(--md-primary); border-width: 2px; padding: 15px; outline: none;
+    }
+
+    /* ── M3 Outlined Text Field ── */
+    .pv .md-field { position: relative; display: flex; flex-direction: column; margin-bottom: 0.5rem; }
+    .pv .md-field-inner { position: relative; display: flex; align-items: center; }
+    .pv .md-field-inner .leading-icon {
+      position: absolute; left: 16px; top: 50%; transform: translateY(-50%);
+      color: var(--md-on-surface-variant); pointer-events: none; z-index: 1;
+    }
+    .pv .md-field-inner .leading-icon .ms { font-size: 24px; transition: color var(--md-dur-short) var(--md-ease); }
+    
+    .pv .md-field label {
+      position: absolute; left: 48px; top: 50%; transform: translateY(-50%);
+      font-size: 1rem; color: var(--md-on-surface-variant); pointer-events: none;
+      background: var(--md-surface-container-lowest); padding: 0 6px;
+      transition: top var(--md-dur-short) var(--md-ease), font-size var(--md-dur-short) var(--md-ease), color var(--md-dur-short) var(--md-ease);
+      z-index: 1; line-height: 1;
+    }
+    .pv .md-field input:not(:placeholder-shown) ~ label, .pv .md-field input:focus ~ label {
+      top: 0; left: 16px; font-size: .75rem; font-weight: 500; color: var(--md-primary);
+    }
+    .pv .md-field input {
+      width: 100%; padding: 16px 16px 16px 48px; border: 1px solid var(--md-outline);
+      border-radius: var(--md-shape-md); background: transparent;
+      color: var(--md-on-surface); font-family: var(--md-font); font-size: 1rem;
+      outline: none; transition: border-color var(--md-dur-short) var(--md-ease), border-width var(--md-dur-short) var(--md-ease);
+    }
+    /* Añadimos CSS para asegurar que visualmente siempre sea mayúscula */
+    .pv #nombreUsuario {
+      text-transform: uppercase;
+    }
+    
+    .pv .md-field input::placeholder { opacity: 0; }
+    .pv .md-field input:hover { border-color: var(--md-on-surface); }
+    .pv .md-field input:focus { border-color: var(--md-primary); border-width: 2px; padding-left: 47px; padding-right: 15px; }
+    .pv .md-field:focus-within .leading-icon .ms { color: var(--md-primary); }
+
+    .pv .md-field .trailing-error {
+      position: absolute; right: 16px; top: 50%; transform: translateY(-50%);
+      color: var(--md-error); pointer-events: none; opacity: 0; transition: opacity var(--md-dur-short) var(--md-ease);
+    }
+    .pv .md-field.has-error input { border-color: var(--md-error) !important; border-width: 2px; padding-right: 47px; }
+    .pv .md-field.has-error label { color: var(--md-error) !important; }
+    .pv .md-field.has-error .leading-icon .ms { color: var(--md-error); }
+    .pv .md-field.has-error .trailing-error { opacity: 1; }
+
+    /* ── Sliders Refinados M3 ── */
+    .pv .slider-block { display: flex; flex-direction: column; width: 100%; }
+    .pv .slider-label-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+    .pv .slider-label-text { font-size: .875rem; font-weight: 500; color: var(--md-on-surface); display: flex; align-items: center; gap: 6px; }
+    .pv .slider-label-text .ms { color: var(--md-primary); }
+    .pv .slider-desc { font-size: .75rem; color: var(--md-on-surface-variant); margin-bottom: 12px; line-height: 1.4; }
+
+    .pv .val-chip {
+      font-size: .8125rem; font-weight: 600; font-family: var(--md-font);
+      padding: 4px 12px; border-radius: var(--md-shape-sm); min-width: 44px; text-align: center;
+      background: var(--md-surface-container-high); color: var(--md-on-surface-variant);
+      transition: all var(--md-dur-short) var(--md-ease);
+    }
+    .pv .val-chip.low { background: var(--md-pain-low-bg);  color: var(--md-pain-low); }
+    .pv .val-chip.mid { background: var(--md-pain-mid-bg);  color: var(--md-pain-mid); }
+    .pv .val-chip.high { background: var(--md-pain-high-bg); color: var(--md-pain-high); }
+
+    .pv .slider-wrap { position: relative; padding: 14px 0; display: flex; align-items: center; }
+    .pv .slider-thumb-label {
+      position: absolute; top: -22px; left: 0%; transform: translateX(-50%) scale(0); transform-origin: center bottom;
+      background: var(--md-primary); color: var(--md-on-primary);
+      font-size: .75rem; font-weight: 500; height: 28px; min-width: 28px; padding: 0 8px;
+      display: inline-flex; align-items: center; justify-content: center; border-radius: var(--md-shape-full);
+      pointer-events: none; transition: transform 120ms cubic-bezier(0.2, 0, 0, 1.2), left 60ms linear; z-index: 5;
+    }
+    .pv .slider-thumb-label.show { transform: translateX(-50%) scale(1); }
+
+    .pv .m3-range {
+      -webkit-appearance: none; appearance: none; width: 100%; height: 4px;
+      background: var(--md-surface-container-highest); cursor: pointer; outline: none;
+      border-radius: var(--md-shape-full); position: relative; z-index: 2; transition: height var(--md-dur-short) var(--md-ease);
+    }
+    .pv .m3-range:hover { height: 6px; }
+    .pv .m3-range::-webkit-slider-thumb {
+      -webkit-appearance: none; appearance: none; width: 20px; height: 20px; border-radius: 50%;
+      background: var(--md-primary); box-shadow: 0 0 0 0 rgba(11, 87, 208, 0);
+      transition: box-shadow var(--md-dur-short) var(--md-ease), background var(--md-dur-short) var(--md-ease), transform var(--md-dur-short) var(--md-ease); border: none;
+    }
+    .pv .m3-range::-moz-range-thumb {
+      width: 20px; height: 20px; border: none; border-radius: 50%; background: var(--md-primary); transition: box-shadow var(--md-dur-short) var(--md-ease);
+    }
+    .pv .m3-range.unset::-webkit-slider-thumb { background: var(--md-surface-container-lowest); border: 2px solid var(--md-outline); }
+    .pv .m3-range.unset::-moz-range-thumb { background: var(--md-surface-container-lowest); border: 2px solid var(--md-outline); }
+    .pv .m3-range:hover::-webkit-slider-thumb { box-shadow: 0 0 0 10px rgba(11, 87, 208, 0.08); }
+    .pv .m3-range:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 12px rgba(11, 87, 208, 0.12); }
+    .pv .m3-range:active::-webkit-slider-thumb { box-shadow: 0 0 0 14px rgba(11, 87, 208, 0.16); transform: scale(0.9); }
+
+    .pv .slider-ticks { display: flex; justify-content: space-between; padding: 0 2px; margin-top: 4px; }
+    .pv .slider-tick { font-size: .75rem; color: var(--md-on-surface-variant); }
+
+    /* ── Sub-cards M3 Elevación Tonal Estática (No Interactivas) ── */
+    .pv .sub-card { background: var(--md-surface-container-low); border: none; border-radius: var(--md-shape-lg); padding: 1.5rem; cursor: default; }
+    .pv .sub-card-title { font-size: 1rem; font-weight: 500; color: var(--md-on-surface); display: flex; align-items: center; gap: 8px; margin-bottom: 1.25rem; }
+    .pv .sub-card-title .ms { color: var(--md-primary); }
+    .pv .sub-card-footer { font-size: .75rem; color: var(--md-on-surface-variant); text-align: center; margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid var(--md-surface-container-highest); }
+    .pv .sliders-stack { display: flex; flex-direction: column; gap: 1.25rem; }
+
+    /* ── Analgésicos description pill ── */
+    .pv .analg-desc {
+      font-size: .875rem; font-weight: 500; text-align: center; padding: .875rem 1rem;
+      border-radius: var(--md-shape-sm); margin-top: 1rem; transition: all var(--md-dur-short) var(--md-ease);
+      background: var(--md-surface-container); color: var(--md-on-surface-variant); border: none;
+    }
+
+    /* ── Resumen colapsable M3 ── */
+    .pv .summary-toggle {
+      width: 100%; background: var(--md-surface-container-low); border: none; border-radius: var(--md-shape-md);
+      padding: 1rem 1.25rem; display: flex; align-items: center; justify-content: space-between; cursor: pointer;
+      font-family: var(--md-font); font-size: .9375rem; font-weight: 500; color: var(--md-on-surface);
+      margin-bottom: 1rem; transition: background var(--md-dur-short) var(--md-ease);
+    }
+    .pv .summary-toggle:hover { background: var(--md-surface-container); }
+    .pv .summary-toggle .ms-chevron { color: var(--md-on-surface-variant); transition: transform var(--md-dur-med) var(--md-ease); }
+    .pv .summary-toggle[aria-expanded="true"] .ms-chevron { transform: rotate(180deg); }
+    
+    .pv .summary-body {
+      display: none; background: var(--md-surface-container-lowest); border: 1px solid var(--md-outline-variant);
+      border-radius: var(--md-shape-md); overflow: hidden; margin-bottom: 1.25rem;
+      animation: pv-fade-up var(--md-dur-med) var(--md-ease) both;
+    }
+    .pv .summary-body.open { display: block; }
+    .pv .summary-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
+    .pv .summary-item { padding: 1rem 1.25rem; border-right: 1px solid var(--md-surface-container-highest); border-bottom: 1px solid var(--md-surface-container-highest); }
+    .pv .summary-item__label { font-size: .75rem; color: var(--md-on-surface-variant); letter-spacing: .02em; margin-bottom: 4px; }
+    .pv .summary-item__val { font-size: 1.125rem; font-weight: 600; color: var(--md-on-surface); }
+    .pv .summary-item__val.low { color: var(--md-pain-low); }
+    .pv .summary-item__val.mid { color: var(--md-pain-mid); }
+    .pv .summary-item__val.high { color: var(--md-pain-high); }
+
+    /* ── Submit section M3 ── */
+    .pv .submit-section {
+      padding: 2.5rem 2.25rem; background: var(--md-surface-container-lowest);
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.25rem; text-align: center;
+    }
+    .pv .btn-primary {
+      display: inline-flex; align-items: center; justify-content: center; gap: .5rem;
+      padding: 0 2rem; height: 40px; background: var(--md-primary-container); color: var(--md-on-primary-container);
+      border: none; border-radius: var(--md-shape-full); font-family: var(--md-font); font-size: .875rem; font-weight: 500;
+      letter-spacing: .01em; cursor: pointer; position: relative; overflow: hidden; transition: all var(--md-dur-short) var(--md-ease);
+      width: fit-content;
+    }
+    .pv .btn-primary::after { content: ''; position: absolute; inset: 0; background: transparent; transition: background var(--md-dur-short) var(--md-ease); }
+    .pv .btn-primary:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0px 1px 3px 0px rgba(0,0,0,0.1), 0px 1px 2px 0px rgba(0,0,0,0.06); }
+    .pv .btn-primary:hover:not(:disabled)::after { background: rgba(0, 29, 53, 0.04); }
+    .pv .btn-primary:active:not(:disabled) { transform: translateY(0); }
+    .pv .btn-primary:active:not(:disabled)::after { background: rgba(0, 29, 53, 0.1); }
+    .pv .btn-primary:disabled { background: rgba(19, 19, 19, 0.12); color: rgba(19, 19, 19, 0.38); cursor: not-allowed; }
+    .pv .btn-primary .ms { font-size: 18px; color: var(--md-on-primary-container); }
+    .pv .submit-hint { font-size: .75rem; color: var(--md-on-surface-variant); line-height: 1.5; max-width: 560px; }
+    .pv .submit-hint strong { color: var(--md-primary); }
+
+    /* ── Message banner M3 ── */
+    .pv .msg-banner {
+      display: none; max-width: 860px; margin: 1rem auto 0; padding: 1rem 1.25rem;
+      border-radius: var(--md-shape-sm); font-size: .875rem; font-weight: 500;
+      align-items: center; gap: 1rem; animation: pv-fade-up var(--md-dur-med) var(--md-ease) both;
+    }
+    .pv .msg-banner.show { display: flex; }
+    .pv .msg-banner.success { background: var(--md-pain-low-bg);  color: var(--md-pain-low); }
+    .pv .msg-banner.error { background: var(--md-error-container); color: var(--md-error); }
+
+    /* ── Responsive ── */
+    
+      
+      .pv .card { border-radius: var(--md-shape-lg); }
+      .pv .card-section { padding: 1.5rem 1.125rem; }
+      .pv .grid-3, .pv .grid-peg { grid-template-columns: 1fr; gap: 1.25rem; }
+      .pv .badge-date { display: none; }
+      .pv .progress-step span:not(.dot) { display: none; }
+      .pv .progress-steps { gap: 4px; }
+      .pv .logo-mark { width: 40px; height: 40px; }
+      .pv .logo-mark .ms { font-size: 20px; }
+      .pv .header-text h1 { font-size: 1.25rem; }
+    
+  
+
+.pv { font-family: var(--md-font); background: var(--md-surface); color: var(--md-on-surface); font-size: 14px; display: flex; flex-direction: column; height: 100%; min-height: 0; }
+.pv .pv-scroll { flex: 1; min-height: 0; overflow: auto; background: var(--md-surface); }
+.pv .grid-3 { grid-template-columns: 1fr !important; }
+.pv .card { max-width: none; margin: 0; box-shadow: none; border-radius: 0; animation: none; }
+/* Barra de progreso: a 400 px los puntos tocaban los bordes del panel */
+.pv .progress-wrap { max-width: none; margin: 0 0 .5rem; padding: .85rem 1.125rem .75rem; }
+/* Hint bajo el último apartado (el botón Guardar vive ahora en el pie fijo) */
+.pv .submit-section { padding: 1.25rem 1.125rem 1.5rem; }
+/* Banner de resultado: fijo encima del pie, siempre visible aunque el formulario esté scrolleado */
+.pv .msg-banner { flex: none; max-width: none; margin: 0; border-radius: 0; padding: .75rem 1.125rem; font-size: .8125rem; }
+/* Pie fijo con Cancelar / Guardar */
+.pv .panel-pie { flex: none; display: flex; align-items: center; justify-content: flex-end; gap: .5rem; padding: .7rem 1rem; border-top: 1px solid var(--md-outline-variant); background: var(--md-surface-container-lowest); }
+.pv .panel-pie .btn-primary { padding: 0 1.5rem; }
+.pv .btn-text {
+  display: inline-flex; align-items: center; justify-content: center; gap: .5rem;
+  padding: 0 1.25rem; height: 40px; background: transparent; color: var(--md-primary);
+  border: 1px solid var(--md-outline-variant); border-radius: var(--md-shape-full);
+  font-family: var(--md-font); font-size: .875rem; font-weight: 500; cursor: pointer;
+  transition: background var(--md-dur-short) var(--md-ease);
+}
+.pv .btn-text:hover { background: var(--md-surface-container-low); }
+.pv .btn-text:disabled { opacity: .5; cursor: not-allowed; }
+
+</style>
+<template id="tplPanelValoracion"><div class="pv">
+<div class="pv-scroll">
+<!-- ══ Progress M3 ══ -->
+  <div class="progress-wrap" role="progressbar" aria-label="Progreso del formulario" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" id="progressBar">
+    <div class="progress-steps">
+      <div class="progress-step active" id="step1" title="Paciente"><span class="dot"></span><span>Paciente</span></div>
+      <div class="progress-sep"></div>
+      <div class="progress-step" id="step2" title="Dolor PEG"><span class="dot"></span><span>Dolor PEG</span></div>
+      <div class="progress-sep"></div>
+      <div class="progress-step" id="step3" title="Función"><span class="dot"></span><span>Función</span></div>
+      <div class="progress-sep"></div>
+      <div class="progress-step" id="step4" title="Analgésicos"><span class="dot"></span><span>Analgésicos</span></div>
+    </div>
+    <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+  </div>
+
+  <!-- ══ Header ══ -->
+  
+
+  <!-- ══ Card Principal ══ -->
+  <div class="card">
+    <form id="valoracionForm" novalidate>
+
+      <!-- ── SECCIÓN 1: Datos del Paciente y Tipo de Valoración ── -->
+      <div class="card-section">
+        
+        <!-- Tipo de Valoración -->
+        <div style="margin-bottom: 2rem;">
+          <div class="slider-label-text" style="margin-bottom: 8px;">
+            <span class="ms ms-sm">category</span>Tipo de Valoración
+          </div>
+          <div class="segmented-btn">
+             <input type="radio" name="tipoValoracion" id="valInicial" value="Inicial" checked>
+             <label class="seg-label" for="valInicial">Inicial</label>
+             
+             <input type="radio" name="tipoValoracion" id="valSeguimiento" value="Seguimiento">
+             <label class="seg-label" for="valSeguimiento">Seguimiento</label>
+             
+             <input type="radio" name="tipoValoracion" id="valFinal" value="Final">
+             <label class="seg-label" for="valFinal">Final</label>
+          </div>
+        </div>
+
+        <div class="section-label">
+          <div class="section-label-chip">
+            <span class="ms ms-sm">badge</span>Identificación
+          </div>
+          <div class="section-divider"></div>
+        </div>
+
+        <div class="grid-3" style="grid-template-columns: 2fr 1fr; gap: 1rem;">
+          
+          <!-- Autocompletado Nombre -->
+          <div class="md-field" id="fieldNombre">
+            <div class="md-field-inner ms-autocomplete-wrapper">
+              <div class="leading-icon"><span class="ms">search</span></div>
+              <input type="text" id="nombreUsuario" name="nombre" placeholder=" " autocomplete="off">
+              <label for="nombreUsuario">Usuario</label>
+              <div id="autocomplete-list" class="ms-menu"></div>
+              <div class="trailing-error" aria-hidden="true"><span class="ms">error</span></div>
+            </div>
+          </div>
+
+          <!-- Teléfono (Solo lectura) -->
+          <div class="md-field">
+            <div class="md-field-inner">
+              <div class="leading-icon"><span class="ms">call</span></div>
+              <input type="text" id="telefonoUsuario" name="telefono" placeholder=" " readonly style="background: var(--md-surface-container-lowest); color: var(--md-on-surface-variant);">
+              <label for="telefonoUsuario">Teléfono</label>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ── SECCIÓN 2: Evaluación del Dolor PEG ── -->
+      <div class="card-section">
+        <div class="section-label">
+          <div class="section-label-chip">
+            <span class="ms ms-sm">vital_signs</span>Escala Dolor (PEG)
+          </div>
+          <div class="section-divider"></div>
+        </div>
+
+        <div class="sub-card" aria-label="Escala PEG de dolor">
+          <div class="grid-peg">
+            
+            <!-- PEG Dolor -->
+            <div class="slider-block">
+              <div class="slider-label-row">
+                <span class="slider-label-text"><span class="ms ms-sm">bolt</span>Intensidad</span>
+                <span id="pegDolorValue" class="val-chip" role="status" aria-live="polite">—</span>
+              </div>
+              <p class="slider-desc">Promedio última semana</p>
+              <div class="slider-wrap">
+                <div class="slider-thumb-label" id="pegDolorLabel" aria-hidden="true">—</div>
+                <input type="range" id="pegDolor" name="pegDolor" min="-1" max="10" value="-1" class="m3-range unset">
+              </div>
+              <div class="slider-ticks" aria-hidden="true">
+                <span class="slider-tick">0 (Sin dolor)</span><span class="slider-tick">10 (Máximo)</span>
+              </div>
+            </div>
+
+            <!-- PEG Actividad -->
+            <div class="slider-block">
+              <div class="slider-label-row">
+                <span class="slider-label-text"><span class="ms ms-sm">directions_run</span>Actividad</span>
+                <span id="pegActividadValue" class="val-chip" role="status" aria-live="polite">—</span>
+              </div>
+              <p class="slider-desc">Interferencia en actividad habitual</p>
+              <div class="slider-wrap">
+                <div class="slider-thumb-label" id="pegActividadLabel" aria-hidden="true">—</div>
+                <input type="range" id="pegActividad" name="pegActividad" min="-1" max="10" value="-1" class="m3-range unset">
+              </div>
+              <div class="slider-ticks" aria-hidden="true">
+                <span class="slider-tick">0 (Nada)</span><span class="slider-tick">10 (Total)</span>
+              </div>
+            </div>
+
+            <!-- PEG Vida -->
+            <div class="slider-block">
+              <div class="slider-label-row">
+                <span class="slider-label-text"><span class="ms ms-sm">mood_bad</span>Afectación general</span>
+                <span id="pegVidaValue" class="val-chip" role="status" aria-live="polite">—</span>
+              </div>
+              <p class="slider-desc">Interferencia en la vida diaria</p>
+              <div class="slider-wrap">
+                <div class="slider-thumb-label" id="pegVidaLabel" aria-hidden="true">—</div>
+                <input type="range" id="pegVida" name="pegVida" min="-1" max="10" value="-1" class="m3-range unset">
+              </div>
+              <div class="slider-ticks" aria-hidden="true">
+                <span class="slider-tick">0 (Nada)</span><span class="slider-tick">10 (Total)</span>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- ── SECCIÓN 3: Evaluación Funcional ── -->
+      <div class="card-section">
+        <div class="section-label">
+          <div class="section-label-chip">
+            <span class="ms ms-sm">accessibility_new</span>Valoración Funcional
+          </div>
+          <div class="section-divider"></div>
+        </div>
+
+        <div class="grid-3">
+          <!-- Columna -->
+          <div class="sub-card">
+            <div class="sub-card-title"><span class="ms ms-fill">accessibility_new</span>Columna</div>
+            <div class="sliders-stack">
+              <div class="slider-block">
+                <div class="slider-label-row">
+                  <label for="columnaLevantarse" class="slider-label-text">Levantarse de la cama</label>
+                  <span id="columnaLevantarseValue" class="val-chip">—</span>
+                </div>
+                <div class="slider-wrap">
+                  <div class="slider-thumb-label" id="columnaLevantarseLabel" aria-hidden="true">—</div>
+                  <input type="range" id="columnaLevantarse" name="columnaLevantarse" min="-1" max="10" value="-1" class="m3-range unset">
+                </div>
+              </div>
+              <div class="slider-block">
+                <div class="slider-label-row">
+                  <label for="columnaAgacharse" class="slider-label-text">Agacharse al suelo</label>
+                  <span id="columnaAgacharseValue" class="val-chip">—</span>
+                </div>
+                <div class="slider-wrap">
+                  <div class="slider-thumb-label" id="columnaAgacharseLabel" aria-hidden="true">—</div>
+                  <input type="range" id="columnaAgacharse" name="columnaAgacharse" min="-1" max="10" value="-1" class="m3-range unset">
+                </div>
+              </div>
+            </div>
+            <p class="sub-card-footer">0 = Incapaz · 10 = Sin dificultad</p>
+          </div>
+
+          <!-- Miembro Superior -->
+          <div class="sub-card">
+            <div class="sub-card-title"><span class="ms ms-fill">pan_tool</span>Miembro Superior</div>
+            <div class="sliders-stack">
+              <div class="slider-block">
+                <div class="slider-label-row">
+                  <label for="msVestirse" class="slider-label-text">Vestirse y peinarse</label>
+                  <span id="msVestirseValue" class="val-chip">—</span>
+                </div>
+                <div class="slider-wrap">
+                  <div class="slider-thumb-label" id="msVestirseLabel" aria-hidden="true">—</div>
+                  <input type="range" id="msVestirse" name="msVestirse" min="-1" max="10" value="-1" class="m3-range unset">
+                </div>
+              </div>
+              <div class="slider-block">
+                <div class="slider-label-row">
+                  <label for="msAlcanzar" class="slider-label-text">Alcanzar objetos altos</label>
+                  <span id="msAlcanzarValue" class="val-chip">—</span>
+                </div>
+                <div class="slider-wrap">
+                  <div class="slider-thumb-label" id="msAlcanzarLabel" aria-hidden="true">—</div>
+                  <input type="range" id="msAlcanzar" name="msAlcanzar" min="-1" max="10" value="-1" class="m3-range unset">
+                </div>
+              </div>
+            </div>
+            <p class="sub-card-footer">0 = Incapaz · 10 = Sin dificultad</p>
+          </div>
+
+          <!-- Miembro Inferior -->
+          <div class="sub-card">
+            <div class="sub-card-title"><span class="ms ms-fill">directions_walk</span>Miembro Inferior</div>
+            <div class="sliders-stack">
+              <div class="slider-block">
+                <div class="slider-label-row">
+                  <label for="miCaminar" class="slider-label-text">Caminar 10 minutos a ritmo normal</label>
+                  <span id="miCaminarValue" class="val-chip">—</span>
+                </div>
+                <div class="slider-wrap">
+                  <div class="slider-thumb-label" id="miCaminarLabel" aria-hidden="true">—</div>
+                  <input type="range" id="miCaminar" name="miCaminar" min="-1" max="10" value="-1" class="m3-range unset">
+                </div>
+              </div>
+              <div class="slider-block">
+                <div class="slider-label-row">
+                  <label for="miEscaleras" class="slider-label-text">Subir/bajar escaleras</label>
+                  <span id="miEscalerasValue" class="val-chip">—</span>
+                </div>
+                <div class="slider-wrap">
+                  <div class="slider-thumb-label" id="miEscalerasLabel" aria-hidden="true">—</div>
+                  <input type="range" id="miEscaleras" name="miEscaleras" min="-1" max="10" value="-1" class="m3-range unset">
+                </div>
+              </div>
+              <div class="slider-block">
+                <div class="slider-label-row">
+                  <label for="miSilla" class="slider-label-text">Levantarse de silla</label>
+                  <span id="miSillaValue" class="val-chip">—</span>
+                </div>
+                <div class="slider-wrap">
+                  <div class="slider-thumb-label" id="miSillaLabel" aria-hidden="true">—</div>
+                  <input type="range" id="miSilla" name="miSilla" min="-1" max="10" value="-1" class="m3-range unset">
+                </div>
+              </div>
+            </div>
+            <p class="sub-card-footer">0 = Incapaz · 10 = Sin dificultad</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── SECCIÓN 4: Analgésicos ── -->
+      <div class="card-section">
+        <div class="section-label">
+          <div class="section-label-chip">
+            <span class="ms ms-sm">pill</span>Consumo de Analgésicos
+          </div>
+          <div class="section-divider"></div>
+        </div>
+
+        <div class="sub-card" style="max-width: 500px; margin: 0 auto;">
+          <div class="slider-label-row" style="margin-bottom: 8px">
+            <span class="slider-label-text"><span class="ms ms-sm">prescriptions</span>Frecuencia actual</span>
+            <span id="analgesicosValue" class="val-chip">—</span>
+          </div>
+          <div class="slider-wrap">
+            <div class="slider-thumb-label" id="analgesicosLabel" aria-hidden="true">—</div>
+            <input type="range" id="analgesicos" name="analgesicos" min="-1" max="5" value="-1" class="m3-range unset">
+          </div>
+          <div class="slider-ticks" aria-hidden="true">
+            <span class="slider-tick">Ninguno</span><span class="slider-tick">Varios/día</span>
+          </div>
+          <div id="analgesicosDescription" class="analg-desc">Sin registrar</div>
+        </div>
+      </div>
+
+      <!-- ── SECCIÓN: Notas Clínicas ── -->
+      <div class="card-section">
+        <div class="section-label">
+          <div class="section-label-chip">
+            <span class="ms ms-sm">edit_note</span>Notas de la Valoración
+          </div>
+          <div class="section-divider"></div>
+        </div>
+        <textarea id="notasValoracion" name="notas" class="md-textarea" placeholder="Añade observaciones clínicas, banderas rojas o comentarios adicionales..."></textarea>
+      </div>
+
+      <!-- ── SECCIÓN 5: Guardar ── -->
+      <div class="card-section">
+        <button type="button" class="summary-toggle" aria-expanded="false">
+          <span style="display:flex;align-items:center;gap:8px">
+            <span class="ms ms-fill">fact_check</span>Revisar resumen antes de guardar
+          </span>
+          <span class="ms ms-chevron">expand_more</span>
+        </button>
+        <div class="summary-body" id="summaryBody">
+          <div class="summary-grid" id="summaryGrid"></div>
+        </div>
+      </div>
+
+      <div class="submit-section">
+        <p class="submit-hint">Los valores <strong>(Sin registrar)</strong> no se guardarán.</p>
+      </div>
+
+    </form>
+  </div>
+</div>
+
+  <!-- Banner de resultado (fuera del scroll, encima del pie) -->
+  <div id="messageBox" class="msg-banner" role="alert" aria-live="assertive">
+    <span class="ms ms-fill" id="messageIcon">check_circle</span>
+    <span id="messageText"></span>
+  </div>
+
+  <!-- Pie fijo: siempre visible aunque el formulario sea largo -->
+  <div class="panel-pie">
+    <button type="button" class="btn-text" id="cancelButton">Cancelar</button>
+    <button type="submit" id="submitButton" class="btn-primary" form="valoracionForm">
+      <span class="ms">save</span>Guardar Valoración
+    </button>
+  </div>
+</div></template>
+<script>
+window.PanelValoracion = {
+  abrir: function (host, opts) {
+    opts = opts || {};
+    host.innerHTML = '';
+    host.appendChild(document.getElementById('tplPanelValoracion').content.cloneNode(true));
+    var pv = host.querySelector('.pv');
+    function $(id) { return pv.querySelector('#' + id); }
+
+    // Paciente ya elegido desde la Base de Datos Web (viene de ?paciente=...).
+    // Vacío cuando se abre desde el menú de Sheets o el índice de la Web App.
+    var PACIENTE_PRESELECCIONADO = opts.paciente || '';
+
+    // ¿El usuario ha tocado algo? Solo cuentan eventos reales (isTrusted): los valores
+    // que rellena el propio código (paciente precargado, sliders iniciales) no marcan cambio.
+    var tocado = false;
+    pv.addEventListener('input',  function (e) { if (e.isTrusted) tocado = true; });
+    pv.addEventListener('change', function (e) { if (e.isTrusted) tocado = true; });
+
+    // ── Variables globales Autocompletado ──
+    let allPatientsData = {}; 
+    let allPatientsList = []; 
+    let currentUserName = ""; 
+
+    const nombreUsuarioInput = $('nombreUsuario');
+    const telefonoUsuarioInput = $('telefonoUsuario');
+    const listContainer = $('autocomplete-list');
+
+    /* ── Fecha ── */
+    
+
+    /* ── Carga inicial de datos de pacientes y celda activa ── */
+    function __init() {
+      initSlider('pegDolor',           'pegDolorValue',           'pegDolorLabel',           true);
+      initSlider('pegActividad',       'pegActividadValue',       'pegActividadLabel',       true);
+      initSlider('pegVida',            'pegVidaValue',            'pegVidaLabel',            true);
+      initSlider('columnaLevantarse',  'columnaLevantarseValue',  'columnaLevantarseLabel',  false);
+      initSlider('columnaAgacharse',   'columnaAgacharseValue',   'columnaAgacharseLabel',   false);
+      initSlider('msVestirse',         'msVestirseValue',         'msVestirseLabel',         false);
+      initSlider('msAlcanzar',         'msAlcanzarValue',         'msAlcanzarLabel',         false);
+      initSlider('miCaminar',          'miCaminarValue',          'miCaminarLabel',          false);
+      initSlider('miEscaleras',        'miEscalerasValue',        'miEscalerasLabel',        false);
+      initSlider('miSilla',            'miSillaValue',            'miSillaLabel',            false);
+      initAnalgesicos();
+      updateProgress();
+
+      if (typeof google !== 'undefined' && google.script?.run) {
+        google.script.run
+          .withSuccessHandler(data => {
+            allPatientsData = data.allPatientsData || {};
+            allPatientsList = Object.keys(allPatientsData).sort();
+
+            // Si hay un valor en la celda activa, lo precargamos en MAYÚSCULAS.
+            // Sin sesión de Sheets (Web App) no hay "celda activa": si venimos
+            // de la Base de Datos con un paciente ya elegido, usamos ese.
+            const valorPrecargado = data.activeCellValue || PACIENTE_PRESELECCIONADO;
+            if (valorPrecargado) {
+              const cellVal = valorPrecargado.toUpperCase();
+              nombreUsuarioInput.value = cellVal;
+              
+              // Buscamos si existe en la base (comparación sin importar mayúsculas/minúsculas original)
+              const matchKey = allPatientsList.find(n => n.toUpperCase() === cellVal);
+              if (matchKey) {
+                currentUserName = cellVal; 
+                telefonoUsuarioInput.value = allPatientsData[matchKey];
+              } else {
+                // Permitimos el nombre si viene pre-cargado desde la hoja aunque sea nuevo
+                currentUserName = cellVal; 
+              }
+              $('fieldNombre').classList.remove('has-error');
+              updateProgress();
+            }
+          })
+          .obtenerPacientesParaAutocompletar();
+      }
+    }
+
+    /* ── Lógica Autocompletado (Forzada a mayúsculas) ── */
+    nombreUsuarioInput.addEventListener('input', function() {
+      const val = this.value.trim().toUpperCase();
+      closeAllLists();
+      
+      if (!val) { 
+        currentUserName = ""; 
+        telefonoUsuarioInput.value = ""; 
+        $('fieldNombre').classList.remove('has-error');
+        updateProgress();
+        return; 
+      }
+      
+      const matches = allPatientsList.filter(name => name.toUpperCase().includes(val));
+      if (matches.length === 0) return;
+
+      listContainer.style.display = 'block';
+      matches.slice(0, 6).forEach(match => {
+        const item = document.createElement('div');
+        item.className = 'ms-menu-item';
+        // Mostrar siempre el nombre en mayúsculas en las sugerencias
+        item.innerHTML = `<span class="ms ms-sm" style="margin-right:8px; vertical-align:middle; color:var(--md-primary)">person</span>${match.toUpperCase()}`;
+        // Al hacer click, pasar el original para ubicar el tfno fácilmente en allPatientsData
+        item.addEventListener('click', () => selectPaciente(match));
+        listContainer.appendChild(item);
+      });
+    });
+
+    function selectPaciente(nombre) {
+      // Guardar e inyectar forzosamente en mayúsculas
+      currentUserName = nombre.toUpperCase();
+      nombreUsuarioInput.value = currentUserName;
+      telefonoUsuarioInput.value = allPatientsData[nombre] || "";
+      $('fieldNombre').classList.remove('has-error');
+      closeAllLists();
+      updateProgress();
+    }
+
+    function closeAllLists() {
+      listContainer.innerHTML = '';
+      listContainer.style.display = 'none';
+    }
+
+    pv.addEventListener('click', (e) => {
+      if (e.target !== nombreUsuarioInput) closeAllLists();
+    });
+
+    /* ── Paleta cromática M3 ── */
+    function painClass(v) {
+      if (v < 0)  return '';
+      if (v <= 3) return 'low';  
+      if (v <= 6) return 'mid';  
+      return 'high';             
+    }
+    function funcClass(v) {
+      if (v < 0)  return '';
+      if (v <= 3) return 'high'; 
+      if (v <= 7) return 'mid';  
+      return 'low';              
+    }
+
+    /* ── Lógica del Track Dinámico ── */
+    function updateTrack(slider) {
+      const v = +slider.value, min = +slider.min, max = +slider.max;
+      if (v < 0) {
+        slider.style.removeProperty('background');
+        slider.classList.add('unset');
+      } else {
+        const pct = ((v - min) / (max - min)) * 100;
+        const colActive = getComputedStyle(pv).getPropertyValue('--md-primary').trim();
+        const colInactive = getComputedStyle(pv).getPropertyValue('--md-surface-container-highest').trim();
+        slider.style.setProperty('background', `linear-gradient(to right, ${colActive} 0%, ${colActive} ${pct}%, ${colInactive} ${pct}%, ${colInactive} 100%)`, 'important');
+        slider.classList.remove('unset');
+      }
+    }
+
+    function posThumbLabel(slider, labelEl, text) {
+      const v = +slider.value, min = +slider.min, max = +slider.max;
+      const pct = v < 0 ? 0 : (v - min) / (max - min);
+      labelEl.style.left = `calc(${pct * 100}% + (${10 - pct * 20}px))`;
+      labelEl.textContent = text;
+    }
+
+    function initSlider(id, chipId, labelId, isPain) {
+      const s = $(id), ch = $(chipId), lb = $(labelId);
+      if (!s || !ch) return;
+      function update() {
+        const v = +s.value, disp = v < 0 ? '—' : String(v);
+        ch.textContent = disp;
+        ch.className = 'val-chip ' + (v < 0 ? '' : (isPain ? painClass(v) : funcClass(v)));
+        updateTrack(s);
+        if (lb) posThumbLabel(s, lb, disp);
+        updateProgress();
+      }
+      update();
+      s.addEventListener('input', update);
+      if (lb) {
+        const show = () => { lb.classList.add('show'); posThumbLabel(s, lb, +s.value < 0 ? '—' : String(+s.value)); };
+        const hide = () => lb.classList.remove('show');
+        s.addEventListener('mousedown', show); s.addEventListener('touchstart', show, { passive: true });
+        s.addEventListener('mouseup', hide); s.addEventListener('touchend', hide);
+        s.addEventListener('focus', show); s.addEventListener('blur', hide);
+      }
+    }
+
+    /* ── Analgésicos ── */
+    const ANALG_DESC = ['Sin registrar', 'Ninguno', 'Ocasional (< 1 vez/semana)', 'Semanal (1–2 veces/semana)', 'Habitual (casi todos los días)', 'Diario (1 vez al día)', 'Varios al día'];
+    function initAnalgesicos() {
+      const s = $('analgesicos'), ch = $('analgesicosValue'), lb = $('analgesicosLabel'), des = $('analgesicosDescription');
+      if (!s) return;
+      function update() {
+        const v = +s.value, disp = v < 0 ? '—' : String(v), desc = ANALG_DESC[v + 1];
+        ch.textContent = disp;
+        
+        let colorClass = '';
+        if (v >= 0) { if (v >= 4) colorClass = 'high'; else if (v === 3) colorClass = 'mid'; else colorClass = 'low'; }
+        ch.className = 'val-chip ' + colorClass;
+        des.textContent = desc;
+        
+        if (v < 0) { des.style.background = 'var(--md-surface-container)'; des.style.color = 'var(--md-on-surface-variant)'; }
+        else if (v >= 4) { des.style.background = 'var(--md-pain-high-bg)'; des.style.color = 'var(--md-pain-high)'; }
+        else if (v === 3) { des.style.background = 'var(--md-analg-warn-bg)'; des.style.color = 'var(--md-analg-warn)'; }
+        else { des.style.background = 'var(--md-analg-ok-bg)'; des.style.color = 'var(--md-analg-ok)'; }
+        
+        updateTrack(s);
+        if (lb) posThumbLabel(s, lb, disp);
+        updateProgress();
+      }
+      update();
+      s.addEventListener('input', update);
+      if (lb) {
+        const show = () => { lb.classList.add('show'); posThumbLabel(s, lb, +s.value < 0 ? '—' : String(+s.value)); };
+        const hide = () => lb.classList.remove('show');
+        s.addEventListener('mousedown', show); s.addEventListener('touchstart', show, { passive: true });
+        s.addEventListener('mouseup', hide); s.addEventListener('touchend', hide);
+        s.addEventListener('focus', show); s.addEventListener('blur', hide);
+      }
+    }
+
+    /* ── Progress bar ── */
+    const SLIDER_SECTIONS = {
+      step1: ['nombreUsuario'],
+      step2: ['pegDolor','pegActividad','pegVida'],
+      step3: ['columnaLevantarse','columnaAgacharse','msVestirse','msAlcanzar','miCaminar','miEscaleras','miSilla'],
+      step4: ['analgesicos']
+    };
+
+    function updateProgress() {
+      let total = 0, done = 0;
+      total++; if (nombreUsuarioInput && nombreUsuarioInput.value.trim() !== '') done++;
+      pv.querySelectorAll('input[type="range"]').forEach(s => {
+        total++;
+        if (+s.value > -1) done++;
+      });
+      const pct = Math.round((done / total) * 100);
+      $('progressFill').style.width = pct + '%';
+      $('progressBar').setAttribute('aria-valuenow', pct);
+
+      Object.entries(SLIDER_SECTIONS).forEach(([stepId, ids]) => {
+        const stepEl = $(stepId);
+        if (!stepEl) return;
+        const active = ids.some(id => {
+          const el = $(id);
+          if (!el) return false;
+          return el.type === 'range' ? +el.value > -1 : el.value.trim() !== '';
+        });
+        stepEl.classList.toggle('active', active);
+      });
+    }
+
+    /* ── Resumen colapsable ── */
+    function toggleSummary(btn) {
+      const expanded = btn.getAttribute('aria-expanded') === 'true';
+      btn.setAttribute('aria-expanded', String(!expanded));
+      const body = $('summaryBody');
+      body.classList.toggle('open', !expanded);
+      if (!expanded) buildSummary();
+    }
+
+    function buildSummary() {
+      const items = [
+        { label: 'Paciente',       id: 'nombreUsuario',      type: 'text' },
+        { label: 'PEG Dolor',      id: 'pegDolor',           type: 'pain' },
+        { label: 'PEG Actividad',  id: 'pegActividad',       type: 'pain' },
+        { label: 'PEG Vida',       id: 'pegVida',            type: 'pain' },
+        { label: 'Levantarse (C)', id: 'columnaLevantarse',  type: 'func' },
+        { label: 'Agacharse (C)',  id: 'columnaAgacharse',   type: 'func' },
+        { label: 'Vestirse (MS)',  id: 'msVestirse',         type: 'func' },
+        { label: 'Alcanzar (MS)',  id: 'msAlcanzar',         type: 'func' },
+        { label: 'Caminar (MI)',   id: 'miCaminar',          type: 'func' },
+        { label: 'Escaleras (MI)', id: 'miEscaleras',        type: 'func' },
+        { label: 'Silla (MI)',     id: 'miSilla',            type: 'func' },
+        { label: 'Analgésicos',    id: 'analgesicos',        type: 'analg' },
+      ];
+      const grid = $('summaryGrid');
+      grid.innerHTML = '';
+      items.forEach(item => {
+        const el = $(item.id);
+        if (!el) return;
+        const raw = el.type === 'range' ? +el.value : el.value.trim();
+        let disp = '';
+        if (item.type === 'text') disp = raw || '—';
+        else if (item.type === 'analg') disp = raw < 0 ? '—' : ANALG_DESC[raw+1].split('(')[0].trim();
+        else disp = raw < 0 ? '—' : String(raw);
+
+        const cls = raw >= 0 ? (item.type === 'pain' ? painClass(raw) : (item.type === 'func' ? funcClass(raw) : '')) : '';
+        const div = document.createElement('div');
+        div.className = 'summary-item';
+        div.innerHTML = `<div class="summary-item__label">${item.label}</div><div class="summary-item__val ${cls}">${disp}</div>`;
+        grid.appendChild(div);
+      });
+    }
+
+    /* ── Integración Apps Script y Envío ── */
+    function handleFormSubmit(event) {
+      event.preventDefault();
+      
+      const fieldNombre = $('fieldNombre');
+      // Forzar también a mayúsculas antes de la comprobación
+      const nombreNormalizado = nombreUsuarioInput.value.trim().replace(/\s+/g, ' ').toUpperCase();
+
+      // Validar si seleccionó del listado y coincide (o si viene pre-cargado es válido)
+      if (!currentUserName || nombreNormalizado !== currentUserName) {
+        showMessage('error', 'error', 'Por favor, busca y selecciona un paciente válido del listado.');
+        fieldNombre.classList.add('has-error');
+        nombreUsuarioInput.focus();
+        return;
+      }
+      fieldNombre.classList.remove('has-error');
+
+      const form = $('valoracionForm');
+      const formData = new FormData(form);
+      const data = {};
+      formData.forEach((value, key) => data[key] = value);
+
+      // Usar nombre normalizado validado (en MAYÚSCULAS)
+      data['nombre'] = nombreNormalizado;
+
+      // Transformar rangos "-1" a nulls para el backend y parsear el resto
+      for (const key in data) {
+        if (key === 'nombre' || key === 'tipoValoracion' || key === 'telefono' || key === 'notas') continue;
+        data[key] = data[key] === '-1' ? '' : parseFloat(data[key]);
+      }
+
+      const btn = $('submitButton');
+      btn.disabled = true;
+      btn.innerHTML = `<span class="ms spinner">refresh</span> Guardando...`;
+      hideMessage();
+
+      if (typeof google === 'undefined' || !google.script?.run) {
+        setTimeout(() => {
+          showMessage('error', 'error', 'Apps Script no disponible en vista previa. (Simulado ok).');
+          console.log("Datos:", data);
+          resetBtn();
+        }, 1200);
+        return;
+      }
+
+      google.script.run
+        .withSuccessHandler(result => {
+          showMessage('success', 'check_circle', result || 'Valoración guardada correctamente.');
+          form.reset();
+          currentUserName = "";
+          telefonoUsuarioInput.value = "";
+          resetAllSliders();
+          updateProgress();
+          resetBtn();
+          tocado = false; // ya guardado: cerrar no debe pedir confirmación
+          setTimeout(function () { if (opts.onGuardado) opts.onGuardado(); }, 900);
+        })
+        .withFailureHandler(error => {
+          showMessage('error', 'error', 'Error: ' + error.message);
+          resetBtn();
+        })
+        .procesarValoracion(data);
+    }
+
+    function resetAllSliders() {
+      pv.querySelectorAll('input[type="range"]').forEach(s => {
+        const chip = $(s.id + 'Value');
+        if (chip) { chip.textContent = '—'; chip.className = 'val-chip'; }
+        s.style.removeProperty('background');
+        s.classList.add('unset');
+        const lb = $(s.id + 'Label');
+        if (lb) { lb.textContent = '—'; lb.classList.remove('show'); }
+        s.setAttribute('aria-valuetext', 'Sin registrar');
+      });
+      const des = $('analgesicosDescription');
+      if (des) {
+        des.textContent = ANALG_DESC[0];
+        des.style.background = 'var(--md-surface-container)';
+        des.style.color = 'var(--md-on-surface-variant)';
+      }
+    }
+
+    function resetBtn() {
+      const btn = $('submitButton');
+      btn.disabled = false;
+      btn.innerHTML = `<span class="ms">save</span> Guardar Valoración`;
+    }
+
+    function showMessage(type, icon, text) {
+      const box = $('messageBox'), ico = $('messageIcon'), txt = $('messageText');
+      box.className = `msg-banner show ${type}`;
+      ico.textContent = icon; ico.style.fontVariationSettings = "'FILL' 1";
+      txt.textContent = text;
+    }
+    function hideMessage() { $('messageBox').className = 'msg-banner'; }
+  
+    $('valoracionForm').addEventListener('submit', handleFormSubmit);
+    pv.querySelector('.summary-toggle').addEventListener('click', function () { toggleSummary(this); });
+    $('cancelButton').addEventListener('click', function () { if (opts.onCancelar) opts.onCancelar(); });
+    __init();
+    if (opts.paciente) {
+      var nm = opts.paciente.toUpperCase();
+      nombreUsuarioInput.value = nm; currentUserName = nm;
+      if (opts.telefono) telefonoUsuarioInput.value = opts.telefono;
+      $('fieldNombre').classList.remove('has-error');
+      updateProgress();
+    }
+
+    return { haCambiado: function () { return tocado; } };
+  }
+};
+</script>

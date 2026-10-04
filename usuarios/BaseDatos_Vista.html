@@ -272,6 +272,13 @@
       .f-copia { border: none; background: none; cursor: copy; font: inherit; color: inherit; display: inline-flex; align-items: center; gap: .3rem; padding: 0; }
       .f-copia .material-symbols-outlined { font-size: 14px; opacity: 0; color: var(--md-on-surface-low); }
       .f-copia:hover .material-symbols-outlined { opacity: 1; }
+      /* Cabecera y cuerpo de un formulario abierto dentro de la ficha (Valoración, Editar, Cita) */
+      .ficha-form-cab { flex: none; display: flex; align-items: center; gap: .5rem; padding: .7rem .8rem; border-bottom: 1px solid var(--md-outline); }
+      .ficha-form-cab button { border: none; background: none; cursor: pointer; width: 34px; height: 34px; border-radius: 50%; color: var(--md-on-surface-med); display: inline-flex; align-items: center; justify-content: center; }
+      .ficha-form-cab button:hover { background: var(--md-surface-variant); }
+      .ficha-form-tit { font-size: .95rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .ficha-form-cuerpo { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
+      .ficha-form-cuerpo > * { flex: 1 1 auto; min-height: 0; }
       .ficha-pie { padding: .7rem 1rem; border-top: 1px solid var(--md-outline); display: flex; flex-wrap: wrap; gap: .4rem; }
       .ficha-sec { display: inline-flex; align-items: center; gap: .3rem; border: 1px solid var(--md-outline); background: var(--md-surface); border-radius: 999px; padding: .35rem .8rem; font-family: var(--font); font-size: .76rem; font-weight: 500; cursor: pointer; color: var(--md-on-surface); }
       .ficha-sec:hover { background: var(--md-surface-variant); }
@@ -501,6 +508,12 @@
     <?!= include('ui/Modal_Deshacer'); ?>
 
     <aside class="ficha" id="ficha" aria-hidden="true"></aside>
+    <?!= include('valoraciones/Panel_Valoracion'); ?>
+    <?!= include('usuarios/Panel_Editar'); ?>
+    <?!= include('agenda/Panel_Cita'); ?>
+    <?!= include('usuarios/Dialogo_Nuevo'); ?>
+    <?!= include('historia/Panel_Huerfana'); ?>
+    <?!= include('ui/JS_Formato_Nombre'); ?>
     <div class="menu-flot" id="menuFlotante"></div>
     <div class="barra-progreso"></div>
 
@@ -966,6 +979,7 @@
         if (el) el.scrollIntoView({ block: 'nearest' });
       }
       document.addEventListener('keydown', function(e) {
+        if (document.querySelector('dialog[open]')) return;   // el diálogo gestiona su teclado
         if (menuItems) { tecladoMenu(e); return; }
         var enCampo = /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName);
         if (e.key === '/' && !enCampo) { e.preventDefault(); document.getElementById('inputBusqueda').focus(); return; }
@@ -991,8 +1005,81 @@
       });
 
       function fijarSeleccion(p) { pacienteSeleccionado = p; actualizarUiSeleccion(); }
-      function cerrarFicha() { fichaAbierta = false; quitarSeleccion(); }
-      function alternarFicha(fila) {
+      // ---------- Formularios dentro del panel lateral ----------
+      // Cada formulario es un módulo (PanelValoracion / PanelEditar / PanelCita) que se monta en el cuerpo de la
+      // ficha y devuelve un controlador con haCambiado() y, opcionalmente, alEscape().
+      var formularioActivo = false, formularioFila = null, controladorForm = null;
+      var FORMULARIOS_PANEL = {
+        valoracion: {
+          titulo: 'Valoración', aviso: 'Valoración guardada',
+          montar: function(cont, p, cb) {
+            return PanelValoracion.abrir(cont, { paciente: p['Nombre'] || '', telefono: p['Teléfono 1'] || '', onGuardado: cb.guardado, onCancelar: cb.cancelar });
+          }
+        },
+        editar: {
+          titulo: 'Editar', aviso: 'Cambios guardados',
+          montar: function(cont, p, cb) {
+            return PanelEditar.abrir(cont, { fila: p._fila, nombre: p['Nombre'] || '', onGuardado: cb.guardado, onCancelar: cb.cancelar });
+          }
+        },
+        cita: {
+          titulo: 'Cita', aviso: 'Cita registrada',
+          montar: function(cont, p, cb) {
+            return PanelCita.abrir(cont, { paciente: p['Nombre'] || '', onGuardado: cb.guardado, onCancelar: cb.cancelar });
+          }
+        },
+        huerfana: {
+          titulo: 'Buscar historia clínica', aviso: 'Historia clínica vinculada',
+          montar: function(cont, p, cb) {
+            return PanelHuerfana.abrir(cont, { fila: p._fila, nombre: p['Nombre'] || '', onGuardado: cb.guardado, onCancelar: cb.cancelar });
+          }
+        }
+      };
+      function hayCambiosSinGuardar() {
+        return !!(formularioActivo && controladorForm && controladorForm.haCambiado && controladorForm.haCambiado());
+      }
+      // Antes de cualquier acción que destruiría el formulario abierto (otra fila, cerrar la ficha, abrir otro
+      // formulario…): si hay cambios sin guardar pregunta; si se acepta, el formulario queda descartado.
+      async function descartarFormularioSiProcede() {
+        if (!hayCambiosSinGuardar()) return true;
+        if (!(await mostrarConfirm('Hay cambios sin guardar en el formulario. ¿Quieres descartarlos?'))) return false;
+        formularioActivo = false; controladorForm = null;
+        return true;
+      }
+      async function abrirFormularioPanel(tipo) {
+        var def = FORMULARIOS_PANEL[tipo];
+        if (!def || !pacienteSeleccionado) return;
+        if (!(await descartarFormularioSiProcede())) return;
+        var p = pacienteSeleccionado;
+        if (!p) return;
+        var fila = p._fila, el = document.getElementById('ficha');
+        fichaAbierta = true; formularioActivo = true; formularioFila = fila; controladorForm = null;
+        document.body.classList.add('con-ficha');
+        el.classList.add('abierta');
+        el.setAttribute('aria-hidden', 'false');
+        el.innerHTML = '<div class="ficha-form-cab"><button type="button" data-ficha-volver title="Volver a la ficha"><span class="material-symbols-outlined">arrow_back</span></button><div class="ficha-form-tit"></div></div><div class="ficha-form-cuerpo"></div>';
+        el.querySelector('.ficha-form-tit').textContent = def.titulo + ' · ' + (p['Nombre'] || '');
+        controladorForm = def.montar(el.querySelector('.ficha-form-cuerpo'), p, {
+          guardado: function(msj) {
+            mostrarAviso(typeof msj === 'string' && msj ? msj : def.aviso);
+            if (formularioActivo && formularioFila === fila) volverDeFormulario(true);
+            cargar();
+          },
+          cancelar: function() { if (formularioActivo && formularioFila === fila) volverDeFormulario(); }
+        });
+      }
+      async function volverDeFormulario(forzar) {
+        if (forzar !== true && !(await descartarFormularioSiProcede())) return;
+        formularioActivo = false; controladorForm = null;
+        renderFicha();
+      }
+
+      async function cerrarFicha() {
+        if (!(await descartarFormularioSiProcede())) return;
+        fichaAbierta = false; quitarSeleccion();
+      }
+      async function alternarFicha(fila) {
+        if (!(await descartarFormularioSiProcede())) return;
         if (fichaAbierta && pacienteSeleccionado && pacienteSeleccionado._fila === fila) { cerrarFicha(); return; }
         var p = TODOS.find(function(x) { return x._fila === fila; });
         if (!p) return;
@@ -1010,6 +1097,7 @@
           if (!(await mostrarConfirm('¿Crear la Historia Clínica de ' + p['Nombre'] + '?'))) return;
           acc = 'crearhc';
         }
+        if (!(await descartarFormularioSiProcede())) return;
         fijarSeleccion(p);
         var btn = document.getElementById(MAPA_ACC[acc]);
         if (btn) btn.click();
@@ -1178,6 +1266,8 @@
         document.body.classList.toggle('con-ficha', abierta);
         el.classList.toggle('abierta', abierta);
         el.setAttribute('aria-hidden', abierta ? 'false' : 'true');
+        if (formularioActivo && (!abierta || p._fila !== formularioFila)) { formularioActivo = false; controladorForm = null; }
+        if (formularioActivo) return; // no pisar el formulario abierto en el panel
         if (abierta) {
           var scroll = (el.querySelector('.ficha-cuerpo') || {}).scrollTop || 0;
           el.innerHTML = htmlFicha(p);
@@ -1188,6 +1278,7 @@
 
       document.getElementById('ficha').addEventListener('click', function(e) {
         var t = e.target, c;
+        if (t.closest('[data-ficha-volver]')) { volverDeFormulario(); return; }
         if ((c = t.closest('[data-copiar]'))) { copiarTexto(c.dataset.copiar, c.dataset.etiqueta); return; }
         if ((c = t.closest('.estado-btn'))) { menuEstado(Number(c.dataset.estadoFila), c); return; }
         if (t.closest('[data-ficha="cerrar"]')) { cerrarFicha(); return; }
@@ -1233,8 +1324,9 @@
         renderFicha();
       }
 
-      document.getElementById('btnQuitarSeleccion').addEventListener('click', function(e) {
+      document.getElementById('btnQuitarSeleccion').addEventListener('click', async function(e) {
         e.stopPropagation();
+        if (!(await descartarFormularioSiProcede())) return;
         quitarSeleccion();
       });
 
@@ -1264,7 +1356,15 @@
       // Esc: cierra primero el menú y después la ficha
       document.addEventListener('keydown', function(e) {
         if (e.key !== 'Escape') return;
+        if (document.querySelector('dialog[open]')) return;
         if (menuItems) { var ancla = menuAncla; cerrarMenu(); if (ancla && document.contains(ancla) && ancla.focus) ancla.focus(); return; }
+        if (formularioActivo) {
+          if (document.querySelector('.modal-overlay.visible')) return;
+          // primero lo que el formulario tenga abierto (desplegables, lista de pacientes, horas elegidas…)
+          if (controladorForm && controladorForm.alEscape && controladorForm.alEscape()) return;
+          volverDeFormulario();
+          return;
+        }
         if (fichaAbierta && !document.querySelector('.modal-overlay.visible')) cerrarFicha();
       });
 
@@ -1335,8 +1435,16 @@
       });
 
       // ---------- Barra de herramientas ----------
-      document.getElementById('btnNuevoPaciente').addEventListener('click', function() {
-        abrirVentanaEmergente('nuevoPaciente');
+      // Nuevo usuario: diálogo modal (usuarios/Dialogo_Nuevo). Al guardar, la hoja se reordena por prioridad, así que
+      // si hay un formulario abierto en la ficha se cierra antes (sus datos apuntarían a una fila que ya no es la suya).
+      document.getElementById('btnNuevoPaciente').addEventListener('click', async function() {
+        if (document.querySelector('dialog[open]')) return;
+        if (formularioActivo) {
+          if (!(await descartarFormularioSiProcede())) return;
+          formularioActivo = false; controladorForm = null;
+          renderFicha();
+        }
+        DialogoNuevo.abrir({ onGuardado: function() { mostrarAviso('Usuario guardado'); cargar(); } });
       });
 
       document.getElementById('btnOrdenar').addEventListener('click', function() {
@@ -1483,7 +1591,7 @@
       // ---------- Buscar Historia Clínica Huérfana ----------
       document.getElementById('btnBuscarHuerfana').addEventListener('click', function() {
         if (!pacienteSeleccionado) return;
-        abrirVentanaEmergente('huerfanaHC&fila=' + pacienteSeleccionado._fila);
+        abrirFormularioPanel('huerfana');
       });
 
       // ---------- Actualizar Historia Clínica Existente ----------
@@ -1536,21 +1644,20 @@
           .generarUrlWhatsappWeb(pacienteSeleccionado._fila);
       });
 
-      // ---------- Editar: reutiliza la ventana emergente existente ----------
+      // ---------- Editar, Cita y Valoración: formularios en el panel lateral ----------
       document.getElementById('btnEditar').addEventListener('click', function() {
         if (!pacienteSeleccionado) return;
-        abrirVentanaEmergente('editarPaciente&fila=' + pacienteSeleccionado._fila);
+        abrirFormularioPanel('editar');
       });
 
-      // ---------- Cita y Valoración: reutilizan la ventana emergente existente ----------
       document.getElementById('btnCita').addEventListener('click', function() {
         if (!pacienteSeleccionado) return;
-        abrirVentanaEmergente('citas&paciente=' + encodeURIComponent(pacienteSeleccionado['Nombre']));
+        abrirFormularioPanel('cita');
       });
 
       document.getElementById('btnValoracion').addEventListener('click', function() {
         if (!pacienteSeleccionado) return;
-        abrirVentanaEmergente('valoracion&paciente=' + encodeURIComponent(pacienteSeleccionado['Nombre']));
+        abrirFormularioPanel('valoracion');
       });
 
       var temporizadorBusqueda = null;

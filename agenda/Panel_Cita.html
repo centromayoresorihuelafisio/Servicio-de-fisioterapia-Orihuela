@@ -1,0 +1,526 @@
+<!--
+  agenda/Panel_Cita.html
+  Formulario de Cita como módulo del panel lateral de la Base de Datos Web.
+  Se incluye desde usuarios/BaseDatos_Vista con <?!= include('agenda/Panel_Cita'); ?>
+  API: PanelCita.abrir(contenedor, { paciente, onGuardado, onCancelar })
+  Devuelve { haCambiado(), alEscape() }:
+    · haCambiado() → true si hay horas elegidas, notas/sesión escritas o se ha cambiado el paciente.
+    · alEscape()   → cierra la lista de autocompletado o, si no, limpia las horas seleccionadas (como el Esc del
+                     formulario original); devuelve true si lo ha gestionado.
+  Origen: agenda/Cita_Vista.html (que se mantiene tal cual para el menú de Sheets).
+  Usa las mismas funciones de servidor: obtenerNombreDeFilaActiva, obtenerSemanasYHuecos y guardarCitasMultiples
+  (agenda/Cita.gs). CSS acotado a .pc y basado en los tokens de la página (--md-*, respeta el tema oscuro).
+  Requiere ui/JS_Formato_Nombre en la página (sanitizeName).
+  A 400 px los días se abrevian (LUN, MAR…) para que quepan las cinco columnas.
+-->
+<style>
+.pc {
+  --pc-elev-1: 0 1px 3px rgba(43,92,117,.08), 0 1px 2px rgba(43,92,117,.12);
+  --pc-elev-3: 0 8px 16px rgba(43,92,117,.16), 0 4px 12px rgba(43,92,117,.08);
+  --pc-ease: cubic-bezier(.3,0,0,1);
+  --pc-seleccion-borde: var(--md-primary);
+  display: flex; flex-direction: column; height: 100%; min-height: 0; position: relative;
+  font-family: var(--font); font-size: 14px; color: var(--md-on-surface); background: var(--md-surface);
+}
+.pc .ms { font-family: 'Material Symbols Outlined'; font-weight: 400; font-style: normal; font-size: 20px; line-height: 1; letter-spacing: normal; text-transform: none; display: inline-block; white-space: nowrap; direction: ltr; font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20; user-select: none; flex-shrink: 0; color: var(--md-on-surface-med); }
+.pc .ms-sm { font-size: 16px; }
+.pc .pc-scroll { flex: 1; min-height: 0; overflow: auto; }
+
+/* ── Secciones ── */
+.pc .card-section { padding: 1.1rem 1.25rem 1.3rem; border-bottom: 1px solid var(--md-outline); }
+.pc .card-section:last-child { border-bottom: none; }
+.pc .section-label { display: flex; align-items: center; gap: .6rem; margin-bottom: 1.1rem; }
+.pc .section-pill { display: inline-flex; align-items: center; gap: .375rem; font-size: .6875rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--md-primary-dark); background: var(--md-primary-light); padding: .35rem .875rem .35rem .75rem; border-radius: 999px; }
+.pc .section-pill .ms { font-size: 15px; color: var(--md-primary); }
+.pc .section-divider { flex: 1; height: 1px; background: var(--md-outline); }
+.pc .fila-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem; }
+
+/* ── Campos outlined ── */
+.pc .md-field { position: relative; display: flex; flex-direction: column; }
+.pc .md-field-inner { position: relative; display: flex; align-items: center; }
+.pc .md-field-inner .leading-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); pointer-events: none; z-index: 2; }
+.pc .md-field label {
+  position: absolute; left: 44px; top: 50%; transform: translateY(-50%); font-size: .9375rem; font-weight: 400; color: var(--md-on-surface-med);
+  pointer-events: none; background: var(--md-surface); padding: 0 6px; transition: all 280ms var(--pc-ease); z-index: 2; white-space: nowrap;
+  max-width: calc(100% - 52px); overflow: hidden; text-overflow: ellipsis;
+}
+.pc .md-field input:focus ~ label, .pc .md-field input:not(:placeholder-shown) ~ label,
+.pc .md-field textarea:focus ~ label, .pc .md-field textarea:not(:placeholder-shown) ~ label, .pc .md-field.has-value label {
+  top: 0; left: 12px; font-size: .75rem; font-weight: 500; transform: translateY(-50%); color: var(--md-primary);
+}
+.pc .md-field input:not(:focus):not(:placeholder-shown) ~ label, .pc .md-field textarea:not(:focus):not(:placeholder-shown) ~ label, .pc .md-field.has-value:not(:focus-within) label { color: var(--md-on-surface-med); }
+.pc .md-field input, .pc .md-field textarea {
+  width: 100%; padding: 16px 12px 16px 44px; border: 1.5px solid var(--md-outline); border-radius: 12px; background: transparent;
+  color: var(--md-on-surface); font-family: var(--font); font-size: .9375rem; outline: none; transition: all 280ms var(--pc-ease); z-index: 1;
+}
+.pc .md-field input::placeholder, .pc .md-field textarea::placeholder { opacity: 0; }
+.pc .md-field input:hover:not(:disabled), .pc .md-field textarea:hover:not(:disabled) { border-color: var(--md-on-surface-med); }
+.pc .md-field input:focus, .pc .md-field textarea:focus { border-color: var(--md-primary); border-width: 2px; background-color: var(--md-surface); box-shadow: 0 0 0 3px rgba(43,92,117,.12); }
+.pc .md-field input:disabled { background: var(--md-surface-variant); color: var(--md-on-surface-med); border-color: var(--md-outline); cursor: not-allowed; opacity: .7; }
+.pc .md-field:focus-within .leading-icon .ms { color: var(--md-primary); }
+.pc .md-field textarea { resize: vertical; min-height: 80px; padding-top: 18px; }
+.pc .md-field.is-textarea label { top: 22px; transform: translateY(-50%); }
+.pc .md-field.is-textarea:focus-within label, .pc .md-field.is-textarea.has-value label, .pc .md-field.is-textarea textarea:not(:placeholder-shown) ~ label { top: 0; transform: translateY(-50%); }
+.pc .md-field.is-textarea .leading-icon { top: 22px; transform: none; }
+.pc .md-field.has-error input, .pc .md-field.has-error textarea { border-color: var(--md-error) !important; box-shadow: 0 0 0 3px rgba(197,34,31,.12) !important; }
+.pc .md-field.has-error label, .pc .md-field.has-error .leading-icon .ms { color: var(--md-error) !important; }
+
+/* ── Autocompletado ── */
+.pc .autocomplete-wrapper { position: relative; }
+.pc .ac-menu {
+  position: absolute; top: calc(100% + 6px); left: 0; right: 0; z-index: 30; background: var(--md-surface); border-radius: 12px; box-shadow: var(--pc-elev-3);
+  max-height: 220px; overflow-y: auto; display: none; border: 1px solid var(--md-outline);
+}
+.pc .ac-menu.open { display: block; }
+.pc .ac-item { padding: .7rem 1rem; cursor: pointer; font-size: .875rem; color: var(--md-on-surface); display: flex; align-items: center; gap: .6rem; transition: background 150ms var(--pc-ease); }
+.pc .ac-item:hover { background: var(--md-primary-light); }
+
+/* ── Semana ── */
+.pc .week-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; gap: .5rem; }
+.pc .nav-btn { width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--md-outline); background: var(--md-surface); color: var(--md-on-surface-med); display: grid; place-items: center; cursor: pointer; transition: all 150ms var(--pc-ease); flex-shrink: 0; }
+.pc .nav-btn:hover:not(:disabled) { background: var(--md-surface-variant); color: var(--md-on-surface); }
+.pc .nav-btn:disabled { opacity: .4; cursor: not-allowed; }
+.pc .week-label { font-size: .9rem; font-weight: 500; color: var(--md-on-surface); text-align: center; }
+.pc .calendar-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .4rem; }
+.pc .day-column { background: var(--md-bg); border: 1px solid var(--md-outline); border-radius: 12px; padding: .7rem .3rem; display: flex; flex-direction: column; gap: .4rem; min-width: 0; }
+.pc .day-label { text-align: center; margin-bottom: .2rem; padding-bottom: .55rem; border-bottom: 1px solid var(--md-outline); }
+.pc .day-label .day-name { font-size: .72rem; font-weight: 600; color: var(--md-on-surface); text-transform: uppercase; letter-spacing: .02em; }
+.pc .day-label .day-date { font-size: .66rem; color: var(--md-on-surface-med); margin-top: .15rem; }
+.pc .hour-button {
+  width: 100%; padding: .55rem 0; border: 1.5px solid transparent; border-radius: 10px; cursor: pointer; font-family: var(--font); font-size: .78rem; font-weight: 500;
+  text-align: center; transition: all 150ms var(--pc-ease); line-height: 1.2; color: var(--md-on-surface);
+}
+.pc .turno-manana { background: var(--md-primary-light); }
+.pc .turno-tarde { background: var(--md-surface-variant); }
+.pc .hour-button:hover:not(.selected) { filter: brightness(.96); box-shadow: var(--pc-elev-1); }
+.pc .hour-button.selected { background: var(--md-primary-container) !important; color: var(--md-primary-dark) !important; border-color: var(--pc-seleccion-borde) !important; box-shadow: var(--pc-elev-1); font-weight: 600; }
+.pc .slot-empty { font-size: .72rem; color: var(--md-on-surface-med); text-align: center; padding: .6rem 0; font-style: italic; }
+.pc .legend-container { display: flex; gap: 1rem; margin-top: 1.1rem; flex-wrap: wrap; }
+.pc .legend-item { display: flex; align-items: center; gap: .4rem; font-size: .75rem; color: var(--md-on-surface-med); font-weight: 500; }
+.pc .legend-color { width: 14px; height: 14px; border-radius: 4px; }
+.pc .pc-hint { margin-top: .9rem; font-size: .75rem; color: var(--md-on-surface-med); line-height: 1.5; }
+.pc .pc-hint kbd { background: var(--md-surface-variant); padding: .1rem .35rem; border-radius: 4px; border: 1px solid var(--md-outline); font-family: inherit; }
+.pc .pc-vacio { color: var(--md-on-surface-med); text-align: center; grid-column: 1 / -1; padding: 1.5rem 0; }
+
+/* ── Ripple ── */
+.pc .ripple-target { position: relative; overflow: hidden; }
+.pc .ripple { position: absolute; border-radius: 50%; transform: scale(0); animation: pc-ripple 600ms linear; background-color: rgba(43,92,117,.15); pointer-events: none; }
+.pc .ripple-light { background-color: rgba(255,255,255,.25); }
+@keyframes pc-ripple { to { transform: scale(4); opacity: 0; } }
+
+/* ── Mensajes (fijos encima del pie) ── */
+.pc .pc-msg { flex: none; display: none; padding: .7rem 1.25rem; font-size: .8125rem; font-weight: 500; }
+.pc .pc-msg.success { display: block; background: var(--md-success-bg); color: var(--md-success); }
+.pc .pc-msg.error { display: block; background: var(--md-error-bg); color: var(--md-error); }
+
+/* ── Pie fijo ── */
+.pc .panel-pie { flex: none; display: flex; align-items: center; justify-content: flex-end; gap: .5rem; padding: .7rem 1rem; border-top: 1px solid var(--md-outline); background: var(--md-surface); }
+.pc .btn-primary {
+  display: inline-flex; align-items: center; justify-content: center; gap: .5rem; padding: 0 1.4rem; height: 40px; background: var(--md-primary-container); color: var(--md-primary-dark);
+  border: none; border-radius: 999px; font-family: var(--font); font-size: .875rem; font-weight: 600; cursor: pointer; transition: all 180ms var(--pc-ease); position: relative;
+}
+.pc .btn-primary:hover:not(:disabled) { filter: brightness(.97); box-shadow: var(--pc-elev-1); }
+.pc .btn-primary:disabled { background: rgba(128,134,139,.2); color: var(--md-on-surface-low); cursor: not-allowed; box-shadow: none; }
+.pc .btn-primary .ms { font-size: 18px; color: inherit; }
+.pc .btn-text { display: inline-flex; align-items: center; justify-content: center; padding: 0 1.25rem; height: 40px; background: transparent; color: var(--md-primary); border: 1px solid var(--md-outline); border-radius: 999px; font-family: var(--font); font-size: .875rem; font-weight: 500; cursor: pointer; transition: background 150ms var(--pc-ease); }
+.pc .btn-text:hover { background: var(--md-primary-light); }
+.pc .spinner { animation: pc-spin .8s linear infinite; }
+@keyframes pc-spin { to { transform: rotate(360deg); } }
+</style>
+
+<template id="tplPanelCita"><div class="pc">
+  <div class="pc-scroll">
+
+    <div class="card-section">
+      <div class="section-label"><span class="section-pill"><span class="ms ms-sm">person_search</span>Datos del paciente</span><div class="section-divider"></div></div>
+
+      <div class="md-field autocomplete-wrapper pc-f-paciente">
+        <div class="md-field-inner">
+          <div class="leading-icon"><span class="ms">person</span></div>
+          <input type="text" id="pc-nombre" class="pc-nombre" placeholder=" " disabled autocomplete="off">
+          <label for="pc-nombre">Paciente</label>
+        </div>
+        <div class="ac-menu pc-ac"></div>
+      </div>
+
+      <div class="fila-2">
+        <div class="md-field pc-f-telefono">
+          <div class="md-field-inner">
+            <div class="leading-icon"><span class="ms">call</span></div>
+            <input type="text" id="pc-tel" class="pc-tel" placeholder=" ">
+            <label for="pc-tel">Teléfono</label>
+          </div>
+        </div>
+        <div class="md-field pc-f-sesion">
+          <div class="md-field-inner">
+            <div class="leading-icon"><span class="ms">tag</span></div>
+            <input type="text" id="pc-sesion" class="pc-sesion" placeholder=" ">
+            <label for="pc-sesion">Sesión</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="md-field is-textarea pc-f-notas" style="margin-top:1rem">
+        <div class="md-field-inner">
+          <div class="leading-icon"><span class="ms">notes</span></div>
+          <textarea id="pc-notas" class="pc-notas" rows="2" placeholder=" "></textarea>
+          <label for="pc-notas">Notas clínicas o información relevante…</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-section">
+      <div class="section-label"><span class="section-pill"><span class="ms ms-sm">calendar_month</span>Agenda semanal</span><div class="section-divider"></div></div>
+
+      <div class="week-nav">
+        <button type="button" class="nav-btn ripple-target pc-prev" disabled aria-label="Semana anterior"><span class="ms">chevron_left</span></button>
+        <div class="week-label pc-semana">Cargando agenda…</div>
+        <button type="button" class="nav-btn ripple-target pc-next" disabled aria-label="Semana siguiente"><span class="ms">chevron_right</span></button>
+      </div>
+
+      <div class="calendar-grid pc-grid"></div>
+
+      <div class="legend-container">
+        <span class="legend-item"><span class="legend-color" style="background:var(--md-primary-light);border:1px solid var(--md-outline)"></span>Mañana</span>
+        <span class="legend-item"><span class="legend-color" style="background:var(--md-surface-variant);border:1px solid var(--md-outline)"></span>Tarde</span>
+        <span class="legend-item"><span class="legend-color" style="background:var(--md-primary-container);border:1.5px solid var(--md-primary)"></span>Seleccionado</span>
+      </div>
+      <p class="pc-hint">Pulsa <kbd>Esc</kbd> para limpiar la selección de horas.</p>
+    </div>
+
+  </div>
+
+  <div class="pc-msg" role="status" aria-live="polite"></div>
+
+  <div class="panel-pie">
+    <button type="button" class="btn-text pc-cancelar">Cancelar</button>
+    <button type="button" class="btn-primary ripple-target pc-guardar" disabled>
+      <span class="ms pc-btn-icon">save</span><span class="pc-btn-texto">Registrar citas</span>
+    </button>
+  </div>
+</div></template>
+
+<script>
+window.PanelCita = {
+  abrir: function (host, opts) {
+    opts = opts || {};
+    host.innerHTML = '';
+    host.appendChild(document.getElementById('tplPanelCita').content.cloneNode(true));
+    var pc = host.querySelector('.pc');
+    function q(sel) { return pc.querySelector(sel); }
+
+    var calendarGrid = q('.pc-grid'), currentWeekLabel = q('.pc-semana');
+    var btnGuardar = q('.pc-guardar'), btnText = q('.pc-btn-texto'), btnIcon = q('.pc-btn-icon');
+    var msgBox = q('.pc-msg'), prevBtn = q('.pc-prev'), nextBtn = q('.pc-next');
+    var numSesionInput = q('.pc-sesion'), notasTextarea = q('.pc-notas'), telefonoUsuarioInput = q('.pc-tel');
+    var nombreUsuarioInput = q('.pc-nombre'), autocompleteList = q('.pc-ac');
+
+    // Paciente ya elegido desde la Base de Datos Web. Vacío si no se pasa ninguno.
+    var PACIENTE_PRESELECCIONADO = opts.paciente || '';
+
+    var semanasData = [], currentWeekIndex = 0, selectedHuecos = [];
+    var currentUserName = '', currentUserPhone = '';
+    var allPatientsList = [], allPatientsData = {};
+    var inicial = { nombre: '', tel: '' };   // para saber si se ha cambiado de paciente / teléfono
+    var timerMsg = null;
+
+    var EXCLUDED_TIMES = ["", "", "", "", "00:30"];
+    var DIA_ORDEN = { Lunes: 1, Martes: 2, 'Miércoles': 3, Jueves: 4, Viernes: 5 };
+
+    /* ── Ripple ── */
+    pc.addEventListener('click', function (e) {
+      var target = e.target.closest('.ripple-target');
+      if (!target || target.disabled) return;
+      var ripple = document.createElement('span');
+      ripple.className = 'ripple';
+      if (target.classList.contains('btn-primary')) ripple.classList.add('ripple-light');
+      var rect = target.getBoundingClientRect(), size = Math.max(rect.width, rect.height);
+      ripple.style.width = ripple.style.height = size + 'px';
+      ripple.style.left = (e.clientX - rect.left - size / 2) + 'px';
+      ripple.style.top = (e.clientY - rect.top - size / 2) + 'px';
+      target.appendChild(ripple);
+      ripple.addEventListener('animationend', function () { ripple.remove(); });
+    });
+
+    /* ── Etiquetas flotantes ── */
+    function checkInputValue(el) {
+      var field = el.closest('.md-field');
+      if (field) field.classList.toggle('has-value', el.value.trim() !== '');
+    }
+    pc.querySelectorAll('.md-field input, .md-field textarea').forEach(function (el) {
+      el.addEventListener('input', function () { checkInputValue(el); });
+      el.addEventListener('blur', function () { checkInputValue(el); });
+      el.addEventListener('focus', function () { el.closest('.md-field').classList.remove('has-error'); });
+    });
+    function setFieldValue(inputEl, value) { inputEl.value = value; checkInputValue(inputEl); }
+
+    /* ── Mensajes ── */
+    function mostrarFeedback(message, isSuccess) {
+      msgBox.innerHTML = message;
+      msgBox.className = 'pc-msg ' + (isSuccess ? 'success' : 'error');
+      if (timerMsg) clearTimeout(timerMsg);
+      if (isSuccess) timerMsg = setTimeout(function () { msgBox.className = 'pc-msg'; }, 6000);
+    }
+
+    /* ── Guardando… ── */
+    function toggleLoading(isLoading) {
+      btnGuardar.disabled = isLoading;
+      if (isLoading) {
+        btnIcon.textContent = 'autorenew'; btnIcon.classList.add('spinner');
+        btnText.textContent = 'Guardando cita…';
+      } else {
+        btnIcon.textContent = 'save'; btnIcon.classList.remove('spinner');
+        updateSaveButtonState();
+      }
+    }
+
+    /* ── Calendario ── */
+    function sortDaysByDate(dias) {
+      return Object.keys(dias).sort(function (a, b) {
+        var pa = a.split('/'), pb = b.split('/');
+        return new Date(pa[2], pa[1] - 1, pa[0]) - new Date(pb[2], pb[1] - 1, pb[0]);
+      });
+    }
+    function filterAndSortDays(diasData) {
+      var sorted = sortDaysByDate(diasData), map = {};
+      sorted.forEach(function (key) {
+        var d = diasData[key], name = d.label.split(' ')[0].trim();
+        if (DIA_ORDEN[name] && !map[name]) {
+          d.huecos = d.huecos.filter(function (h) { return EXCLUDED_TIMES.indexOf(h.hora) === -1; });
+          map[name] = d;
+        }
+      });
+      return Object.keys(map).map(function (k) { return map[k]; })
+        .sort(function (a, b) { return DIA_ORDEN[a.label.split(' ')[0]] - DIA_ORDEN[b.label.split(' ')[0]]; });
+    }
+    function getTurnoClass(hora) {
+      var p = hora.split(':').map(Number), t = p[0] * 60 + p[1];
+      if (t >= 480 && t <= 840) return 'turno-manana';
+      if (t >= 850) return 'turno-tarde';
+      return '';
+    }
+    function renderWeek() {
+      if (!semanasData.length) {
+        calendarGrid.innerHTML = '<p class="pc-vacio">No hay semanas disponibles.</p>';
+        currentWeekLabel.textContent = 'Sin datos';
+        return;
+      }
+      currentWeekIndex = Math.max(0, Math.min(currentWeekIndex, semanasData.length - 1));
+      var week = semanasData[currentWeekIndex];
+      if (week.error) { currentWeekLabel.textContent = 'Error'; calendarGrid.innerHTML = '<p class="pc-vacio" style="color:var(--md-error)">' + week.error + '</p>'; return; }
+      currentWeekLabel.textContent = week.label;
+      calendarGrid.innerHTML = '';
+      filterAndSortDays(week.dias).forEach(function (dayData) {
+        var col = document.createElement('div');
+        col.className = 'day-column';
+        var partes = dayData.label.split(' '), dayName = partes[0], fullDate = partes[1];
+        var f = fullDate.split('/');
+        var shortDate = f[0] + '/' + f[1] + '/' + f[2].slice(-2);
+        var lbl = document.createElement('div');
+        lbl.className = 'day-label';
+        lbl.innerHTML = '<div class="day-name" title="' + dayName + '">' + dayName.slice(0, 3) + '</div><div class="day-date">' + shortDate + '</div>';
+        col.appendChild(lbl);
+        if (!dayData.huecos.length) {
+          var empty = document.createElement('p');
+          empty.className = 'slot-empty';
+          empty.textContent = 'Completo';
+          col.appendChild(empty);
+        } else {
+          dayData.huecos.forEach(function (hueco) {
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'hour-button ripple-target ' + getTurnoClass(hueco.hora);
+            btn.textContent = hueco.hora;
+            btn.setAttribute('data-value', hueco.value);
+            btn.onclick = selectHueco;
+            if (selectedHuecos.indexOf(hueco.value) !== -1) btn.classList.add('selected');
+            col.appendChild(btn);
+          });
+        }
+        calendarGrid.appendChild(col);
+      });
+      prevBtn.disabled = currentWeekIndex === 0;
+      nextBtn.disabled = currentWeekIndex === semanasData.length - 1;
+      updateSaveButtonState();
+    }
+    function changeWeek(delta) {
+      var n = currentWeekIndex + delta;
+      if (n >= 0 && n < semanasData.length) { currentWeekIndex = n; renderWeek(); }
+    }
+    function selectHueco(e) {
+      e.currentTarget.classList.toggle('selected');
+      selectedHuecos = Array.prototype.map.call(pc.querySelectorAll('.hour-button.selected'), function (b) { return b.getAttribute('data-value'); });
+      updateSaveButtonState();
+    }
+    function deselectHueco() {
+      if (!selectedHuecos.length) return false;
+      pc.querySelectorAll('.hour-button.selected').forEach(function (b) { b.classList.remove('selected'); });
+      selectedHuecos = [];
+      updateSaveButtonState();
+      mostrarFeedback('Selección de horas cancelada.', false);
+      return true;
+    }
+    function updateSaveButtonState() {
+      var valid = !!currentUserName && currentUserName !== 'NOT_FOUND' && currentUserName !== 'HEADER_ROW';
+      btnGuardar.disabled = !selectedHuecos.length || !valid;
+      var c = selectedHuecos.length;
+      btnText.textContent = c > 1 ? 'Registrar ' + c + ' citas' : c === 1 ? 'Registrar 1 cita' : 'Registrar citas';
+    }
+
+    /* ── Autocompletado ── */
+    function stripAccents(str) { return str.normalize("NFD").replace(/[\u0300-\u036f]/g, ""); }
+    function cerrarAutocompletado() {
+      var estabaAbierto = autocompleteList.classList.contains('open');
+      autocompleteList.classList.remove('open');
+      autocompleteList.innerHTML = '';
+      return estabaAbierto;
+    }
+    function renderPatientSelect(names, defaultName) {
+      allPatientsList = names;
+      nombreUsuarioInput.disabled = false;
+      if (defaultName && defaultName !== 'NOT_FOUND' && defaultName !== 'HEADER_ROW') {
+        setFieldValue(nombreUsuarioInput, defaultName);
+        currentUserName = defaultName;
+      }
+      updateSaveButtonState();
+    }
+    nombreUsuarioInput.addEventListener('input', function () {
+      sanitizeName(this);
+      var val = stripAccents(this.value.toLowerCase());
+      autocompleteList.innerHTML = '';
+      currentUserName = '';
+      if (!val) { autocompleteList.classList.remove('open'); updateSaveButtonState(); return; }
+      var filtered = allPatientsList.filter(function (n) { return stripAccents(n.toLowerCase()).indexOf(val) !== -1; });
+      autocompleteList.classList.toggle('open', filtered.length > 0);
+      filtered.forEach(function (name) {
+        var item = document.createElement('div');
+        item.className = 'ac-item';
+        item.innerHTML = '<span class="ms ms-sm">person</span> <span></span>';
+        item.lastElementChild.textContent = name;
+        item.addEventListener('click', function () {
+          setFieldValue(nombreUsuarioInput, name);
+          currentUserName = name;
+          currentUserPhone = allPatientsData[name] || '';
+          setFieldValue(telefonoUsuarioInput, currentUserPhone);
+          setFieldValue(numSesionInput, '');
+          setFieldValue(notasTextarea, '');
+          q('.pc-f-paciente').classList.remove('has-error');
+          mostrarFeedback('Paciente asignado: <strong></strong>', true);
+          msgBox.querySelector('strong').textContent = name;
+          cerrarAutocompletado();
+          updateSaveButtonState();
+        });
+        autocompleteList.appendChild(item);
+      });
+      updateSaveButtonState();
+    });
+    pc.addEventListener('click', function (e) { if (e.target !== nombreUsuarioInput) cerrarAutocompletado(); });
+
+    /* ── Carga de datos ── */
+    function loadPatientData() {
+      setFieldValue(nombreUsuarioInput, '');
+      nombreUsuarioInput.disabled = true;
+      google.script.run
+        .withSuccessHandler(function (data) {
+          var name = data.name || 'NOT_FOUND', phone = data.phone || '';
+          allPatientsData = data.allPatientsData || {};
+          // Sin sesión de Sheets (Web App) no hay "fila activa": usamos el paciente de la ficha.
+          if (PACIENTE_PRESELECCIONADO && allPatientsData[PACIENTE_PRESELECCIONADO] !== undefined) {
+            name = PACIENTE_PRESELECCIONADO;
+            phone = allPatientsData[PACIENTE_PRESELECCIONADO];
+          }
+          renderPatientSelect(Object.keys(allPatientsData), name);
+          if (name && name !== 'HEADER_ROW' && name !== 'NOT_FOUND') {
+            currentUserName = name; currentUserPhone = phone;
+            setFieldValue(telefonoUsuarioInput, phone);
+            mostrarFeedback('Cita para: <strong></strong>', true);
+            msgBox.querySelector('strong').textContent = name;
+          } else {
+            currentUserName = '';
+            mostrarFeedback(name === 'HEADER_ROW' ? '🛑 Por favor, selecciona un paciente de la lista.' : 'Selecciona un paciente para registrar su cita.', false);
+          }
+          inicial = { nombre: currentUserName, tel: telefonoUsuarioInput.value.trim() };
+          updateSaveButtonState();
+        })
+        .withFailureHandler(function (err) {
+          nombreUsuarioInput.disabled = false;
+          mostrarFeedback('Error al cargar pacientes: ' + (err && err.message ? err.message : err), false);
+        })
+        .obtenerNombreDeFilaActiva();
+    }
+    function loadInitialData() {
+      loadPatientData();
+      currentWeekLabel.textContent = 'Cargando agenda…';
+      toggleLoading(true);
+      google.script.run
+        .withSuccessHandler(function (res) {
+          toggleLoading(false);
+          semanasData = res.semanas;
+          if (semanasData && semanasData.length) { currentWeekIndex = res.index; renderWeek(); }
+        })
+        .withFailureHandler(function (err) {
+          toggleLoading(false);
+          mostrarFeedback('Error al obtener la agenda de turnos: ' + (err && err.message ? err.message : err), false);
+        })
+        .obtenerSemanasYHuecos();
+    }
+
+    /* ── Guardar ── */
+    function enviarCita() {
+      if (!currentUserName) {
+        q('.pc-f-paciente').classList.add('has-error');
+        mostrarFeedback('🛑 Selecciona un paciente válido desde la lista autocompletable.', false);
+        return;
+      }
+      toggleLoading(true);
+      google.script.run
+        .withSuccessHandler(function (res) {
+          toggleLoading(false);
+          mostrarFeedback(res.success ? '✅ ' + res.message : '⚠️ ' + res.message, res.success);
+          if (res.success) {
+            setFieldValue(numSesionInput, '');
+            setFieldValue(notasTextarea, '');
+            selectedHuecos = [];
+            inicial = { nombre: currentUserName, tel: telefonoUsuarioInput.value.trim() }; // ya guardado: cerrar no debe pedir confirmación
+            btnGuardar.disabled = true;
+            setTimeout(function () { if (opts.onGuardado) opts.onGuardado(); }, 1200);
+          } else {
+            loadInitialData();   // colisión u otro fallo: refrescamos la agenda
+          }
+        })
+        .withFailureHandler(function (err) {
+          toggleLoading(false);
+          mostrarFeedback('Error al registrar la cita: ' + (err && err.message ? err.message : err), false);
+        })
+        .guardarCitasMultiples({
+          nombreUsuario:   currentUserName,
+          telefonoUsuario: telefonoUsuarioInput.value.trim(),
+          huecosJson:      selectedHuecos,
+          numSesion:       numSesionInput.value.trim(),
+          notas:           notasTextarea.value.trim()
+        });
+    }
+
+    prevBtn.addEventListener('click', function () { changeWeek(-1); });
+    nextBtn.addEventListener('click', function () { changeWeek(1); });
+    btnGuardar.addEventListener('click', enviarCita);
+    q('.pc-cancelar').addEventListener('click', function () { if (opts.onCancelar) opts.onCancelar(); });
+
+    loadInitialData();
+
+    return {
+      haCambiado: function () {
+        return selectedHuecos.length > 0 ||
+               numSesionInput.value.trim() !== '' ||
+               notasTextarea.value.trim() !== '' ||
+               currentUserName !== inicial.nombre ||
+               telefonoUsuarioInput.value.trim() !== inicial.tel;
+      },
+      alEscape: function () {
+        if (cerrarAutocompletado()) return true;
+        return deselectHueco();
+      }
+    };
+  }
+};
+</script>

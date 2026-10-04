@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="es">
   <head>
@@ -659,6 +658,22 @@
       thead th:last-child, tbody td.acciones-fila { width: 176px; padding: 0 .5rem; text-align: right; white-space: nowrap; overflow: visible; text-overflow: clip; }
       .btn-fila.con-hc { color: var(--ag-accent); }
       .btn-fila.sin-hc .material-symbols-outlined { opacity: .35; }
+
+      /* ---------- Panel lateral (formulario de Valoración): misma estructura que la ficha de la Base de Datos ---------- */
+      .ficha { position: fixed; top: 0; right: 0; bottom: 0; width: 400px; max-width: 100%; z-index: 900; display: flex; flex-direction: column; background: var(--md-surface);
+        border-left: 1px solid var(--md-outline); box-shadow: -6px 0 24px rgba(0,0,0,.08); transform: translateX(100%); visibility: hidden; transition: transform 160ms cubic-bezier(.2,0,0,1), visibility 0s 160ms; will-change: transform; }
+      .ficha.abierta { transform: none; visibility: visible; transition-delay: 0s; }
+      .ficha-form-cab { flex: none; display: flex; align-items: center; gap: .5rem; padding: .7rem .8rem .7rem 1.1rem; border-bottom: 1px solid var(--md-outline); }
+      .ficha-form-cab button { border: none; background: none; cursor: pointer; width: 34px; height: 34px; border-radius: 50%; color: var(--md-on-surface-med); display: inline-flex; align-items: center; justify-content: center; }
+      .ficha-form-cab button:hover { background: var(--md-surface-variant); }
+      .ficha-form-cab button:focus-visible { outline: 2px solid var(--ag-accent); outline-offset: 2px; }
+      .ficha-form-tit { flex: 1; min-width: 0; font-size: .95rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .ficha-form-cuerpo { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
+      .ficha-form-cuerpo > * { flex: 1 1 auto; min-height: 0; }
+      @media (min-width: 900px) {
+        /* El panel se desliza con transform y el contenido se ajusta al instante (sin animar el margen). */
+        body.con-ficha nav.tabs-cambio, body.con-ficha header.top, body.con-ficha .tabla-wrap { margin-right: 400px; }
+      }
     </style>
   </head>
   <body>
@@ -782,9 +797,11 @@
     <datalist id="listaPacientes"></datalist>
 
     <div class="tabla-wrap" id="tablaWrap"></div>
+    <aside class="ficha" id="ficha" aria-hidden="true"></aside>
 
     <?!= include('ui/Modal_Deshacer'); ?>
     <?!= include('ui/JS_Formato_Nombre'); ?>
+    <?!= include('valoraciones/Panel_Valoracion'); ?>
 
     <div class="toast-deshacer" id="toastMover">
       <span id="toastMoverTexto"></span>
@@ -1697,13 +1714,85 @@
           .obtenerEnlacesJornadaWeb();
       });
 
+      // Ya no se abren ventanas emergentes desde la Agenda; se mantiene la variable porque los
+      // listeners de 'message' y 'storage' del final del archivo la comprueban.
       var ventanaActiva = null;
 
-      // ---------- Valoración y WhatsApp (barra de selección y acciones por fila) ----------
-      function abrirValoracionCita(nombre) {
-        var url = BASE_URL + '?page=valoracion&paciente=' + encodeURIComponent(nombre) + '&embed=1';
-        ventanaActiva = window.open(url, 'ventanaValoracionAgenda', 'width=850,height=900');
+      // ---------- Panel lateral de Valoración (sustituye a la ventana emergente) ----------
+      // Igual que en la Base de Datos: el formulario vive en el panel (valoraciones/Panel_Valoracion) y devuelve un
+      // controlador con haCambiado(). El panel trabaja con el nombre del paciente, no con la fila ni con la semana
+      // mostrada, así que seguir navegando por la agenda (o el refresco automático) no lo afecta.
+      var panelAbierto = false, panelNombre = '', controladorPanel = null, timerLimpiarPanel = null;
+
+      function panelHaCambiado() {
+        return !!(panelAbierto && controladorPanel && controladorPanel.haCambiado && controladorPanel.haCambiado());
       }
+      // Antes de cualquier acción que destruiría el formulario (cerrar, abrir otro paciente…): si hay cambios sin
+      // guardar pregunta; si se acepta, el formulario queda descartado.
+      async function descartarPanelSiProcede() {
+        if (!panelHaCambiado()) return true;
+        if (!(await mostrarConfirm('Hay cambios sin guardar en el formulario. ¿Quieres descartarlos?'))) return false;
+        panelAbierto = false; controladorPanel = null;
+        return true;
+      }
+      function ocultarPanel() {
+        var el = document.getElementById('ficha');
+        panelAbierto = false; panelNombre = ''; controladorPanel = null;
+        document.body.classList.remove('con-ficha');
+        el.classList.remove('abierta');
+        el.setAttribute('aria-hidden', 'true');
+        // El contenido se vacía cuando termina de deslizarse, para que no se vea un panel en blanco al salir.
+        if (timerLimpiarPanel) clearTimeout(timerLimpiarPanel);
+        timerLimpiarPanel = setTimeout(function() { if (!panelAbierto) el.innerHTML = ''; }, 220);
+      }
+      async function cerrarPanel(forzar) {
+        if (!panelAbierto) return;
+        if (forzar !== true && !(await descartarPanelSiProcede())) return;
+        ocultarPanel();
+      }
+
+      // ---------- Valoración y WhatsApp (barra de selección y acciones por fila) ----------
+      async function abrirValoracionCita(nombre) {
+        nombre = (nombre || '').trim();
+        if (!nombre) { mostrarAviso('Esa cita no tiene paciente asignado.'); return; }
+        if (panelAbierto && panelNombre === nombre) return;        // ya está abierto para este paciente
+        if (!(await descartarPanelSiProcede())) return;
+
+        var cita = CITAS.find(function(c) { return c['Usuario'] === nombre && c['Teléfono']; });
+        var el = document.getElementById('ficha');
+        if (timerLimpiarPanel) { clearTimeout(timerLimpiarPanel); timerLimpiarPanel = null; }
+        panelAbierto = true; panelNombre = nombre; controladorPanel = null;
+        document.body.classList.add('con-ficha');
+        el.classList.add('abierta');
+        el.setAttribute('aria-hidden', 'false');
+        el.innerHTML = '<div class="ficha-form-cab"><div class="ficha-form-tit"></div><button type="button" data-panel="cerrar" title="Cerrar (Esc)" aria-label="Cerrar"><span class="material-symbols-outlined">close</span></button></div><div class="ficha-form-cuerpo"></div>';
+        el.querySelector('.ficha-form-tit').textContent = 'Valoración · ' + nombre;
+        controladorPanel = PanelValoracion.abrir(el.querySelector('.ficha-form-cuerpo'), {
+          paciente: nombre,
+          telefono: cita ? String(cita['Teléfono']) : '',
+          onGuardado: function() { mostrarAviso('Valoración guardada'); if (panelNombre === nombre) cerrarPanel(true); },
+          onCancelar: function() { if (panelNombre === nombre) cerrarPanel(); }
+        });
+      }
+
+      document.getElementById('ficha').addEventListener('click', function(e) {
+        if (e.target.closest('[data-panel="cerrar"]')) cerrarPanel();
+      });
+
+      // Esc con el panel abierto lo cierra (con confirmación si hay cambios). Va en fase de captura para que no
+      // llegue además al Esc general de la página (que quitaría la selección de citas). Se aparta si hay un diálogo
+      // abierto, el menú Copiar desplegado, un arrastre en curso o la edición en línea / el buscador con el foco.
+      document.addEventListener('keydown', function(e) {
+        if (e.key !== 'Escape' || !panelAbierto || arrastre) return;
+        var modal = document.getElementById('modalOverlay');
+        if (modal && modal.classList.contains('visible')) return;
+        if (document.getElementById('menuCopiarWrap').classList.contains('abierto')) return;
+        var activo = document.activeElement;
+        if (activo && activo.closest && activo.closest('.editando, .buscador')) return;
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        cerrarPanel();
+      }, true);
 
       function abrirWhatsappFila(fila) {
         // La ventana se abre en el propio clic (síncrono) para que no la bloquee el navegador.
@@ -1938,6 +2027,7 @@
         if (modal && modal.classList.contains('visible')) return;
         var el = document.activeElement, tag = el ? el.tagName : '';
         if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA' || (el && el.isContentEditable)) return;
+        if (el && el.closest && el.closest('#ficha')) return;   // el foco está en el panel lateral
 
         if (e.key === 'ArrowLeft') { e.preventDefault(); moverSemana(-7); }
         else if (e.key === 'ArrowRight') { e.preventDefault(); moverSemana(7); }
@@ -2380,5 +2470,3 @@
     </script>
   </body>
 </html>
-
-

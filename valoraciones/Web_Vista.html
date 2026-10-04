@@ -138,6 +138,15 @@
       .ficha-acc { display: inline-flex; align-items: center; gap: .3rem; border: 1px solid var(--md-outline); background: var(--md-surface); border-radius: 999px; padding: .35rem .8rem; font-size: .78rem; font-weight: 500; cursor: pointer; color: var(--md-on-surface); }
       .ficha-acc.primario { background: var(--md-primary-container); border-color: transparent; color: var(--md-primary-dark); }
       .ficha-acc:hover { background: var(--md-surface-variant); }
+
+      /* Formulario de Nueva valoración dentro de la ficha (valoraciones/Panel_Valoracion) */
+      .ficha-form-cab { flex: none; display: flex; align-items: center; gap: .5rem; padding: .7rem .8rem; border-bottom: 1px solid var(--md-outline); }
+      .ficha-form-cab button { border: none; background: none; cursor: pointer; width: 34px; height: 34px; border-radius: 50%; color: var(--md-on-surface-med); display: inline-flex; align-items: center; justify-content: center; }
+      .ficha-form-cab button:hover { background: var(--md-surface-variant); }
+      .ficha-form-cab button:focus-visible { outline: 2px solid var(--md-primary); outline-offset: 2px; }
+      .ficha-form-tit { flex: 1; min-width: 0; font-size: .95rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .ficha-form-cuerpo { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
+      .ficha-form-cuerpo > * { flex: 1 1 auto; min-height: 0; }
       .ficha-acc .material-symbols-outlined { font-size: 17px; }
       .ficha-cuerpo { flex: 1; overflow: auto; padding: .4rem 1.2rem 1.2rem; }
       .f-sec { padding: .8rem 0; border-bottom: 1px solid var(--md-outline); }
@@ -243,6 +252,7 @@
     <div class="barra-progreso"></div>
 
     <?!= include('ui/Modal_Deshacer'); ?>
+    <?!= include('valoraciones/Panel_Valoracion'); ?>
 
     <!-- Modal de edición de una valoración guardada (fecha incluida). -->
     <div class="modal-overlay" id="modalEditarOverlay">
@@ -306,6 +316,7 @@
       var nombreEnEdicion = null, fechaEnEdicion = null; // para que el servidor compruebe que la fila sigue siendo la misma
       var ordenCampo = null, ordenDir = 1; // 1 = asc, -1 = desc
       var ultimosFiltrados = [], filaActiva = null;
+      var formularioActivo = false, controladorForm = null, formularioNombre = '';   // formulario de Nueva valoración abierto en la ficha
 
       // Columnas de la tabla principal. sec = se oculta con la ficha abierta para que la tabla quepa.
       var COLS = [
@@ -507,12 +518,16 @@
       document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') {
           if (document.getElementById('modalEditarOverlay').classList.contains('visible')) { cerrarModalEditar(); return; }
-          if (pacienteSeleccionado && !document.querySelector('.modal-overlay.visible')) cerrarDetalle();
+          if (document.querySelector('.modal-overlay.visible')) return;
+          // Con el formulario abierto, Esc lo cierra (pidiendo confirmación si hay cambios) y vuelve a la ficha
+          if (formularioActivo) { volverDeFormulario(); return; }
+          if (pacienteSeleccionado) cerrarDetalle();
           return;
         }
         var enCampo = /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName);
         if (e.key === '/' && !enCampo) { e.preventDefault(); document.getElementById('inputBusqueda').focus(); return; }
         if (enCampo || document.querySelector('.modal-overlay.visible')) return;
+        if (formularioActivo) return;   // el foco está en el formulario: las flechas y Enter no mueven la tabla
         if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); moverFilaActiva(e.key === 'ArrowDown' ? 1 : -1); }
         else if (e.key === 'Enter' && filaActiva) { if (pacienteSeleccionado === filaActiva) cerrarDetalle(); else mostrarDetalle(filaActiva); }
       });
@@ -521,7 +536,20 @@
       function pacienteActual() {
         return PACIENTES.find(function(x) { return x.nombre === pacienteSeleccionado; }) || null;
       }
-      function mostrarDetalle(nombre) {
+      // Antes de cualquier acción que destruiría el formulario abierto (otro paciente, cerrar la ficha…): si hay
+      // cambios sin guardar pregunta; si se acepta, el formulario queda descartado.
+      function hayCambiosSinGuardar() {
+        return !!(formularioActivo && controladorForm && controladorForm.haCambiado && controladorForm.haCambiado());
+      }
+      async function descartarFormularioSiProcede() {
+        if (!hayCambiosSinGuardar()) return true;
+        if (!(await mostrarConfirm('Hay cambios sin guardar en el formulario. ¿Quieres descartarlos?'))) return false;
+        formularioActivo = false; controladorForm = null;
+        return true;
+      }
+      async function mostrarDetalle(nombre) {
+        if (!(await descartarFormularioSiProcede())) return;
+        if (formularioActivo) { formularioActivo = false; controladorForm = null; }
         if (!PACIENTES.some(function(x) { return x.nombre === nombre; })) { cerrarDetalle(); return; }
         pacienteSeleccionado = nombre;
         filaActiva = nombre;
@@ -529,13 +557,16 @@
         document.querySelectorAll('#tablaWrap tbody tr').forEach(function(tr) { tr.classList.toggle('seleccionada', tr.getAttribute('data-nombre') === nombre); });
         marcarFilaActiva();
       }
-      function cerrarDetalle() {
+      async function cerrarDetalle() {
+        if (!(await descartarFormularioSiProcede())) return;
+        formularioActivo = false; controladorForm = null;
         pacienteSeleccionado = null;
         renderFicha();
         document.querySelectorAll('#tablaWrap tbody tr').forEach(function(tr) { tr.classList.remove('seleccionada'); });
       }
 
       function renderFicha() {
+        if (formularioActivo) return;   // el formulario ocupa la ficha: se queda como está hasta que se cierre
         var el = document.getElementById('ficha'), p = pacienteSeleccionado ? pacienteActual() : null;
         if (pacienteSeleccionado && !p) pacienteSeleccionado = null; // ya no tiene valoraciones (p.ej. se borró la última)
         document.body.classList.toggle('con-ficha', !!p);
@@ -783,35 +814,44 @@
         return Promise.resolve(true);
       }
 
-      // ---------- Nueva Valoración (ventana emergente) ----------
-      // Las Web Apps de Apps Script no se pueden embeber en un <iframe>
-      // (Google lo bloquea), así que usamos una ventana real con window.open,
-      // igual que hace Base de Datos para Editar/Cita/Valoración.
+      // ---------- Nueva Valoración (formulario en la ficha lateral) ----------
+      // Ya no se abre una ventana emergente: el formulario (valoraciones/Panel_Valoracion) se monta dentro de la ficha,
+      // con el paciente seleccionado si lo hay. Se mantienen estas variables porque los listeners de 'message' y
+      // 'storage' de más abajo las comprueban.
       var ventanaActiva = null;
       var sondeoCierre = null;
 
-      document.getElementById('btnNuevaValoracion').addEventListener('click', function() {
-        var ruta = 'valoracion' + (pacienteSeleccionado ? '&paciente=' + encodeURIComponent(pacienteSeleccionado) : '');
-        var url = BASE_URL + '?page=' + ruta + '&embed=1';
-
-        ventanaActiva = window.open(url, 'ventanaValoracion', 'width=650,height=800,resizable=yes,scrollbars=yes');
-
-        if (!ventanaActiva) {
-          mostrarAviso('El navegador ha bloqueado la ventana emergente. Permite las ventanas emergentes para esta página e inténtalo de nuevo.');
-          return;
-        }
-
-        // El formulario de Valoración no avisa al cerrarse (no hace postMessage
-        // ni usa localStorage), así que detectamos el cierre por sondeo y
-        // refrescamos la tabla — puede que se haya guardado una valoración nueva.
-        if (sondeoCierre) clearInterval(sondeoCierre);
-        sondeoCierre = setInterval(function() {
-          if (ventanaActiva && ventanaActiva.closed) {
-            clearInterval(sondeoCierre);
-            sondeoCierre = null;
+      async function abrirFormularioValoracion() {
+        var nombre = pacienteSeleccionado || '';
+        if (formularioActivo && formularioNombre === nombre) return;   // ya está abierto para este paciente
+        if (!(await descartarFormularioSiProcede())) return;
+        var p = nombre ? pacienteActual() : null, el = document.getElementById('ficha');
+        formularioActivo = true; formularioNombre = nombre; controladorForm = null;
+        document.body.classList.add('con-ficha');
+        el.classList.add('abierta');
+        el.setAttribute('aria-hidden', 'false');
+        el.innerHTML = '<div class="ficha-form-cab"><button type="button" data-form="volver" title="' + (nombre ? 'Volver a la ficha (Esc)' : 'Cerrar (Esc)') + '"><span class="material-symbols-outlined">' + (nombre ? 'arrow_back' : 'close') + '</span></button><div class="ficha-form-tit"></div></div><div class="ficha-form-cuerpo"></div>';
+        el.querySelector('.ficha-form-tit').textContent = 'Nueva valoración' + (nombre ? ' · ' + nombre : '');
+        controladorForm = PanelValoracion.abrir(el.querySelector('.ficha-form-cuerpo'), {
+          paciente: nombre,
+          telefono: p && p.telefono ? String(p.telefono) : '',
+          onGuardado: function() {
+            mostrarAviso('Valoración guardada');
+            if (formularioActivo) { formularioActivo = false; controladorForm = null; renderFicha(); }
             cargar();
-          }
-        }, 500);
+          },
+          onCancelar: function() { volverDeFormulario(); }
+        });
+      }
+      async function volverDeFormulario() {
+        if (!formularioActivo) return;
+        if (!(await descartarFormularioSiProcede())) return;
+        formularioActivo = false; controladorForm = null;
+        renderFicha();
+      }
+      document.getElementById('btnNuevaValoracion').addEventListener('click', abrirFormularioValoracion);
+      document.getElementById('ficha').addEventListener('click', function(e) {
+        if (e.target.closest('[data-form="volver"]')) volverDeFormulario();
       });
 
       // El formulario avisa por postMessage al guardar o cerrar

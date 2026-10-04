@@ -1,4 +1,3 @@
-
 /**
  * Lee una fila de la Maestra y la deja lista para el formulario de edición
  * (cabeceras + valores, con las fechas convertidas a "yyyy-MM-dd" para que
@@ -17,6 +16,21 @@ function prepararDatosFilaParaEdicion(sheet, rowIdx) {
   });
 
   return { headers: headers, rowData: formattedData };
+}
+
+/**
+ * Lee una fila de la Maestra para el panel lateral de edición de la Base de Datos Web
+ * (usuarios/Panel_Editar.html). Devuelve lo mismo que prepararDatosFilaParaEdicion().
+ * El panel compara el nombre con el que tenía la tabla antes de mostrar el formulario,
+ * así que si las filas se han reordenado entre tanto no se edita a otra persona.
+ */
+function obtenerDatosEdicionPaciente(rowIdx) {
+  const fila = parseInt(rowIdx, 10);
+  if (!fila || fila < 2) throw new Error('Fila de paciente no válida.');
+  const sheet = getSS().getSheetByName(SHEETS.MAESTRA);
+  if (!sheet) throw new Error('No se encontró la hoja "' + SHEETS.MAESTRA + '".');
+  if (fila > sheet.getLastRow()) throw new Error('Ese paciente ya no existe en esa fila. Recarga la Base de Datos.');
+  return prepararDatosFilaParaEdicion(sheet, fila);
 }
 
 /**
@@ -122,5 +136,3 @@ function actualizarPaciente(updatedData, rowIdx) {
   ss.toast("Datos actualizados y guardados en la hoja.", "Éxito ✅", 4);
   return true;
 }
-
-
