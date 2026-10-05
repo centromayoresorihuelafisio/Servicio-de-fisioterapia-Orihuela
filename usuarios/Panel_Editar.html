@@ -11,6 +11,9 @@
   (en vez de scriptlets), el CSS va acotado a .pe y usa los tokens de la página (--md-*, así que
   respeta el tema oscuro), y la revisión de cambios es una capa dentro del propio panel.
   Guarda con actualizarPaciente(data, fila) (usuarios/Editar_Usuario.gs), igual que el formulario original.
+  Seguridad: actualizarPaciente escribe la fila entera en el número de fila que recibe, sin comprobar de quién es.
+  Por eso el panel comprueba la identidad dos veces: al abrir (contra el nombre que tenía la tabla) y otra vez justo
+  antes de guardar (contra la fila tal como se cargó: columna Nº y Nombre). Si no coinciden, no se guarda nada.
   Requiere ui/JS_Formato_Nombre en la página (enlazarFormatoNombre / enlazarFormatoDni).
 -->
 <style>
@@ -231,8 +234,9 @@ window.PanelEditar = {
       { name: "Observaciones",          fields: ["Observaciones"] }
     ];
 
-    var cargado = false, guardando = false, originalData = {};
+    var cargado = false, guardando = false, bloqueado = false, originalData = {};
 
+    function norm(x) { return String(x || '').trim().replace(/\s+/g, ' ').toUpperCase(); }
     function esc(s) {
       return String(s === null || s === undefined ? '' : s)
         .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
@@ -472,12 +476,47 @@ window.PanelEditar = {
       capa.classList.remove('visible');
       capa.setAttribute('aria-hidden', 'true');
     }
+    var ETIQUETA_CONFIRMAR = '<span class="material-symbols-outlined ic18">check_circle</span>Confirmar y guardar';
+    function mostrarErrorRevision(texto) {
+      capaMsg.textContent = texto;
+      capaMsg.classList.add('visible');
+    }
+    // ¿La fila que hay ahora en la hoja sigue siendo la persona que cargamos?
+    function mismaPersona(d) {
+      var k0 = d.headers[0], iNombre = d.headers.indexOf('Nombre');
+      var numOk = !k0 || originalData[k0] === undefined || String(d.rowData[0]).trim() === String(originalData[k0]).trim();
+      var nombreOk = iNombre === -1 || originalData['Nombre'] === undefined || norm(d.rowData[iNombre]) === norm(originalData['Nombre']);
+      return numOk && nombreOk;
+    }
+
+    // Fase 1: releer la fila y comprobar que sigue siendo la misma persona. Si no se puede comprobar, no se guarda.
     function confirmarEnvio() {
-      if (guardando) return;
+      if (guardando || bloqueado) return;
       guardando = true;
-      var data = recogerDatos();
       capaMsg.classList.remove('visible');
       btnConfirmar.disabled = true; btnVolver.disabled = true;
+      btnConfirmar.innerHTML = '<span class="material-symbols-outlined ic18 spin-icon">progress_activity</span>Comprobando…';
+      google.script.run
+        .withSuccessHandler(function (d) {
+          if (!mismaPersona(d)) {
+            guardando = false; bloqueado = true;
+            mostrarErrorRevision('Este usuario ya no está en esa fila de la hoja (alguien ha añadido, borrado o reordenado usuarios). No se ha guardado nada. Cierra el panel, recarga la Base de Datos y vuelve a editarlo.');
+            btnVolver.disabled = false; btnConfirmar.innerHTML = ETIQUETA_CONFIRMAR;   // Confirmar queda desactivado
+            return;
+          }
+          enviarCambios();
+        })
+        .withFailureHandler(function (err) {
+          guardando = false;
+          mostrarErrorRevision('No se pudo comprobar el usuario antes de guardar (no se ha guardado nada): ' + (err && err.message ? err.message : err));
+          btnConfirmar.disabled = false; btnVolver.disabled = false; btnConfirmar.innerHTML = ETIQUETA_CONFIRMAR;
+        })
+        .obtenerDatosEdicionPaciente(opts.fila);
+    }
+
+    // Fase 2: guardar.
+    function enviarCambios() {
+      var data = recogerDatos();
       btnConfirmar.innerHTML = '<span class="material-symbols-outlined ic18 spin-icon">progress_activity</span>Guardando…';
       google.script.run
         .withSuccessHandler(function () {
@@ -488,10 +527,8 @@ window.PanelEditar = {
         })
         .withFailureHandler(function (err) {
           guardando = false;
-          capaMsg.textContent = 'Error al guardar: ' + (err && err.message ? err.message : err);
-          capaMsg.classList.add('visible');
-          btnConfirmar.disabled = false; btnVolver.disabled = false;
-          btnConfirmar.innerHTML = '<span class="material-symbols-outlined ic18">check_circle</span>Confirmar y guardar';
+          mostrarErrorRevision('Error al guardar: ' + (err && err.message ? err.message : err));
+          btnConfirmar.disabled = false; btnVolver.disabled = false; btnConfirmar.innerHTML = ETIQUETA_CONFIRMAR;
         })
         .actualizarPaciente(data, opts.fila);
     }
@@ -510,7 +547,6 @@ window.PanelEditar = {
         var iNombre = d.headers.indexOf('Nombre');
         // Seguridad: si las filas se han reordenado desde que se cargó la tabla, el panel no debe
         // editar a otra persona. Solo se comprueba cuando la Base de Datos nos pasa el nombre esperado.
-        function norm(x) { return String(x || '').trim().replace(/\s+/g, ' ').toUpperCase(); }
         if (opts.nombre && iNombre !== -1 && norm(d.rowData[iNombre]) !== norm(opts.nombre)) {
           mostrarEstado('Los datos han cambiado de posición desde que cargaste la tabla. Cierra este panel y recarga la Base de Datos.', true);
           return;

@@ -308,7 +308,6 @@
     </div>
 
     <script>
-      var BASE_URL = '<?= baseUrl ?>';
       var PACIENTES = [];
       var pacienteSeleccionado = null; // nombre (string) o null
       var metricaActual = 'funcionGlobal';
@@ -815,12 +814,7 @@
       }
 
       // ---------- Nueva Valoración (formulario en la ficha lateral) ----------
-      // Ya no se abre una ventana emergente: el formulario (valoraciones/Panel_Valoracion) se monta dentro de la ficha,
-      // con el paciente seleccionado si lo hay. Se mantienen estas variables porque los listeners de 'message' y
-      // 'storage' de más abajo las comprueban.
-      var ventanaActiva = null;
-      var sondeoCierre = null;
-
+      // El formulario (valoraciones/Panel_Valoracion) se monta dentro de la ficha, con el paciente seleccionado si lo hay.
       async function abrirFormularioValoracion() {
         var nombre = pacienteSeleccionado || '';
         if (formularioActivo && formularioNombre === nombre) return;   // ya está abierto para este paciente
@@ -854,40 +848,10 @@
         if (e.target.closest('[data-form="volver"]')) volverDeFormulario();
       });
 
-      // El formulario avisa por postMessage al guardar o cerrar
-      window.addEventListener('message', function(e) {
-        if (e.data && (e.data.tipo === 'cerrarEdicionPaciente' || e.data.tipo === 'citaGuardada')) {
-          if (sondeoCierre) { clearInterval(sondeoCierre); sondeoCierre = null; }
-          if (e.data.guardado) cargar();
-
-          // La ventana madre cierra la ventana hija
-          if (ventanaActiva && !ventanaActiva.closed) {
-            ventanaActiva.close();
-          }
-        }
-      });
-
-      // Segunda vía de aviso (localStorage)
+      // Si otra pestaña actualiza un paciente (las páginas sueltas ?page=… avisan por localStorage al guardar),
+      // la tabla se recarga.
       window.addEventListener('storage', function(e) {
-        if (e.key === 'pacienteActualizado') {
-          if (sondeoCierre) { clearInterval(sondeoCierre); sondeoCierre = null; }
-          cargar();
-
-          // La ventana madre cierra la ventana hija
-          if (ventanaActiva && !ventanaActiva.closed) {
-            ventanaActiva.close();
-          }
-        }
-      });
-
-      // Cierre de ventanas emergentes: el formulario (popup) no siempre puede
-      // cerrarse a sí mismo, así que pide a la ventana que la abrió (esta) que
-      // lo haga. e.source es la ventana emergente; close() está permitido
-      // aunque sea de otro origen.
-      window.addEventListener('message', function(e) {
-        if (e.data && e.data.tipo === 'cerrarPopupFormulario' && e.source) {
-          try { e.source.close(); } catch (err) { /* bloqueado por el navegador */ }
-        }
+        if (e.key === 'pacienteActualizado') cargar();
       });
 
       // ---------- Búsqueda ----------

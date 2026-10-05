@@ -175,9 +175,7 @@
 
       /* Pestañas para alternar entre Agenda y Base de Datos. Son enlaces
          normales (navegación con recarga) porque las Web Apps de Apps
-         Script no se pueden embeber en un iframe (Google lo bloquea) — por
-         eso el formulario de edición de esta misma página usa window.open()
-         en vez de un iframe (ver abrirVentanaEmergente más abajo). */
+         Script no se pueden embeber en un iframe (Google lo bloquea). */
       nav.tabs-cambio {
         display: flex; gap: .25rem; flex-shrink: 0;
         background: var(--md-bg); padding: .5rem .75rem 0;
@@ -245,9 +243,11 @@
       .punto { width: 10px; height: 10px; border-radius: 50%; margin: 0 4px; background: var(--md-on-surface-low); flex-shrink: 0; }
       .punto.activo { background: var(--md-success); } .punto.espera { background: var(--md-warning); } .punto.contactara { background: var(--md-error); } .punto.alta { background: var(--md-purple); }
 
-      .ficha { position: fixed; top: 0; right: 0; bottom: 0; width: 400px; max-width: 100%; z-index: 900; display: flex; flex-direction: column; background: var(--md-surface);
+      .ficha { position: fixed; top: 0; right: 0; bottom: 0; width: var(--ficha-w, 400px); max-width: 100%; z-index: 900; display: flex; flex-direction: column; background: var(--md-surface);
         border-left: 1px solid var(--md-outline); box-shadow: -6px 0 24px rgba(0,0,0,.08); transform: translateX(100%); visibility: hidden; transition: transform 160ms cubic-bezier(.2,0,0,1), visibility 0s 160ms; will-change: transform; }
       .ficha.abierta { transform: none; visibility: visible; transition-delay: 0s; }
+      /* Formularios que piden más sitio (Cita): el panel pasa de 400 a 520 px solo con pantalla ancha */
+      @media (min-width: 1200px) { body.ficha-ancha { --ficha-w: 520px; } }
       .ficha-cab { display: flex; align-items: center; gap: .9rem; padding: 1rem 1rem .6rem 1.2rem; }
       .ficha-tit { flex: 1; min-width: 0; }
       .ficha-nombre { font-size: 1.05rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; }
@@ -287,7 +287,7 @@
       .ficha-sec.peligro:hover { background: var(--md-error-bg); border-color: var(--md-error); }
       @media (min-width: 900px) {
         /* Sin animar el margen (forzaba reflujo de la tabla en cada fotograma): el panel se desliza con transform y el contenido se ajusta al instante. */
-        body.con-ficha nav.tabs-cambio, body.con-ficha header.top, body.con-ficha .tabla-wrap { margin-right: 400px; }
+        body.con-ficha nav.tabs-cambio, body.con-ficha header.top, body.con-ficha .tabla-wrap { margin-right: var(--ficha-w, 400px); }
         /* Con la ficha abierta se ocultan Prioridad, Inscripción y las acciones de fila (la ficha ya tiene sus botones) para que la tabla quepa sin scroll horizontal. */
         body.con-ficha .tabla-wrap { overflow-x: hidden; }
         body.con-ficha table { min-width: 0; }
@@ -518,7 +518,6 @@
     <div class="barra-progreso"></div>
 
     <script>
-      var BASE_URL = '<?= baseUrl ?>';
       var TODOS = [];
       var HEADERS = [];
       var filtroEstado = null;
@@ -1023,7 +1022,7 @@
           }
         },
         cita: {
-          titulo: 'Cita', aviso: 'Cita registrada',
+          titulo: 'Cita', aviso: 'Cita registrada', ancha: true,
           montar: function(cont, p, cb) {
             return PanelCita.abrir(cont, { paciente: p['Nombre'] || '', onGuardado: cb.guardado, onCancelar: cb.cancelar });
           }
@@ -1055,6 +1054,7 @@
         var fila = p._fila, el = document.getElementById('ficha');
         fichaAbierta = true; formularioActivo = true; formularioFila = fila; controladorForm = null;
         document.body.classList.add('con-ficha');
+        document.body.classList.toggle('ficha-ancha', !!def.ancha);
         el.classList.add('abierta');
         el.setAttribute('aria-hidden', 'false');
         el.innerHTML = '<div class="ficha-form-cab"><button type="button" data-ficha-volver title="Volver a la ficha"><span class="material-symbols-outlined">arrow_back</span></button><div class="ficha-form-tit"></div></div><div class="ficha-form-cuerpo"></div>';
@@ -1268,6 +1268,7 @@
         el.setAttribute('aria-hidden', abierta ? 'false' : 'true');
         if (formularioActivo && (!abierta || p._fila !== formularioFila)) { formularioActivo = false; controladorForm = null; }
         if (formularioActivo) return; // no pisar el formulario abierto en el panel
+        document.body.classList.remove('ficha-ancha');   // la ficha y el resto de formularios usan el ancho normal
         if (abierta) {
           var scroll = (el.querySelector('.ficha-cuerpo') || {}).scrollTop || 0;
           el.innerHTML = htmlFicha(p);
@@ -1368,70 +1369,10 @@
         if (fichaAbierta && !document.querySelector('.modal-overlay.visible')) cerrarFicha();
       });
 
-      // ---------- Ventana emergente (edición y alta de paciente) ----------
-      // Las Web Apps de Apps Script no se pueden embeber en un <iframe>
-      // (Google lo bloquea), así que usamos una ventana real con window.open.
-      var ventanaActiva = null;
-      var sondeoCierre = null;
-
-      function abrirVentanaEmergente(rutaConParametros) {
-        var embedParam = '&embed=1';
-        var url = BASE_URL + '?page=' + rutaConParametros + embedParam;
-
-        ventanaActiva = window.open(url, 'ventanaPaciente', 'width=650,height=800,resizable=yes,scrollbars=yes');
-
-        if (!ventanaActiva) {
-          mostrarAviso('El navegador ha bloqueado la ventana emergente. Permite las ventanas emergentes para esta página e inténtalo de nuevo.');
-          return;
-        }
-
-        // Red de seguridad: si la ventana se cierra sin avisar por postMessage
-        // (p. ej. el formulario de Nuevo Paciente, que aún no lo hace), al
-        // detectar que se cerró refrescamos la tabla igualmente.
-        if (sondeoCierre) clearInterval(sondeoCierre);
-        sondeoCierre = setInterval(function() {
-          if (ventanaActiva && ventanaActiva.closed) {
-            clearInterval(sondeoCierre);
-            sondeoCierre = null;
-            cargar();
-          }
-        }, 500);
-      }
-
-      // El formulario avisa por postMessage al guardar o cerrar
-      window.addEventListener('message', function(e) {
-        if (e.data && (e.data.tipo === 'cerrarEdicionPaciente' || e.data.tipo === 'citaGuardada')) {
-          if (sondeoCierre) { clearInterval(sondeoCierre); sondeoCierre = null; }
-          if (e.data.guardado) cargar();
-          
-          // ¡LA MAGIA AQUÍ!: La ventana madre cierra la ventana hija
-          if (ventanaActiva && !ventanaActiva.closed) {
-            ventanaActiva.close();
-          }
-        }
-      });
-
-      // Segunda vía de aviso (localStorage)
+      // Si otra pestaña actualiza un paciente (las páginas sueltas ?page=… avisan por localStorage al guardar),
+      // la tabla se recarga. Los formularios de esta página ya no usan ventanas emergentes.
       window.addEventListener('storage', function(e) {
-        if (e.key === 'pacienteActualizado') {
-          if (sondeoCierre) { clearInterval(sondeoCierre); sondeoCierre = null; }
-          cargar();
-          
-          // ¡LA MAGIA AQUÍ!: La ventana madre cierra la ventana hija
-          if (ventanaActiva && !ventanaActiva.closed) {
-            ventanaActiva.close();
-          }
-        }
-      });
-
-      // Cierre de ventanas emergentes: el formulario (popup) no siempre puede
-      // cerrarse a sí mismo, así que pide a la ventana que la abrió (esta) que
-      // lo haga. e.source es la ventana emergente; close() está permitido
-      // aunque sea de otro origen.
-      window.addEventListener('message', function(e) {
-        if (e.data && e.data.tipo === 'cerrarPopupFormulario' && e.source) {
-          try { e.source.close(); } catch (err) { /* bloqueado por el navegador */ }
-        }
+        if (e.key === 'pacienteActualizado') cargar();
       });
 
       // ---------- Barra de herramientas ----------

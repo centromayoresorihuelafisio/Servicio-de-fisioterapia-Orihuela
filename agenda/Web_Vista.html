@@ -812,7 +812,6 @@
       // Hora ("HH:mm") a partir de la cual una cita es "de tarde".
       var HORA_CORTE_TARDE = '14:00';
 
-      var BASE_URL = '<?= baseUrl ?>';
       var filasSeleccionadas = new Set();
 
       // Columnas de Sheets que no se muestran (normalizadas: sin mayúsculas ni acentos).
@@ -1714,10 +1713,6 @@
           .obtenerEnlacesJornadaWeb();
       });
 
-      // Ya no se abren ventanas emergentes desde la Agenda; se mantiene la variable porque los
-      // listeners de 'message' y 'storage' del final del archivo la comprueban.
-      var ventanaActiva = null;
-
       // ---------- Panel lateral de Valoración (sustituye a la ventana emergente) ----------
       // Igual que en la Base de Datos: el formulario vive en el panel (valoraciones/Panel_Valoracion) y devuelve un
       // controlador con haCambiado(). El panel trabaja con el nombre del paciente, no con la fila ni con la semana
@@ -2437,28 +2432,9 @@
       var AUTO_REFRESH_MS = 4000;
       setInterval(comprobarVersionAgenda, AUTO_REFRESH_MS);
 
-      // El formulario de Valoración avisa por postMessage al guardar o cerrar.
-      window.addEventListener('message', function(e) {
-        if (e.data && e.data.tipo === 'cerrarEdicionPaciente') {
-          if (ventanaActiva && !ventanaActiva.closed) {
-            ventanaActiva.close();
-          }
-        }
-      });
-
-      // Los popups piden a la ventana madre que los cierre.
-      window.addEventListener('message', function(e) {
-        if (e.data && e.data.tipo === 'cerrarPopupFormulario' && e.source) {
-          try { e.source.close(); } catch (err) { /* bloqueado por el navegador */ }
-        }
-      });
-
-      // Aviso opcional entre pestañas vía localStorage (no siempre fiable en
-      // Apps Script; el sondeo de arriba lo cubre igualmente).
+      // Si otra pestaña actualiza un paciente (las páginas sueltas ?page=… avisan por localStorage al guardar),
+      // la agenda se recarga salvo que haya una edición en línea en curso.
       window.addEventListener('storage', function(e) {
-        if (e.key === 'pacienteActualizado' && ventanaActiva && !ventanaActiva.closed) {
-          ventanaActiva.close();
-        }
         if (e.key === 'pacienteActualizado' && semanaActual) {
           if (document.querySelector('.editando')) return;
           cargar(semanaActual, true);

@@ -11,7 +11,10 @@
   Usa las mismas funciones de servidor: obtenerNombreDeFilaActiva, obtenerSemanasYHuecos y guardarCitasMultiples
   (agenda/Cita.gs). CSS acotado a .pc y basado en los tokens de la página (--md-*, respeta el tema oscuro).
   Requiere ui/JS_Formato_Nombre en la página (sanitizeName).
-  A 400 px los días se abrevian (LUN, MAR…) para que quepan las cinco columnas.
+  A menos de 480 px de ancho los días se abrevian (LUN, MAR…) para que quepan las cinco columnas; con el panel
+  ancho (BaseDatos_Vista lo ensancha a 520 px en pantallas grandes) se ven completos y los botones de hora crecen.
+  Semana inicial: la que contiene el día de hoy; si hoy no está en ninguna (fin de semana o hueco en la hoja),
+  la siguiente semana con fechas por delante; si tampoco hay, la que indique el servidor.
 -->
 <style>
 .pc {
@@ -21,6 +24,17 @@
   --pc-seleccion-borde: var(--md-primary);
   display: flex; flex-direction: column; height: 100%; min-height: 0; position: relative;
   font-family: var(--font); font-size: 14px; color: var(--md-on-surface); background: var(--md-surface);
+  container-type: inline-size;
+}
+.pc .dn-l { display: none; }
+@container (min-width: 480px) {
+  .pc .dn-s { display: none; }
+  .pc .dn-l { display: inline; }
+  .pc .calendar-grid { gap: .5rem; }
+  .pc .day-column { padding: .75rem .4rem; }
+  .pc .day-label .day-name { font-size: .78rem; }
+  .pc .day-label .day-date { font-size: .7rem; }
+  .pc .hour-button { font-size: .84rem; padding: .6rem 0; }
 }
 .pc .ms { font-family: 'Material Symbols Outlined'; font-weight: 400; font-style: normal; font-size: 20px; line-height: 1; letter-spacing: normal; text-transform: none; display: inline-block; white-space: nowrap; direction: ltr; font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20; user-select: none; flex-shrink: 0; color: var(--md-on-surface-med); }
 .pc .ms-sm { font-size: 16px; }
@@ -275,6 +289,23 @@ window.PanelCita = {
     }
 
     /* ── Calendario ── */
+    // Semana que se muestra al abrir. No nos fiamos solo del índice del servidor: ese índice es 0 cuando hoy no
+    // tiene cabecera de día en la hoja (sábado, domingo, festivo sin fila) y entonces se abriría la primera semana
+    // de la hoja, que puede ser una semana pasada. Aquí: la semana cuyo rango de fechas contiene hoy; si no hay,
+    // la primera con fechas posteriores a hoy; y solo si tampoco hay, el índice del servidor.
+    function indiceSemanaInicial(semanas, indiceServidor) {
+      var hoy = new Date(), n = hoy.getFullYear() * 10000 + (hoy.getMonth() + 1) * 100 + hoy.getDate();
+      function num(k) { var p = k.split('/'); return (+p[2]) * 10000 + (+p[1]) * 100 + (+p[0]); }
+      var primeraFutura = -1;
+      for (var i = 0; i < semanas.length; i++) {
+        var ks = semanas[i] && semanas[i].dias ? Object.keys(semanas[i].dias).map(num) : [];
+        if (!ks.length) continue;
+        var min = Math.min.apply(null, ks), max = Math.max.apply(null, ks);
+        if (n >= min && n <= max) return i;
+        if (primeraFutura < 0 && min > n) primeraFutura = i;
+      }
+      return primeraFutura >= 0 ? primeraFutura : (indiceServidor || 0);
+    }
     function sortDaysByDate(dias) {
       return Object.keys(dias).sort(function (a, b) {
         var pa = a.split('/'), pb = b.split('/');
@@ -318,7 +349,7 @@ window.PanelCita = {
         var shortDate = f[0] + '/' + f[1] + '/' + f[2].slice(-2);
         var lbl = document.createElement('div');
         lbl.className = 'day-label';
-        lbl.innerHTML = '<div class="day-name" title="' + dayName + '">' + dayName.slice(0, 3) + '</div><div class="day-date">' + shortDate + '</div>';
+        lbl.innerHTML = '<div class="day-name" title="' + dayName + '"><span class="dn-s">' + dayName.slice(0, 3) + '</span><span class="dn-l">' + dayName + '</span></div><div class="day-date">' + shortDate + '</div>';
         col.appendChild(lbl);
         if (!dayData.huecos.length) {
           var empty = document.createElement('p');
@@ -456,7 +487,7 @@ window.PanelCita = {
         .withSuccessHandler(function (res) {
           toggleLoading(false);
           semanasData = res.semanas;
-          if (semanasData && semanasData.length) { currentWeekIndex = res.index; renderWeek(); }
+          if (semanasData && semanasData.length) { currentWeekIndex = indiceSemanaInicial(semanasData, res.index); renderWeek(); }
         })
         .withFailureHandler(function (err) {
           toggleLoading(false);
