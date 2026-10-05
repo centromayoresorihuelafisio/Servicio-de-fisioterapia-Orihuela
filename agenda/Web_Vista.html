@@ -419,7 +419,6 @@
 
       /* ===== Asistencia con un clic ===== */
       .asis-rapida { display: none; align-items: center; gap: .1rem; }
-      tbody tr.fila-cita:hover .asis-guion { display: none; }
       tbody tr.fila-cita:hover .asis-rapida { display: inline-flex; }
       .btn-asis {
         width: 26px; height: 26px; border: none; background: transparent; border-radius: 50%; cursor: pointer;
@@ -456,7 +455,6 @@
       tbody tr:hover .acciones-fila .btn-fila, tbody tr.seleccionada .acciones-fila .btn-fila, .acciones-fila .btn-fila:focus-visible { opacity: 1; }
       @media (hover: none) {
         .acciones-fila .btn-fila { opacity: 1; }
-        tbody tr.fila-cita .asis-guion { display: none; }
         tbody tr.fila-cita .asis-rapida { display: inline-flex; }
       }
 
@@ -660,7 +658,7 @@
       .btn-fila.sin-hc .material-symbols-outlined { opacity: .35; }
 
       /* ---------- Panel lateral (formulario de Valoración): misma estructura que la ficha de la Base de Datos ---------- */
-      .ficha { position: fixed; top: 0; right: 0; bottom: 0; width: 400px; max-width: 100%; z-index: 900; display: flex; flex-direction: column; background: var(--md-surface);
+      .ficha { position: fixed; top: 0; right: 0; bottom: 0; width: var(--ficha-w, 400px); max-width: 100%; z-index: 900; display: flex; flex-direction: column; background: var(--md-surface);
         border-left: 1px solid var(--md-outline); box-shadow: -6px 0 24px rgba(0,0,0,.08); transform: translateX(100%); visibility: hidden; transition: transform 160ms cubic-bezier(.2,0,0,1), visibility 0s 160ms; will-change: transform; }
       .ficha.abierta { transform: none; visibility: visible; transition-delay: 0s; }
       .ficha-form-cab { flex: none; display: flex; align-items: center; gap: .5rem; padding: .7rem .8rem .7rem 1.1rem; border-bottom: 1px solid var(--md-outline); }
@@ -672,8 +670,97 @@
       .ficha-form-cuerpo > * { flex: 1 1 auto; min-height: 0; }
       @media (min-width: 900px) {
         /* El panel se desliza con transform y el contenido se ajusta al instante (sin animar el margen). */
-        body.con-ficha nav.tabs-cambio, body.con-ficha header.top, body.con-ficha .tabla-wrap { margin-right: 400px; }
+        body.con-ficha nav.tabs-cambio, body.con-ficha header.top, body.con-ficha .tabla-wrap { margin-right: var(--ficha-w, 400px); }
       }
+
+      /* ===== Panel lateral ancho («Dar cita») ===== */
+      @media (min-width: 1200px) { body.ficha-ancha { --ficha-w: 520px; } }
+
+      /* ===== Asistencia: siempre con botones (el activo queda resaltado) ===== */
+      .asis-rapida { display: inline-flex; align-items: center; gap: .1rem; }
+      .btn-asis { opacity: .5; }
+      .btn-asis:hover, .btn-asis.activo { opacity: 1; }
+      .btn-asis.activo.ok    { background: rgba(30,142,62,.18);  color: var(--chip-ok); }
+      .btn-asis.activo.mal   { background: rgba(217,48,37,.15);  color: var(--chip-mal); }
+      .btn-asis.activo.aviso { background: rgba(240,165,0,.24);  color: var(--chip-aviso); }
+      .btn-asis.activo.neutro{ background: rgba(88,96,116,.18);  color: var(--chip-neutro); }
+      .btn-asis.activo .material-symbols-outlined { font-variation-settings: 'FILL' 1; }
+      button.chip { border: none; cursor: pointer; font-family: var(--font); }
+      thead th:nth-child(5), tbody td:nth-child(5) { width: 150px; }
+      thead th:last-child, tbody td.acciones-fila { width: 200px; }
+
+      /* ===== Cabecera aligerada ===== */
+      .menu-der { left: auto; right: 0; }
+      .btn-rec .badge-rec { min-width: 18px; height: 18px; padding: 0 .3rem; border-radius: 999px; background: var(--ag-accent); color: #fff; font-size: .68rem; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; }
+      .btn-rec .badge-rec.atrasado { background: #d93025; }
+      .btn-rec .badge-rec:empty { display: none; }
+      .buscador { flex: 0 1 280px; min-width: 180px; }
+
+      /* ===== Recordatorios en la agenda ===== */
+      .rc-chips { display: inline-flex; align-items: center; gap: .3rem; min-width: 0; flex: 0 1 auto; overflow: hidden; }
+      .rc-chip { display: inline-flex; align-items: center; gap: .2rem; max-width: 210px; border: none; cursor: pointer; padding: .05rem .55rem .05rem .3rem; border-radius: 999px;
+        background: var(--rc-bg); color: var(--ag-text); font: 600 .72rem var(--font); text-transform: none; white-space: nowrap; flex-shrink: 0; }
+      .rc-chip .material-symbols-outlined { font-size: 14px; color: var(--rc-c); }
+      .rc-chip-txt { overflow: hidden; text-overflow: ellipsis; }
+      .rc-chip:hover { filter: brightness(.94); }
+      .rc-chips .rc-chip:last-child { flex-shrink: 1; }
+      .rc-add { opacity: 0; width: 26px; height: 26px; }
+      tr.fila-dia:hover .rc-add, .tj-cab:hover .rc-add, .cal-cab:hover .rc-add, .rc-add:focus-visible { opacity: 1; }
+      @media (hover: none) { .rc-add { opacity: 1; } }
+      .rc-puntos { display: inline-flex; align-items: center; gap: .25rem; margin-left: .4rem; vertical-align: middle; }
+      .rc-punto { width: 10px; height: 10px; padding: 0; border: none; border-radius: 50%; background: var(--rc-c); cursor: pointer; }
+      .cal-cab .rc-add { width: 22px; height: 22px; }
+
+      /* ===== Vista Hoy: mañana y tarde lado a lado ===== */
+      /* Tamaño por defecto = cómodo. ajustarHoy() solo lo encoge (tj-medio, y si aún no cabe tj-denso) cuando
+         la vista desborda en alto; si sobra sitio, las tarjetas se quedan grandes. */
+      .tj-turnos { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 0 1.5rem; padding: .4rem 1.25rem 1.5rem; --tj-min: 290px; }
+      .tj-col { flex: var(--n, 1) 1 320px; min-width: 0; }
+      .tj-turno-titulo { margin: 1rem 0 .65rem; }
+      .tj-grid { grid-template-columns: repeat(auto-fill, minmax(var(--tj-min), 1fr)); gap: .85rem; }
+      .tarjeta { position: relative; padding: .95rem 1.1rem 1rem; gap: .6rem; border-radius: 18px; }
+      .tj-top { gap: .5rem; min-height: 34px; }
+      .tj-hora { font-size: 1.4rem; }
+      .tj-nombre { font-size: 1rem; }
+      .tj-nombre .nombre-u { white-space: normal; }
+      .tj-asis { min-height: 34px; }
+      .tj-asis .asis-rapida { gap: .3rem; }
+      .tj-asis .btn-asis { width: 32px; height: 32px; }
+      .tj-asis .btn-asis .material-symbols-outlined { font-size: 23px; }
+      .tj-tel { font-size: .82rem; color: var(--ag-text-med); white-space: nowrap; }
+      .tj-notas { padding: .35rem .5rem; min-height: 2.3rem; font-size: .84rem; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; word-break: break-word; }
+      .tj-notas.editando { overflow: visible; display: block; }
+      .tj-acciones { position: absolute; top: .55rem; right: .6rem; z-index: 2; background: var(--ag-surface); border-radius: 999px; box-shadow: 0 1px 6px rgba(0,0,0,.2); opacity: 0; pointer-events: none; transition: opacity var(--ag-t); }
+      .tarjeta:hover .tj-acciones, .tarjeta:focus-within .tj-acciones { opacity: 1; pointer-events: auto; }
+      .tarjeta .btn-fila { width: 30px; height: 30px; opacity: 1; }
+      @media (hover: none) { .tj-acciones { position: static; opacity: 1; pointer-events: auto; box-shadow: none; } }
+
+      /* Nivel medio: cuando el cómodo no cabe en alto */
+      .tj-medio .tj-turnos { --tj-min: 250px; padding-top: .2rem; padding-bottom: .8rem; }
+      .tj-medio .tj-grid { gap: .6rem; }
+      .tj-medio .tarjeta { padding: .6rem .8rem .65rem; gap: .35rem; border-radius: 15px; }
+      .tj-medio .tj-top { min-height: 28px; }
+      .tj-medio .tj-hora { font-size: 1.15rem; }
+      .tj-medio .tj-nombre { font-size: .9rem; }
+      .tj-medio .tj-nombre .nombre-u { white-space: nowrap; }
+      .tj-medio .tj-asis { min-height: 28px; }
+      .tj-medio .tj-asis .btn-asis { width: 28px; height: 28px; }
+      .tj-medio .tj-asis .btn-asis .material-symbols-outlined { font-size: 21px; }
+      .tj-medio .tj-notas { min-height: 1.7rem; padding: .15rem .4rem; font-size: .8rem; display: block; white-space: nowrap; text-overflow: ellipsis; }
+      .tj-medio .tj-turno-titulo { margin: .6rem 0 .4rem; }
+      .tj-medio .tarjeta .btn-fila { width: 26px; height: 26px; }
+
+      /* Nivel denso: último recurso */
+      .tj-denso .tj-turnos { --tj-min: 210px; padding-bottom: .4rem; }
+      .tj-denso .tj-grid { gap: .45rem; }
+      .tj-denso .tarjeta { padding: .38rem .6rem .42rem; gap: .15rem; border-radius: 13px; }
+      .tj-denso .tj-top, .tj-denso .tj-asis { min-height: 24px; }
+      .tj-denso .tj-hora { font-size: 1rem; }
+      .tj-denso .tj-nombre { font-size: .84rem; }
+      .tj-denso .tj-asis .btn-asis { width: 24px; height: 24px; }
+      .tj-denso .tj-asis .btn-asis .material-symbols-outlined { font-size: 19px; }
+      .tj-denso .tj-notas { min-height: 1.2rem; padding-top: 0; padding-bottom: 0; font-size: .76rem; }
+      .tj-denso .tj-turno-titulo { margin: .35rem 0 .25rem; }
     </style>
   </head>
   <body>
@@ -702,27 +789,50 @@
           <span class="material-symbols-outlined">calendar_month</span>
           <input type="date" id="inputSemana" title="Ir a la semana que contiene esta fecha">
         </div>
-        <span class="contador" id="contador"></span>
 
         <div class="buscador">
           <span class="material-symbols-outlined">search</span>
-          <input type="text" id="inputBusqueda" placeholder="Buscar por usuario, sesión o notas…  ( / )">
+          <input type="text" id="inputBusqueda" placeholder="Buscar…  ( / )" title="Buscar por usuario, sesión o notas">
+        </div>
+
+        <div class="segmentado" role="group" aria-label="Vista">
+          <button type="button" class="seg activo" id="btnVistaSemana" title="Tabla de la semana">Semana</button>
+          <button type="button" class="seg" id="btnVistaHoy" title="Tarjetas con las citas de hoy">Hoy</button>
+          <button type="button" class="seg" id="btnVistaCal" title="Cuadrícula semanal tipo calendario">Cuadrícula</button>
         </div>
 
         <span class="espaciador"></span>
 
-        <button class="btn-toolbar" id="btnHuecos">
-          <span class="material-symbols-outlined">event_available</span> Mostrar citas disponibles
+        <button class="btn-toolbar btn-rec" id="btnRecordatorios" title="Recordatorios (R)">
+          <span class="material-symbols-outlined">checklist</span> Recordatorios <span class="badge-rec" id="badgeRec"></span>
+        </button>
+        <button class="btn-toolbar" id="btnHuecos" title="Muestra u oculta los huecos libres de la agenda">
+          <span class="material-symbols-outlined">event_available</span> Huecos libres
         </button>
         <button class="btn-toolbar primario" id="btnJornada" title="Abre las Historias Clínicas del turno actual de hoy">
           <span class="material-symbols-outlined">today</span> Preparar Jornada
         </button>
-        <button class="btn-toolbar" id="btnCopiarSemana" title="Copia miércoles y jueves (doble sesión) y viernes (simple) a la semana siguiente, sin necesidad de seleccionar nada">
-          <span class="material-symbols-outlined">event_repeat</span> Copiar Semana
-        </button>
         <button class="btn-toolbar deshacer" id="btnDeshacer" title="Deshacer la última eliminación">
           <span class="material-symbols-outlined">undo</span> Deshacer
         </button>
+        <button type="button" class="btn-toolbar" id="btnDensidad" title="Cambiar la altura de las filas">
+          <span class="material-symbols-outlined">density_medium</span> <span id="txtDensidad">Espaciado</span>
+        </button>
+        <div class="menu-wrap" id="menuMasWrap">
+          <button class="btn-toolbar btn-nav" id="btnMenuMas" aria-haspopup="true" aria-expanded="false" title="Más opciones">
+            <span class="material-symbols-outlined">more_vert</span>
+          </button>
+          <div class="menu menu-der" role="menu">
+            <button class="menu-item" id="btnCopiarSemana" role="menuitem" title="Copia miércoles y jueves (doble sesión) y viernes (simple) a la semana siguiente, sin necesidad de seleccionar nada">
+              <span class="material-symbols-outlined">event_repeat</span>
+              <span>Copiar semana<small>Mié/jue ×2 y vie → semana siguiente</small></span>
+            </button>
+            <button class="menu-item" id="btnTema" role="menuitem"></button>
+            <button class="menu-item" id="btnAtajos" role="menuitem">
+              <span class="material-symbols-outlined">keyboard</span><span>Atajos de teclado</span>
+            </button>
+          </div>
+        </div>
       </div>
 
       <!-- Barra contextual: sustituye a la principal con citas seleccionadas -->
@@ -772,27 +882,7 @@
         </button>
       </div>
 
-      <!-- Barra secundaria: vista, filtros rápidos y densidad -->
-      <div class="barra barra-filtros">
-        <div class="segmentado" role="group" aria-label="Vista">
-          <button type="button" class="seg activo" id="btnVistaSemana" title="Tabla de la semana">Semana</button>
-          <button type="button" class="seg" id="btnVistaHoy" title="Tarjetas con las citas de hoy">Hoy</button>
-          <button type="button" class="seg" id="btnVistaCal" title="Cuadrícula semanal tipo calendario">Cuadrícula</button>
-        </div>
-        <span class="separador"></span>
-        <button type="button" class="chip-filtro" data-filtro="sinAsistencia" title="Citas de hoy o anteriores sin asistencia registrada">Sin asistencia <span class="cnt"></span></button>
-        <button type="button" class="chip-filtro" data-filtro="sinHC" title="Citas sin Historia Clínica enlazada">Sin HC <span class="cnt"></span></button>
-        <button type="button" class="chip-filtro" data-filtro="conNotas" title="Citas con notas">Con notas <span class="cnt"></span></button>
-        <span class="espaciador"></span>
-        <button type="button" class="btn-toolbar" id="btnDensidad" title="Cambiar la altura de las filas">
-          <span class="material-symbols-outlined">density_medium</span> <span id="txtDensidad">Cómodo</span>
-        </button>
-        <button type="button" class="btn-toolbar btn-nav" id="btnTema"></button>
-        <button type="button" class="btn-toolbar btn-nav" id="btnAtajos" title="Atajos de teclado">
-          <span class="material-symbols-outlined">keyboard</span>
-        </button>
-      </div>
-    </header>
+          </header>
 
     <datalist id="listaPacientes"></datalist>
 
@@ -802,6 +892,8 @@
     <?!= include('ui/Modal_Deshacer'); ?>
     <?!= include('ui/JS_Formato_Nombre'); ?>
     <?!= include('valoraciones/Panel_Valoracion'); ?>
+    <?!= include('agenda/Panel_Cita'); ?>
+    <?!= include('agenda/Panel_Recordatorios'); ?>
 
     <div class="toast-deshacer" id="toastMover">
       <span id="toastMoverTexto"></span>
@@ -827,6 +919,7 @@
       var NOMBRES_PACIENTES = [];
       var vista = 'semana';            // 'semana' (tabla) | 'hoy' (tarjetas del día de hoy)
       var filtrosActivos = new Set();  // 'sinAsistencia' | 'sinHC' | 'conNotas'
+      var RECORDATORIOS = [];            // recordatorios genéricos (agenda/Recordatorios.gs)
       var plegadoManual = {};          // fechaISO -> true/false: días plegados o desplegados a mano
       var DURACION_CITA_MIN = 30;      // para marcar "Ahora" y atenuar las citas ya terminadas
 
@@ -937,7 +1030,7 @@
           .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
       }
 
-      var CAMPOS_EDITABLES = ['Asistencia', 'Notas', 'Sesión'];
+      var CAMPOS_EDITABLES = ['Notas', 'Sesión'];
 
       // ---------- Utilidades de fecha/hora y estado ----------
       function vacioTxt(v) { return v === '' || v === null || v === undefined; }
@@ -1012,15 +1105,6 @@
         return ok;
       }
 
-      function actualizarChipsFiltros() {
-        var hoy = hoyISO();
-        var base = CITAS.filter(function(c) { return !c._hueco && (vista !== 'hoy' || c._fechaISO === hoy); });
-        document.querySelectorAll('.chip-filtro').forEach(function(b) {
-          var k = b.dataset.filtro;
-          b.classList.toggle('activo', filtrosActivos.has(k));
-          b.querySelector('.cnt').textContent = base.filter(function(c) { return cumpleFiltro(c, k); }).length;
-        });
-      }
 
       // ---------- Asistencia con un clic ----------
       // Cada botón busca en las opciones reales de tu desplegable la que
@@ -1046,14 +1130,34 @@
         { clase: 'neutro', icono: 'hourglass_empty' }
       ];
 
-      function htmlAsistenciaRapida(conTexto) {
-        return ASIS_RAPIDA.map(function(a) {
+      // Los botones se muestran SIEMPRE; el estado actual queda resaltado y pulsarlo de nuevo lo quita.
+      // Un valor que no encaja con ningún botón (texto libre antiguo) sale como chip pulsable para poder quitarlo.
+      function htmlAsistenciaBotones(valor, conTexto) {
+        var hay = !vacioTxt(valor), v = hay ? String(valor) : '', clsV = hay ? estiloAsistencia(v) : '', alguno = false, html = '';
+        ASIS_RAPIDA.forEach(function(a) {
           var op = opcionAsistencia(a.clase);
-          if (!op) return '';
-          return '<button type="button" class="btn-asis ' + a.clase + (conTexto ? ' btn-asis-lg' : '') +
-            '" data-asis="' + escapar(op) + '" title="' + escapar(op) + '"><span class="material-symbols-outlined">' + a.icono + '</span>' +
-            (conTexto ? escapar(op) : '') + '</button>';
-        }).join('');
+          if (!op) return;
+          var act = hay && (v === op || (a.clase !== 'neutro' && clsV === a.clase) || (a.clase === 'neutro' && /pendient/.test(normalizar(v))));
+          if (act) alguno = true;
+          html += '<button type="button" class="btn-asis ' + a.clase + (act ? ' activo' : '') + (conTexto ? ' btn-asis-lg' : '') +
+            '" data-asis="' + escapar(op) + '" aria-pressed="' + act + '" title="' + escapar(act ? v + ' — clic para quitar' : op) +
+            '"><span class="material-symbols-outlined">' + a.icono + '</span>' + (conTexto ? escapar(op) : '') + '</button>';
+        });
+        if (hay && !alguno) html = '<button type="button" class="chip chip-' + clsV + '" data-asis="" title="' + escapar(v + ' — clic para quitar') + '">' + escapar(v) + '</button>' + html;
+        return '<span class="asis-rapida">' + html + '</span>';
+      }
+
+      function guardarAsistencia(fila, valor) {
+        var cita = CITAS.find(function(c) { return c._fila == fila; });
+        if (!cita) return;
+        var previo = cita['Asistencia'];
+        cita['Asistencia'] = valor;            // respuesta inmediata; se revierte si el servidor falla
+        render();
+        function revertir(msg) { cita['Asistencia'] = previo; render(); mostrarAviso(msg); }
+        google.script.run
+          .withSuccessHandler(function(res) { if (!res || !res.success) revertir((res && res.message) || 'No se pudo guardar el cambio.'); })
+          .withFailureHandler(function(err) { revertir('Error al guardar: ' + err); })
+          .actualizarCampoAgendaWeb(fila, 'Asistencia', valor);
       }
 
       function badgeSesion(v) {
@@ -1076,6 +1180,7 @@
         }
         return btnHC +
           '<button type="button" class="btn-fila btn-whatsapp" data-accion="whatsapp" data-fila="' + fila + '" title="Abrir WhatsApp">' + SVG_WHATSAPP + '</button>' +
+          '<button type="button" class="btn-fila" data-accion="cita" data-fila="' + fila + '" title="Dar cita"><span class="material-symbols-outlined">edit_calendar</span></button>' +
           '<button type="button" class="btn-fila" data-accion="valoracion" data-fila="' + fila + '" title="Valoración"><span class="material-symbols-outlined">assignment</span></button>' +
           '<button type="button" class="btn-fila" data-accion="alta" data-fila="' + fila + '" title="Dar de alta"><span class="material-symbols-outlined">how_to_reg</span></button>' +
           '<button type="button" class="btn-fila peligro" data-accion="borrar" data-fila="' + fila + '" title="Liberar este hueco (borra todos los datos de la cita)"><span class="material-symbols-outlined">delete</span></button>';
@@ -1121,16 +1226,14 @@
             : '<td>' + escapar(valor) + '</td>';
         }
 
+        if (header === 'Asistencia' && !esHueco) {
+          return '<td class="celda-asis" data-fila="' + fila + '">' + htmlAsistenciaBotones(valor, false) + '</td>';
+        }
+
         if (!esHueco && CAMPOS_EDITABLES.indexOf(header) !== -1) {
           var valorAttr = vacio ? '' : escapar(valor);
           var contenido;
-          if (header === 'Asistencia') {
-            var rapidas = htmlAsistenciaRapida(false);
-            contenido = vacio
-              ? (rapidas ? '<span class="asis-guion">—</span><span class="asis-rapida">' + rapidas + '</span>' : '—')
-              : '<span class="chip chip-' + estiloAsistencia(valor) + '">' + escapar(valor) + '</span>';
-          }
-          else if (vacio) contenido = '—';
+          if (vacio) contenido = '—';
           else if (header === 'Notas') contenido = '<div class="notas-clamp" title="' + valorAttr + '"><span class="material-symbols-outlined ic-nota">sticky_note_2</span>' + escapar(valor) + '</div>';
           else if (header === 'Sesión') contenido = badgeSesion(valor);
           else contenido = escapar(valor);
@@ -1181,9 +1284,6 @@
           return campos.some(function(v) { return normalizar(v).indexOf(termino) !== -1; });
         });
 
-        var numCitas = filtradas.filter(function(c) { return !c._hueco; }).length;
-        document.getElementById('contador').textContent = numCitas + (numCitas === 1 ? ' cita' : ' citas');
-        actualizarChipsFiltros();
 
         if ((filtradas.length === 0 && vista !== 'cuadricula') || (vista === 'cuadricula' && CITAS.length === 0)) {
           cont.innerHTML = htmlVacio();
@@ -1191,6 +1291,7 @@
         }
 
         cont.innerHTML = vista === 'hoy' ? htmlTarjetas(filtradas) : (vista === 'cuadricula' ? htmlCuadricula(filtradas) : htmlTabla(filtradas));
+        ajustarHoy();
         cont.scrollTop = scrollPrevio;
         reaplicarArrastre();
         animarCambios();
@@ -1226,7 +1327,7 @@
             '<div class="dia-cab"><span class="material-symbols-outlined dia-chevron">' + (plegado ? 'chevron_right' : 'expand_more') + '</span>' +
             '<span>' + etiquetaDia + '</span>' +
             (esHoy ? '<span class="dia-hoy">Hoy</span>' : '') +
-            htmlStatsDia(t, g.fechaISO) + '</div></td></tr>';
+            htmlRecDia(g.fechaISO) + htmlStatsDia(t, g.fechaISO) + '</div></td></tr>';
 
           if (plegado) return cabecera;
 
@@ -1274,7 +1375,9 @@
         return '<table>' + thead + tbody + '</table>';
       }
 
-      // ---------- Vista "Hoy": tarjetas ----------
+      // ---------- Vista "Hoy": tarjetas compactas ----------
+      // Mañana y tarde van lado a lado (cada columna con ancho proporcional a su nº de citas) y, si aun así
+      // no cabe en alto, ajustarHoy() activa el modo denso (tarjetas más estrechas y menos relleno).
       function htmlTarjetas(citas) {
         var hoy = hoyISO(), ahora = ahoraHHmm();
         var t = calcularTotalesDia()[hoy] || { citas: 0, libres: 0, registradas: 0 };
@@ -1282,22 +1385,35 @@
         var primera = citas[0];
 
         var html = '<div class="tj-cab"><div class="dia-cab"><span>' + (primera['Día'] ? escapar(primera['Día']) + ' · ' : '') + escapar(primera['Fecha']) +
-          '</span><span class="dia-hoy">Hoy</span>' + htmlStatsDia(t, hoy) + '</div></div><div class="tj-turnos">';
+          '</span><span class="dia-hoy">Hoy</span>' + htmlRecDia(hoy) + htmlStatsDia(t, hoy) + '</div></div><div class="tj-turnos">';
 
-        var turnoPrevio = null, abierto = false;
-        citas.forEach(function(c) {
-          var esManana = (c['Hora'] || '') < HORA_CORTE_TARDE;
-          var turno = esManana ? 'manana' : 'tarde';
-          if (turno !== turnoPrevio) {
-            if (abierto) html += '</div>';
-            html += '<div class="tj-turno-titulo ' + turno + '">' + (esManana ? 'Turno de mañana' : 'Turno de tarde') + '</div><div class="tj-grid">';
-            abierto = true;
-            turnoPrevio = turno;
-          }
-          html += htmlTarjeta(c, ahora, proxima);
+        var man = [], tar = [];
+        citas.forEach(function(c) { ((c['Hora'] || '') < HORA_CORTE_TARDE ? man : tar).push(c); });
+        [[man, 'manana', 'Turno de mañana'], [tar, 'tarde', 'Turno de tarde']].forEach(function(g) {
+          if (!g[0].length) return;
+          html += '<div class="tj-col" style="--n:' + g[0].length + '"><div class="tj-turno-titulo ' + g[1] + '">' + g[2] + '</div><div class="tj-grid">' +
+            g[0].map(function(c) { return htmlTarjeta(c, ahora, proxima); }).join('') + '</div></div>';
         });
-        if (abierto) html += '</div>';
         return html + '</div>';
+      }
+
+      function ajustarHoy() {
+        var w = document.getElementById('tablaWrap');
+        w.classList.remove('tj-medio', 'tj-denso');
+        if (vista !== 'hoy' || !w.querySelector('.tj-turnos')) return;
+        function desborda() { return w.scrollHeight > w.clientHeight + 2; }
+        if (!desborda()) return;
+        w.classList.add('tj-medio');
+        if (!desborda()) return;
+        w.classList.add('tj-denso');
+      }
+      if (window.ResizeObserver) {
+        var rafAjuste = 0;
+        new ResizeObserver(function() {
+          if (vista !== 'hoy') return;
+          cancelAnimationFrame(rafAjuste);
+          rafAjuste = requestAnimationFrame(ajustarHoy);
+        }).observe(document.getElementById('tablaWrap'));
       }
 
       function htmlTarjeta(c, ahora, proxima) {
@@ -1318,28 +1434,19 @@
         if (filasSeleccionadas.has(c._fila)) clases.push('seleccionada');
 
         var tagTxt = tempo === 'en-curso' ? '<span class="tag-t ahora">Ahora</span>' : (esProxima ? '<span class="tag-t proxima">Próxima</span>' : '');
-
-        var vAsis = c['Asistencia'];
-        var asis = vacioTxt(vAsis)
-          ? '<div class="tj-asis"><span class="asis-rapida">' + htmlAsistenciaRapida(false) + '</span></div>'
-          : '<div class="tj-asis editable" data-campo="Asistencia" data-fila="' + c._fila + '" data-valor="' + escapar(vAsis) + '"><span class="chip chip-' + estiloAsistencia(vAsis) + '">' + escapar(vAsis) + '</span></div>';
+        var tel = c['Teléfono'];
+        var asis = '<div class="tj-asis" data-fila="' + c._fila + '">' + htmlAsistenciaBotones(c['Asistencia'], false) +
+          '<span class="tj-fill"></span>' + (vacioTxt(tel) ? '' : '<span class="tj-tel">' + escapar(tel) + '</span>') + '</div>';
 
         var vNotas = c['Notas'];
         var notas = '<div class="tj-notas editable" data-campo="Notas" data-fila="' + c._fila + '" data-valor="' + (vacioTxt(vNotas) ? '' : escapar(vNotas)) + '">' +
           (vacioTxt(vNotas) ? '<span class="tj-notas-vacia">Añadir nota…</span>' : '<span class="material-symbols-outlined ic-nota">sticky_note_2</span>' + escapar(vNotas)) + '</div>';
 
-        var hc = COL_HISTORIA ? c[COL_HISTORIA] : '';
-        var pie = esUrl(hc)
-          ? '<a class="btn-toolbar tj-btn" href="' + escapar(hc.trim()) + '" target="_blank" rel="noopener"><span class="material-symbols-outlined">description</span> Historia clínica</a>'
-          : '<span class="tj-sinhc">Sin Historia Clínica enlazada</span>';
-
-        var tel = c['Teléfono'];
-        var meta = (vacioTxt(c['Sesión']) ? '' : badgeSesion(c['Sesión'])) + (vacioTxt(tel) ? '' : '<span>' + escapar(tel) + '</span>');
-
         return '<div class="' + clases.join(' ') + '" data-fila="' + c._fila + '">' +
-          '<div class="tj-top"><span class="asa material-symbols-outlined" title="Arrastra para mover la cita a otro hueco libre">drag_indicator</span><span class="chk"></span><span class="tj-hora">' + escapar(hora) + '</span>' + tagTxt + '<span class="tj-fill"></span><span class="tj-acciones">' + htmlBotonesFila(c._fila) + '</span></div>' +
+          '<div class="tj-top"><span class="asa material-symbols-outlined" title="Arrastra para mover la cita a otro hueco libre">drag_indicator</span><span class="chk"></span><span class="tj-hora">' + escapar(hora) + '</span>' + tagTxt +
+            '<span class="tj-fill"></span>' + (vacioTxt(c['Sesión']) ? '' : badgeSesion(c['Sesión'])) + '<span class="tj-acciones">' + htmlBotonesFila(c._fila, c) + '</span></div>' +
           '<div class="tj-nombre" title="' + escapar(c['Usuario']) + '">' + avatarHtml(c['Usuario']) + '<span class="nombre-u">' + escapar(c['Usuario']) + '</span></div>' +
-          '<div class="tj-meta">' + meta + '</div>' + asis + notas + '<div class="tj-pie">' + pie + '</div></div>';
+          asis + notas + '</div>';
       }
 
       <?!= include('ui/JS_Modal_Deshacer'); ?>
@@ -1351,20 +1458,6 @@
         var valorActual = td.dataset.valor || '';
 
         td.classList.add('editando');
-
-        if (campo === 'Asistencia') {
-          var opciones = '<option value="">—</option>' + OPCIONES_ASISTENCIA.map(function(op) {
-            return '<option value="' + escapar(op) + '"' + (op === valorActual ? ' selected' : '') + '>' + escapar(op) + '</option>';
-          }).join('');
-          td.innerHTML = '<select class="input-celda">' + opciones + '</select>';
-          var select = td.querySelector('select');
-          select.focus();
-          select.addEventListener('change', function() { guardarCampo(fila, campo, select.value); });
-          select.addEventListener('blur', function() {
-            setTimeout(function() { if (td.classList.contains('editando')) render(); }, 150);
-          });
-          return;
-        }
 
         if (campo === 'Usuario') {
           td.innerHTML = '<input class="input-celda" list="listaPacientes" type="text" placeholder="Nombre del usuario…">';
@@ -1630,9 +1723,15 @@
         var btnAsis = t.closest('[data-asis]');
         if (btnAsis) {
           var contenedor = btnAsis.closest('[data-fila]');
-          if (contenedor) guardarCampo(contenedor.dataset.fila, 'Asistencia', btnAsis.dataset.asis);
+          if (contenedor) guardarAsistencia(contenedor.dataset.fila, btnAsis.classList.contains('activo') ? '' : btnAsis.dataset.asis);
           return;
         }
+
+        // Recordatorios: chip (editar), "+" del día (nuevo para esa fecha)
+        var rcChip = t.closest('[data-rec-id]');
+        if (rcChip) { abrirRecordatorios({ editarId: rcChip.dataset.recId }); return; }
+        var rcNuevo = t.closest('[data-rec-nuevo]');
+        if (rcNuevo) { abrirRecordatorios({ fecha: rcNuevo.dataset.recNuevo }); return; }
 
         // Acciones rápidas de la fila / tarjeta
         var btnFila = t.closest('.btn-fila');
@@ -1642,6 +1741,7 @@
           else if (acc === 'borrar') manejarBorrarFila(f);
           else if (acc === 'whatsapp') abrirWhatsappFila(f);
           else if (acc === 'alta') manejarAltaFila(f);
+          else if (acc === 'cita') { var cc = citaPorFila(f); if (cc) abrirCitaPanel(cc['Usuario']); }
           else if (acc === 'valoracion') {
             var ci = CITAS.find(function(c) { return c._fila == f; });
             if (ci) abrirValoracionCita(ci['Usuario']);
@@ -1717,12 +1817,12 @@
       // Igual que en la Base de Datos: el formulario vive en el panel (valoraciones/Panel_Valoracion) y devuelve un
       // controlador con haCambiado(). El panel trabaja con el nombre del paciente, no con la fila ni con la semana
       // mostrada, así que seguir navegando por la agenda (o el refresco automático) no lo afecta.
-      var panelAbierto = false, panelNombre = '', controladorPanel = null, timerLimpiarPanel = null;
+      var panelAbierto = false, panelClave = '', controladorPanel = null, timerLimpiarPanel = null;
 
       function panelHaCambiado() {
         return !!(panelAbierto && controladorPanel && controladorPanel.haCambiado && controladorPanel.haCambiado());
       }
-      // Antes de cualquier acción que destruiría el formulario (cerrar, abrir otro paciente…): si hay cambios sin
+      // Antes de cualquier acción que destruiría el formulario (cerrar, abrir otro…): si hay cambios sin
       // guardar pregunta; si se acepta, el formulario queda descartado.
       async function descartarPanelSiProcede() {
         if (!panelHaCambiado()) return true;
@@ -1732,13 +1832,14 @@
       }
       function ocultarPanel() {
         var el = document.getElementById('ficha');
-        panelAbierto = false; panelNombre = ''; controladorPanel = null;
-        document.body.classList.remove('con-ficha');
+        panelAbierto = false; panelClave = ''; controladorPanel = null;
+        document.body.classList.remove('con-ficha', 'ficha-ancha');
         el.classList.remove('abierta');
         el.setAttribute('aria-hidden', 'true');
         // El contenido se vacía cuando termina de deslizarse, para que no se vea un panel en blanco al salir.
         if (timerLimpiarPanel) clearTimeout(timerLimpiarPanel);
         timerLimpiarPanel = setTimeout(function() { if (!panelAbierto) el.innerHTML = ''; }, 220);
+        actualizarBotonRec();
       }
       async function cerrarPanel(forzar) {
         if (!panelAbierto) return;
@@ -1746,27 +1847,57 @@
         ocultarPanel();
       }
 
-      // ---------- Valoración y WhatsApp (barra de selección y acciones por fila) ----------
-      async function abrirValoracionCita(nombre) {
-        nombre = (nombre || '').trim();
-        if (!nombre) { mostrarAviso('Esa cita no tiene paciente asignado.'); return; }
-        if (panelAbierto && panelNombre === nombre) return;        // ya está abierto para este paciente
-        if (!(await descartarPanelSiProcede())) return;
-
-        var cita = CITAS.find(function(c) { return c['Usuario'] === nombre && c['Teléfono']; });
+      // Abre un formulario en el panel lateral. `clave` identifica el contenido (no se reabre si ya está);
+      // `montar(contenedor)` devuelve el controlador { haCambiado, alEscape, ... } del módulo.
+      async function abrirPanelLateral(clave, titulo, ancho, montar) {
+        if (panelAbierto && panelClave === clave) return false;
+        if (!(await descartarPanelSiProcede())) return false;
         var el = document.getElementById('ficha');
         if (timerLimpiarPanel) { clearTimeout(timerLimpiarPanel); timerLimpiarPanel = null; }
-        panelAbierto = true; panelNombre = nombre; controladorPanel = null;
+        panelAbierto = true; panelClave = clave; controladorPanel = null;
         document.body.classList.add('con-ficha');
+        document.body.classList.toggle('ficha-ancha', !!ancho);
         el.classList.add('abierta');
         el.setAttribute('aria-hidden', 'false');
         el.innerHTML = '<div class="ficha-form-cab"><div class="ficha-form-tit"></div><button type="button" data-panel="cerrar" title="Cerrar (Esc)" aria-label="Cerrar"><span class="material-symbols-outlined">close</span></button></div><div class="ficha-form-cuerpo"></div>';
-        el.querySelector('.ficha-form-tit').textContent = 'Valoración · ' + nombre;
-        controladorPanel = PanelValoracion.abrir(el.querySelector('.ficha-form-cuerpo'), {
-          paciente: nombre,
-          telefono: cita ? String(cita['Teléfono']) : '',
-          onGuardado: function() { mostrarAviso('Valoración guardada'); if (panelNombre === nombre) cerrarPanel(true); },
-          onCancelar: function() { if (panelNombre === nombre) cerrarPanel(); }
+        el.querySelector('.ficha-form-tit').textContent = titulo;
+        controladorPanel = montar(el.querySelector('.ficha-form-cuerpo'));
+        actualizarBotonRec();
+        return true;
+      }
+
+      // ---------- Valoración, Dar cita y WhatsApp (barra de selección y acciones por fila) ----------
+      // Los paneles trabajan con el nombre del paciente, no con la fila ni con la semana mostrada, así que seguir
+      // navegando por la agenda (o el refresco automático) no los afecta.
+      function abrirValoracionCita(nombre) {
+        nombre = (nombre || '').trim();
+        if (!nombre) { mostrarAviso('Esa cita no tiene paciente asignado.'); return; }
+        var cita = CITAS.find(function(c) { return c['Usuario'] === nombre && c['Teléfono']; });
+        var clave = 'valoracion:' + nombre;
+        return abrirPanelLateral(clave, 'Valoración · ' + nombre, false, function(cont) {
+          return PanelValoracion.abrir(cont, {
+            paciente: nombre,
+            telefono: cita ? String(cita['Teléfono']) : '',
+            onGuardado: function() { mostrarAviso('Valoración guardada'); if (panelClave === clave) cerrarPanel(true); },
+            onCancelar: function() { if (panelClave === clave) cerrarPanel(); }
+          });
+        });
+      }
+
+      function abrirCitaPanel(nombre) {
+        nombre = (nombre || '').trim();
+        if (!nombre) { mostrarAviso('Esa cita no tiene paciente asignado.'); return; }
+        var clave = 'cita:' + nombre;
+        return abrirPanelLateral(clave, 'Dar cita · ' + nombre, true, function(cont) {
+          return PanelCita.abrir(cont, {
+            paciente: nombre,
+            onGuardado: function(msj) {
+              mostrarAviso(typeof msj === 'string' && msj ? msj : 'Cita registrada');
+              if (panelClave === clave) cerrarPanel(true);
+              cargar(semanaActual, true);
+            },
+            onCancelar: function() { if (panelClave === clave) cerrarPanel(); }
+          });
         });
       }
 
@@ -1781,11 +1912,12 @@
         if (e.key !== 'Escape' || !panelAbierto || arrastre) return;
         var modal = document.getElementById('modalOverlay');
         if (modal && modal.classList.contains('visible')) return;
-        if (document.getElementById('menuCopiarWrap').classList.contains('abierto')) return;
+        if (document.querySelector('.menu-wrap.abierto')) return;
         var activo = document.activeElement;
         if (activo && activo.closest && activo.closest('.editando, .buscador')) return;
         e.preventDefault();
         e.stopImmediatePropagation();
+        if (controladorPanel && controladorPanel.alEscape && controladorPanel.alEscape()) return;   // el formulario gestiona su propio Esc
         cerrarPanel();
       }, true);
 
@@ -1942,8 +2074,8 @@
       function actualizarBotonHuecos() {
         var btn = document.getElementById('btnHuecos');
         btn.innerHTML = mostrarHuecos
-          ? '<span class="material-symbols-outlined">event_busy</span> Ocultar citas disponibles'
-          : '<span class="material-symbols-outlined">event_available</span> Mostrar citas disponibles';
+          ? '<span class="material-symbols-outlined">event_busy</span> Ocultar huecos'
+          : '<span class="material-symbols-outlined">event_available</span> Huecos libres';
         btn.classList.toggle('activo', mostrarHuecos);
       }
 
@@ -1971,18 +2103,11 @@
       document.getElementById('btnVistaCal').addEventListener('click', function() { cambiarVista('cuadricula'); });
 
       // ---------- Filtros rápidos ----------
-      document.querySelectorAll('.chip-filtro').forEach(function(b) {
-        b.addEventListener('click', function() {
-          var k = b.dataset.filtro;
-          if (filtrosActivos.has(k)) filtrosActivos.delete(k); else filtrosActivos.add(k);
-          render();
-        });
-      });
 
       // ---------- Densidad de filas ----------
       function aplicarDensidad(compacto, guardar) {
         document.body.classList.toggle('compacto', compacto);
-        document.getElementById('txtDensidad').textContent = compacto ? 'Compacto' : 'Cómodo';
+        document.getElementById('txtDensidad').textContent = compacto ? 'Compacto' : 'Espaciado';
         if (guardar) { try { localStorage.setItem('agendaDensidad', compacto ? 'compacto' : 'comodo'); } catch (err) { /* sin almacenamiento */ } }
       }
       document.getElementById('btnDensidad').addEventListener('click', function() {
@@ -2001,15 +2126,20 @@
         var abierto = document.getElementById('menuCopiarWrap').classList.toggle('abierto');
         this.setAttribute('aria-expanded', abierto ? 'true' : 'false');
       });
+      document.getElementById('btnMenuMas').addEventListener('click', function(e) {
+        e.stopPropagation();
+        var abierto = document.getElementById('menuMasWrap').classList.toggle('abierto');
+        this.setAttribute('aria-expanded', abierto ? 'true' : 'false');
+      });
       document.addEventListener('click', function(e) {
-        if (!e.target.closest('#menuCopiarWrap') || e.target.closest('.menu-item')) {
-          document.getElementById('menuCopiarWrap').classList.remove('abierto');
-        }
+        document.querySelectorAll('.menu-wrap.abierto').forEach(function(w) {
+          if (!w.contains(e.target) || e.target.closest('.menu-item')) w.classList.remove('abierto');
+        });
       });
 
       // ---------- Atajos de teclado ----------
       document.getElementById('btnAtajos').addEventListener('click', function() {
-        mostrarAviso('Atajos de teclado\n← / →   Semana anterior / siguiente\nT   Ir a hoy\n/   Buscar\nEsc   Quitar selección o filtros');
+        mostrarAviso('Atajos de teclado\n← / →   Semana anterior / siguiente\nT   Ir a hoy\nR   Recordatorios\n/   Buscar\nEsc   Quitar selección o filtros');
       });
 
       document.getElementById('inputBusqueda').addEventListener('keydown', function(e) {
@@ -2027,10 +2157,11 @@
         if (e.key === 'ArrowLeft') { e.preventDefault(); moverSemana(-7); }
         else if (e.key === 'ArrowRight') { e.preventDefault(); moverSemana(7); }
         else if (e.key === 't' || e.key === 'T') { document.getElementById('btnHoy').click(); }
+        else if (e.key === 'r' || e.key === 'R') { abrirRecordatorios(); }
         else if (e.key === '/') { e.preventDefault(); document.getElementById('inputBusqueda').focus(); }
         else if (e.key === 'Escape') {
-          var wrapMenu = document.getElementById('menuCopiarWrap');
-          if (wrapMenu.classList.contains('abierto')) wrapMenu.classList.remove('abierto');
+          var menusAbiertos = document.querySelectorAll('.menu-wrap.abierto');
+          if (menusAbiertos.length) menusAbiertos.forEach(function(w) { w.classList.remove('abierto'); });
           else if (citasSeleccionadas().length) quitarSeleccion();
           else if (hayBusqueda()) limpiarFiltros();
         }
@@ -2038,6 +2169,7 @@
 
       // Cada minuto: actualiza "ahora", la línea de hora y las citas ya terminadas
       setInterval(function() {
+        actualizarBotonRec();
         if (document.querySelector('.editando') || arrastre || !CITAS.length) return;
         if (vista === 'hoy' || CITAS.some(function(c) { return c._fechaISO === hoyISO(); })) render();
       }, 60000);
@@ -2285,11 +2417,11 @@
       }
 
       // ---------- Tema: automático / oscuro / claro ----------
-      var TEMAS = ['auto', 'oscuro', 'claro'], ICONOS_TEMA = { auto: 'contrast', oscuro: 'dark_mode', claro: 'light_mode' };
+      var TEMAS = ['auto', 'oscuro', 'claro'], ICONOS_TEMA = { auto: 'contrast', oscuro: 'dark_mode', claro: 'light_mode' }, NOMBRES_TEMA = { auto: 'Automático', oscuro: 'Oscuro', claro: 'Claro' };
       function aplicarTema(t, guardar) {
         if (t === 'auto') document.documentElement.removeAttribute('data-tema'); else document.documentElement.setAttribute('data-tema', t);
         var b = document.getElementById('btnTema');
-        b.innerHTML = '<span class="material-symbols-outlined">' + ICONOS_TEMA[t] + '</span>';
+        b.innerHTML = '<span class="material-symbols-outlined">' + ICONOS_TEMA[t] + '</span><span>Tema<small>' + NOMBRES_TEMA[t] + '</small></span>';
         b.title = 'Tema: ' + t + ' (clic para cambiar)';
         b.dataset.tema = t;
         if (guardar) { try { localStorage.setItem('temaApp', t); } catch (err) { /* sin almacenamiento */ } }
@@ -2348,7 +2480,7 @@
         dias.sort(); horas.sort();
         var proxima = filaProxima(hoy, ahora);
         var html = '<div class="cal" style="grid-template-columns:64px repeat(' + dias.length + ',minmax(150px,1fr))"><div class="cal-cab cal-esq"></div>';
-        dias.forEach(function(d) { html += '<div class="cal-cab' + (d === hoy ? ' hoy' : '') + '">' + escapar(etiqueta[d]) + '</div>'; });
+        dias.forEach(function(d) { html += '<div class="cal-cab' + (d === hoy ? ' hoy' : '') + '">' + escapar(etiqueta[d]) + htmlRecPuntos(d) + '</div>'; });
         horas.forEach(function(h) {
           html += '<div class="cal-hora">' + escapar(h) + '</div>';
           dias.forEach(function(d) {
@@ -2423,6 +2555,7 @@
             if (res.version !== ultimaVersionAgenda) {
               ultimaVersionAgenda = res.version;
               cargar(semanaActual, true);
+              cargarRecordatorios();
             }
           })
           .withFailureHandler(function() { /* se reintenta en el próximo ciclo */ })
@@ -2441,8 +2574,90 @@
         }
       });
 
+      // ---------- Recordatorios (agenda/Recordatorios.gs + agenda/Panel_Recordatorios) ----------
+      var REC_ICONOS = { 'Llamar': ['call', 'llamar'], 'Reunión': ['groups', 'reunion'], 'Evento': ['event', 'evento'], 'Nota': ['sticky_note_2', 'nota'] };
+
+      function recPendientesDia(iso) {
+        return RECORDATORIOS.filter(function(r) { return !r.hecho && r.fecha === iso; })
+          .sort(function(a, b) { return a.hora < b.hora ? -1 : (a.hora > b.hora ? 1 : 0); });
+      }
+      function recInfo(tipo) { return REC_ICONOS[tipo] || REC_ICONOS.Nota; }
+      function recTitulo(r) { return r.tipo + (r.hora ? ' · ' + r.hora : '') + ' — ' + r.texto; }
+
+      // Etiquetas de color en la banda del día (tabla y vista Hoy) + botón "+" para añadir uno a ese día.
+      function htmlRecDia(iso) {
+        var lista = recPendientesDia(iso), MAX = 3;
+        var chips = lista.slice(0, MAX).map(function(r) {
+          var t = recInfo(r.tipo);
+          return '<button type="button" class="rc-chip rc-t-' + t[1] + '" data-rec-id="' + escapar(r.id) + '" title="' + escapar(recTitulo(r)) + '">' +
+            '<span class="material-symbols-outlined">' + t[0] + '</span><span class="rc-chip-txt">' + (r.hora ? escapar(r.hora) + ' ' : '') + escapar(r.texto) + '</span></button>';
+        }).join('');
+        if (lista.length > MAX) chips += '<button type="button" class="rc-chip rc-t-nota" data-rec-nuevo="' + iso + '" title="Ver todos los recordatorios">+' + (lista.length - MAX) + '</button>';
+        return (chips ? '<span class="rc-chips">' + chips + '</span>' : '') +
+          '<button type="button" class="btn-fila rc-add" data-rec-nuevo="' + iso + '" title="Añadir recordatorio a este día"><span class="material-symbols-outlined">add_alert</span></button>';
+      }
+
+      // Cuadrícula: un punto de color por recordatorio en la cabecera del día.
+      function htmlRecPuntos(iso) {
+        var puntos = recPendientesDia(iso).slice(0, 5).map(function(r) {
+          return '<button type="button" class="rc-punto rc-t-' + recInfo(r.tipo)[1] + '" data-rec-id="' + escapar(r.id) + '" title="' + escapar(recTitulo(r)) + '"></button>';
+        }).join('');
+        return '<span class="rc-puntos">' + puntos + '<button type="button" class="btn-fila rc-add" data-rec-nuevo="' + iso + '" title="Añadir recordatorio a este día"><span class="material-symbols-outlined">add_alert</span></button></span>';
+      }
+
+      // Insignia del botón: pendientes de hoy y atrasados (rojo si hay atrasados).
+      function actualizarBotonRec() {
+        var h = hoyISO();
+        var urgentes = RECORDATORIOS.filter(function(r) { return !r.hecho && r.fecha && r.fecha <= h; });
+        var badge = document.getElementById('badgeRec');
+        badge.textContent = urgentes.length || '';
+        badge.classList.toggle('atrasado', urgentes.some(function(r) { return r.fecha < h; }));
+        document.getElementById('btnRecordatorios').classList.toggle('activo', panelAbierto && panelClave === 'recordatorios');
+      }
+
+      function refrescarRecordatorios() {
+        actualizarBotonRec();
+        if (!document.querySelector('.editando') && !arrastre && CITAS.length) render();
+      }
+
+      function cargarRecordatorios() {
+        google.script.run
+          .withSuccessHandler(function(res) {
+            if (!res || !res.success) return;
+            RECORDATORIOS = res.recordatorios || [];
+            if (panelAbierto && panelClave === 'recordatorios' && controladorPanel && controladorPanel.actualizar) controladorPanel.actualizar(RECORDATORIOS);
+            refrescarRecordatorios();
+          })
+          .withFailureHandler(function() { /* no crítico */ })
+          .obtenerRecordatoriosWeb();
+      }
+
+      // Sin argumentos alterna el panel; { fecha } abre el formulario para ese día; { editarId } edita uno.
+      async function abrirRecordatorios(o) {
+        o = o || {};
+        if (panelAbierto && panelClave === 'recordatorios' && controladorPanel) {
+          if (o.editarId === undefined && o.fecha === undefined) { cerrarPanel(); return; }
+          if (panelHaCambiado() && !(await mostrarConfirm('Hay cambios sin guardar en el formulario. ¿Quieres descartarlos?'))) return;
+          if (o.editarId) controladorPanel.editar(o.editarId); else controladorPanel.nuevo(o.fecha);
+          return;
+        }
+        return abrirPanelLateral('recordatorios', 'Recordatorios', false, function(cont) {
+          return PanelRecordatorios.abrir(cont, {
+            lista: RECORDATORIOS,
+            hoy: hoyISO,
+            nuevoFecha: o.fecha,
+            editarId: o.editarId,
+            confirmar: mostrarConfirm,
+            onActualizado: function(l) { RECORDATORIOS = l; refrescarRecordatorios(); },
+            onCancelar: function() { cerrarPanel(); }
+          });
+        });
+      }
+      document.getElementById('btnRecordatorios').addEventListener('click', function() { abrirRecordatorios(); });
+
       cargar();
       cargarListaPacientes();
+      cargarRecordatorios();
     </script>
   </body>
 </html>

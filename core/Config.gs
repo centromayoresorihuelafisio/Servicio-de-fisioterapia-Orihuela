@@ -7,7 +7,8 @@
 const SHEETS = {
   MAESTRA: "Base de Datos Maestra",
   VALORACIONES: "Valoraciones",
-  EVENTOS: "Eventos"
+  EVENTOS: "Eventos",
+  RECORDATORIOS: "Recordatorios"
 };
 
 /**
