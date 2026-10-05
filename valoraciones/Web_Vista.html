@@ -848,10 +848,10 @@
         if (e.target.closest('[data-form="volver"]')) volverDeFormulario();
       });
 
-      // Si otra pestaña actualiza un paciente (las páginas sueltas ?page=… avisan por localStorage al guardar),
-      // la tabla se recarga.
+      // Si otra ventana actualiza un paciente (las páginas sueltas ?page=… avisan por localStorage al guardar) o
+      // guarda una valoración desde el panel lateral (Agenda, Base de Datos…), la tabla se recarga.
       window.addEventListener('storage', function(e) {
-        if (e.key === 'pacienteActualizado') cargar();
+        if (e.key === 'pacienteActualizado' || e.key === 'valoracionesActualizadas') cargar();
       });
 
       // ---------- Búsqueda ----------

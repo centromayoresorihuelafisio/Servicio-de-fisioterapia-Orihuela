@@ -1124,6 +1124,9 @@ window.PanelValoracion = {
           updateProgress();
           resetBtn();
           tocado = false; // ya guardado: cerrar no debe pedir confirmación
+          // Avisa a las demás ventanas/pestañas de la Web App (p. ej. Valoraciones abierta aparte) para que recarguen.
+          // El evento 'storage' solo llega a OTRAS ventanas, por eso lleva una marca de tiempo (cada valor es distinto).
+          try { localStorage.setItem('valoracionesActualizadas', JSON.stringify({ ts: Date.now() })); } catch (e) { /* localStorage no disponible */ }
           setTimeout(function () { if (opts.onGuardado) opts.onGuardado(); }, 900);
         })
         .withFailureHandler(error => {
