@@ -910,6 +910,12 @@
         <button class="btn-toolbar deshacer" id="btnDeshacer" title="Deshacer la última eliminación">
           <span class="material-symbols-outlined">undo</span> Deshacer
         </button>
+        <button type="button" class="btn-toolbar btn-nav" id="btnHuecos" title="Mostrar huecos libres" aria-label="Huecos libres">
+          <span class="material-symbols-outlined">event_available</span>
+        </button>
+        <button type="button" class="btn-toolbar btn-nav" id="btnDensidad" title="Densidad de filas" aria-label="Densidad de filas">
+          <span class="material-symbols-outlined">density_medium</span>
+        </button>
         <button class="btn-toolbar btn-nav btn-rec" id="btnRecordatorios" title="Recordatorios (R)" aria-label="Recordatorios">
           <span class="material-symbols-outlined">checklist</span><span class="badge-rec" id="badgeRec"></span>
         </button>
@@ -928,10 +934,6 @@
             <button class="menu-item" id="btnCopiarSemana" role="menuitem" title="Copia miércoles y jueves (doble sesión) y viernes (simple) a la semana siguiente, sin necesidad de seleccionar nada">
               <span class="material-symbols-outlined">event_repeat</span>
               <span>Copiar semana<small>Mié/jue ×2 y vie → semana siguiente</small></span>
-            </button>
-            <button class="menu-item" id="btnHuecos" role="menuitem" title="Muestra u oculta los huecos libres de la agenda"></button>
-            <button class="menu-item" id="btnDensidad" role="menuitem" title="Cambiar la altura de las filas">
-              <span class="material-symbols-outlined">density_medium</span><span>Densidad<small id="txtDensidad">Espaciado</small></span>
             </button>
             <button class="menu-item" id="btnTema" role="menuitem"></button>
             <button class="menu-item" id="btnAtajos" role="menuitem">
@@ -2199,9 +2201,9 @@
 
       function actualizarBotonHuecos() {
         var btn = document.getElementById('btnHuecos');
-        btn.innerHTML = '<span class="material-symbols-outlined">' + (mostrarHuecos ? 'event_busy' : 'event_available') + '</span><span>Huecos libres<small>' + (mostrarHuecos ? 'Visibles · clic para ocultar' : 'Ocultos · clic para mostrar') + '</small></span>';
+        btn.title = mostrarHuecos ? 'Ocultar huecos libres' : 'Mostrar huecos libres';
+        btn.setAttribute('aria-pressed', mostrarHuecos ? 'true' : 'false');
         btn.classList.toggle('activo', mostrarHuecos);
-        document.getElementById('btnMenuMas').classList.toggle('con-opcion', mostrarHuecos);
       }
 
       // ---------- Vista Semana / Hoy ----------
@@ -2232,7 +2234,10 @@
       // ---------- Densidad de filas ----------
       function aplicarDensidad(compacto, guardar) {
         document.body.classList.toggle('compacto', compacto);
-        document.getElementById('txtDensidad').textContent = compacto ? 'Compacto' : 'Espaciado';
+        var bd = document.getElementById('btnDensidad');
+        bd.innerHTML = '<span class="material-symbols-outlined">' + (compacto ? 'density_small' : 'density_medium') + '</span>';
+        bd.title = compacto ? 'Densidad compacta (clic para espaciar)' : 'Densidad espaciada (clic para compactar)';
+        bd.classList.toggle('activo', compacto);
         if (guardar) { try { localStorage.setItem('agendaDensidad', compacto ? 'compacto' : 'comodo'); } catch (err) { /* sin almacenamiento */ } }
       }
       document.getElementById('btnDensidad').addEventListener('click', function() {
