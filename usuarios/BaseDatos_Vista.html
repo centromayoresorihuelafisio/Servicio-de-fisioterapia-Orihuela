@@ -1012,7 +1012,7 @@
         valoracion: {
           titulo: 'Valoración', aviso: 'Valoración guardada',
           montar: function(cont, p, cb) {
-            return PanelValoracion.abrir(cont, { paciente: p['Nombre'] || '', telefono: p['Teléfono 1'] || '', onGuardado: cb.guardado, onCancelar: cb.cancelar });
+            return PanelValoracion.abrir(cont, { paciente: p['Nombre'] || '', telefono: p['Teléfono 1'] || '', dni: p['DNI'] || '', onGuardado: cb.guardado, onCancelar: cb.cancelar });
           }
         },
         editar: {
@@ -1630,3 +1630,5 @@
     </script>
   </body>
 </html>
+
+

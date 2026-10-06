@@ -106,6 +106,8 @@ const COLUMNAS_NUM = {
     MEDIA_MI: 10,
     FUNCION_GLOBAL: 11,
     ANALGESICOS: 12,
-    NOTAS: 13
+    NOTAS: 13,
+    DNI: 14   // Añadida al final (05/10/2026) para no mover ninguna columna existente
   }
 };
+

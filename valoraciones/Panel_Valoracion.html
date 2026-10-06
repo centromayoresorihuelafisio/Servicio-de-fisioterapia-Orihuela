@@ -3,7 +3,7 @@
   Formulario de Valoración como módulo del panel lateral de la Web App.
   Se incluye desde usuarios/BaseDatos_Vista, agenda/Web_Vista y valoraciones/Web_Vista con
   <?!= include('valoraciones/Panel_Valoracion'); ?>
-  API: PanelValoracion.abrir(contenedor, { paciente, telefono, onGuardado, onCancelar })
+  API: PanelValoracion.abrir(contenedor, { paciente, telefono, dni, onGuardado, onCancelar })
   Devuelve { haCambiado() } para que la página que lo aloja pregunte antes de descartar un formulario a medias.
   Generado a partir de valoraciones/Guardar_Vista.html (CSS acotado a .pv, JS en función).
 -->
@@ -535,6 +535,15 @@
             </div>
           </div>
 
+          <!-- DNI (Solo lectura): identifica al paciente aunque haya otro con el mismo nombre -->
+          <div class="md-field">
+            <div class="md-field-inner">
+              <div class="leading-icon"><span class="ms">badge</span></div>
+              <input type="text" id="dniUsuario" name="dni" placeholder=" " readonly style="background: var(--md-surface-container-lowest); color: var(--md-on-surface-variant);">
+              <label for="dniUsuario">DNI</label>
+            </div>
+          </div>
+
         </div>
       </div>
 
@@ -791,6 +800,10 @@ window.PanelValoracion = {
     // Paciente ya elegido desde la Base de Datos Web (viene de ?paciente=...).
     // Vacío cuando se abre desde el menú de Sheets o el índice de la Web App.
     var PACIENTE_PRESELECCIONADO = opts.paciente || '';
+    // DNI y teléfono con los que se abre (si se conocen): sirven para elegir al paciente correcto
+    // cuando hay varios con el mismo nombre.
+    var DNI_PRESELECCIONADO = (opts.dni || '').toString().trim().toUpperCase();
+    var TEL_PRESELECCIONADO = (opts.telefono || '').toString().replace(/\D/g, '');
 
     // ¿El usuario ha tocado algo? Solo cuentan eventos reales (isTrusted): los valores
     // que rellena el propio código (paciente precargado, sliders iniciales) no marcan cambio.
@@ -801,10 +814,12 @@ window.PanelValoracion = {
     // ── Variables globales Autocompletado ──
     let allPatientsData = {}; 
     let allPatientsList = []; 
+    let PACIENTES_LISTA = [];   // [{ nombre, telefono, dni }]: distingue a dos pacientes con el mismo nombre
     let currentUserName = ""; 
 
     const nombreUsuarioInput = $('nombreUsuario');
     const telefonoUsuarioInput = $('telefonoUsuario');
+    const dniUsuarioInput = $('dniUsuario');
     const listContainer = $('autocomplete-list');
 
     /* ── Fecha ── */
@@ -830,6 +845,9 @@ window.PanelValoracion = {
           .withSuccessHandler(data => {
             allPatientsData = data.allPatientsData || {};
             allPatientsList = Object.keys(allPatientsData).sort();
+            PACIENTES_LISTA = (data.pacientes && data.pacientes.length)
+              ? data.pacientes.slice().sort((a, b) => a.nombre.localeCompare(b.nombre))
+              : allPatientsList.map(n => ({ nombre: n, telefono: allPatientsData[n], dni: '' }));
 
             // Si hay un valor en la celda activa, lo precargamos en MAYÚSCULAS.
             // Sin sesión de Sheets (Web App) no hay "celda activa": si venimos
@@ -840,15 +858,33 @@ window.PanelValoracion = {
               nombreUsuarioInput.value = cellVal;
               
               // Buscamos si existe en la base (comparación sin importar mayúsculas/minúsculas original)
-              const matchKey = allPatientsList.find(n => n.toUpperCase() === cellVal);
-              if (matchKey) {
+              const candidatos = PACIENTES_LISTA.filter(pc => pc.nombre.toUpperCase() === cellVal);
+              let elegido = null;
+              if (candidatos.length === 1) {
+                elegido = candidatos[0];
+              } else if (candidatos.length > 1) {
+                // Varios pacientes con el mismo nombre: primero por DNI, luego por teléfono (solo si es único)
+                if (DNI_PRESELECCIONADO) elegido = candidatos.find(pc => pc.dni && pc.dni.toUpperCase() === DNI_PRESELECCIONADO) || null;
+                if (!elegido && TEL_PRESELECCIONADO) {
+                  const porTel = candidatos.filter(pc => pc.telefono.replace(/\D/g, '') === TEL_PRESELECCIONADO);
+                  if (porTel.length === 1) elegido = porTel[0];
+                }
+              }
+
+              if (elegido) {
                 currentUserName = cellVal; 
-                telefonoUsuarioInput.value = allPatientsData[matchKey];
+                telefonoUsuarioInput.value = elegido.telefono || '';
+                dniUsuarioInput.value = elegido.dni || '';
+              } else if (candidatos.length > 1) {
+                // No se puede saber cuál es: que elija de la lista (se distinguen por DNI)
+                currentUserName = "";
+                showMessage('error', 'error', 'Hay varios pacientes con este nombre. Elige uno de la lista (se distinguen por DNI).');
+                nombreUsuarioInput.dispatchEvent(new Event('input'));
               } else {
                 // Permitimos el nombre si viene pre-cargado desde la hoja aunque sea nuevo
                 currentUserName = cellVal; 
               }
-              $('fieldNombre').classList.remove('has-error');
+              if (elegido || candidatos.length <= 1) $('fieldNombre').classList.remove('has-error');
               updateProgress();
             }
           })
@@ -864,12 +900,13 @@ window.PanelValoracion = {
       if (!val) { 
         currentUserName = ""; 
         telefonoUsuarioInput.value = ""; 
+        dniUsuarioInput.value = "";
         $('fieldNombre').classList.remove('has-error');
         updateProgress();
         return; 
       }
       
-      const matches = allPatientsList.filter(name => name.toUpperCase().includes(val));
+      const matches = PACIENTES_LISTA.filter(pc => pc.nombre.toUpperCase().includes(val));
       if (matches.length === 0) return;
 
       listContainer.style.display = 'block';
@@ -877,18 +914,27 @@ window.PanelValoracion = {
         const item = document.createElement('div');
         item.className = 'ms-menu-item';
         // Mostrar siempre el nombre en mayúsculas en las sugerencias
-        item.innerHTML = `<span class="ms ms-sm" style="margin-right:8px; vertical-align:middle; color:var(--md-primary)">person</span>${match.toUpperCase()}`;
-        // Al hacer click, pasar el original para ubicar el tfno fácilmente en allPatientsData
+        item.innerHTML = `<span class="ms ms-sm" style="margin-right:8px; vertical-align:middle; color:var(--md-primary)">person</span>`;
+        item.appendChild(document.createTextNode(match.nombre.toUpperCase()));
+        // Si hay otro paciente con el mismo nombre, se añade el DNI (o el teléfono) para distinguirlos
+        const repetido = PACIENTES_LISTA.filter(pc => pc.nombre.toUpperCase() === match.nombre.toUpperCase()).length > 1;
+        if (repetido) {
+          const extra = document.createElement('span');
+          extra.style.cssText = 'margin-left:8px; font-size:.8em; opacity:.7';
+          extra.textContent = '· ' + (match.dni || match.telefono || 'sin DNI');
+          item.appendChild(extra);
+        }
         item.addEventListener('click', () => selectPaciente(match));
         listContainer.appendChild(item);
       });
     });
 
-    function selectPaciente(nombre) {
+    function selectPaciente(paciente) {
       // Guardar e inyectar forzosamente en mayúsculas
-      currentUserName = nombre.toUpperCase();
+      currentUserName = paciente.nombre.toUpperCase();
       nombreUsuarioInput.value = currentUserName;
-      telefonoUsuarioInput.value = allPatientsData[nombre] || "";
+      telefonoUsuarioInput.value = paciente.telefono || "";
+      dniUsuarioInput.value = paciente.dni || "";
       $('fieldNombre').classList.remove('has-error');
       closeAllLists();
       updateProgress();
@@ -1096,7 +1142,7 @@ window.PanelValoracion = {
 
       // Transformar rangos "-1" a nulls para el backend y parsear el resto
       for (const key in data) {
-        if (key === 'nombre' || key === 'tipoValoracion' || key === 'telefono' || key === 'notas') continue;
+        if (key === 'nombre' || key === 'tipoValoracion' || key === 'telefono' || key === 'notas' || key === 'dni') continue;
         data[key] = data[key] === '-1' ? '' : parseFloat(data[key]);
       }
 
@@ -1120,6 +1166,7 @@ window.PanelValoracion = {
           form.reset();
           currentUserName = "";
           telefonoUsuarioInput.value = "";
+          dniUsuarioInput.value = "";
           resetAllSliders();
           updateProgress();
           resetBtn();
@@ -1176,6 +1223,7 @@ window.PanelValoracion = {
       var nm = opts.paciente.toUpperCase();
       nombreUsuarioInput.value = nm; currentUserName = nm;
       if (opts.telefono) telefonoUsuarioInput.value = opts.telefono;
+      if (opts.dni) dniUsuarioInput.value = opts.dni;
       $('fieldNombre').classList.remove('has-error');
       updateProgress();
     }
@@ -1184,3 +1232,5 @@ window.PanelValoracion = {
   }
 };
 </script>
+
+

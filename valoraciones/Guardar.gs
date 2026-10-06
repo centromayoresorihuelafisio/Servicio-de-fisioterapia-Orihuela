@@ -15,17 +15,50 @@ function abrirFormularioValoracion() {
 }
 
 /**
+ * Lee la Base de Datos Maestra y devuelve un array [{ nombre, telefono, dni }], uno por
+ * fila con nombre. El DNI se localiza por su cabecera (COLUMNAS.MAESTRA.DNI); si la hoja
+ * no tiene esa columna, todos salen con dni vacío. Nombre y teléfono siguen leyéndose por
+ * posición, igual que antes.
+ */
+function leerPacientesMaestra_() {
+  const sheet = getSS().getSheetByName(SHEETS.MAESTRA);
+  if (!sheet) return [];
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return [];
+
+  const COLUMNA_NOMBRE = COLUMNAS_NUM.MAESTRA.NOMBRE;     // Columna B (Nombre)
+  const COLUMNA_TELEFONO = COLUMNAS_NUM.MAESTRA.TELEFONO; // Columna D (Teléfono)
+
+  const cabeceras = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0]
+    .map(h => h.toString().trim().toLowerCase());
+  const idxDni = cabeceras.indexOf(COLUMNAS.MAESTRA.DNI.toLowerCase()); // 0-based, -1 si no existe
+
+  const ancho = Math.max(COLUMNA_TELEFONO, idxDni + 1);
+  const datos = sheet.getRange(2, 1, lastRow - 1, ancho).getValues();
+
+  const pacientes = [];
+  datos.forEach(row => {
+    const nombre = row[COLUMNA_NOMBRE - 1] ? row[COLUMNA_NOMBRE - 1].toString().trim() : '';
+    if (!nombre) return;
+    pacientes.push({
+      nombre: nombre,
+      telefono: row[COLUMNA_TELEFONO - 1] ? row[COLUMNA_TELEFONO - 1].toString().trim() : '',
+      dni: (idxDni !== -1 && row[idxDni]) ? row[idxDni].toString().trim().toUpperCase() : ''
+    });
+  });
+  return pacientes;
+}
+
+/**
  * Obtiene todos los pacientes de la Base de Datos Maestra para el autocompletado,
  * y además obtiene el valor de la celda activa para precargarlo.
+ *
+ * Devuelve `allPatientsData` (nombre → teléfono, como siempre; lo usa el formulario
+ * antiguo) y `pacientes` ([{ nombre, telefono, dni }]), que sí distingue a dos
+ * pacientes con el mismo nombre.
  */
 function obtenerPacientesParaAutocompletar() {
-  const HOJA_MAESTRA = SHEETS.MAESTRA;
-  const COLUMNA_NOMBRE = COLUMNAS_NUM.MAESTRA.NOMBRE;   // Columna B (Nombre)
-  const COLUMNA_TELEFONO = COLUMNAS_NUM.MAESTRA.TELEFONO; // Columna D (Teléfono)
-  
   try {
-    const ss = getSS(); // Lista completa: funciona igual desde cualquier contexto
-    
     // Valor de la celda activa: SOLO existe con sesión de usuario real (menú)
     let activeCellValue = "";
     try {
@@ -38,31 +71,15 @@ function obtenerPacientesParaAutocompletar() {
       // Sin sesión activa (Web App) → seguimos sin celda precargada, sin problema
     }
 
-    const sheet = ss.getSheetByName(HOJA_MAESTRA);
-    if (!sheet) return { allPatientsData: {}, activeCellValue: activeCellValue };
+    const pacientes = leerPacientesMaestra_();
+    const allPatientsData = {};
+    pacientes.forEach(p => { allPatientsData[p.nombre] = p.telefono; });
 
-    const lastRow = sheet.getLastRow();
-    const allPatientsData = {}; 
-    
-    if (lastRow > 1) {
-      const allDataRange = sheet.getRange(2, COLUMNA_NOMBRE, lastRow - 1, COLUMNA_TELEFONO - COLUMNA_NOMBRE + 1);
-      const allData = allDataRange.getValues(); 
-      
-      allData.forEach(row => {
-        const name = row[0] ? row[0].toString().trim() : '';
-        const phone = row[row.length - 1] ? row[row.length - 1].toString().trim() : '';
-        
-        if (name) {
-          allPatientsData[name] = phone;
-        }
-      });
-    }
-    
-    return { allPatientsData: allPatientsData, activeCellValue: activeCellValue };
-    
+    return { allPatientsData: allPatientsData, pacientes: pacientes, activeCellValue: activeCellValue };
+
   } catch (e) {
     Logger.log("Error en autocompletado: " + e.message);
-    return { allPatientsData: {}, activeCellValue: "", error: e.message };
+    return { allPatientsData: {}, pacientes: [], activeCellValue: "", error: e.message };
   }
 }
 
@@ -97,6 +114,20 @@ function procesarValoracion(data) {
     // 1. Normalización Capa 2 (Servidor) - Ahora en mayúsculas siempre
     const nombreFinal = normalizarFormatoNombre(data.nombre);
     if (!nombreFinal) throw new Error("Nombre de paciente inválido.");
+
+    // DNI del paciente: lo normal es que el formulario lo envíe ya elegido. Si no llega (p. ej. el
+    // formulario antiguo del menú de Sheets), se busca en la Maestra por nombre; si ese nombre
+    // corresponde a varios pacientes con DNI distintos, no se adivina: se pide elegir uno.
+    let dni = (data.dni || "").toString().trim().toUpperCase();
+    if (!dni) {
+      const limpiar = s => s.toString().trim().replace(/\s+/g, ' ').toUpperCase();
+      const coincidencias = leerPacientesMaestra_().filter(p => limpiar(p.nombre) === limpiar(nombreFinal));
+      const dnisDistintos = Array.from(new Set(coincidencias.map(p => p.dni).filter(d => d)));
+      if (dnisDistintos.length > 1) {
+        throw new Error("Hay varios pacientes llamados '" + nombreFinal + "' (DNI distintos). Elige el paciente desde la Base de Datos o desde Valoraciones, donde se distinguen por DNI.");
+      }
+      if (dnisDistintos.length === 1) dni = dnisDistintos[0];
+    }
 
     const tipoValoracion = data.tipoValoracion || "Inicial";
     const telefono = data.telefono || "";
@@ -135,7 +166,8 @@ function procesarValoracion(data) {
       mediaMI,              // Media MI
       mediaFG,              // Función Global
       analgesicosOutput,    // Analgésicos
-      notas                 // Notas Clínicas
+      notas,                // Notas Clínicas
+      dni                   // DNI (columna 14; vacío si el paciente no tiene DNI en la Maestra)
     ];
 
     sheet.appendRow(filaDatos);
@@ -228,3 +260,5 @@ function testProcesarValoracion() {
 
   Logger.log(todosCorrecto ? "✅ Todos los tests pasaron." : "❌ Hay fallos. Revisa los logs.");
 }
+
+

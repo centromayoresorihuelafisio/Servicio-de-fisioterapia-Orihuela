@@ -309,10 +309,10 @@
 
     <script>
       var PACIENTES = [];
-      var pacienteSeleccionado = null; // nombre (string) o null
+      var pacienteSeleccionado = null; // clave del paciente (p.clave: 'D:'+DNI o 'N:'+nombre si no tiene DNI) o null
       var metricaActual = 'funcionGlobal';
       var filaEnEdicion = null;
-      var nombreEnEdicion = null, fechaEnEdicion = null; // para que el servidor compruebe que la fila sigue siendo la misma
+      var nombreEnEdicion = null, fechaEnEdicion = null, dniEnEdicion = null; // para que el servidor compruebe que la fila sigue siendo la misma
       var ordenCampo = null, ordenDir = 1; // 1 = asc, -1 = desc
       var ultimosFiltrados = [], filaActiva = null;
       var formularioActivo = false, controladorForm = null, formularioNombre = '';   // formulario de Nueva valoración abierto en la ficha
@@ -446,10 +446,10 @@
       }
 
       function htmlFila(p, termino) {
-        var u = p.ultima, sel = pacienteSeleccionado === p.nombre;
-        return '<tr data-nombre="' + esc(p.nombre) + '" class="' + (sel ? 'seleccionada' : '') + '">' +
+        var u = p.ultima, sel = pacienteSeleccionado === p.clave;
+        return '<tr data-nombre="' + esc(p.clave) + '" class="' + (sel ? 'seleccionada' : '') + '">' +
           '<td class="col-usuario"><div class="celda-u">' + avatarHtml(p.nombre) + '<div class="doble"><div class="u-nombre">' + resalta(p.nombre, termino) + '</div><div class="u-sub">' +
-            (p.telefono ? esc(formatearTel(p.telefono)) : 'Sin teléfono') + ' · ' + p.numValoraciones + (p.numValoraciones === 1 ? ' valoración' : ' valoraciones') + '</div></div></div></td>' +
+            (p.dni ? esc(p.dni) + ' · ' : '') + (p.telefono ? esc(formatearTel(p.telefono)) : 'Sin teléfono') + ' · ' + p.numValoraciones + (p.numValoraciones === 1 ? ' valoración' : ' valoraciones') + '</div></div></div></td>' +
           '<td><div class="doble"><div class="f-fecha">' + formatearFechaCorta(u.fecha) + '</div><div class="c-sub">' + chipTipo(u.tipo) + '</div></div></td>' +
           COLS.map(function(c) { return '<td' + (c.sec ? ' class="sec"' : '') + '>' + renderPill(u[c.k], c.k) + '</td>'; }).join('') +
           '<td>' + deltaHtml(p.historial, 'funcionGlobal') + '</td>' +
@@ -507,9 +507,9 @@
       function moverFilaActiva(delta) {
         if (!ultimosFiltrados.length) return;
         var idx = -1;
-        ultimosFiltrados.forEach(function(p, i) { if (p.nombre === filaActiva) idx = i; });
+        ultimosFiltrados.forEach(function(p, i) { if (p.clave === filaActiva) idx = i; });
         idx = Math.min(ultimosFiltrados.length - 1, Math.max(0, idx + delta));
-        filaActiva = ultimosFiltrados[idx].nombre;
+        filaActiva = ultimosFiltrados[idx].clave;
         marcarFilaActiva();
         var el = document.querySelector('tbody tr.fila-activa');
         if (el) el.scrollIntoView({ block: 'nearest' });
@@ -533,7 +533,7 @@
 
       // ---------- Ficha lateral (evolución + historial) ----------
       function pacienteActual() {
-        return PACIENTES.find(function(x) { return x.nombre === pacienteSeleccionado; }) || null;
+        return PACIENTES.find(function(x) { return x.clave === pacienteSeleccionado; }) || null;
       }
       // Antes de cualquier acción que destruiría el formulario abierto (otro paciente, cerrar la ficha…): si hay
       // cambios sin guardar pregunta; si se acepta, el formulario queda descartado.
@@ -549,7 +549,7 @@
       async function mostrarDetalle(nombre) {
         if (!(await descartarFormularioSiProcede())) return;
         if (formularioActivo) { formularioActivo = false; controladorForm = null; }
-        if (!PACIENTES.some(function(x) { return x.nombre === nombre; })) { cerrarDetalle(); return; }
+        if (!PACIENTES.some(function(x) { return x.clave === nombre; })) { cerrarDetalle(); return; }   // `nombre` aquí es la clave
         pacienteSeleccionado = nombre;
         filaActiva = nombre;
         renderFicha();
@@ -576,7 +576,7 @@
         el.innerHTML = htmlFicha(p);
         cuerpo = el.querySelector('.ficha-cuerpo');
         if (cuerpo) cuerpo.scrollTop = scroll;
-        document.querySelectorAll('#tablaWrap tbody tr').forEach(function(tr) { tr.classList.toggle('seleccionada', tr.getAttribute('data-nombre') === p.nombre); });
+        document.querySelectorAll('#tablaWrap tbody tr').forEach(function(tr) { tr.classList.toggle('seleccionada', tr.getAttribute('data-nombre') === p.clave); });
       }
 
       function htmlFicha(p) {
@@ -584,7 +584,7 @@
         var kpi = function(campo, etq) { return '<div class="kpi"><div class="kpi-etq">' + etq + '</div><div class="kpi-val">' + renderPill(u[campo], campo) + deltaHtml(h, campo) + '</div></div>'; };
         var chips = METRICAS.map(function(m) { return '<button type="button" class="chip-met' + (m.k === metricaActual ? ' activo' : '') + '" data-metrica="' + m.k + '">' + m.etq + '</button>'; }).join('');
         return '<div class="ficha-cab">' + avatarHtml(p.nombre, 'grande') + '<div class="ficha-tit"><div class="ficha-nombre">' + esc(p.nombre) + '</div><div class="ficha-sub">' +
-            (p.telefono ? esc(formatearTel(p.telefono)) : 'Sin teléfono') + ' · ' + p.numValoraciones + (p.numValoraciones === 1 ? ' valoración' : ' valoraciones') + '</div></div>' +
+            (p.dni ? esc(p.dni) + ' · ' : '') + (p.telefono ? esc(formatearTel(p.telefono)) : 'Sin teléfono') + ' · ' + p.numValoraciones + (p.numValoraciones === 1 ? ' valoración' : ' valoraciones') + '</div></div>' +
             '<button type="button" class="ficha-cerrar" data-ficha="cerrar" title="Cerrar (Esc)"><span class="material-symbols-outlined">close</span></button></div>' +
           '<div class="kpis">' + kpi('funcionGlobal', 'Función Global') + kpi('pegDolor', 'PEG Dolor') + '</div>' +
           '<div class="ficha-acciones"><button type="button" class="ficha-acc primario" data-acc="nueva"><span class="material-symbols-outlined">assignment</span>Nueva valoración</button>' +
@@ -678,7 +678,9 @@
       }
       function abrirModalEditar(registro) {
         filaEnEdicion = registro._fila;
-        nombreEnEdicion = pacienteSeleccionado;
+        var pEd = pacienteActual();
+        nombreEnEdicion = registro.nombre || (pEd ? pEd.nombre : '');
+        dniEnEdicion = pEd ? pEd.dni : '';
         fechaEnEdicion = registro.fecha || '';
         document.getElementById('editFecha').value = registro.fecha || '';
         document.getElementById('editTipo').value = registro.tipo || 'Inicial';
@@ -697,6 +699,7 @@
       function cerrarModalEditar() {
         filaEnEdicion = null;
         nombreEnEdicion = null;
+        dniEnEdicion = null;
         fechaEnEdicion = null;
         document.getElementById('modalEditarOverlay').classList.remove('visible');
       }
@@ -710,6 +713,7 @@
         var datos = {
           fila: filaEnEdicion,
           nombreEsperado: nombreEnEdicion,
+          dniEsperado: dniEnEdicion,
           fechaOriginal: fechaEnEdicion,
           fecha: fecha,
           tipo: document.getElementById('editTipo').value,
@@ -757,7 +761,8 @@
 
         // Foto completa de la valoración ANTES de borrarla (con el nombre del
         // paciente, que el registro no trae por sí solo), para poder deshacer.
-        var snapshot = Object.assign({ nombre: pacienteSeleccionado }, registro);
+        var pEl = pacienteActual();
+        var snapshot = Object.assign({ nombre: pEl ? pEl.nombre : '', dni: pEl ? pEl.dni : '' }, registro);   // registro.nombre (el de esa fila) prevalece
         ocupado(1);
 
         google.script.run
@@ -768,7 +773,7 @@
             mostrarDeshacer(snapshot, 'Valoración eliminada.');
           })
           .withFailureHandler(function(err) { ocupado(-1); mostrarAviso('Error al eliminar: ' + err); })
-          .eliminarValoracionWeb(registro._fila, snapshot.nombre, registro.fecha || '');
+          .eliminarValoracionWeb(registro._fila, snapshot.nombre, registro.fecha || '', snapshot.dni);
       }
 
       <?!= include('ui/JS_Modal_Deshacer'); ?>
@@ -816,11 +821,11 @@
       // ---------- Nueva Valoración (formulario en la ficha lateral) ----------
       // El formulario (valoraciones/Panel_Valoracion) se monta dentro de la ficha, con el paciente seleccionado si lo hay.
       async function abrirFormularioValoracion() {
-        var nombre = pacienteSeleccionado || '';
-        if (formularioActivo && formularioNombre === nombre) return;   // ya está abierto para este paciente
+        var clave = pacienteSeleccionado || '';
+        if (formularioActivo && formularioNombre === clave) return;   // ya está abierto para este paciente
         if (!(await descartarFormularioSiProcede())) return;
-        var p = nombre ? pacienteActual() : null, el = document.getElementById('ficha');
-        formularioActivo = true; formularioNombre = nombre; controladorForm = null;
+        var p = clave ? pacienteActual() : null, nombre = p ? p.nombre : '', el = document.getElementById('ficha');
+        formularioActivo = true; formularioNombre = clave; controladorForm = null;
         document.body.classList.add('con-ficha');
         el.classList.add('abierta');
         el.setAttribute('aria-hidden', 'false');
@@ -828,6 +833,7 @@
         el.querySelector('.ficha-form-tit').textContent = 'Nueva valoración' + (nombre ? ' · ' + nombre : '');
         controladorForm = PanelValoracion.abrir(el.querySelector('.ficha-form-cuerpo'), {
           paciente: nombre,
+          dni: p && p.dni ? p.dni : '',
           telefono: p && p.telefono ? String(p.telefono) : '',
           onGuardado: function() {
             mostrarAviso('Valoración guardada');
@@ -884,3 +890,5 @@
     </script>
   </body>
 </html>
+
+
