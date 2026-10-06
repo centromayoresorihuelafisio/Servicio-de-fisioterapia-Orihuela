@@ -2698,6 +2698,7 @@
       // Si otra pestaña actualiza un paciente (las páginas sueltas ?page=… avisan por localStorage al guardar),
       // la agenda se recarga salvo que haya una edición en línea en curso.
       window.addEventListener('storage', function(e) {
+        if (e.key === 'pacienteActualizado') cargarFichas();   // los datos de la ficha pueden haber cambiado
         if (e.key === 'pacienteActualizado' && semanaActual) {
           if (document.querySelector('.editando')) return;
           cargar(semanaActual, true);
@@ -2793,7 +2794,50 @@
         ['Diagnóstico', ['Patología 1', 'Patología 2']],
         ['Observaciones', ['Observaciones']]
       ];
-      var cacheFicha = {};   // nombre -> { t, res } (60 s)
+      // Fichas en memoria: se cargan TODAS de una vez en segundo plano (cargarFichas) y el panel se abre desde
+      // aquí, sin llamar al servidor. Se refrescan solas (ver más abajo), así que no hace falta caché por nombre.
+      var FICHAS = { t: 0, headers: [], porNombre: null, cargando: false };
+      var fichaAbierta = null;   // { clave, nombre, caja, html } de la ficha que está en el panel lateral
+
+      // Misma normalización que normalizarNombreFicha_ (agenda/Ficha_Usuario.gs): mayúsculas, sin tildes, espacios simples.
+      function claveFicha(n) {
+        return String(n || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim().toUpperCase();
+      }
+      // Cabeceras que necesita la ficha (el servidor solo lee y envía esas columnas).
+      function camposFicha() {
+        var c = ['Nombre', 'Edad'];
+        FICHA_GRUPOS.forEach(function(g) { c = c.concat(g[1]); });
+        return c;
+      }
+      function fichaDeMemoria(nombre) {
+        var p = FICHAS.porNombre && FICHAS.porNombre[claveFicha(nombre)];
+        return p ? { success: true, headers: FICHAS.headers, paciente: p } : null;
+      }
+      function repintarFichaAbierta() {
+        if (!fichaAbierta || !panelAbierto || panelClave !== fichaAbierta.clave) return;
+        var res = fichaDeMemoria(fichaAbierta.nombre);
+        if (!res) return;
+        var html = htmlFichaUsuario(res, fichaAbierta.nombre);
+        if (html === fichaAbierta.html) return;            // sin cambios: no se toca el DOM
+        fichaAbierta.html = html;
+        fichaAbierta.caja.innerHTML = html;
+      }
+      // Carga (o recarga) todas las fichas. Si falla, se conserva lo que ya hubiera en memoria.
+      function cargarFichas() {
+        if (FICHAS.cargando) return;
+        FICHAS.cargando = true;
+        google.script.run
+          .withSuccessHandler(function(res) {
+            FICHAS.cargando = false;
+            if (!res || !res.success) return;
+            FICHAS.headers = res.headers || [];
+            FICHAS.porNombre = res.fichas || {};
+            FICHAS.t = Date.now();
+            repintarFichaAbierta();                         // si la ficha abierta cambió en la hoja, se actualiza al momento
+          })
+          .withFailureHandler(function() { FICHAS.cargando = false; /* no crítico: se reintenta en el próximo ciclo */ })
+          .obtenerFichasUsuariosWeb(camposFicha());
+      }
 
       function claveCabecera(headers, etq) {
         var n = normalizar(etq);
@@ -2850,21 +2894,32 @@
         if (!nombre) return;
         var clave = 'usuario:' + nombre;
         return abrirPanelLateral(clave, 'Ficha de usuario', false, function(cont) {
-          cont.innerHTML = '<div class="fu"><p class="fu-vacio">Cargando…</p></div>';
+          cont.innerHTML = '<div class="fu"></div>';
           var caja = cont.firstChild;
-          function pintar(res) { caja.innerHTML = htmlFichaUsuario(res, nombre); }
-          function error(msg) { caja.innerHTML = '<p class="fu-vacio">' + escapar(msg) + '</p>'; }
-          var previo = cacheFicha[nombre];
-          if (previo && Date.now() - previo.t < 60000) pintar(previo.res);
-          else google.script.run
-            .withSuccessHandler(function(res) {
-              if (panelClave !== clave) return;
-              if (!res || !res.success) { error((res && res.message) || 'No se pudo cargar la ficha.'); return; }
-              cacheFicha[nombre] = { t: Date.now(), res: res };
-              pintar(res);
-            })
-            .withFailureHandler(function(err) { if (panelClave === clave) error('Error al cargar la ficha: ' + err); })
-            .obtenerFichaUsuarioWeb(nombre);
+          fichaAbierta = { clave: clave, nombre: nombre, caja: caja, html: '' };
+          function pintar(res) { fichaAbierta.html = htmlFichaUsuario(res, nombre); caja.innerHTML = fichaAbierta.html; }
+          function error(msg) { fichaAbierta.html = ''; caja.innerHTML = '<p class="fu-vacio">' + escapar(msg) + '</p>'; }
+
+          var enMemoria = fichaDeMemoria(nombre);
+          if (enMemoria) {
+            pintar(enMemoria);                                       // instantáneo: sin servidor
+            if (Date.now() - FICHAS.t > 60000) cargarFichas();       // y se refresca en segundo plano si ya son "viejas"
+          } else {
+            // Respaldo: fichas aún sin cargar, o usuario dado de alta después de la última carga.
+            caja.innerHTML = '<p class="fu-vacio">Cargando…</p>';
+            google.script.run
+              .withSuccessHandler(function(res) {
+                if (panelClave !== clave) return;
+                if (!res || !res.success) { error((res && res.message) || 'No se pudo cargar la ficha.'); return; }
+                if (FICHAS.porNombre) {                                  // se guarda para la próxima vez
+                  if (!FICHAS.headers.length) FICHAS.headers = res.headers;
+                  FICHAS.porNombre[claveFicha(nombre)] = res.paciente;
+                }
+                pintar(res);
+              })
+              .withFailureHandler(function(err) { if (panelClave === clave) error('Error al cargar la ficha: ' + err); })
+              .obtenerFichaUsuarioWeb(nombre, camposFicha());
+          }
 
           cont.addEventListener('click', function(e) {
             var t = e.target, c;
@@ -2882,10 +2937,18 @@
         });
       }
 
+      // Ediciones hechas directamente en la hoja (no avisan por localStorage): se recogen al volver a la pestaña
+      // si las fichas tienen más de 1 minuto, y cada 5 minutos mientras la agenda está a la vista.
+      document.addEventListener('visibilitychange', function() {
+        if (!document.hidden && FICHAS.porNombre && Date.now() - FICHAS.t > 60000) cargarFichas();
+      });
+      setInterval(function() { if (!document.hidden) cargarFichas(); }, 5 * 60 * 1000);
+
       actualizarBotonHuecos();
       cargar();
       cargarListaPacientes();
       cargarRecordatorios();
+      cargarFichas();   // en segundo plano: cuando llegue, abrir una ficha ya no necesita al servidor
     </script>
   </body>
 </html>
