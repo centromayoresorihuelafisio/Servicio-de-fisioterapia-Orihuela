@@ -680,13 +680,19 @@
       .asis-rapida { display: inline-flex; align-items: center; gap: .1rem; }
       .btn-asis { opacity: .5; }
       .btn-asis:hover, .btn-asis.activo { opacity: 1; }
+      /* Estado activo = etiqueta con texto (los demás botones siguen siempre visibles) */
+      .btn-asis.activo:not(.btn-asis-lg) {
+        width: auto; padding: 0 .6rem 0 .3rem; border-radius: 999px; gap: .2rem;
+        font-size: .76rem; font-weight: 600; font-family: var(--font); white-space: nowrap;
+      }
+      .btn-asis.activo:not(.btn-asis-lg) .material-symbols-outlined { font-size: 18px; }
       .btn-asis.activo.ok    { background: rgba(30,142,62,.18);  color: var(--chip-ok); }
       .btn-asis.activo.mal   { background: rgba(217,48,37,.15);  color: var(--chip-mal); }
       .btn-asis.activo.aviso { background: rgba(240,165,0,.24);  color: var(--chip-aviso); }
       .btn-asis.activo.neutro{ background: rgba(88,96,116,.18);  color: var(--chip-neutro); }
       .btn-asis.activo .material-symbols-outlined { font-variation-settings: 'FILL' 1; }
       button.chip { border: none; cursor: pointer; font-family: var(--font); }
-      thead th:nth-child(5), tbody td:nth-child(5) { width: 150px; }
+      thead th:nth-child(5), tbody td:nth-child(5) { width: 216px; }   /* Asistencia: etiqueta del estado + 3 botones */
       thead th:last-child, tbody td.acciones-fila { width: 200px; }
 
       /* ===== Cabecera aligerada ===== */
@@ -1141,7 +1147,7 @@
           if (act) alguno = true;
           html += '<button type="button" class="btn-asis ' + a.clase + (act ? ' activo' : '') + (conTexto ? ' btn-asis-lg' : '') +
             '" data-asis="' + escapar(op) + '" aria-pressed="' + act + '" title="' + escapar(act ? v + ' — clic para quitar' : op) +
-            '"><span class="material-symbols-outlined">' + a.icono + '</span>' + (conTexto ? escapar(op) : '') + '</button>';
+            '"><span class="material-symbols-outlined">' + a.icono + '</span>' + (conTexto ? escapar(op) : (act ? '<span class="asis-txt">' + escapar(v) + '</span>' : '')) + '</button>';
         });
         if (hay && !alguno) html = '<button type="button" class="chip chip-' + clsV + '" data-asis="" title="' + escapar(v + ' — clic para quitar') + '">' + escapar(v) + '</button>' + html;
         return '<span class="asis-rapida">' + html + '</span>';
@@ -2661,3 +2667,4 @@
     </script>
   </body>
 </html>
+
