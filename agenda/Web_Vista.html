@@ -784,7 +784,6 @@
       td.celda-notas.editando .input-celda { position: absolute; left: .3rem; top: 50%; transform: translateY(-50%); width: 340px; z-index: 6; box-shadow: 0 4px 16px rgba(0,0,0,.18); }
       /* ===== Pulido visual: filas limpias, jerarquía hora/paciente, huecos discretos ===== */
       tbody tr.fila-par { --fila-tinte: transparent; }
-      tbody td { border-bottom-color: rgba(0,0,0,.06); }
       tbody tr.fila-turno td, tbody tr.fila-turno.manana td, tbody tr.fila-turno.tarde td {
         background-image: none !important; border-bottom: none; padding: .9rem .9rem .25rem; font-size: .66rem; color: var(--ag-text-low);
       }
@@ -838,6 +837,41 @@
       .fu-llamar:hover { background: var(--ag-accent-soft); color: var(--ag-accent-dark); }
       .fu-llamar .material-symbols-outlined { font-size: 18px; }
       .fu-vacio { color: var(--ag-text-med); padding: 1rem 0; font-size: .88rem; }
+      /* ===== Barra de aplicación (pestañas) y barra superior ===== */
+      body { font-variant-numeric: tabular-nums; }
+      nav.tabs-cambio { background: var(--ag-surface); padding: .35rem .75rem; gap: .2rem; }
+      nav.tabs-cambio a.tab-cambio { border-radius: 999px; padding: .35rem .95rem; }
+      header.top { padding: .5rem 1rem; }
+      .buscador { flex: 0 1 240px; min-width: 160px; }
+      .btn-rec { position: relative; }
+      .btn-rec .badge-rec { position: absolute; top: -6px; right: -6px; color: var(--ag-surface); }
+      .btn-rec .badge-rec.atrasado { color: #fff; }
+      .btn-nav.con-opcion { position: relative; }
+      .btn-nav.con-opcion::after { content: ''; position: absolute; top: 6px; right: 7px; width: 7px; height: 7px; border-radius: 50%; background: var(--ag-accent); }
+      .menu { border-radius: 14px; box-shadow: 0 8px 24px rgba(0,0,0,.18); }
+      .menu-item.activo { background: var(--ag-accent-soft); color: var(--ag-accent-dark); }
+
+      /* ===== Cabecera de día editorial ===== */
+      tbody tr.fila-dia td, tbody tr.fila-dia.hoy td {
+        background-image: none !important; box-shadow: none !important; color: var(--ag-text);
+        padding: 1.1rem .9rem .55rem; border-bottom: 1px solid var(--ag-line); font-size: .88rem;
+      }
+      .dia-cab { gap: .75rem; }
+      .dia-num { display: inline-flex; align-items: center; justify-content: center; width: 2.3rem; height: 2.3rem; border-radius: 50%; flex-shrink: 0;
+        font-size: 1.3rem; font-weight: 500; }
+      tbody tr.fila-dia.hoy .dia-num, .tj-cab .dia-num { background: var(--ag-accent); color: var(--ag-surface); font-size: 1.1rem; font-weight: 600; }
+      .dia-txt { display: flex; flex-direction: column; line-height: 1.2; }
+      .dia-txt b { font-size: .95rem; font-weight: 600; text-transform: capitalize; }
+      .dia-txt small { font-size: .72rem; font-weight: 500; color: var(--ag-text-med); text-transform: capitalize; }
+      .dia-hoy { background: var(--ag-accent-soft); }
+      .dia-stats { background: none; padding: 0; color: var(--ag-text-low); font-size: .76rem; }
+      .rc-chip { font-size: .68rem; padding: .02rem .45rem .02rem .25rem; }
+
+      /* ===== Tema oscuro: texto sobre el color de acento y líneas ===== */
+      tbody td { border-bottom-color: color-mix(in srgb, var(--ag-line) 60%, transparent); }
+      .ahora-linea span, .tag-t.ahora { color: var(--ag-surface); }
+      tbody tr.seleccionada .chk::after { border-color: var(--ag-surface); }
+      td.hueco-libre:hover .chip-asignar { color: var(--ag-surface); }
     </style>
   </head>
   <body>
@@ -848,7 +882,7 @@
     </nav>
     <header class="top" id="cabecera">
 
-      <!-- Barra principal -->
+      <!-- Barra principal: navegación | vista | buscar, jornada y menú -->
       <div class="barra barra-principal">
         <div class="grupo-nav">
           <button class="btn-toolbar btn-nav" id="btnSemanaAnterior" title="Semana anterior (←)">
@@ -866,34 +900,25 @@
           <span class="material-symbols-outlined">calendar_month</span>
           <input type="date" id="inputSemana" title="Ir a la semana que contiene esta fecha">
         </div>
-
-        <div class="buscador">
-          <span class="material-symbols-outlined">search</span>
-          <input type="text" id="inputBusqueda" placeholder="Buscar…  ( / )" title="Buscar por usuario, sesión o notas">
-        </div>
-
+        <span class="espaciador"></span>
         <div class="segmentado" role="group" aria-label="Vista">
           <button type="button" class="seg activo" id="btnVistaSemana" title="Tabla de la semana">Semana</button>
           <button type="button" class="seg" id="btnVistaHoy" title="Tarjetas con las citas de hoy">Hoy</button>
           <button type="button" class="seg" id="btnVistaCal" title="Cuadrícula semanal tipo calendario">Cuadrícula</button>
         </div>
-
         <span class="espaciador"></span>
-
-        <button class="btn-toolbar btn-rec" id="btnRecordatorios" title="Recordatorios (R)">
-          <span class="material-symbols-outlined">checklist</span> Recordatorios <span class="badge-rec" id="badgeRec"></span>
-        </button>
-        <button class="btn-toolbar" id="btnHuecos" title="Muestra u oculta los huecos libres de la agenda">
-          <span class="material-symbols-outlined">event_available</span> Huecos libres
-        </button>
-        <button class="btn-toolbar primario" id="btnJornada" title="Abre las Historias Clínicas del turno actual de hoy">
-          <span class="material-symbols-outlined">today</span> Preparar Jornada
-        </button>
         <button class="btn-toolbar deshacer" id="btnDeshacer" title="Deshacer la última eliminación">
           <span class="material-symbols-outlined">undo</span> Deshacer
         </button>
-        <button type="button" class="btn-toolbar" id="btnDensidad" title="Cambiar la altura de las filas">
-          <span class="material-symbols-outlined">density_medium</span> <span id="txtDensidad">Espaciado</span>
+        <button class="btn-toolbar btn-nav btn-rec" id="btnRecordatorios" title="Recordatorios (R)" aria-label="Recordatorios">
+          <span class="material-symbols-outlined">checklist</span><span class="badge-rec" id="badgeRec"></span>
+        </button>
+        <div class="buscador">
+          <span class="material-symbols-outlined">search</span>
+          <input type="text" id="inputBusqueda" placeholder="Buscar…  ( / )" title="Buscar por usuario, sesión o notas">
+        </div>
+        <button class="btn-toolbar primario" id="btnJornada" title="Abre las Historias Clínicas del turno actual de hoy">
+          <span class="material-symbols-outlined">today</span> Preparar Jornada
         </button>
         <div class="menu-wrap" id="menuMasWrap">
           <button class="btn-toolbar btn-nav" id="btnMenuMas" aria-haspopup="true" aria-expanded="false" title="Más opciones">
@@ -903,6 +928,10 @@
             <button class="menu-item" id="btnCopiarSemana" role="menuitem" title="Copia miércoles y jueves (doble sesión) y viernes (simple) a la semana siguiente, sin necesidad de seleccionar nada">
               <span class="material-symbols-outlined">event_repeat</span>
               <span>Copiar semana<small>Mié/jue ×2 y vie → semana siguiente</small></span>
+            </button>
+            <button class="menu-item" id="btnHuecos" role="menuitem" title="Muestra u oculta los huecos libres de la agenda"></button>
+            <button class="menu-item" id="btnDensidad" role="menuitem" title="Cambiar la altura de las filas">
+              <span class="material-symbols-outlined">density_medium</span><span>Densidad<small id="txtDensidad">Espaciado</small></span>
             </button>
             <button class="menu-item" id="btnTema" role="menuitem"></button>
             <button class="menu-item" id="btnAtajos" role="menuitem">
@@ -1271,6 +1300,14 @@
           '<button type="button" class="btn-fila peligro" data-accion="borrar" data-fila="' + fila + '" title="Liberar este hueco (borra todos los datos de la cita)"><span class="material-symbols-outlined">delete</span></button>';
       }
 
+      var MESES_ES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+      var DIAS_ES = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+      function htmlDiaTitulo(iso, dia) {
+        var p = String(iso).split('-'), d = parseInt(p[2], 10), m = parseInt(p[1], 10) - 1;
+        var nombre = dia || DIAS_ES[new Date(+p[0], m, d).getDay()];
+        return '<span class="dia-num">' + d + '</span><span class="dia-txt"><b>' + escapar(nombre) + '</b><small>' + MESES_ES[m] + ' ' + p[0] + '</small></span>';
+      }
+
       function htmlStatsDia(t, fechaISO) {
         var txt = t.citas === 0 ? 'Sin citas' : t.citas + (t.citas === 1 ? ' cita' : ' citas');
         if (t.libres > 0) txt += ' · ' + t.libres + (t.libres === 1 ? ' libre' : ' libres');
@@ -1411,7 +1448,7 @@
 
           var cabecera = '<tr class="fila-dia' + (esHoy ? ' hoy' : '') + (plegado ? ' plegado' : '') + '" data-dia="' + g.fechaISO + '"><td colspan="' + numColumnas + '">' +
             '<div class="dia-cab"><span class="material-symbols-outlined dia-chevron">' + (plegado ? 'chevron_right' : 'expand_more') + '</span>' +
-            '<span>' + etiquetaDia + '</span>' +
+            htmlDiaTitulo(g.fechaISO, g.dia) +
             (esHoy ? '<span class="dia-hoy">Hoy</span>' : '') +
             htmlRecDia(g.fechaISO) + htmlStatsDia(t, g.fechaISO) + '</div></td></tr>';
 
@@ -1470,8 +1507,7 @@
         var proxima = filaProxima(hoy, ahora);
         var primera = citas[0];
 
-        var html = '<div class="tj-cab"><div class="dia-cab"><span>' + (primera['Día'] ? escapar(primera['Día']) + ' · ' : '') + escapar(primera['Fecha']) +
-          '</span><span class="dia-hoy">Hoy</span>' + htmlRecDia(hoy) + htmlStatsDia(t, hoy) + '</div></div><div class="tj-turnos">';
+        var html = '<div class="tj-cab"><div class="dia-cab">' + htmlDiaTitulo(hoy, primera['Día']) + '<span class="dia-hoy">Hoy</span>' + htmlRecDia(hoy) + htmlStatsDia(t, hoy) + '</div></div><div class="tj-turnos">';
 
         var man = [], tar = [];
         citas.forEach(function(c) { ((c['Hora'] || '') < HORA_CORTE_TARDE ? man : tar).push(c); });
@@ -2163,10 +2199,9 @@
 
       function actualizarBotonHuecos() {
         var btn = document.getElementById('btnHuecos');
-        btn.innerHTML = mostrarHuecos
-          ? '<span class="material-symbols-outlined">event_busy</span> Ocultar huecos'
-          : '<span class="material-symbols-outlined">event_available</span> Huecos libres';
+        btn.innerHTML = '<span class="material-symbols-outlined">' + (mostrarHuecos ? 'event_busy' : 'event_available') + '</span><span>Huecos libres<small>' + (mostrarHuecos ? 'Visibles · clic para ocultar' : 'Ocultos · clic para mostrar') + '</small></span>';
         btn.classList.toggle('activo', mostrarHuecos);
+        document.getElementById('btnMenuMas').classList.toggle('con-opcion', mostrarHuecos);
       }
 
       // ---------- Vista Semana / Hoy ----------
@@ -2842,6 +2877,7 @@
         });
       }
 
+      actualizarBotonHuecos();
       cargar();
       cargarListaPacientes();
       cargarRecordatorios();
