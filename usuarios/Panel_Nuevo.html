@@ -1,7 +1,7 @@
 <!--
   usuarios/Panel_Nuevo.html
   Formulario de Nuevo usuario como módulo del panel lateral de la Base de Datos Web (igual que Panel_Valoracion / Panel_Editar).
-  Se incluye desde usuarios/BaseDatos_Vista con <?!= include('usuarios/Panel_Nuevo'); ?>
+  Se incluye desde usuarios/BaseDatos_Vista con include('usuarios/Panel_Nuevo') en un scriptlet de impresion.
   API: PanelNuevo.abrir(contenedor, { onGuardado, onCancelar })
   Devuelve { haCambiado(), alEscape(), cerrar() }:
     · haCambiado() → true si hay datos sin guardar (la Base de Datos pregunta antes de descartar).
@@ -312,6 +312,7 @@ window.PanelNuevo = {
     }
     var iNombre = q('#nu-nombre'), iDni = q('#nu-dni'), iFi = q('#nu-fi'), iFn = q('#nu-fn'), iTel1 = q('#nu-tel1'), iTel2 = q('#nu-tel2');
     iFi.value = hoyLocal();
+    if (window.SelectorFecha) { SelectorFecha.enlazar(iFi, { borrar: false }); SelectorFecha.enlazar(iFn, {}); }   // calendario moderno (ui/JS_Selector_Fecha)
     qa('.md-field input, .md-field textarea').forEach(function (el) {
       sync(el);
       el.addEventListener('input', function () { sync(el); clearError(el); });

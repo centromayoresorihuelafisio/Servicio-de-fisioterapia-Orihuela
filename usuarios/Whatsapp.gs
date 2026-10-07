@@ -35,11 +35,43 @@ function generarUrlWhatsappWeb(fila) {
 }
 
 /**
- * Lógica compartida (antes dentro de abrirChatWhatsapp): busca el teléfono
- * en la Maestra, arma el primer nombre para el saludo y construye la URL de
- * WhatsApp Web con la plantilla de mensaje configurada.
+ * Plantilla de mensaje configurada (con {{nombre}}) o la de por defecto.
  */
-function _generarUrlWhatsappParaNombre(hoja, nombreCompleto) {
+function _plantillaWhatsapp_() {
+  const scriptProperties = PropertiesService.getScriptProperties();
+  return scriptProperties.getProperty(PROP_KEYS.WHATSAPP_MESSAGE) || "Hola {{nombre}}, soy Fabio, el fisioterapeuta del centro de mayores.";
+}
+
+/**
+ * Primer nombre en formato Title Case para el saludo (misma regla de siempre:
+ * si la primera palabra tiene 2 letras o menos, se une con la segunda).
+ */
+function _primerNombreWhatsapp_(nombreCompleto) {
+  const palabras = nombreCompleto.toString().trim().split(/\s+/);
+  let primerNombre = "";
+  if (palabras.length > 0) {
+    let palabra1 = palabras[0];
+    if (palabra1.replace(/[^a-zA-ZñÑáéíóúÁÉÍÓÚ]/g, "").length <= 2 && palabras.length > 1) {
+      let palabra2 = palabras[1];
+      palabra1 = palabra1.replace(/[^a-zA-ZñÑáéíóúÁÉÍÓÚ]/g, "");
+      palabra2 = palabra2.replace(/[^a-zA-ZñÑáéíóúÁÉÍÓÚ]/g, "");
+      primerNombre = palabra1.charAt(0).toUpperCase() + palabra1.slice(1).toLowerCase() + " " +
+                      palabra2.charAt(0).toUpperCase() + palabra2.slice(1).toLowerCase();
+    } else {
+      palabra1 = palabra1.replace(/[^a-zA-ZñÑáéíóúÁÉÍÓÚ]/g, "");
+      primerNombre = palabra1.charAt(0).toUpperCase() + palabra1.slice(1).toLowerCase();
+    }
+  }
+  return primerNombre;
+}
+
+/**
+ * Lee la Maestra UNA sola vez y devuelve, para cada nombre de `nombres`:
+ *   { nombre, primerNombre, telefono (solo dígitos, con prefijo 34), error }
+ * Igual que antes, si un nombre aparece varias veces en la Maestra se usa la
+ * primera fila que coincide. Si falla algo global devuelve { success:false, message }.
+ */
+function _datosWhatsappParaNombres_(hoja, nombres) {
   const idxNombre = obtenerIndiceColumnaPorNombre_(hoja, COLUMNAS.MAESTRA.NOMBRE);
   const idxTelefono = resolverColumnaTelefono_(hoja);
   if (idxNombre === -1 || idxTelefono === -1) {
@@ -57,38 +89,38 @@ function _generarUrlWhatsappParaNombre(hoja, nombreCompleto) {
   const offsetNombre = idxNombre - Math.min(idxNombre, idxTelefono);
 
   const datos = hoja.getRange(2, primerCol, lastRow - 1, numColumnas).getValues();
-  let telefono = "";
+  const telPorNombre = Object.create(null);
   for (let i = 0; i < datos.length; i++) {
-    if (String(datos[i][offsetNombre]).trim() === String(nombreCompleto).trim()) {
-      telefono = datos[i][offsetTelefono];
-      break;
-    }
-  }
-  if (!telefono) return { success: false, message: "No hay teléfono para " + nombreCompleto };
-
-  const palabras = nombreCompleto.toString().trim().split(/\s+/);
-  let primerNombre = "";
-  if (palabras.length > 0) {
-    let palabra1 = palabras[0];
-    if (palabra1.replace(/[^a-zA-ZñÑáéíóúÁÉÍÓÚ]/g, "").length <= 2 && palabras.length > 1) {
-      let palabra2 = palabras[1];
-      palabra1 = palabra1.replace(/[^a-zA-ZñÑáéíóúÁÉÍÓÚ]/g, "");
-      palabra2 = palabra2.replace(/[^a-zA-ZñÑáéíóúÁÉÍÓÚ]/g, "");
-      primerNombre = palabra1.charAt(0).toUpperCase() + palabra1.slice(1).toLowerCase() + " " +
-                      palabra2.charAt(0).toUpperCase() + palabra2.slice(1).toLowerCase();
-    } else {
-      palabra1 = palabra1.replace(/[^a-zA-ZñÑáéíóúÁÉÍÓÚ]/g, "");
-      primerNombre = palabra1.charAt(0).toUpperCase() + palabra1.slice(1).toLowerCase();
-    }
+    const clave = String(datos[i][offsetNombre]).trim();
+    if (!(clave in telPorNombre)) telPorNombre[clave] = datos[i][offsetTelefono];
   }
 
-  const numLimpio = telefono.toString().replace(/\D/g, '');
-  const numFinal = numLimpio.startsWith("34") ? numLimpio : "34" + numLimpio;
+  const items = nombres.map(function(nombre) {
+    const telefono = telPorNombre[String(nombre).trim()];
+    if (!telefono) {
+      return { nombre: nombre, primerNombre: "", telefono: "", error: "No hay teléfono para " + nombre };
+    }
+    const numLimpio = telefono.toString().replace(/\D/g, '');
+    const numFinal = numLimpio.startsWith("34") ? numLimpio : "34" + numLimpio;
+    return { nombre: nombre, primerNombre: _primerNombreWhatsapp_(nombre), telefono: numFinal, error: null };
+  });
+  return { success: true, items: items };
+}
 
-  const scriptProperties = PropertiesService.getScriptProperties();
-  const plantillaMensaje = scriptProperties.getProperty(PROP_KEYS.WHATSAPP_MESSAGE) || "Hola {{nombre}}, soy Fabio, el fisioterapeuta del centro de mayores.";
-  const msjFinal = plantillaMensaje.replace(/{{nombre}}/g, primerNombre);
+/**
+ * Lógica compartida (antes dentro de abrirChatWhatsapp): busca el teléfono
+ * en la Maestra, arma el primer nombre para el saludo y construye la URL de
+ * WhatsApp Web con la plantilla de mensaje configurada.
+ * Devuelve lo mismo que siempre: { success, url } o { success:false, message }.
+ */
+function _generarUrlWhatsappParaNombre(hoja, nombreCompleto) {
+  const datos = _datosWhatsappParaNombres_(hoja, [nombreCompleto]);
+  if (!datos.success) return { success: false, message: datos.message };
 
-  const urlGenerada = "https://web.whatsapp.com/send?phone=" + numFinal + "&text=" + encodeURIComponent(msjFinal);
+  const it = datos.items[0];
+  if (it.error) return { success: false, message: it.error };
+
+  const msjFinal = _plantillaWhatsapp_().replace(/{{nombre}}/g, it.primerNombre);
+  const urlGenerada = "https://web.whatsapp.com/send?phone=" + it.telefono + "&text=" + encodeURIComponent(msjFinal);
   return { success: true, url: urlGenerada };
 }

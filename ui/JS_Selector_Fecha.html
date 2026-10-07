@@ -1,0 +1,214 @@
+<!--
+  ui/JS_Selector_Fecha.html
+  Calendario desplegable moderno (bordes redondeados, mismo estilo que el mini calendario de la Agenda) para sustituir
+  al selector nativo de <input type="date">. El <input> se mantiene como almacén del valor ("YYYY-MM-DD"), así que
+  el resto del código (value, eventos input/change, validaciones) sigue funcionando igual.
+  Se incluye con include('ui/JS_Selector_Fecha') en un scriptlet de impresion, fuera de cualquier <script>.
+  API:
+    SelectorFecha.enlazar(input, { borrar: true, marcas: function(iso) { return { festivo, tipos, texto }; } })
+      · borrar → muestra el botón "Borrar" (por defecto sí).
+      · marcas → opcional: festivo (número en rojo), tipos (puntos de color: 'evento', 'reunion', ...) y texto (tooltip del día).
+    SelectorFecha.cerrar()  → cierra el calendario si está abierto.
+  Teclado: clic o Alt+↓ / F4 en el campo lo abren; dentro, flechas = día/semana, RePág/AvPág = mes (Mayús = año), Esc cierra.
+  Colores: usa los tokens de la página (--ag-* en la Agenda, --md-* en el resto), así que respeta el tema oscuro.
+-->
+<style>
+input.sf-input { cursor: pointer; }
+input.sf-input::-webkit-calendar-picker-indicator { display: none; }
+.sf-pop {
+  --sf-bg: var(--ag-surface, var(--md-surface, #fff));
+  --sf-line: var(--ag-line, var(--md-outline, #dadce0));
+  --sf-text: var(--ag-text, var(--md-on-surface, #202124));
+  --sf-med: var(--ag-text-med, var(--md-on-surface-med, #5f6368));
+  --sf-low: var(--ag-text-low, var(--md-on-surface-low, #80868b));
+  --sf-acc: var(--ag-accent, var(--md-primary, #0b57d0));
+  --sf-soft: var(--ag-accent-soft, var(--md-primary-light, #e0f1fc));
+  --sf-acc-dark: var(--ag-accent-dark, var(--md-primary-dark, #004a77));
+  position: fixed; top: 0; left: 0; z-index: 10000; width: 292px; box-sizing: border-box; padding: .8rem .85rem .6rem;
+  background: var(--sf-bg); color: var(--sf-text); border: 1px solid var(--sf-line); border-radius: 18px;
+  box-shadow: 0 10px 30px rgba(0,0,0,.18), 0 2px 6px rgba(0,0,0,.08);
+  font-family: var(--font, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif); font-size: 14px;
+  animation: sf-in 120ms cubic-bezier(.3,0,0,1) both;
+}
+@keyframes sf-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .sf-pop { animation: none; } }
+.sf-cab { display: flex; align-items: center; justify-content: space-between; margin-bottom: .4rem; }
+.sf-cab b { font-size: .95rem; font-weight: 600; text-transform: capitalize; }
+.sf-nav { border: none; background: none; cursor: pointer; width: 32px; height: 32px; border-radius: 50%; color: var(--sf-med); display: inline-flex; align-items: center; justify-content: center; padding: 0; }
+.sf-nav:hover { background: var(--sf-soft); color: var(--sf-acc-dark); }
+.sf-nav svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.sf-grid { display: grid; grid-template-columns: repeat(7, 1fr); row-gap: 2px; }
+.sf-dow { font-size: .68rem; font-weight: 600; color: var(--sf-low); text-align: center; padding: .25rem 0 .3rem; }
+.sf-d { position: relative; border: none; background: none; font: inherit; font-size: .84rem; color: var(--sf-text); width: 36px; height: 36px; margin: 0 auto; border-radius: 50%; cursor: pointer; padding: 0; }
+.sf-d > span { position: relative; z-index: 1; }
+.sf-d.fuera { color: var(--sf-low); opacity: .55; }
+.sf-d:hover { background: var(--sf-soft); }
+.sf-d.hoy { font-weight: 700; box-shadow: inset 0 0 0 1.5px var(--sf-acc); }
+.sf-d.sel, .sf-d.sel:hover { background: var(--sf-acc); color: var(--sf-bg); font-weight: 700; opacity: 1; }
+.sf-d.festivo:not(.sel) { color: #e5484d; font-weight: 700; }
+.sf-d.festivo.hoy:not(.sel) { box-shadow: inset 0 0 0 1.5px #e5484d; }
+.sf-d.festivo.sel { background: #e5484d; }
+.sf-d:focus-visible, .sf-nav:focus-visible, .sf-txt:focus-visible { outline: 2px solid var(--sf-acc); outline-offset: 1px; }
+.sf-pts { position: absolute; left: 0; right: 0; bottom: 3px; display: flex; justify-content: center; gap: 2px; z-index: 1; pointer-events: none; }
+.sf-pt { width: 4px; height: 4px; border-radius: 50%; background: var(--sf-low); }
+.sf-pt-evento { background: #14a38b; } .sf-pt-reunion { background: #8b5cf6; } .sf-pt-llamar { background: #3b82f6; } .sf-pt-nota { background: #e0a000; }
+.sf-d.sel .sf-pt { box-shadow: 0 0 0 1px var(--sf-bg); }
+.sf-pie { display: flex; justify-content: space-between; margin-top: .35rem; padding-top: .35rem; border-top: 1px solid var(--sf-line); }
+.sf-txt { border: none; background: none; cursor: pointer; font: inherit; font-size: .82rem; font-weight: 600; color: var(--sf-acc-dark); padding: .35rem .7rem; border-radius: 999px; }
+.sf-txt:hover { background: var(--sf-soft); }
+</style>
+<script>
+window.SelectorFecha = (function () {
+  var MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+  var DOW = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
+  var abierto = null;
+
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  function iso(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+  function parse(s) { var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s || ''); return m ? new Date(+m[1], +m[2] - 1, +m[3]) : null; }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function sumarDias(d, n) { return new Date(d.getFullYear(), d.getMonth(), d.getDate() + n); }
+  function sumarMeses(d, n) {
+    var y = d.getFullYear(), m = d.getMonth() + n, ult = new Date(y, m + 1, 0).getDate();
+    return new Date(y, m, Math.min(d.getDate(), ult));
+  }
+  function larga(d) { return ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'][d.getDay()] + ' ' + d.getDate() + ' de ' + MESES[d.getMonth()] + ' de ' + d.getFullYear(); }
+
+  var CHEV_IZQ = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>';
+  var CHEV_DER = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>';
+
+  function pintar(st) {
+    var pop = st.pop, activo = document.activeElement, queFoco = null;
+    if (activo && pop.contains(activo)) queFoco = activo.hasAttribute('data-iso') ? '[data-iso="' + activo.getAttribute('data-iso') + '"]' : (activo.hasAttribute('data-sf') ? '[data-sf="' + activo.getAttribute('data-sf') + '"]' : null);
+    var offset = (new Date(st.y, st.m, 1).getDay() + 6) % 7, hoy = iso(new Date()), sel = st.input.value;
+    var h = '<div class="sf-cab"><button type="button" class="sf-nav" data-sf="-1" title="Mes anterior" aria-label="Mes anterior">' + CHEV_IZQ + '</button>' +
+      '<b>' + MESES[st.m] + ' ' + st.y + '</b>' +
+      '<button type="button" class="sf-nav" data-sf="1" title="Mes siguiente" aria-label="Mes siguiente">' + CHEV_DER + '</button></div><div class="sf-grid">';
+    DOW.forEach(function (d) { h += '<span class="sf-dow">' + d + '</span>'; });
+    for (var i = 0; i < 42; i++) {
+      var d = new Date(st.y, st.m, 1 - offset + i), di = iso(d), mk = (st.opts.marcas && st.opts.marcas(di)) || {};
+      var cls = 'sf-d' + (d.getMonth() !== st.m ? ' fuera' : '') + (di === hoy ? ' hoy' : '') + (di === sel ? ' sel' : '') + (mk.festivo ? ' festivo' : '');
+      h += '<button type="button" class="' + cls + '" data-iso="' + di + '" tabindex="' + (di === st.foco ? '0' : '-1') + '" aria-label="' + larga(d) + '"' +
+        (mk.texto ? ' title="' + esc(mk.texto) + '"' : '') + '><span>' + d.getDate() + '</span>' +
+        (mk.tipos && mk.tipos.length ? '<i class="sf-pts">' + mk.tipos.map(function (t) { return '<b class="sf-pt sf-pt-' + esc(t) + '"></b>'; }).join('') + '</i>' : '') + '</button>';
+    }
+    h += '</div><div class="sf-pie"><button type="button" class="sf-txt" data-sf="hoy" title="Elegir la fecha de hoy">Hoy</button>' +
+      (st.opts.borrar === false ? '' : '<button type="button" class="sf-txt" data-sf="borrar" title="Dejar el campo vacío">Borrar</button>') + '</div>';
+    pop.innerHTML = h;
+    if (queFoco) { var el = pop.querySelector(queFoco); if (el) el.focus({ preventScroll: true }); }
+  }
+
+  function colocar(st) {
+    var pop = st.pop, r = st.input.getBoundingClientRect(), w = pop.offsetWidth, hgt = pop.offsetHeight;
+    var vw = document.documentElement.clientWidth, vh = document.documentElement.clientHeight;
+    var x = Math.min(Math.max(8, r.left), Math.max(8, vw - w - 8)), y = r.bottom + 6;
+    if (y + hgt > vh - 8) y = (r.top - hgt - 6 >= 8) ? r.top - hgt - 6 : Math.max(8, vh - hgt - 8);
+    pop.style.left = x + 'px'; pop.style.top = y + 'px';
+  }
+
+  function enfocarDia(st) { var b = st.pop.querySelector('[data-iso="' + st.foco + '"]'); if (b) b.focus({ preventScroll: true }); }
+  function irA(st, d, conFoco) { st.y = d.getFullYear(); st.m = d.getMonth(); st.foco = iso(d); pintar(st); if (conFoco) enfocarDia(st); }
+
+  function cerrar(devolverFoco) {
+    var st = abierto; if (!st) return;
+    abierto = null;
+    document.removeEventListener('mousedown', st.onFuera, true);
+    document.removeEventListener('keydown', st.onTecla, true);
+    document.removeEventListener('focusin', st.onFoco, true);
+    window.removeEventListener('resize', st.onMover); window.removeEventListener('scroll', st.onMover, true);
+    clearInterval(st.vigila);
+    if (st.pop.parentNode) st.pop.parentNode.removeChild(st.pop);
+    if (devolverFoco && st.input.isConnected) st.input.focus({ preventScroll: true });
+  }
+
+  function elegir(st, valor) {
+    var inp = st.input;
+    cerrar(false);
+    inp.value = valor;
+    inp.dispatchEvent(new Event('input', { bubbles: true }));
+    inp.dispatchEvent(new Event('change', { bubbles: true }));
+    if (inp.isConnected) inp.focus({ preventScroll: true });
+  }
+
+  function abrir(input, opts, conFoco) {
+    if (abierto && abierto.input === input) return;
+    cerrar(false);
+    var base = parse(input.value) || new Date();
+    base = new Date(base.getFullYear(), base.getMonth(), base.getDate());
+    var pop = document.createElement('div');
+    pop.className = 'sf-pop'; pop.setAttribute('role', 'dialog'); pop.setAttribute('aria-label', 'Elegir fecha');
+    var st = { input: input, opts: opts, pop: pop, y: base.getFullYear(), m: base.getMonth(), foco: iso(base) };
+    document.body.appendChild(pop);
+    abierto = st;
+    pintar(st); colocar(st);
+
+    pop.addEventListener('click', function (e) {
+      var b = e.target.closest('[data-iso]'), a = e.target.closest('[data-sf]');
+      if (b) { elegir(st, b.getAttribute('data-iso')); return; }
+      if (!a) return;
+      var k = a.getAttribute('data-sf');
+      if (k === 'hoy') elegir(st, iso(new Date()));
+      else if (k === 'borrar') elegir(st, '');
+      else { var d = sumarMeses(parse(st.foco) || new Date(st.y, st.m, 1), +k); st.y = d.getFullYear(); st.m = d.getMonth(); st.foco = iso(d); pintar(st); }
+    });
+    pop.addEventListener('keydown', function (e) {
+      var b = e.target.closest && e.target.closest('[data-iso]'); if (!b) return;
+      var d = parse(b.getAttribute('data-iso')), n = null, dow = (d.getDay() + 6) % 7;
+      switch (e.key) {
+        case 'ArrowLeft': n = sumarDias(d, -1); break;
+        case 'ArrowRight': n = sumarDias(d, 1); break;
+        case 'ArrowUp': n = sumarDias(d, -7); break;
+        case 'ArrowDown': n = sumarDias(d, 7); break;
+        case 'Home': n = sumarDias(d, -dow); break;
+        case 'End': n = sumarDias(d, 6 - dow); break;
+        case 'PageUp': n = sumarMeses(d, e.shiftKey ? -12 : -1); break;
+        case 'PageDown': n = sumarMeses(d, e.shiftKey ? 12 : 1); break;
+      }
+      if (n) { e.preventDefault(); irA(st, n, true); }
+    });
+
+    st.onFuera = function (e) { if (!pop.contains(e.target) && e.target !== input) cerrar(false); };
+    // Esc cierra solo el calendario: se corta aquí para que no cierre también el panel o el formulario de debajo.
+    st.onTecla = function (e) {
+      if (e.key !== 'Escape') return;
+      e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
+      cerrar(true);
+    };
+    st.onFoco = function (e) { if (!pop.contains(e.target) && e.target !== input) cerrar(false); };
+    st.onMover = function () { if (!input.isConnected) cerrar(false); else colocar(st); };
+    // Si el campo desaparece (se cierra el panel que lo contiene), el calendario se va con él.
+    st.vigila = setInterval(function () { if (!input.isConnected) cerrar(false); }, 400);
+    document.addEventListener('mousedown', st.onFuera, true);
+    document.addEventListener('keydown', st.onTecla, true);
+    document.addEventListener('focusin', st.onFoco, true);
+    window.addEventListener('resize', st.onMover); window.addEventListener('scroll', st.onMover, true);
+    if (conFoco) enfocarDia(st);
+  }
+
+  function enlazar(input, opts) {
+    if (!input || input._sf) return;
+    input._sf = true; opts = opts || {};
+    input.classList.add('sf-input');
+    // mousedown/click: se evita el selector nativo y se abre este; el campo conserva el foco para poder teclear la fecha.
+    input.addEventListener('mousedown', function (e) {
+      if (e.button !== 0 || input.disabled || input.readOnly) return;
+      e.preventDefault();
+      input.focus({ preventScroll: true });
+      if (abierto && abierto.input === input) cerrar(false); else abrir(input, opts, false);
+    });
+    input.addEventListener('click', function (e) { e.preventDefault(); });
+    input.addEventListener('keydown', function (e) {
+      if (input.disabled || input.readOnly) return;
+      if ((e.altKey && e.key === 'ArrowDown') || e.key === 'F4') { e.preventDefault(); abrir(input, opts, true); }
+    });
+    // Si se teclea una fecha con el calendario abierto, el calendario la sigue.
+    input.addEventListener('input', function () {
+      if (!abierto || abierto.input !== input) return;
+      var d = parse(input.value);
+      if (d) { abierto.y = d.getFullYear(); abierto.m = d.getMonth(); abierto.foco = iso(d); pintar(abierto); colocar(abierto); }
+    });
+  }
+
+  return { enlazar: enlazar, cerrar: function () { cerrar(false); } };
+})();
+</script>

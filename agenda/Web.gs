@@ -598,6 +598,66 @@ function generarUrlWhatsappParaAgendaWeb(fila) {
 }
 
 /**
+ * Datos para el asistente de WhatsApp por lotes de la Agenda. Recibe las filas
+ * de la Agenda seleccionadas, lee la Maestra UNA sola vez y devuelve la
+ * plantilla cruda (con {{nombre}}) y, por paciente, nombre, primer nombre y
+ * teléfono ya con prefijo (o el error que impide escribirle). Descarta los
+ * pacientes repetidos (varias citas del mismo usuario) y cuántos fueron.
+ * El cliente monta cada URL con el mensaje que tú revises.
+ */
+function datosWhatsappLoteAgendaWeb(filas) {
+  try {
+    const sheet = obtenerHojaAgenda();
+    const lastRowAgenda = sheet.getLastRow();
+    const lastCol = sheet.getLastColumn();
+    const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(h => h.toString().trim());
+    const colUsuario = headers.indexOf(COLUMNAS.AGENDA.USUARIO);
+    if (colUsuario === -1) return { success: false, message: 'No se encontró la columna "Usuario" en la Agenda.' };
+
+    const maestra = getSS().getSheetByName(SHEETS.MAESTRA);
+    if (!maestra) return { success: false, message: "No se encontró la hoja 'Base de Datos Maestra'." };
+
+    const usuarios = lastRowAgenda >= 2 ? sheet.getRange(2, colUsuario + 1, lastRowAgenda - 1, 1).getValues() : [];
+    const vistos = Object.create(null);
+    const entradas = [];
+    let duplicados = 0;
+    (filas || []).forEach(function(f) {
+      const rowIdx = parseInt(f, 10);
+      if (!rowIdx || rowIdx < 2 || rowIdx > lastRowAgenda) {
+        entradas.push({ fila: f, nombre: '', error: 'Fila no válida.' });
+        return;
+      }
+      const nombre = String(usuarios[rowIdx - 2][0] || '').trim();
+      if (!nombre) {
+        entradas.push({ fila: rowIdx, nombre: '', error: 'Esa fila no tiene paciente asignado.' });
+        return;
+      }
+      if (vistos[nombre]) { duplicados++; return; }
+      vistos[nombre] = true;
+      entradas.push({ fila: rowIdx, nombre: nombre });
+    });
+
+    const porNombre = Object.create(null);
+    const nombres = entradas.filter(e => !e.error).map(e => e.nombre);
+    if (nombres.length) {
+      const datos = _datosWhatsappParaNombres_(maestra, nombres);
+      if (!datos.success) return { success: false, message: datos.message };
+      datos.items.forEach(it => { porNombre[it.nombre] = it; });
+    }
+
+    const items = entradas.map(function(e) {
+      if (e.error) return { fila: e.fila, nombre: e.nombre, primerNombre: '', telefono: '', error: e.error };
+      const it = porNombre[e.nombre];
+      return { fila: e.fila, nombre: e.nombre, primerNombre: it.primerNombre, telefono: it.telefono, error: it.error };
+    });
+    return { success: true, plantilla: _plantillaWhatsapp_(), items: items, duplicados: duplicados };
+  } catch (e) {
+    Logger.log('Error en datosWhatsappLoteAgendaWeb: ' + e.message);
+    return { success: false, message: e.message };
+  }
+}
+
+/**
  * Da de alta al paciente de una cita de la Agenda: localiza su fila en la
  * Maestra por el nombre (igual que el botón de WhatsApp de la Agenda) y
  * reutiliza darDeAltaPacienteWeb(), el mismo proceso del botón Alta de la
