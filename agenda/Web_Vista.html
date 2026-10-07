@@ -2006,8 +2006,8 @@
       document.getElementById('btnDeshacer').addEventListener('click', ejecutarDeshacer);
 
       // ---------- Selección múltiple (el clic añade o quita de la selección) ----------
-      var BOTONES_UNA_SOLA = ['btnValoracion', 'btnWhatsapp'].map(function(id) { return document.getElementById(id); });
-      var BOTONES_UNA_O_MAS = ['btnEnlazarHC', 'btnMenuCopiar', 'btnCopiarCita', 'btnCopiarCita2', 'btnEliminarCitas'].map(function(id) { return document.getElementById(id); });
+      var BOTONES_UNA_SOLA = ['btnValoracion'].map(function(id) { return document.getElementById(id); });
+      var BOTONES_UNA_O_MAS = ['btnEnlazarHC', 'btnMenuCopiar', 'btnCopiarCita', 'btnCopiarCita2', 'btnEliminarCitas', 'btnWhatsapp'].map(function(id) { return document.getElementById(id); });
 
       function citasSeleccionadas() {
         return CITAS.filter(function(c) { return filasSeleccionadas.has(c._fila) && !c._hueco; });
@@ -2298,7 +2298,221 @@
           })
           .generarUrlWhatsappParaAgendaWeb(fila);
       }
+      // ---------- WhatsApp para una o varias citas seleccionadas ----------
+      var whatsappLote = null;
 
+      function crearModalWhatsappLote() {
+        var existente = document.getElementById('modalWhatsappLote');
+        if (existente) existente.remove();
+
+        var overlay = document.createElement('div');
+        overlay.className = 'modal-overlay';
+        overlay.id = 'modalWhatsappLote';
+
+        var box = document.createElement('div');
+        box.className = 'modal-box';
+        box.style.maxWidth = '420px';
+
+        var titulo = document.createElement('div');
+        titulo.style.fontSize = '1.05rem';
+        titulo.style.fontWeight = '700';
+        titulo.style.marginBottom = '.2rem';
+
+        var progreso = document.createElement('div');
+        progreso.style.fontSize = '.8rem';
+        progreso.style.color = 'var(--ag-text-med)';
+        progreso.style.marginBottom = '.9rem';
+
+        var nombre = document.createElement('div');
+        nombre.style.fontSize = '.95rem';
+        nombre.style.fontWeight = '600';
+        nombre.style.padding = '.75rem .9rem';
+        nombre.style.background = 'var(--ag-accent-soft)';
+        nombre.style.color = 'var(--ag-accent-dark)';
+        nombre.style.borderRadius = '10px';
+        nombre.style.marginBottom = '.75rem';
+
+        var texto = document.createElement('div');
+        texto.style.fontSize = '.82rem';
+        texto.style.color = 'var(--ag-text-med)';
+        texto.style.lineHeight = '1.45';
+        texto.style.marginBottom = '.8rem';
+        texto.textContent = 'Abre el chat, envía el mensaje y después pulsa «Siguiente».';
+
+        var estado = document.createElement('div');
+        estado.style.fontSize = '.8rem';
+        estado.style.minHeight = '1.3rem';
+        estado.style.marginBottom = '.9rem';
+
+        var botones = document.createElement('div');
+        botones.className = 'modal-botones';
+
+        var btnCerrar = document.createElement('button');
+        btnCerrar.type = 'button';
+        btnCerrar.className = 'btn-toolbar';
+        btnCerrar.textContent = 'Cerrar';
+
+        var btnOmitir = document.createElement('button');
+        btnOmitir.type = 'button';
+        btnOmitir.className = 'btn-toolbar';
+        btnOmitir.textContent = 'Omitir';
+        btnOmitir.title = 'Saltar a este paciente sin enviar WhatsApp';
+
+        var btnAbrir = document.createElement('button');
+        btnAbrir.type = 'button';
+        btnAbrir.className = 'btn-toolbar primario';
+        btnAbrir.textContent = 'Abrir WhatsApp';
+
+        var btnSiguiente = document.createElement('button');
+        btnSiguiente.type = 'button';
+        btnSiguiente.className = 'btn-toolbar primario';
+        btnSiguiente.textContent = 'Siguiente →';
+        btnSiguiente.style.display = 'none';
+
+        botones.appendChild(btnCerrar);
+        botones.appendChild(btnOmitir);
+        botones.appendChild(btnAbrir);
+        botones.appendChild(btnSiguiente);
+
+        box.appendChild(titulo);
+        box.appendChild(progreso);
+        box.appendChild(nombre);
+        box.appendChild(texto);
+        box.appendChild(estado);
+        box.appendChild(botones);
+        overlay.appendChild(box);
+        document.body.appendChild(overlay);
+
+        function cerrar() {
+          overlay.classList.remove('visible');
+          setTimeout(function() { overlay.remove(); }, 160);
+          whatsappLote = null;
+        }
+
+        btnCerrar.addEventListener('click', cerrar);
+
+        function pasarAlSiguiente() {
+          if (!whatsappLote) return;
+          if (whatsappLote.indice >= whatsappLote.items.length - 1) {
+            titulo.textContent = 'Proceso completado';
+            progreso.textContent = whatsappLote.items.length + ' de ' + whatsappLote.items.length;
+            nombre.textContent = 'Todos los mensajes han sido procesados.';
+            texto.textContent = '';
+            estado.textContent = '';
+            btnAbrir.style.display = 'none';
+            btnOmitir.style.display = 'none';
+            btnSiguiente.style.display = 'none';
+            btnCerrar.textContent = 'Finalizar';
+            return;
+          }
+          whatsappLote.indice++;
+          whatsappLote.abierto = false;
+          pintarWhatsappLote();
+        }
+
+        btnOmitir.addEventListener('click', pasarAlSiguiente);
+        btnSiguiente.addEventListener('click', pasarAlSiguiente);
+
+        btnAbrir.addEventListener('click', function() {
+          if (!whatsappLote || whatsappLote.abriendo || whatsappLote.abierto) return;
+          var item = whatsappLote.items[whatsappLote.indice];
+
+          // Ventana síncrona en el clic para que el navegador no bloquee popups
+          var ventana = window.open('', '_blank');
+          if (!ventana) {
+            estado.textContent = 'Ventana bloqueada. Permite las ventanas emergentes en este sitio.';
+            estado.style.color = 'var(--ag-error)';
+            return;
+          }
+
+          whatsappLote.abriendo = true;
+          btnAbrir.disabled = true;
+          estado.textContent = 'Generando enlace de WhatsApp…';
+          estado.style.color = 'var(--ag-text-med)';
+
+          google.script.run
+            .withSuccessHandler(function(res) {
+              whatsappLote.abriendo = false;
+              if (res && res.success) {
+                ventana.location.href = res.url;
+                whatsappLote.abierto = true;
+                btnAbrir.style.display = 'none';
+                btnOmitir.style.display = 'none';
+                btnSiguiente.style.display = 'inline-flex';
+                estado.textContent = 'Chat abierto. Cuando envíes el mensaje, pulsa «Siguiente».';
+                estado.style.color = 'var(--ag-ok-bar)';
+              } else {
+                if (ventana) ventana.close();
+                btnAbrir.disabled = false;
+                estado.textContent = (res && res.message) || 'No se pudo abrir WhatsApp.';
+                estado.style.color = 'var(--ag-error)';
+              }
+            })
+            .withFailureHandler(function(err) {
+              whatsappLote.abriendo = false;
+              btnAbrir.disabled = false;
+              if (ventana) ventana.close();
+              estado.textContent = 'Error al contactar con el servidor: ' + err;
+              estado.style.color = 'var(--ag-error)';
+            })
+            .generarUrlWhatsappParaAgendaWeb(item.fila);
+        });
+
+        whatsappLote.overlay = overlay;
+        whatsappLote.titulo = titulo;
+        whatsappLote.progreso = progreso;
+        whatsappLote.nombre = nombre;
+        whatsappLote.texto = texto;
+        whatsappLote.estado = estado;
+        whatsappLote.btnAbrir = btnAbrir;
+        whatsappLote.btnOmitir = btnOmitir;
+        whatsappLote.btnSiguiente = btnSiguiente;
+        return overlay;
+      }
+
+      function pintarWhatsappLote() {
+        if (!whatsappLote) return;
+        var item = whatsappLote.items[whatsappLote.indice];
+        var total = whatsappLote.items.length;
+        var actual = whatsappLote.indice + 1;
+
+        whatsappLote.titulo.textContent = 'Enviar WhatsApp';
+        whatsappLote.progreso.textContent = actual + ' de ' + total;
+        whatsappLote.nombre.textContent = item.nombre;
+        whatsappLote.texto.textContent = 'Abre el chat, envía el mensaje y después pulsa «Siguiente».';
+        whatsappLote.estado.textContent = '';
+        whatsappLote.estado.style.color = 'var(--ag-text-med)';
+
+        whatsappLote.btnAbrir.style.display = 'inline-flex';
+        whatsappLote.btnAbrir.disabled = false;
+        whatsappLote.btnOmitir.style.display = 'inline-flex';
+        whatsappLote.btnSiguiente.style.display = 'none';
+      }
+
+      function iniciarWhatsappLote() {
+        var sel = citasSeleccionadas();
+        if (!sel.length) return;
+
+        // Si solo hay 1 cita seleccionada, abrimos directamente sin modal intermedio
+        if (sel.length === 1) {
+          abrirWhatsappFila(sel[0]._fila);
+          return;
+        }
+
+        whatsappLote = {
+          items: sel.map(function(c) {
+            return { fila: c._fila, nombre: c['Usuario'] || 'Usuario sin nombre' };
+          }),
+          indice: 0,
+          abriendo: false,
+          abierto: false
+        };
+
+        crearModalWhatsappLote();
+        pintarWhatsappLote();
+        whatsappLote.overlay.classList.add('visible');
+      }
+      
       // Dar de alta al paciente de la cita (mismo proceso que el botón Alta de la Base de Datos).
       async function manejarAltaFila(fila) {
         var cita = CITAS.find(function(c) { return c._fila == fila; });
@@ -2318,10 +2532,7 @@
         if (sel.length === 1) abrirValoracionCita(sel[0]['Usuario']);
       });
 
-      document.getElementById('btnWhatsapp').addEventListener('click', function() {
-        var sel = citasSeleccionadas();
-        if (sel.length === 1) abrirWhatsappFila(sel[0]._fila);
-      });
+      document.getElementById('btnWhatsapp').addEventListener('click', iniciarWhatsappLote);
 
       // ---------- Copiar Siguiente Cita / ×2 ----------
       async function manejarCopiarSeleccionadas(doble, forzar) {
