@@ -275,8 +275,8 @@ window.PanelNuevo = {
       '</form></div>' +
       '<div class="nu-msg" role="alert"></div>' +
       '<div class="nu-pie"><span class="hint">Los campos con <b>*</b> son obligatorios.</span>' +
-        '<div class="botones"><button type="button" class="btn btn-ghost nu-cancelar">Cancelar</button>' +
-        '<button type="button" class="btn btn-primary nu-guardar"><span class="ms">save</span>Guardar usuario</button></div></div>' +
+        '<div class="botones"><button title="Cerrar sin guardar" type="button" class="btn btn-ghost nu-cancelar">Cancelar</button>' +
+        '<button title="Guardar el usuario nuevo" type="button" class="btn btn-primary nu-guardar"><span class="ms">save</span>Guardar usuario</button></div></div>' +
       '<div class="nu-conf" role="alertdialog" aria-modal="true"><div class="nu-conf-caja"><p></p><div class="nu-conf-botones">' +
         '<button type="button" class="btn btn-ghost nu-conf-no"></button><button type="button" class="btn btn-primary nu-conf-si"></button></div></div></div>';
     host.appendChild(dlg);
@@ -430,6 +430,7 @@ window.PanelNuevo = {
     function confirmar(texto, textoNo, textoSi) {
       return new Promise(function (resolve) {
         confTexto.textContent = texto; confNo.textContent = textoNo; confSi.textContent = textoSi;
+        confNo.title = textoNo; confSi.title = textoSi;
         conf.classList.add('visible'); confResolver = resolve; confSi.focus();
       });
     }

@@ -548,7 +548,7 @@
       </div>
 
       <div class="submit-section">
-        <button class="btn-primary ripple-target" id="btnGuardar" onclick="enviarCita()" disabled>
+        <button title="Registrar las citas seleccionadas" class="btn-primary ripple-target" id="btnGuardar" onclick="enviarCita()" disabled>
           <span class="ms" id="btnIcon">save</span>
           <span id="btnText">Registrar Citas Seleccionadas</span>
         </button>
@@ -567,11 +567,11 @@
 
       <!-- Navegación de Semanas -->
       <div class="week-nav">
-        <button class="nav-btn ripple-target" onclick="changeWeek(-1)" id="prevWeekBtn" disabled>
+        <button title="Semana anterior" class="nav-btn ripple-target" onclick="changeWeek(-1)" id="prevWeekBtn" disabled>
           <span class="ms">chevron_left</span>
         </button>
         <div id="currentWeekLabel">Cargando agenda…</div>
-        <button class="nav-btn ripple-target" onclick="changeWeek(1)" id="nextWeekBtn" disabled>
+        <button title="Semana siguiente" class="nav-btn ripple-target" onclick="changeWeek(1)" id="nextWeekBtn" disabled>
           <span class="ms">chevron_right</span>
         </button>
       </div>

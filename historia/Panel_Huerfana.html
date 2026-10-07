@@ -69,8 +69,8 @@
   <div class="ph-scroll"><div class="ph-contenido"></div></div>
   <div class="ph-msg" role="alert"></div>
   <div class="panel-pie">
-    <button type="button" class="btn btn-ghost ph-cancelar">Cancelar</button>
-    <button type="button" class="btn btn-primary ph-vincular" disabled><span class="ms">link</span>Vincular seleccionada</button>
+    <button title="Cerrar sin vincular" type="button" class="btn btn-ghost ph-cancelar">Cancelar</button>
+    <button title="Vincular la historia seleccionada" type="button" class="btn btn-primary ph-vincular" disabled><span class="ms">link</span>Vincular seleccionada</button>
   </div>
 </div></template>
 
@@ -94,7 +94,7 @@ window.PanelHuerfana = {
     function ocultarMsg() { msg.className = 'ph-msg'; msg.textContent = ''; }
     function estado(icono, texto, esError, conReintento) {
       contenido.innerHTML = '<div class="ph-estado' + (esError ? ' error' : '') + '"><span class="ms' + (icono === 'progress_activity' ? ' spinner' : '') + '">' + icono + '</span>' + esc(texto) +
-        (conReintento ? '<div style="margin-top:.9rem"><button type="button" class="btn btn-ghost ph-reintentar">Reintentar</button></div>' : '') + '</div>';
+        (conReintento ? '<div style="margin-top:.9rem"><button title="Repetir la búsqueda" type="button" class="btn btn-ghost ph-reintentar">Reintentar</button></div>' : '') + '</div>';
       var r = contenido.querySelector('.ph-reintentar');
       if (r) r.addEventListener('click', cargar);
     }
@@ -129,7 +129,7 @@ window.PanelHuerfana = {
               '<div role="radiogroup" aria-label="Archivos candidatos">';
       cands.forEach(function (c, i) {
         var pct = Math.max(0, Math.min(100, Math.round(c.score * 100)));
-        html += '<button type="button" class="candidato" role="radio" aria-checked="false" tabindex="' + (i === 0 ? '0' : '-1') + '" data-fileid="' + esc(c.fileId) + '">' +
+        html += '<button type="button" class="candidato" title="Seleccionar esta historia" role="radio" aria-checked="false" tabindex="' + (i === 0 ? '0' : '-1') + '" data-fileid="' + esc(c.fileId) + '">' +
                   '<span class="radio"></span><span class="info"><span class="archivo">' + esc(c.fileName) + '</span>' +
                   '<span class="barra"><span class="pista"><i style="width:' + pct + '%"></i></span><b>' + pct + '%</b></span></span></button>';
       });

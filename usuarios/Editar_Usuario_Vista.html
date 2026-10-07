@@ -872,11 +872,11 @@
 
     <!-- Action bar -->
     <div class="action-bar">
-      <button type="button" class="btn btn-ghost" onclick="cerrarFormulario()">
+      <button title="Cerrar sin guardar" type="button" class="btn btn-ghost" onclick="cerrarFormulario()">
         <span class="material-symbols-outlined text-[18px]">close</span>
         Cerrar
       </button>
-      <button type="button" class="btn btn-primary" onclick="mostrarResumen()">
+      <button title="Revisar los cambios antes de guardar" type="button" class="btn btn-primary" onclick="mostrarResumen()">
         <span class="material-symbols-outlined text-[18px]">visibility</span>
         Revisar Cambios
       </button>
@@ -898,11 +898,11 @@
         </div>
         <div class="preview-body" id="resumenContent"></div>
         <div class="preview-actions">
-          <button type="button" class="btn btn-ghost" onclick="ocultarResumen()">
+          <button title="Volver al formulario" type="button" class="btn btn-ghost" onclick="ocultarResumen()">
             <span class="material-symbols-outlined text-[18px]">arrow_back</span>
             Volver a editar
           </button>
-          <button type="button" class="btn btn-success" id="btnConfirmar" onclick="confirmarEnvio()">
+          <button title="Guardar los cambios" type="button" class="btn btn-success" id="btnConfirmar" onclick="confirmarEnvio()">
             <span class="material-symbols-outlined text-[18px]">check_circle</span>
             Confirmar y Guardar
           </button>

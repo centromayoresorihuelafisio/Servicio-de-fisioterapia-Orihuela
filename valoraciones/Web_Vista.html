@@ -216,15 +216,15 @@
   </head>
   <body>
     <nav class="tabs-cambio">
-      <a class="tab-cambio" href="<?= baseUrl ?>?page=baseDatos" target="_top"><span class="material-symbols-outlined">folder_shared</span>Base de Datos</a>
-      <a class="tab-cambio" href="<?= baseUrl ?>?page=agenda" target="_top"><span class="material-symbols-outlined">calendar_month</span>Agenda</a>
-      <a class="tab-cambio activo" href="<?= baseUrl ?>?page=valoraciones" target="_top"><span class="material-symbols-outlined">monitoring</span>Valoraciones</a>
+      <a class="tab-cambio" title="Ir a la Base de Datos" href="<?= baseUrl ?>?page=baseDatos" target="_top"><span class="material-symbols-outlined">folder_shared</span>Base de Datos</a>
+      <a class="tab-cambio" title="Ir a la Agenda" href="<?= baseUrl ?>?page=agenda" target="_top"><span class="material-symbols-outlined">calendar_month</span>Agenda</a>
+      <a class="tab-cambio activo" title="Ir a Valoraciones" href="<?= baseUrl ?>?page=valoraciones" target="_top"><span class="material-symbols-outlined">monitoring</span>Valoraciones</a>
     </nav>
     <header class="top">
       <h1><span class="material-symbols-outlined">monitoring</span> Valoraciones <span class="contador" id="contador"></span></h1>
 
       <div class="barra-herramientas">
-        <button class="btn-toolbar primario" id="btnNuevaValoracion">
+        <button title="Registrar una valoración nueva" class="btn-toolbar primario" id="btnNuevaValoracion">
           <span class="material-symbols-outlined">assignment</span> Nueva Valoración
         </button>
         <button class="btn-toolbar deshacer" id="btnDeshacer" title="Deshacer la última eliminación">
@@ -301,8 +301,8 @@
           </label>
         </div>
         <div class="modal-botones">
-          <button class="btn-toolbar" id="btnCancelarEdicion">Cancelar</button>
-          <button class="btn-toolbar primario" id="btnGuardarEdicion">Guardar</button>
+          <button title="Cerrar sin guardar" class="btn-toolbar" id="btnCancelarEdicion">Cancelar</button>
+          <button title="Guardar los cambios de la valoración" class="btn-toolbar primario" id="btnGuardarEdicion">Guardar</button>
         </div>
       </div>
     </div>
@@ -582,13 +582,13 @@
       function htmlFicha(p) {
         var u = p.ultima, h = p.historial;
         var kpi = function(campo, etq) { return '<div class="kpi"><div class="kpi-etq">' + etq + '</div><div class="kpi-val">' + renderPill(u[campo], campo) + deltaHtml(h, campo) + '</div></div>'; };
-        var chips = METRICAS.map(function(m) { return '<button type="button" class="chip-met' + (m.k === metricaActual ? ' activo' : '') + '" data-metrica="' + m.k + '">' + m.etq + '</button>'; }).join('');
+        var chips = METRICAS.map(function(m) { return '<button type="button" class="chip-met' + (m.k === metricaActual ? ' activo' : '') + '" title="Ver la evolución de ' + m.etq.toLowerCase() + '" data-metrica="' + m.k + '">' + m.etq + '</button>'; }).join('');
         return '<div class="ficha-cab">' + avatarHtml(p.nombre, 'grande') + '<div class="ficha-tit"><div class="ficha-nombre">' + esc(p.nombre) + '</div><div class="ficha-sub">' +
             (p.dni ? esc(p.dni) + ' · ' : '') + (p.telefono ? esc(formatearTel(p.telefono)) : 'Sin teléfono') + ' · ' + p.numValoraciones + (p.numValoraciones === 1 ? ' valoración' : ' valoraciones') + '</div></div>' +
             '<button type="button" class="ficha-cerrar" data-ficha="cerrar" title="Cerrar (Esc)"><span class="material-symbols-outlined">close</span></button></div>' +
           '<div class="kpis">' + kpi('funcionGlobal', 'Función Global') + kpi('pegDolor', 'PEG Dolor') + '</div>' +
-          '<div class="ficha-acciones"><button type="button" class="ficha-acc primario" data-acc="nueva"><span class="material-symbols-outlined">assignment</span>Nueva valoración</button>' +
-            (p.telefono ? '<button type="button" class="ficha-acc" data-acc="copiar-tel"><span class="material-symbols-outlined">content_copy</span>Copiar teléfono</button>' : '') + '</div>' +
+          '<div class="ficha-acciones"><button title="Nueva valoración de este usuario" type="button" class="ficha-acc primario" data-acc="nueva"><span class="material-symbols-outlined">assignment</span>Nueva valoración</button>' +
+            (p.telefono ? '<button title="Copiar el teléfono" type="button" class="ficha-acc" data-acc="copiar-tel"><span class="material-symbols-outlined">content_copy</span>Copiar teléfono</button>' : '') + '</div>' +
           '<div class="ficha-cuerpo">' +
             '<section class="f-sec"><h3>Evolución</h3><div class="chips-met">' + chips + '</div>' + htmlGrafica(h) + '</section>' +
             '<section class="f-sec"><h3>Historial</h3>' + h.slice().reverse().map(htmlHistorial).join('') + '</section>' +

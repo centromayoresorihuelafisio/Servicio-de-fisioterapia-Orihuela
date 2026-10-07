@@ -48,11 +48,11 @@ var FichaUsuario = (function() {
 
   // Acciones rapidas (mismo nombre e icono en las dos paginas). Cada pagina elige cuales muestra.
   var ACCIONES = {
-    whatsapp:   { icono: 'whatsapp',    texto: 'WhatsApp' },
-    hc:         { icono: 'description', texto: 'Historia' },
-    editar:     { icono: 'edit',        texto: 'Editar' },
-    cita:       { icono: 'event',       texto: 'Cita' },
-    valoracion: { icono: 'assignment',  texto: 'Valoración' }
+    whatsapp:   { icono: 'whatsapp',    texto: 'WhatsApp',   titulo: 'Abrir WhatsApp con este usuario' },
+    hc:         { icono: 'description', texto: 'Historia',   titulo: 'Abrir la historia clínica' },
+    editar:     { icono: 'edit',        texto: 'Editar',     titulo: 'Editar los datos del usuario' },
+    cita:       { icono: 'event',       texto: 'Cita',       titulo: 'Registrar una cita al usuario' },
+    valoracion: { icono: 'assignment',  texto: 'Valoración', titulo: 'Nueva valoración del usuario' }
   };
 
   // Columnas que la cabecera ya muestra: no se repiten en "Otros datos".
@@ -167,21 +167,21 @@ var FichaUsuario = (function() {
     if (!lista || !lista.length) return '';
     return '<div class="fu-acciones">' + lista.map(function(a) {
       var d = typeof a === 'string' ? { id: a } : a, base = ACCIONES[d.id] || {};
-      return '<button type="button" class="fu-acc" data-fu="accion" data-acc="' + esc(d.id) + '">' + iconoAccion(d.icono || base.icono || 'help') + esc(d.texto || base.texto || d.id) + '</button>';
+      return '<button type="button" class="fu-acc" data-fu="accion" title="' + esc(d.titulo || base.titulo || d.texto || base.texto || d.id) + '" data-acc="' + esc(d.id) + '">' + iconoAccion(d.icono || base.icono || 'help') + esc(d.texto || base.texto || d.id) + '</button>';
     }).join('') + '</div>';
   }
 
   function htmlPie(lista) {
     if (!lista || !lista.length) return '';
     return '<div class="fu-pie">' + lista.map(function(b) {
-      return '<button type="button" class="fu-boton' + (b.peligro ? ' peligro' : '') + '" data-fu="accion" data-acc="' + esc(b.id) + '">' + icono(b.icono) + esc(b.texto) + '</button>';
+      return '<button type="button" class="fu-boton' + (b.peligro ? ' peligro' : '') + '" data-fu="accion" title="' + esc(b.titulo || b.texto) + '" data-acc="' + esc(b.id) + '">' + icono(b.icono) + esc(b.texto) + '</button>';
     }).join('') + '</div>';
   }
 
   // Ficha completa. p = fila del usuario, headers = cabeceras de la hoja.
   //   o.nombre         nombre del usuario (por defecto, la columna Nombre)
-  //   o.acciones       acciones rapidas: ids de ACCIONES o { id, texto, icono } para cambiar el texto de una
-  //   o.pie            botones propios de la pagina: [{ id, icono, texto, peligro }] (opcional)
+  //   o.acciones       acciones rapidas: ids de ACCIONES o { id, texto, icono, titulo } para cambiar el texto o la descripcion de una
+  //   o.pie            botones propios de la pagina: [{ id, icono, texto, titulo, peligro }] (opcional; titulo = descripcion al pasar el raton)
   //   o.extraCabecera  HTML extra junto al estado (opcional)
   //   o.excluir        cabeceras que no deben salir en "Otros datos" (opcional)
   function html(p, headers, o) {
@@ -271,7 +271,7 @@ var FichaUsuario = (function() {
     var el = document.createElement('div');
     el.className = 'fu-menu'; el.setAttribute('role', 'menu');
     el.innerHTML = items.map(function(it, i) {
-      return '<button type="button" role="menuitemradio" aria-checked="' + (it.marcado ? 'true' : 'false') + '" class="fu-menu-item" data-i="' + i + '">' +
+      return '<button type="button" role="menuitemradio" aria-checked="' + (it.marcado ? 'true' : 'false') + '" class="fu-menu-item" title="Cambiar estado a ' + esc(it.texto) + '" data-i="' + i + '">' +
         '<span class="fu-punto ' + esc(it.punto || '') + '"></span><span>' + esc(it.texto) + '</span>' + (it.marcado ? icono('check') : '') + '</button>';
     }).join('');
     document.body.appendChild(el);

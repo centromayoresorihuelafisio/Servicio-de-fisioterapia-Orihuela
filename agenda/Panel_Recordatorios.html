@@ -103,11 +103,11 @@
   <div class="rcp-scroll">
     <section class="rcp-form">
       <div class="rcp-tipos" role="group" aria-label="Tipo de recordatorio">
-        <button type="button" class="rcp-tipo rc-t-llamar"  data-tipo="Llamar"><span class="material-symbols-outlined">call</span>Llamar</button>
-        <button type="button" class="rcp-tipo rc-t-reunion" data-tipo="Reunión"><span class="material-symbols-outlined">groups</span>Reunión</button>
-        <button type="button" class="rcp-tipo rc-t-evento"  data-tipo="Evento"><span class="material-symbols-outlined">event</span>Evento</button>
-        <button type="button" class="rcp-tipo rc-t-nota"    data-tipo="Nota"><span class="material-symbols-outlined">sticky_note_2</span>Nota</button>
-        <button type="button" class="rcp-tipo rc-t-festivo" data-tipo="Festivo"><span class="material-symbols-outlined">flag</span>Festivo</button>
+        <button title="Tipo: llamada" type="button" class="rcp-tipo rc-t-llamar"  data-tipo="Llamar"><span class="material-symbols-outlined">call</span>Llamar</button>
+        <button title="Tipo: reunión" type="button" class="rcp-tipo rc-t-reunion" data-tipo="Reunión"><span class="material-symbols-outlined">groups</span>Reunión</button>
+        <button title="Tipo: evento" type="button" class="rcp-tipo rc-t-evento"  data-tipo="Evento"><span class="material-symbols-outlined">event</span>Evento</button>
+        <button title="Tipo: nota" type="button" class="rcp-tipo rc-t-nota"    data-tipo="Nota"><span class="material-symbols-outlined">sticky_note_2</span>Nota</button>
+        <button title="Tipo: festivo" type="button" class="rcp-tipo rc-t-festivo" data-tipo="Festivo"><span class="material-symbols-outlined">flag</span>Festivo</button>
       </div>
       <input type="text" class="rcp-texto" placeholder="¿Qué quieres recordar?" maxlength="200" autocomplete="off" aria-label="Texto del recordatorio">
       <div class="rcp-fila">
@@ -115,14 +115,14 @@
         <label class="rcp-campo"><span>Hora (opcional)</span><input type="time" class="rcp-hora"></label>
       </div>
       <div class="rcp-rapidas">
-        <button type="button" class="rcp-rapida" data-rapida="hoy">Hoy</button>
-        <button type="button" class="rcp-rapida" data-rapida="manana">Mañana</button>
-        <button type="button" class="rcp-rapida" data-rapida="semana">En una semana</button>
-        <button type="button" class="rcp-rapida" data-rapida="sin">Sin fecha</button>
+        <button title="Fecha: hoy" type="button" class="rcp-rapida" data-rapida="hoy">Hoy</button>
+        <button title="Fecha: mañana" type="button" class="rcp-rapida" data-rapida="manana">Mañana</button>
+        <button title="Fecha: dentro de una semana" type="button" class="rcp-rapida" data-rapida="semana">En una semana</button>
+        <button title="Dejar sin fecha" type="button" class="rcp-rapida" data-rapida="sin">Sin fecha</button>
       </div>
       <div class="rcp-acciones">
-        <button type="button" class="rcp-btn rcp-cancelar" hidden>Cancelar edición</button>
-        <button type="button" class="rcp-btn primario rcp-guardar"><span class="material-symbols-outlined">add</span><span class="rcp-guardar-txt">Añadir</span></button>
+        <button title="Dejar de editar este recordatorio" type="button" class="rcp-btn rcp-cancelar" hidden>Cancelar edición</button>
+        <button title="Guardar el recordatorio" type="button" class="rcp-btn primario rcp-guardar"><span class="material-symbols-outlined">add</span><span class="rcp-guardar-txt">Añadir</span></button>
       </div>
       <div class="rcp-msg" role="status" aria-live="polite"></div>
     </section>
