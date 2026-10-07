@@ -1,0 +1,102 @@
+/* ============================================================================
+   ui/CSS_Ficha.html - Estilos de la FICHA DE USUARIO (panel lateral).
+   Se incluye dentro de un bloque <style> con include('ui/CSS_Ficha') (igual que
+   ui/CSS_Global) en usuarios/BaseDatos_Vista y agenda/Web_Vista.
+   El marcado y la logica estan en ui/JS_Ficha. Solo usa los tokens --md-* de
+   ui/CSS_Global, asi que se ve igual en las dos paginas.
+   ============================================================================ */
+
+.fu { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; background: var(--md-surface); color: var(--md-on-surface); font-family: var(--font); }
+
+/* ---------- Cabecera: avatar, nombre, edad + estado, cerrar ---------- */
+.fu-cab { flex: none; display: flex; align-items: center; gap: .9rem; padding: 1.1rem .8rem 1rem 1.25rem; }
+.fu .fu-cab .avatar { width: 52px; height: 52px; font-size: 1.1rem; }
+.fu-tit { flex: 1; min-width: 0; }
+.fu-nombre { font-size: 1.05rem; font-weight: 600; line-height: 1.25; overflow-wrap: anywhere; }
+.fu-meta { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; margin-top: .4rem; font-size: .8rem; color: var(--md-on-surface-med); }
+.fu-extra { font-size: .72rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+.fu-cerrar { align-self: flex-start; flex: none; border: none; background: none; cursor: pointer; width: 34px; height: 34px; border-radius: 50%; color: var(--md-on-surface-med); display: inline-flex; align-items: center; justify-content: center; }
+.fu-cerrar:hover { background: var(--md-surface-variant); }
+.fu-cerrar:focus-visible { outline: 2px solid var(--md-primary); outline-offset: 2px; }
+.fu-aviso { padding: 1rem 1.25rem; color: var(--md-on-surface-med); font-size: .88rem; }
+
+/* ---------- Chips (estado y gravedad) ---------- */
+.fu-chip { display: inline-flex; align-items: center; border: none; font-family: var(--font); font-size: .72rem; font-weight: 600; line-height: 1.4; padding: .15rem .6rem; border-radius: 999px; white-space: nowrap; background: var(--md-surface-variant); color: var(--md-on-surface-med); }
+.fu-chip.activo, .fu-chip.leve { background: var(--md-success-bg); color: var(--md-success); }
+.fu-chip.espera, .fu-chip.moderado { background: var(--md-warning-bg); color: var(--on-warn, #6b4300); }
+.fu-chip.contactara { background: var(--md-error-bg); color: var(--on-err, #9c2a1f); }
+.fu-chip.urgente { background: var(--md-error-bg); color: var(--md-error); }
+.fu-chip.alta { background: var(--md-purple-bg); color: var(--on-purple, #5a2596); }
+/* El chip de estado es un boton: punto de color + flecha */
+button.fu-chip { cursor: pointer; font-size: .78rem; padding: .28rem .45rem .28rem .7rem; }
+button.fu-chip::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: currentColor; margin-right: .4rem; flex-shrink: 0; }
+button.fu-chip .material-symbols-outlined { font-size: 16px; margin-left: .1rem; opacity: .7; }
+button.fu-chip:hover { filter: brightness(.95); }
+button.fu-chip:focus-visible { outline: 2px solid var(--md-primary); outline-offset: 2px; }
+
+/* ---------- Acciones rapidas ---------- */
+.fu-acciones { flex: none; display: flex; gap: .4rem; padding: 0 1rem .9rem; border-bottom: 1px solid var(--md-outline); }
+.fu-acc { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: .2rem; padding: .55rem .2rem; border: none; border-radius: 14px; background: var(--md-primary-light); color: var(--md-primary-dark);
+  font-family: var(--font); font-size: .68rem; font-weight: 600; cursor: pointer; transition: background 120ms; }
+.fu-acc:hover { background: var(--md-primary-container); }
+.fu-acc:focus-visible { outline: 2px solid var(--md-primary); outline-offset: 2px; }
+.fu-acc .material-symbols-outlined { font-size: 20px; }
+.fu-acc svg { width: 20px; height: 20px; }
+
+/* ---------- Cuerpo y secciones (pildora azul con icono y linea) ---------- */
+.fu-cuerpo { flex: 1 1 auto; min-height: 0; overflow: auto; }
+.fu-sec { padding: 1.05rem 1.25rem 1.15rem; border-bottom: 1px solid var(--md-outline); }
+.fu-sec:last-child { border-bottom: none; }
+.fu-label { display: flex; align-items: center; gap: .6rem; margin-bottom: .7rem; }
+.fu-pill { display: inline-flex; align-items: center; gap: .375rem; font-size: .6875rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--md-primary-dark); background: var(--md-primary-light); padding: .35rem .75rem; border-radius: 999px; }
+.fu-pill .material-symbols-outlined { font-size: 15px; color: var(--md-primary); }
+.fu-linea { flex: 1; height: 1px; background: var(--md-outline); }
+
+/* ---------- Campos ---------- */
+.fu-campo { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: .3rem 0; font-size: .86rem; }
+.fu-etq { color: var(--md-on-surface-med); font-size: .82rem; flex-shrink: 0; }
+.fu-val { text-align: right; font-weight: 500; min-width: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.fu-campo.largo { display: block; }
+.fu-campo.largo .fu-val { display: block; text-align: left; font-weight: 400; }
+.fu-vacio { color: var(--md-on-surface-low); font-size: .84rem; }
+
+/* Telefono: icono + numero copiable (+ "secundario" en pequeno) */
+.fu-tel { display: flex; align-items: center; gap: .55rem; padding: .25rem 0; }
+.fu-tel > .material-symbols-outlined { font-size: 18px; color: var(--md-primary); flex-shrink: 0; }
+.fu-nota { font-size: .7rem; font-weight: 500; color: var(--md-on-surface-low); }
+.fu-copia { border: none; background: none; cursor: copy; font: inherit; font-weight: 600; color: var(--md-on-surface); display: inline-flex; align-items: center; gap: .3rem; padding: .15rem .4rem; margin: 0 -.4rem; border-radius: 8px; font-variant-numeric: tabular-nums; }
+.fu-tel .fu-copia { font-size: .95rem; }
+.fu-copia .material-symbols-outlined { font-size: 14px; opacity: 0; color: var(--md-on-surface-low); }
+.fu-copia:hover { background: var(--md-primary-light); }
+.fu-copia:hover .material-symbols-outlined { opacity: 1; }
+.fu-copia:focus-visible { outline: 2px solid var(--md-primary); outline-offset: 1px; }
+.fu-copia:focus-visible .material-symbols-outlined { opacity: 1; }
+
+/* ---------- Otros datos: plegado y al final ---------- */
+.fu-otros > summary { list-style: none; display: flex; align-items: center; gap: .6rem; padding: 1.05rem 1.25rem; cursor: pointer; }
+.fu-otros > summary::-webkit-details-marker { display: none; }
+.fu-otros > summary:focus-visible { outline: 2px solid var(--md-primary); outline-offset: -2px; }
+.fu-chev { font-size: 20px; color: var(--md-on-surface-low); transition: transform 150ms; }
+.fu-otros[open] .fu-chev { transform: rotate(180deg); }
+.fu-otros > .fu-campos { padding: 0 1.25rem 1.15rem; }
+
+/* ---------- Pie con acciones propias de la pagina (opcional) ---------- */
+.fu-pie { flex: none; display: flex; flex-wrap: wrap; gap: .4rem; padding: .7rem 1rem; border-top: 1px solid var(--md-outline); }
+.fu-boton { display: inline-flex; align-items: center; gap: .3rem; border: 1px solid var(--md-outline); background: var(--md-surface); border-radius: 999px; padding: .35rem .8rem; font-family: var(--font); font-size: .76rem; font-weight: 500; cursor: pointer; color: var(--md-on-surface); }
+.fu-boton:hover { background: var(--md-surface-variant); }
+.fu-boton:focus-visible { outline: 2px solid var(--md-primary); outline-offset: 2px; }
+.fu-boton .material-symbols-outlined { font-size: 16px; }
+.fu-boton.peligro { color: var(--md-error); margin-left: auto; }
+.fu-boton.peligro:hover { background: var(--md-error-bg); border-color: var(--md-error); }
+
+/* ---------- Menu flotante de estado (lo usa la Agenda; la Base de Datos tiene el suyo) ---------- */
+.fu-menu { position: fixed; z-index: 1100; min-width: 190px; background: var(--md-surface); border: 1px solid var(--md-outline); border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,.18); padding: .3rem; }
+.fu-menu-item { display: flex; align-items: center; gap: .6rem; width: 100%; border: none; background: none; text-align: left; padding: .5rem .7rem; border-radius: 8px; cursor: pointer; font-family: var(--font); font-size: .82rem; color: var(--md-on-surface); }
+.fu-menu-item:hover, .fu-menu-item:focus-visible { background: var(--md-surface-variant); outline: none; }
+.fu-menu-item .material-symbols-outlined { margin-left: auto; font-size: 18px; color: var(--md-primary); }
+.fu-punto { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; background: var(--md-on-surface-low); }
+.fu-punto.activo { background: var(--md-success); }
+.fu-punto.espera { background: var(--md-warning); }
+.fu-punto.contactara { background: var(--md-error); }
+.fu-punto.alta { background: var(--md-purple); }

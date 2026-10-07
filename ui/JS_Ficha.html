@@ -1,0 +1,321 @@
+<!--
+  ui/JS_Ficha.html - LOGICA de la FICHA DE USUARIO (panel lateral), compartida por la Base de Datos
+  (usuarios/BaseDatos_Vista) y la Agenda (agenda/Web_Vista). Estilos: ui/CSS_Ficha.
+
+  Se incluye con include('ui/JS_Ficha') con "!" (fuera de cualquier bloque de script), ANTES del script
+  principal de la pagina, igual que ui/JS_Formato_Nombre.
+
+  UNICA fuente de secciones, etiquetas y orden de campos: la lista SECCIONES de este archivo. Para
+  renombrar una etiqueta o mover un campo basta con tocarla aqui.
+
+  La pagina debe tener (se usan en el momento de pintar, no al cargar):
+    avatarHtml(nombre)        avatar con iniciales
+    mostrarAviso(texto)       aviso ligero (opcional: sin el, la copia no avisa)
+    SVG_WHATSAPP              icono de WhatsApp (opcional)
+
+  Uso:
+    FichaUsuario.pintar(contenedor, FichaUsuario.html(paciente, cabeceras, opciones));
+    contenedor.addEventListener('click', function(e) { FichaUsuario.alClic(e, { cerrar, estado, accion }); });
+  opciones: { nombre, acciones, pie, extraCabecera, excluir }  (ver FichaUsuario.html)
+-->
+<script>
+var FichaUsuario = (function() {
+  // Estados que se ofrecen siempre en el menu (se anaden los demas que existan en la hoja).
+  var ESTADOS_BASE = ['🟢 Activo', '🟡 En espera', '🕐 Contactará', '🚫 No responde', '✔️ Alta'];
+
+  // Secciones de la ficha, en orden. Cada campo: col = cabecera real de la hoja, etq = etiqueta que se muestra,
+  // tipo = como se pinta (tel, copia, gravedad, limpio, largo; sin tipo = texto normal).
+  var SECCIONES = [
+    { titulo: 'Contacto', icono: 'call', vacio: 'Sin teléfono', campos: [
+      { col: 'Teléfono 1', tipo: 'tel' },
+      { col: 'Teléfono 2', tipo: 'tel', nota: 'secundario' }
+    ] },
+    { titulo: 'Datos personales', icono: 'badge', campos: [
+      { col: 'DNI', etq: 'DNI', tipo: 'copia' },
+      { col: 'Fecha nacimiento', etq: 'Nacimiento' },
+      { col: 'Fecha inscripción', etq: 'Inscripción' }
+    ] },
+    { titulo: 'Clínico', icono: 'stethoscope', campos: [
+      { col: 'Gravedad', etq: 'Gravedad', tipo: 'gravedad' },
+      { col: 'Tipo de Ingreso', etq: 'Ingreso', tipo: 'limpio' },
+      { col: 'Patología 1', etq: 'Principal' },
+      { col: 'Patología 2', etq: 'Secundaria' }
+    ] },
+    { titulo: 'Observaciones', icono: 'notes', campos: [
+      { col: 'Observaciones', tipo: 'largo' }
+    ] }
+  ];
+
+  // Acciones rapidas (mismo nombre e icono en las dos paginas). Cada pagina elige cuales muestra.
+  var ACCIONES = {
+    whatsapp:   { icono: 'whatsapp',    texto: 'WhatsApp' },
+    hc:         { icono: 'description', texto: 'Historia' },
+    editar:     { icono: 'edit',        texto: 'Editar' },
+    cita:       { icono: 'event',       texto: 'Cita' },
+    valoracion: { icono: 'assignment',  texto: 'Valoración' }
+  };
+
+  // Columnas que la cabecera ya muestra: no se repiten en "Otros datos".
+  var CABECERA_USADAS = ['Nombre', 'Estado', 'Edad'];
+
+  // ---------- Utilidades ----------
+  function esc(t) {
+    return (t === null || t === undefined ? '' : String(t)).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+  function norm(t) {
+    return String(t === null || t === undefined ? '' : t).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+  }
+  function icono(n) { return '<span class="material-symbols-outlined">' + n + '</span>'; }
+  function iconoAccion(n) { return (n === 'whatsapp' && typeof SVG_WHATSAPP !== 'undefined') ? SVG_WHATSAPP : icono(n === 'whatsapp' ? 'chat' : n); }
+
+  // Cabecera real de la hoja que corresponde a un nombre (sin mayusculas ni tildes). '' si no existe.
+  function cabecera(headers, nombre) {
+    var n = norm(nombre);
+    for (var i = 0; i < headers.length; i++) if (norm(headers[i]) === n) return headers[i];
+    return '';
+  }
+  function valor(p, headers, nombre) {
+    var h = cabecera(headers, nombre);
+    if (!h) return '';
+    var v = p[h];
+    return (v === null || v === undefined) ? '' : String(v).trim();
+  }
+
+  function claseEstado(e) {
+    var n = norm(e);
+    if (n.indexOf('activo') !== -1) return 'activo';
+    if (n.indexOf('espera') !== -1) return 'espera';
+    if (n.indexOf('contactar') !== -1) return 'contactara';
+    if (n.indexOf('alta') !== -1) return 'alta';
+    if (n.indexOf('responde') !== -1) return 'no-responde';
+    return '';
+  }
+  // Quita el emoji inicial ("🟢 Activo" -> "Activo").
+  function textoEstado(e) { var s = String(e || ''); return s.replace(/^[^\p{L}\p{N}]+/u, '').trim() || s; }
+  function claseGravedad(v) {
+    var n = norm(v);
+    return n.indexOf('leve') !== -1 ? 'leve' : n.indexOf('moderad') !== -1 ? 'moderado' : n.indexOf('urgent') !== -1 ? 'urgente' : '';
+  }
+  // Estados del menu: los de ESTADOS_BASE (con el texto que ya use la hoja) y despues los que no encajen en ninguno.
+  // `existentes` = valores de la columna Estado de la hoja.
+  function estadosDisponibles(existentes) {
+    var porClase = {}, extra = [];
+    ESTADOS_BASE.forEach(function(e) { porClase[claseEstado(e)] = e; });
+    (existentes || []).forEach(function(v) {
+      var e = String(v === null || v === undefined ? '' : v).trim();
+      if (!e) return;
+      var c = claseEstado(e);
+      if (c) porClase[c] = e; else if (extra.indexOf(e) === -1) extra.push(e);
+    });
+    return ['activo', 'espera', 'contactara', 'no-responde', 'alta'].map(function(c) { return porClase[c]; }).filter(Boolean).concat(extra);
+  }
+
+  // 612345678 -> "612 345 678"; conserva "+34" si venia con el. Otros formatos, tal cual.
+  function formatearTel(t) {
+    var raw = String(t === null || t === undefined ? '' : t).trim(), d = raw.replace(/\D/g, ''), pref = '';
+    if (d.length === 11 && d.indexOf('34') === 0) { pref = raw.charAt(0) === '+' ? '+34 ' : ''; d = d.slice(2); }
+    return d.length === 9 ? pref + d.replace(/(\d{3})(\d{3})(\d{3})/, '$1 $2 $3') : raw;
+  }
+
+  function avisar(m) { if (typeof mostrarAviso === 'function') mostrarAviso(m); }
+  function copiar(texto, etq) {
+    function ok() { avisar((etq || 'Texto') + ' copiado'); }
+    function respaldo() {
+      var ta = document.createElement('textarea'), hecho = false;
+      ta.value = texto; ta.style.cssText = 'position:fixed;opacity:0;top:0;left:0';
+      document.body.appendChild(ta); ta.select();
+      try { hecho = document.execCommand('copy'); } catch (e) { hecho = false; }
+      document.body.removeChild(ta);
+      if (hecho) ok(); else avisar('No se pudo copiar.');
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(texto).then(ok, respaldo); else respaldo();
+  }
+
+  // ---------- Marcado ----------
+  function htmlCopia(v, etq, texto) {
+    return '<button type="button" class="fu-copia" data-fu="copiar" data-valor="' + esc(v) + '" data-etq="' + esc(etq) + '" title="Copiar">' + esc(texto) + icono('content_copy') + '</button>';
+  }
+
+  function htmlCampo(c, v) {
+    if (c.tipo === 'tel') {
+      return '<div class="fu-tel">' + icono('call') + htmlCopia(v, 'Teléfono', formatearTel(v)) + (c.nota ? '<span class="fu-nota">' + esc(c.nota) + '</span>' : '') + '</div>';
+    }
+    if (c.tipo === 'largo') return '<div class="fu-campo largo"><span class="fu-val">' + esc(v) + '</span></div>';
+    var cont;
+    if (c.tipo === 'copia') cont = htmlCopia(v, c.etq, v);
+    else if (c.tipo === 'gravedad') cont = '<span class="fu-chip ' + claseGravedad(v) + '">' + esc(textoEstado(v)) + '</span>';
+    else cont = '<span class="fu-val">' + esc(c.tipo === 'limpio' ? textoEstado(v) : v) + '</span>';
+    return '<div class="fu-campo"><span class="fu-etq">' + esc(c.etq) + '</span>' + cont + '</div>';
+  }
+
+  function htmlLabel(titulo, ic) {
+    return '<div class="fu-label"><span class="fu-pill">' + icono(ic) + esc(titulo) + '</span><span class="fu-linea"></span></div>';
+  }
+
+  function htmlCabecera(p, headers, o) {
+    var edad = valor(p, headers, 'Edad'), est = valor(p, headers, 'Estado');
+    if (/^\d+$/.test(edad)) edad += ' años';
+    return '<div class="fu-cab">' + (typeof avatarHtml === 'function' ? avatarHtml(o.nombre) : '') +
+      '<div class="fu-tit"><div class="fu-nombre">' + esc(o.nombre) + '</div><div class="fu-meta">' +
+        (edad ? '<span>' + esc(edad) + '</span>' : '') +
+        '<button type="button" class="fu-chip ' + claseEstado(est) + '" data-fu="estado" aria-haspopup="menu" title="Cambiar estado">' + (est ? esc(textoEstado(est)) : 'Sin estado') + icono('expand_more') + '</button>' +
+        (o.extraCabecera || '') + '</div></div>' +
+      '<button type="button" class="fu-cerrar" data-fu="cerrar" title="Cerrar (Esc)" aria-label="Cerrar">' + icono('close') + '</button></div>';
+  }
+
+  function htmlAcciones(lista) {
+    if (!lista || !lista.length) return '';
+    return '<div class="fu-acciones">' + lista.map(function(a) {
+      var d = typeof a === 'string' ? { id: a } : a, base = ACCIONES[d.id] || {};
+      return '<button type="button" class="fu-acc" data-fu="accion" data-acc="' + esc(d.id) + '">' + iconoAccion(d.icono || base.icono || 'help') + esc(d.texto || base.texto || d.id) + '</button>';
+    }).join('') + '</div>';
+  }
+
+  function htmlPie(lista) {
+    if (!lista || !lista.length) return '';
+    return '<div class="fu-pie">' + lista.map(function(b) {
+      return '<button type="button" class="fu-boton' + (b.peligro ? ' peligro' : '') + '" data-fu="accion" data-acc="' + esc(b.id) + '">' + icono(b.icono) + esc(b.texto) + '</button>';
+    }).join('') + '</div>';
+  }
+
+  // Ficha completa. p = fila del usuario, headers = cabeceras de la hoja.
+  //   o.nombre         nombre del usuario (por defecto, la columna Nombre)
+  //   o.acciones       acciones rapidas: ids de ACCIONES o { id, texto, icono } para cambiar el texto de una
+  //   o.pie            botones propios de la pagina: [{ id, icono, texto, peligro }] (opcional)
+  //   o.extraCabecera  HTML extra junto al estado (opcional)
+  //   o.excluir        cabeceras que no deben salir en "Otros datos" (opcional)
+  function html(p, headers, o) {
+    o = o || {}; headers = headers || [];
+    if (!o.nombre) o.nombre = valor(p, headers, 'Nombre');
+    var usados = {};
+    CABECERA_USADAS.forEach(function(n) { usados[norm(n)] = true; });
+    (o.excluir || []).forEach(function(h) { if (h) usados[norm(h)] = true; });
+
+    var cuerpo = SECCIONES.map(function(s) {
+      var campos = s.campos.map(function(c) {
+        usados[norm(c.col)] = true;
+        var v = valor(p, headers, c.col);
+        return v ? htmlCampo(c, v) : '';
+      }).join('');
+      if (!campos) {
+        if (!s.vacio) return '';                                   // sin datos: la seccion no sale
+        campos = '<div class="fu-vacio">' + esc(s.vacio) + '</div>';
+      }
+      return '<section class="fu-sec">' + htmlLabel(s.titulo, s.icono) + campos + '</section>';
+    }).join('');
+
+    // Cualquier otra columna de la hoja, con su nombre tal cual, plegada y al final.
+    var otros = headers.filter(function(h) {
+      if (!h || usados[norm(h)]) return false;
+      var v = p[h];
+      return v !== null && v !== undefined && String(v).trim() !== '';
+    }).map(function(h) {
+      return '<div class="fu-campo"><span class="fu-etq">' + esc(h) + '</span><span class="fu-val">' + esc(String(p[h]).trim()) + '</span></div>';
+    }).join('');
+    if (otros) {
+      cuerpo += '<details class="fu-otros"><summary><span class="fu-pill">' + icono('more_horiz') + 'Otros datos</span><span class="fu-linea"></span>' +
+        '<span class="material-symbols-outlined fu-chev">expand_more</span></summary><div class="fu-campos">' + otros + '</div></details>';
+    }
+
+    return '<div class="fu">' + htmlCabecera(p, headers, o) + htmlAcciones(o.acciones) + '<div class="fu-cuerpo">' + cuerpo + '</div>' + htmlPie(o.pie) + '</div>';
+  }
+
+  // Cabecera + un mensaje (cargando, error): el panel siempre tiene el boton de cerrar.
+  function mensaje(nombre, texto) {
+    return '<div class="fu">' + (typeof avatarHtml === 'function' ? '<div class="fu-cab">' + avatarHtml(nombre) + '<div class="fu-tit"><div class="fu-nombre">' + esc(nombre) + '</div></div>' +
+      '<button type="button" class="fu-cerrar" data-fu="cerrar" title="Cerrar (Esc)" aria-label="Cerrar">' + icono('close') + '</button></div>' : '') +
+      '<p class="fu-aviso">' + esc(texto) + '</p></div>';
+  }
+
+  // Pinta la ficha en el contenedor sin perder el scroll ni el estado de "Otros datos" (se vuelve a pintar a
+  // menudo: cambio de estado, recarga de datos...).
+  function pintar(contenedor, htmlFicha) {
+    var cuerpo = contenedor.querySelector('.fu-cuerpo'), scroll = cuerpo ? cuerpo.scrollTop : 0;
+    var det = contenedor.querySelector('.fu-otros'), abierto = !!(det && det.open);
+    contenedor.innerHTML = htmlFicha;
+    cuerpo = contenedor.querySelector('.fu-cuerpo');
+    if (cuerpo && scroll) cuerpo.scrollTop = scroll;
+    if (abierto) { det = contenedor.querySelector('.fu-otros'); if (det) det.open = true; }
+  }
+
+  // Un solo manejador de clics para la ficha. La copia la resuelve el componente; el resto lo decide la pagina:
+  //   h.cerrar()   h.estado(botonChip)   h.accion(id)
+  // Devuelve true si el clic era de la ficha.
+  function alClic(e, h) {
+    var t = e.target, c = t && t.closest ? t.closest('[data-fu]') : null;
+    if (!c) return false;
+    var a = c.getAttribute('data-fu');
+    if (a === 'copiar') copiar(c.getAttribute('data-valor'), c.getAttribute('data-etq'));
+    else if (a === 'cerrar') { if (h && h.cerrar) h.cerrar(); }
+    else if (a === 'estado') { if (h && h.estado) h.estado(c); }
+    else if (a === 'accion') { if (h && h.accion) h.accion(c.getAttribute('data-acc')); }
+    else return false;
+    return true;
+  }
+
+  // ---------- Menu flotante de estado ----------
+  // items: [{ punto, texto, marcado, fn }]. Se cierra con clic fuera, Esc, Tab, scroll o al cambiar el tamano.
+  var menuActual = null;
+  function cerrarMenu(devolverFoco) {
+    if (!menuActual) return;
+    var m = menuActual; menuActual = null;
+    document.removeEventListener('mousedown', m.fuera, true);
+    document.removeEventListener('keydown', m.tecla);
+    window.removeEventListener('resize', m.cerrar);
+    document.removeEventListener('scroll', m.cerrar, true);
+    if (m.el.parentNode) m.el.parentNode.removeChild(m.el);
+    if (m.ancla) { m.ancla.setAttribute('aria-expanded', 'false'); if (devolverFoco && m.ancla.focus) m.ancla.focus({ preventScroll: true }); }
+  }
+  function menuEstado(ancla, items) {
+    cerrarMenu();
+    var el = document.createElement('div');
+    el.className = 'fu-menu'; el.setAttribute('role', 'menu');
+    el.innerHTML = items.map(function(it, i) {
+      return '<button type="button" role="menuitemradio" aria-checked="' + (it.marcado ? 'true' : 'false') + '" class="fu-menu-item" data-i="' + i + '">' +
+        '<span class="fu-punto ' + esc(it.punto || '') + '"></span><span>' + esc(it.texto) + '</span>' + (it.marcado ? icono('check') : '') + '</button>';
+    }).join('');
+    document.body.appendChild(el);
+    var r = ancla.getBoundingClientRect(), w = el.offsetWidth, hgt = el.offsetHeight;
+    var x = Math.min(Math.max(8, r.left), window.innerWidth - w - 8), y = r.bottom + 4;
+    if (y + hgt > window.innerHeight - 8) y = Math.max(8, r.top - hgt - 4);
+    el.style.left = x + 'px'; el.style.top = y + 'px';
+
+    var botones = function() { return Array.prototype.slice.call(el.querySelectorAll('.fu-menu-item')); };
+    var m = {
+      el: el, ancla: ancla,
+      cerrar: function() { cerrarMenu(false); },
+      fuera: function(e) { if (!el.contains(e.target)) cerrarMenu(false); },
+      tecla: function(e) {
+        var b = botones(), i = b.indexOf(document.activeElement);
+        if (e.key === 'Escape') { e.preventDefault(); cerrarMenu(true); }
+        else if (e.key === 'Tab') cerrarMenu(false);
+        else if (e.key === 'ArrowDown') { e.preventDefault(); b[(i + 1) % b.length].focus(); }
+        else if (e.key === 'ArrowUp') { e.preventDefault(); b[(i <= 0 ? b.length : i) - 1].focus(); }
+        else if (e.key === 'Home') { e.preventDefault(); b[0].focus(); }
+        else if (e.key === 'End') { e.preventDefault(); b[b.length - 1].focus(); }
+      }
+    };
+    el.addEventListener('click', function(e) {
+      var b = e.target.closest('.fu-menu-item');
+      if (!b) return;
+      var it = items[Number(b.getAttribute('data-i'))];
+      cerrarMenu(true);
+      if (it && it.fn) it.fn();
+    });
+    menuActual = m;
+    ancla.setAttribute('aria-expanded', 'true');
+    document.addEventListener('mousedown', m.fuera, true);
+    document.addEventListener('keydown', m.tecla);
+    window.addEventListener('resize', m.cerrar);
+    document.addEventListener('scroll', m.cerrar, true);
+    var primero = el.querySelector('[aria-checked="true"]') || el.querySelector('.fu-menu-item');
+    if (primero) primero.focus({ preventScroll: true });
+  }
+
+  return {
+    html: html, mensaje: mensaje, pintar: pintar, alClic: alClic, menuEstado: menuEstado, cerrarMenu: cerrarMenu,
+    estadosDisponibles: estadosDisponibles, claseEstado: claseEstado, textoEstado: textoEstado,
+    cabecera: cabecera, valor: valor, norm: norm, formatearTel: formatearTel, copiar: copiar
+  };
+})();
+</script>

@@ -12,6 +12,7 @@
       *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
       <?!= include('ui/CSS_Global'); ?>
+      <?!= include('ui/CSS_Ficha'); ?>
 
       html, body { height: 100%; }
       body {
@@ -248,30 +249,6 @@
       .ficha.abierta { transform: none; visibility: visible; transition-delay: 0s; }
       /* Formularios que piden más sitio (Cita): el panel pasa de 400 a 520 px solo con pantalla ancha */
       @media (min-width: 1200px) { body.ficha-ancha { --ficha-w: 520px; } }
-      .ficha-cab { display: flex; align-items: center; gap: .9rem; padding: 1rem 1rem .6rem 1.2rem; }
-      .ficha-tit { flex: 1; min-width: 0; }
-      .ficha-nombre { font-size: 1.05rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; }
-      .ficha-sub { font-size: .78rem; color: var(--md-on-surface-med); margin-top: 2px; }
-      .ficha-cerrar { border: none; background: none; cursor: pointer; width: 34px; height: 34px; border-radius: 50%; color: var(--md-on-surface-med); align-self: flex-start; }
-      .ficha-cerrar:hover { background: var(--md-surface-variant); }
-      .ficha-estado { padding: 0 1.2rem .8rem; }
-      .ficha-acciones { display: flex; gap: .35rem; padding: 0 1rem .9rem; border-bottom: 1px solid var(--md-outline); }
-      .ficha-acc { flex: 1; display: flex; flex-direction: column; align-items: center; gap: .2rem; padding: .55rem .2rem; border: none; border-radius: 12px; background: var(--md-surface-variant);
-        color: var(--md-primary-dark); font-family: var(--font); font-size: .68rem; font-weight: 600; cursor: pointer; transition: background 120ms; }
-      .ficha-acc:hover { background: var(--md-primary-container); }
-      .ficha-acc .material-symbols-outlined { font-size: 20px; }
-      .ficha-cuerpo { flex: 1; overflow: auto; padding: .4rem 1.2rem 1rem; }
-      .f-sec { padding: .8rem 0; border-bottom: 1px solid var(--md-outline); }
-      .f-sec:last-child { border-bottom: none; }
-      .f-sec h3 { font-size: .66rem; text-transform: uppercase; letter-spacing: .06em; color: var(--md-on-surface-low); font-weight: 600; margin-bottom: .5rem; }
-      .f-campo { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; padding: .3rem 0; font-size: .85rem; }
-      .f-etq { color: var(--md-on-surface-med); flex-shrink: 0; }
-      .f-val { text-align: right; white-space: pre-wrap; overflow-wrap: anywhere; }
-      .f-vacio { color: var(--md-on-surface-low); }
-      .f-campo.largo { flex-direction: column; gap: .25rem; } .f-campo.largo .f-val { text-align: left; }
-      .f-copia { border: none; background: none; cursor: copy; font: inherit; color: inherit; display: inline-flex; align-items: center; gap: .3rem; padding: 0; }
-      .f-copia .material-symbols-outlined { font-size: 14px; opacity: 0; color: var(--md-on-surface-low); }
-      .f-copia:hover .material-symbols-outlined { opacity: 1; }
       /* Cabecera y cuerpo de un formulario abierto dentro de la ficha (Valoración, Editar, Cita) */
       .ficha-form-cab { flex: none; display: flex; align-items: center; gap: .5rem; padding: .7rem .8rem; border-bottom: 1px solid var(--md-outline); }
       .ficha-form-cab button { border: none; background: none; cursor: pointer; width: 34px; height: 34px; border-radius: 50%; color: var(--md-on-surface-med); display: inline-flex; align-items: center; justify-content: center; }
@@ -279,12 +256,6 @@
       .ficha-form-tit { font-size: .95rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
       .ficha-form-cuerpo { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
       .ficha-form-cuerpo > * { flex: 1 1 auto; min-height: 0; }
-      .ficha-pie { padding: .7rem 1rem; border-top: 1px solid var(--md-outline); display: flex; flex-wrap: wrap; gap: .4rem; }
-      .ficha-sec { display: inline-flex; align-items: center; gap: .3rem; border: 1px solid var(--md-outline); background: var(--md-surface); border-radius: 999px; padding: .35rem .8rem; font-family: var(--font); font-size: .76rem; font-weight: 500; cursor: pointer; color: var(--md-on-surface); }
-      .ficha-sec:hover { background: var(--md-surface-variant); }
-      .ficha-sec .material-symbols-outlined { font-size: 16px; }
-      .ficha-sec.peligro { color: var(--md-error); margin-left: auto; }
-      .ficha-sec.peligro:hover { background: var(--md-error-bg); border-color: var(--md-error); }
       @media (min-width: 900px) {
         /* Sin animar el margen (forzaba reflujo de la tabla en cada fotograma): el panel se desliza con transform y el contenido se ajusta al instante. */
         body.con-ficha nav.tabs-cambio, body.con-ficha header.top, body.con-ficha .tabla-wrap { margin-right: var(--ficha-w, 400px); }
@@ -329,7 +300,6 @@
 
       mark { background: #fff1a8; color: inherit; border-radius: 3px; padding: 0 1px; }
       .celda-prioridad { font-variant-numeric: tabular-nums; font-size: .82rem; color: var(--md-on-surface-med); }
-      .chip-prioridad { margin-left: .5rem; font-size: .72rem; font-weight: 600; color: var(--md-on-surface-med); font-variant-numeric: tabular-nums; }
       :root[data-tema="oscuro"] mark { background: #5c4d0f; }
       @media (prefers-color-scheme: dark) { :root:not([data-tema]) mark { background: #5c4d0f; } }
 
@@ -514,6 +484,7 @@
     <?!= include('usuarios/Dialogo_Nuevo'); ?>
     <?!= include('historia/Panel_Huerfana'); ?>
     <?!= include('ui/JS_Formato_Nombre'); ?>
+    <?!= include('ui/JS_Ficha'); ?>
     <div class="menu-flot" id="menuFlotante"></div>
     <div class="barra-progreso"></div>
 
@@ -711,14 +682,6 @@
 
       // ================= Tabla de dos líneas, ficha lateral y estado en línea =================
       var fichaAbierta = false, CACHE_HDR = {};
-      var GRUPOS_FICHA = [
-        ['Datos personales', ['DNI', 'Fecha nacimiento', 'Fecha inscripción']],
-        ['Clasificación', ['Gravedad', 'Tipo de Ingreso']],
-        ['Contacto', ['Teléfono 1', 'Teléfono 2']],
-        ['Diagnóstico', ['Patología 1', 'Patología 2']],
-        ['Observaciones', ['Observaciones']]
-      ];
-      var ESTADOS_BASE = ['🟢 Activo', '🟡 En espera', '🕐 Contactará', '🚫 No responde', '✔️ Alta'];
       var MAPA_ACC = { editar: 'btnEditar', whatsapp: 'btnWhatsapp', cita: 'btnCita', valoracion: 'btnValoracion', alta: 'btnAlta',
         crearhc: 'btnHistoria', actualizarhc: 'btnActualizarHistoria', buscarhc: 'btnBuscarHuerfana', eliminar: 'btnEliminarUsuario' };
 
@@ -1174,15 +1137,7 @@
 
       // ---------- Cambio de estado en línea ----------
       function estadosDisponibles() {
-        var porClase = {}, extra = [];
-        ESTADOS_BASE.forEach(function(e) { porClase[claseParaEstado(e)] = e; });
-        TODOS.forEach(function(p) {
-          var e = (p['Estado'] || '').toString().trim();
-          if (!e) return;
-          var c = claseParaEstado(e);
-          if (c) porClase[c] = e; else if (extra.indexOf(e) === -1) extra.push(e);
-        });
-        return ['activo', 'espera', 'contactara', 'no-responde', 'alta'].map(function(c) { return porClase[c]; }).filter(Boolean).concat(extra);
+        return FichaUsuario.estadosDisponibles(TODOS.map(function(p) { return p['Estado']; }));
       }
 
       function menuEstado(fila, ancla) {
@@ -1225,40 +1180,18 @@
       }
 
       // ---------- Ficha lateral ----------
-      function htmlCampo(etq, h, p) {
-        var v = h && p[h] !== undefined && p[h] !== null ? String(p[h]).trim() : '';
-        var esTel = normalizar(etq).indexOf('telefono') === 0, copiable = etq === 'DNI' || esTel;
-        var mostrar = esTel ? formatearTel(v) : v;
-        if (etq === 'Fecha nacimiento' && v && edadTxt(p)) mostrar = v + ' · ' + edadTxt(p);
-        var cont;
-        if (!v) cont = '<span class="f-vacio">—</span>';
-        else if (copiable) cont = '<button type="button" class="f-copia" data-copiar="' + esc(v) + '" data-etiqueta="' + esc(etq) + '" title="Copiar">' + esc(mostrar) + '<span class="material-symbols-outlined">content_copy</span></button>';
-        else if (etq === 'Gravedad') cont = chipGravedad(v);
-        else cont = '<span class="f-val">' + esc(textoEstado(mostrar) === mostrar || etq !== 'Tipo de Ingreso' ? mostrar : textoEstado(mostrar)) + '</span>';
-        return '<div class="f-campo' + (etq === 'Observaciones' ? ' largo' : '') + '"><div class="f-etq">' + (etq === 'Observaciones' ? '' : esc(etq)) + '</div>' + cont + '</div>';
-      }
-
       function htmlFicha(p) {
-        var usados = { 'Nombre': true }, tieneHC = esUrl(COL_HISTORIA ? p[COL_HISTORIA] : '');
-        [hdr('Nombre'), hdr('Estado'), hdr('Edad'), COL_HISTORIA, colPrioridad()].forEach(function(h) { if (h) usados[h] = true; });
-        var acc = function(a, icono, texto) { return '<button type="button" class="ficha-acc" data-acc="' + a + '">' + contenidoIcono(icono) + texto + '</button>'; };
-        var sec = function(a, icono, texto, cls) { return '<button type="button" class="ficha-sec ' + (cls || '') + '" data-acc="' + a + '"><span class="material-symbols-outlined">' + icono + '</span>' + texto + '</button>'; };
-        var html = '<div class="ficha-cab">' + avatarHtml(p['Nombre'], 'grande') + '<div class="ficha-tit"><div class="ficha-nombre">' + esc(p['Nombre']) + '</div><div class="ficha-sub">' +
-            esc([dato(p, 'DNI'), edadTxt(p)].filter(Boolean).join(' · ')) + '</div></div>' +
-            '<button type="button" class="ficha-cerrar" data-ficha="cerrar" title="Cerrar (Esc)"><span class="material-symbols-outlined">close</span></button></div>' +
-          '<div class="ficha-estado">' + badgeEstado(p) + (prioridadNum(p) !== null ? '<span class="chip-prioridad" title="Puntuación de \'Ordenar Usuarios\'">Prioridad ' + esc(prioridadTxt(p)) + '</span>' : '') + '</div>' +
-          '<div class="ficha-acciones">' + acc('whatsapp', 'whatsapp', 'WhatsApp') + acc('hc', 'description', tieneHC ? 'Historia' : 'Crear HC') + acc('editar', 'edit', 'Editar') +
-            acc('cita', 'event', 'Cita') + acc('valoracion', 'assignment', 'Valoración') + '</div><div class="ficha-cuerpo">';
-        GRUPOS_FICHA.forEach(function(g) {
-          var campos = g[1].map(function(c) { var h = hdr(c); if (h) usados[h] = true; return h ? htmlCampo(c, h, p) : ''; }).join('');
-          if (campos) html += '<section class="f-sec"><h3>' + g[0] + '</h3>' + campos + '</section>';
+        var tieneHC = esUrl(COL_HISTORIA ? p[COL_HISTORIA] : '');
+        var pie = tieneHC ? [{ id: 'actualizarhc', icono: 'sync', texto: 'Actualizar HC' }]
+                          : [{ id: 'crearhc', icono: 'note_add', texto: 'Crear HC' }, { id: 'buscarhc', icono: 'manage_search', texto: 'Buscar HC' }];
+        pie = pie.concat([{ id: 'alta', icono: 'how_to_reg', texto: 'Alta' }, { id: 'eliminar', icono: 'delete', texto: 'Eliminar', peligro: true }]);
+        return FichaUsuario.html(p, HEADERS, {
+          nombre: p['Nombre'],
+          acciones: ['whatsapp', { id: 'hc', texto: tieneHC ? 'Historia' : 'Crear HC' }, 'editar', 'cita', 'valoracion'],
+          extraCabecera: prioridadNum(p) !== null ? '<span class="fu-extra" title="Puntuación de \'Ordenar Usuarios\'">Prioridad ' + esc(prioridadTxt(p)) + '</span>' : '',
+          excluir: [COL_HISTORIA, colPrioridad()],
+          pie: pie
         });
-        var otros = HEADERS.filter(function(h) { return !usados[h] && p[h] !== undefined && p[h] !== null && String(p[h]).trim() !== ''; })
-          .map(function(h) { return htmlCampo(h, h, p); }).join('');
-        if (otros) html += '<section class="f-sec"><h3>Otros datos</h3>' + otros + '</section>';
-        return html + '</div><div class="ficha-pie">' +
-          (tieneHC ? sec('actualizarhc', 'sync', 'Actualizar HC') : sec('crearhc', 'note_add', 'Crear HC') + sec('buscarhc', 'manage_search', 'Buscar HC')) +
-          sec('alta', 'how_to_reg', 'Alta') + sec('eliminar', 'delete', 'Eliminar', 'peligro') + '</div>';
       }
 
       function renderFicha() {
@@ -1269,21 +1202,16 @@
         if (formularioActivo && (!abierta || p._fila !== formularioFila)) { formularioActivo = false; controladorForm = null; }
         if (formularioActivo) return; // no pisar el formulario abierto en el panel
         document.body.classList.remove('ficha-ancha');   // la ficha y el resto de formularios usan el ancho normal
-        if (abierta) {
-          var scroll = (el.querySelector('.ficha-cuerpo') || {}).scrollTop || 0;
-          el.innerHTML = htmlFicha(p);
-          var cuerpo = el.querySelector('.ficha-cuerpo');
-          if (cuerpo) cuerpo.scrollTop = scroll;
-        }
+        if (abierta) FichaUsuario.pintar(el, htmlFicha(p));
       }
 
       document.getElementById('ficha').addEventListener('click', function(e) {
-        var t = e.target, c;
-        if (t.closest('[data-ficha-volver]')) { volverDeFormulario(); return; }
-        if ((c = t.closest('[data-copiar]'))) { copiarTexto(c.dataset.copiar, c.dataset.etiqueta); return; }
-        if ((c = t.closest('.estado-btn'))) { menuEstado(Number(c.dataset.estadoFila), c); return; }
-        if (t.closest('[data-ficha="cerrar"]')) { cerrarFicha(); return; }
-        if ((c = t.closest('[data-acc]')) && pacienteSeleccionado) accionPaciente(c.dataset.acc, pacienteSeleccionado._fila);
+        if (e.target.closest('[data-ficha-volver]')) { volverDeFormulario(); return; }
+        FichaUsuario.alClic(e, {
+          cerrar: cerrarFicha,
+          estado: function(btn) { if (pacienteSeleccionado) menuEstado(pacienteSeleccionado._fila, btn); },
+          accion: function(a) { if (pacienteSeleccionado) accionPaciente(a, pacienteSeleccionado._fila); }
+        });
       });
 
       document.getElementById('tablaWrap').addEventListener('click', function(e) {

@@ -12,6 +12,7 @@
       button, input, select { font-family: inherit; line-height: inherit; }
 
       <?!= include('ui/CSS_Global'); ?>
+      <?!= include('ui/CSS_Ficha'); ?>
 
       /* Paleta propia de la Agenda: tonos Material 3 desaturados. Los rellenos
          de fila/día/turno son tintes translúcidos (rgba) que se apilan sobre
@@ -807,34 +808,6 @@
       /* Ficha de usuario (panel lateral) */
       .celda-usuario[data-ficha-fila], .tj-nombre[data-ficha-fila] { cursor: pointer; }
       .celda-usuario[data-ficha-fila]:hover .nombre-u, .tj-nombre[data-ficha-fila]:hover .nombre-u { text-decoration: underline; text-underline-offset: 3px; }
-      .fu { overflow: auto; padding: 1rem 1.2rem 1.4rem; color: var(--ag-text); }
-      .fu-cab { display: flex; align-items: center; gap: .9rem; margin-bottom: 1rem; }
-      .fu-av .avatar { width: 48px; height: 48px; font-size: 1rem; }
-      .fu-nombre { font-size: 1.05rem; font-weight: 600; }
-      .fu-sub { font-size: .78rem; color: var(--ag-text-med); margin-top: 2px; }
-      .fu-acc { display: flex; gap: .35rem; padding-bottom: .9rem; border-bottom: 1px solid var(--ag-line); }
-      .fu-acc button { flex: 1; display: flex; flex-direction: column; align-items: center; gap: .2rem; padding: .55rem .2rem; border: none; border-radius: 12px;
-        background: var(--ag-accent-soft); color: var(--ag-accent-dark); font-family: var(--font); font-size: .74rem; font-weight: 600; cursor: pointer; }
-      .fu-acc button:hover { background: var(--ag-container); }
-      .fu-acc .material-symbols-outlined { font-size: 20px; }
-      .fu-acc svg { width: 20px; height: 20px; }
-      .fu-sec { padding: .8rem 0; border-bottom: 1px solid var(--ag-line); }
-      .fu-sec h3 { font-size: .68rem; letter-spacing: .06em; text-transform: uppercase; color: var(--ag-text-low); font-weight: 700; margin-bottom: .45rem; }
-      .fu-campo { display: flex; align-items: center; justify-content: space-between; gap: .8rem; padding: .25rem 0; font-size: .88rem; }
-      .fu-etq { color: var(--ag-text-med); font-size: .8rem; flex-shrink: 0; }
-      .fu-val { text-align: right; font-weight: 500; min-width: 0; overflow-wrap: anywhere; }
-      .fu-campo.largo { display: block; }
-      .fu-campo.largo .fu-val { display: block; text-align: left; font-weight: 400; white-space: pre-wrap; }
-      .fu-tel { display: inline-flex; align-items: center; gap: .2rem; }
-      .fu-copia { border: none; background: none; font-family: var(--font); font-size: .9rem; font-weight: 600; color: var(--ag-text); cursor: pointer;
-        display: inline-flex; align-items: center; gap: .3rem; padding: .15rem .45rem; border-radius: 8px; }
-      .fu-copia:hover { background: var(--ag-accent-soft); }
-      .fu-copia .material-symbols-outlined { font-size: 15px; opacity: 0; }
-      .fu-copia:hover .material-symbols-outlined { opacity: .7; }
-      .fu-llamar { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; color: var(--ag-text-low); text-decoration: none; }
-      .fu-llamar:hover { background: var(--ag-accent-soft); color: var(--ag-accent-dark); }
-      .fu-llamar .material-symbols-outlined { font-size: 18px; }
-      .fu-vacio { color: var(--ag-text-med); padding: 1rem 0; font-size: .88rem; }
       /* ===== Barra de aplicación (pestañas) y barra superior ===== */
       body { font-variant-numeric: tabular-nums; }
       nav.tabs-cambio { background: var(--ag-surface); padding: .35rem .75rem; gap: .2rem; }
@@ -1009,25 +982,6 @@
       @keyframes aparece { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
       .tabla-wrap.anim > * { animation: aparece 180ms ease-out; }
       @media (prefers-reduced-motion: reduce) { .tabla-wrap.anim > * { animation: none; } }
-
-      /* ===== Ficha de usuario: misma familia que los paneles Cita, Valoración y Recordatorios ===== */
-      .fu { padding: 0; background: var(--md-surface); color: var(--md-on-surface); }
-      .fu-cab { padding: 1.1rem 1.25rem; margin: 0; border-bottom: 1px solid var(--md-outline); }
-      .fu-sub { color: var(--md-on-surface-med); }
-      .fu-acc { padding: .9rem 1.25rem; gap: .5rem; border-bottom: 1px solid var(--md-outline); }
-      .fu-acc button { background: var(--md-primary-light); color: var(--md-primary-dark); border-radius: 14px; }
-      .fu-acc button:hover { background: var(--md-primary-light); filter: brightness(.96); }
-      .fu-sec { padding: 1.1rem 1.25rem 1.3rem; border-bottom: 1px solid var(--md-outline); }
-      .fu-sec:last-child { border-bottom: none; }
-      .fu-label { display: flex; align-items: center; gap: .6rem; margin-bottom: .9rem; }
-      .fu-pill { display: inline-flex; align-items: center; gap: .375rem; font-size: .6875rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase;
-        color: var(--md-primary-dark); background: var(--md-primary-light); padding: .35rem .75rem; border-radius: 999px; }
-      .fu-pill .material-symbols-outlined { font-size: 15px; color: var(--md-primary); }
-      .fu-div { flex: 1; height: 1px; background: var(--md-outline); }
-      .fu-etq { color: var(--md-on-surface-med); }
-      .fu-copia { color: var(--md-on-surface); }
-      .fu-copia:hover, .fu-llamar:hover { background: var(--md-primary-light); color: var(--md-primary-dark); }
-      .fu-vacio { padding: 1.2rem 1.25rem; color: var(--md-on-surface-med); }
 
       /* ===== Impresión ===== */
       .solo-impresion { display: none; }
@@ -1254,6 +1208,7 @@
 
     <?!= include('ui/Modal_Deshacer'); ?>
     <?!= include('ui/JS_Formato_Nombre'); ?>
+    <?!= include('ui/JS_Ficha'); ?>
     <?!= include('valoraciones/Panel_Valoracion'); ?>
     <?!= include('agenda/Panel_Cita'); ?>
     <?!= include('agenda/Panel_Recordatorios'); ?>
@@ -2251,7 +2206,8 @@
 
       // Abre un formulario en el panel lateral. `clave` identifica el contenido (no se reabre si ya está);
       // `montar(contenedor)` devuelve el controlador { haCambiado, alEscape, ... } del módulo.
-      async function abrirPanelLateral(clave, titulo, ancho, montar) {
+      // `opciones.sinCabecera`: sin la barra de título con el botón de cerrar (la ficha de usuario trae la suya).
+      async function abrirPanelLateral(clave, titulo, ancho, montar, opciones) {
         if (panelAbierto && panelClave === clave) return false;
         if (!(await descartarPanelSiProcede())) return false;
         var el = document.getElementById('ficha');
@@ -2261,8 +2217,9 @@
         document.body.classList.toggle('ficha-ancha', !!ancho);
         el.classList.add('abierta');
         el.setAttribute('aria-hidden', 'false');
-        el.innerHTML = '<div class="ficha-form-cab"><div class="ficha-form-tit"></div><button type="button" data-panel="cerrar" title="Cerrar (Esc)" aria-label="Cerrar"><span class="material-symbols-outlined">close</span></button></div><div class="ficha-form-cuerpo"></div>';
-        el.querySelector('.ficha-form-tit').textContent = titulo;
+        var sinCabecera = !!(opciones && opciones.sinCabecera);
+        el.innerHTML = (sinCabecera ? '' : '<div class="ficha-form-cab"><div class="ficha-form-tit"></div><button type="button" data-panel="cerrar" title="Cerrar (Esc)" aria-label="Cerrar"><span class="material-symbols-outlined">close</span></button></div>') + '<div class="ficha-form-cuerpo"></div>';
+        if (!sinCabecera) el.querySelector('.ficha-form-tit').textContent = titulo;
         controladorPanel = montar(el.querySelector('.ficha-form-cuerpo'));
         actualizarBotonRec();
         return true;
@@ -2314,7 +2271,7 @@
         if (e.key !== 'Escape' || !panelAbierto || arrastre) return;
         var modal = document.getElementById('modalOverlay');
         if (modal && modal.classList.contains('visible')) return;
-        if (document.querySelector('.menu-wrap.abierto')) return;
+        if (document.querySelector('.menu-wrap.abierto, .fu-menu')) return;
         var activo = document.activeElement;
         if (activo && activo.closest && activo.closest('.editando, .buscador')) return;
         e.preventDefault();
@@ -2559,7 +2516,7 @@
         if (modal && modal.classList.contains('visible')) return;
         var el = document.activeElement, tag = el ? el.tagName : '';
         if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA' || (el && el.isContentEditable)) return;
-        if (el && el.closest && el.closest('#ficha')) return;   // el foco está en el panel lateral
+        if (el && el.closest && el.closest('#ficha, .fu-menu')) return;   // el foco está en el panel lateral o en su menú de estado
 
         if (e.key === 'ArrowLeft') { e.preventDefault(); moverSemana(-7); }
         else if (e.key === 'ArrowRight') { e.preventDefault(); moverSemana(7); }
@@ -3083,14 +3040,10 @@
       }
       document.getElementById('btnRecordatorios').addEventListener('click', function() { abrirRecordatorios(); });
 
-      // ---------- Ficha de usuario (panel lateral): teléfono y datos de la Base de Datos ----------
-      var FICHA_GRUPOS = [
-        ['Contacto', ['Teléfono 1', 'Teléfono 2'], 'call'],
-        ['Datos personales', ['DNI', 'Fecha nacimiento', 'Fecha inscripción'], 'badge'],
-        ['Clasificación', ['Gravedad', 'Tipo de Ingreso'], 'category'],
-        ['Diagnóstico', ['Patología 1', 'Patología 2'], 'stethoscope'],
-        ['Observaciones', ['Observaciones'], 'notes']
-      ];
+      // ---------- Ficha de usuario (panel lateral) ----------
+      // Cabecera, secciones y etiquetas: ui/JS_Ficha (FichaUsuario), el mismo componente que la ficha de la Base de Datos.
+      // Aquí solo está lo propio de la Agenda: cargar las fichas en memoria, qué acciones se ofrecen y qué hacen.
+
       // Fichas en memoria: se cargan TODAS de una vez en segundo plano (cargarFichas) y el panel se abre desde
       // aquí, sin llamar al servidor. Se refrescan solas (ver más abajo), así que no hace falta caché por nombre.
       var FICHAS = { t: 0, headers: [], porNombre: null, cargando: false };
@@ -3100,15 +3053,18 @@
       function claveFicha(n) {
         return String(n || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim().toUpperCase();
       }
-      // Cabeceras que necesita la ficha (el servidor solo lee y envía esas columnas).
-      function camposFicha() {
-        var c = ['Nombre', 'Edad'];
-        FICHA_GRUPOS.forEach(function(g) { c = c.concat(g[1]); });
-        return c;
-      }
       function fichaDeMemoria(nombre) {
         var p = FICHAS.porNombre && FICHAS.porNombre[claveFicha(nombre)];
         return p ? { success: true, headers: FICHAS.headers, paciente: p } : null;
+      }
+      function htmlFichaUsuario(res, nombre) {
+        var hs = res.headers || [];
+        return FichaUsuario.html(res.paciente, hs, {
+          nombre: nombre,
+          acciones: ['whatsapp', 'hc', 'cita', 'valoracion'],
+          // "Otros datos" no repite la columna de prioridad (la primera) ni la Historia clínica, igual que la Base de Datos
+          excluir: [hs[0]].concat(hs.filter(function(h) { return String(h).toLowerCase().indexOf('historia') !== -1; }))
+        });
       }
       function repintarFichaAbierta() {
         if (!fichaAbierta || !panelAbierto || panelClave !== fichaAbierta.clave) return;
@@ -3117,9 +3073,10 @@
         var html = htmlFichaUsuario(res, fichaAbierta.nombre);
         if (html === fichaAbierta.html) return;            // sin cambios: no se toca el DOM
         fichaAbierta.html = html;
-        fichaAbierta.caja.innerHTML = html;
+        FichaUsuario.pintar(fichaAbierta.caja, html);
       }
       // Carga (o recarga) todas las fichas. Si falla, se conserva lo que ya hubiera en memoria.
+      // Sin lista de columnas: la ficha muestra también "Otros datos", así que se piden todas.
       function cargarFichas() {
         if (FICHAS.cargando) return;
         FICHAS.cargando = true;
@@ -3133,57 +3090,45 @@
             repintarFichaAbierta();                         // si la ficha abierta cambió en la hoja, se actualiza al momento
           })
           .withFailureHandler(function() { FICHAS.cargando = false; /* no crítico: se reintenta en el próximo ciclo */ })
-          .obtenerFichasUsuariosWeb(camposFicha());
+          .obtenerFichasUsuariosWeb();
       }
 
-      function claveCabecera(headers, etq) {
-        var n = normalizar(etq);
-        for (var i = 0; i < headers.length; i++) if (normalizar(headers[i]) === n) return headers[i];
-        return '';
+      // ---------- Estado del usuario desde la ficha (chip pulsable, como en la Base de Datos) ----------
+      function menuEstadoFicha(ancla) {
+        var res = fichaAbierta && fichaDeMemoria(fichaAbierta.nombre);
+        if (!res) return;
+        var hEst = FichaUsuario.cabecera(res.headers, 'Estado') || 'Estado';
+        var actual = FichaUsuario.norm(res.paciente[hEst]);
+        var existentes = Object.keys(FICHAS.porNombre).map(function(k) { return FICHAS.porNombre[k][hEst]; });
+        FichaUsuario.menuEstado(ancla, FichaUsuario.estadosDisponibles(existentes).map(function(e) {
+          return { punto: FichaUsuario.claseEstado(e), texto: FichaUsuario.textoEstado(e), marcado: FichaUsuario.norm(e) === actual, fn: function() { cambiarEstadoFicha(e); } };
+        }));
       }
-      function formatearTelFicha(t) {
-        var d = String(t).replace(/\D/g, '');
-        if (d.length === 11 && d.indexOf('34') === 0) d = d.slice(2);
-        return d.length === 9 ? d.replace(/(\d{3})(\d{3})(\d{3})/, '$1 $2 $3') : String(t).trim();
+      function cambiarEstadoFicha(valor) {
+        var res = fichaAbierta && fichaDeMemoria(fichaAbierta.nombre);
+        if (!res) return;
+        var p = res.paciente, hEst = FichaUsuario.cabecera(res.headers, 'Estado') || 'Estado', antes = p[hEst];
+        if (FichaUsuario.norm(antes) === FichaUsuario.norm(valor)) return;
+        if (FichaUsuario.claseEstado(valor) === 'alta') { altaDesdeFicha(fichaAbierta.nombre); return; }   // el alta tiene su propio flujo (fechas e HC)
+        if (!p._fila) { mostrarAviso('No se pudo cambiar el estado: vuelve a abrir la ficha e inténtalo de nuevo.'); cargarFichas(); return; }
+        p[hEst] = valor;
+        repintarFichaAbierta();
+        function revertir(msg) { p[hEst] = antes; repintarFichaAbierta(); mostrarAviso(msg); }
+        google.script.run
+          .withSuccessHandler(function(r) {
+            if (!r || !r.success) { revertir((r && r.message) || 'No se pudo cambiar el estado.'); cargarFichas(); return; }
+            mostrarAviso('Estado cambiado a ' + FichaUsuario.textoEstado(valor) + '.');
+            // Avisa a las otras ventanas (Base de Datos, Valoraciones), igual que los formularios al guardar.
+            try { localStorage.setItem('pacienteActualizado', JSON.stringify({ guardado: true, ts: Date.now() })); } catch (err) { /* sin almacenamiento: no es crítico */ }
+          })
+          .withFailureHandler(function(err) { revertir('Error al cambiar el estado: ' + err); })
+          .cambiarEstadoPacienteWeb(p._fila, valor, p['Nombre']);
       }
-      function copiarTextoFicha(texto, etq) {
-        function ok() { mostrarAviso((etq || 'Texto') + ' copiado'); }
-        function respaldo() {
-          var ta = document.createElement('textarea');
-          ta.value = texto; ta.style.position = 'fixed'; ta.style.opacity = '0';
-          document.body.appendChild(ta); ta.select();
-          try { document.execCommand('copy'); ok(); } catch (e) { mostrarAviso('No se pudo copiar.'); }
-          document.body.removeChild(ta);
-        }
-        if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(texto).then(ok, respaldo); else respaldo();
-      }
-
-      function htmlFichaUsuario(res, nombre) {
-        var p = res.paciente, hs = res.headers || [];
-        function val(etq) { var h = claveCabecera(hs, etq); var v = h ? p[h] : ''; return (v === null || v === undefined) ? '' : String(v).trim(); }
-        function acc(a, icono, txt) { return '<button type="button" data-fu="' + a + '">' + icono + txt + '</button>'; }
-        function ic(n) { return '<span class="material-symbols-outlined">' + n + '</span>'; }
-        var edad = val('Edad'), sub = [val('DNI'), /^\d+$/.test(edad) ? edad + ' años' : edad].filter(Boolean).join(' · ');
-        var html = '<div class="fu-cab"><span class="fu-av">' + avatarHtml(nombre) + '</span><div><div class="fu-nombre">' + escapar(nombre) + '</div>' +
-          (sub ? '<div class="fu-sub">' + escapar(sub) + '</div>' : '') + '</div></div>' +
-          '<div class="fu-acc">' + acc('whatsapp', SVG_WHATSAPP, 'WhatsApp') + acc('hc', ic('description'), 'Historia') +
-          acc('cita', ic('edit_calendar'), 'Dar cita') + acc('valoracion', ic('assignment'), 'Valoración') + '</div>';
-        FICHA_GRUPOS.forEach(function(g) {
-          var campos = g[1].map(function(etq) {
-            var v = val(etq);
-            if (!v) return '';
-            var cont, largo = etq === 'Observaciones';
-            if (/^tel/.test(normalizar(etq))) {
-              cont = '<span class="fu-tel"><button type="button" class="fu-copia" data-copiar="' + escapar(v) + '" data-etq="' + escapar(etq) + '" title="Copiar">' +
-                escapar(formatearTelFicha(v)) + ic('content_copy') + '</button><a class="fu-llamar" href="tel:' + escapar(v.replace(/[^\d+]/g, '')) + '" title="Llamar">' + ic('call') + '</a></span>';
-            } else {
-              cont = '<span class="fu-val">' + escapar(v) + '</span>';
-            }
-            return '<div class="fu-campo' + (largo ? ' largo' : '') + '">' + (largo ? '' : '<span class="fu-etq">' + escapar(etq) + '</span>') + cont + '</div>';
-          }).join('');
-          if (campos) html += '<section class="fu-sec"><div class="fu-label"><span class="fu-pill">' + ic(g[2] || 'info') + g[0] + '</span><span class="fu-div"></span></div>' + campos + '</section>';
-        });
-        return html;
+      // Alta desde la ficha: usa la cita del usuario en la semana mostrada (mismo proceso que el botón Alta de la fila).
+      function altaDesdeFicha(nombre) {
+        var cita = CITAS.find(function(x) { return !x._hueco && x['Usuario'] === nombre; });
+        if (!cita) { mostrarAviso('Este usuario ya no tiene citas en la semana mostrada: da el alta desde la Base de Datos.'); return; }
+        manejarAltaFila(cita._fila);
       }
 
       function abrirFichaUsuario(fila) {
@@ -3191,11 +3136,10 @@
         if (!nombre) return;
         var clave = 'usuario:' + nombre;
         return abrirPanelLateral(clave, 'Ficha de usuario', false, function(cont) {
-          cont.innerHTML = '<div class="fu"></div>';
-          var caja = cont.firstChild;
+          var caja = cont;
           fichaAbierta = { clave: clave, nombre: nombre, caja: caja, html: '' };
-          function pintar(res) { fichaAbierta.html = htmlFichaUsuario(res, nombre); caja.innerHTML = fichaAbierta.html; }
-          function error(msg) { fichaAbierta.html = ''; caja.innerHTML = '<p class="fu-vacio">' + escapar(msg) + '</p>'; }
+          function pintar(res) { fichaAbierta.html = htmlFichaUsuario(res, nombre); FichaUsuario.pintar(caja, fichaAbierta.html); }
+          function error(msg) { fichaAbierta.html = ''; FichaUsuario.pintar(caja, FichaUsuario.mensaje(nombre, msg)); }
 
           var enMemoria = fichaDeMemoria(nombre);
           if (enMemoria) {
@@ -3203,7 +3147,7 @@
             if (Date.now() - FICHAS.t > 60000) cargarFichas();       // y se refresca en segundo plano si ya son "viejas"
           } else {
             // Respaldo: fichas aún sin cargar, o usuario dado de alta después de la última carga.
-            caja.innerHTML = '<p class="fu-vacio">Cargando…</p>';
+            FichaUsuario.pintar(caja, FichaUsuario.mensaje(nombre, 'Cargando…'));
             google.script.run
               .withSuccessHandler(function(res) {
                 if (panelClave !== clave) return;
@@ -3215,23 +3159,25 @@
                 pintar(res);
               })
               .withFailureHandler(function(err) { if (panelClave === clave) error('Error al cargar la ficha: ' + err); })
-              .obtenerFichaUsuarioWeb(nombre, camposFicha());
+              .obtenerFichaUsuarioWeb(nombre);
           }
 
           cont.addEventListener('click', function(e) {
-            var t = e.target, c;
-            if ((c = t.closest('[data-copiar]'))) { copiarTextoFicha(c.dataset.copiar, c.dataset.etq); return; }
-            if (!(c = t.closest('[data-fu]'))) return;
-            var a = c.dataset.fu;
-            var citaAct = CITAS.find(function(x) { return !x._hueco && x['Usuario'] === nombre; });
-            if (a === 'cita') abrirCitaPanel(nombre);
-            else if (a === 'valoracion') abrirValoracionCita(nombre);
-            else if (!citaAct) mostrarAviso('Este usuario ya no tiene citas en la semana mostrada.');
-            else if (a === 'whatsapp') abrirWhatsappFila(citaAct._fila);
-            else if (a === 'hc') abrirHCFila(citaAct._fila);
+            FichaUsuario.alClic(e, {
+              cerrar: function() { cerrarPanel(); },
+              estado: menuEstadoFicha,
+              accion: function(a) {
+                var citaAct = CITAS.find(function(x) { return !x._hueco && x['Usuario'] === nombre; });
+                if (a === 'cita') abrirCitaPanel(nombre);
+                else if (a === 'valoracion') abrirValoracionCita(nombre);
+                else if (!citaAct) mostrarAviso('Este usuario ya no tiene citas en la semana mostrada.');
+                else if (a === 'whatsapp') abrirWhatsappFila(citaAct._fila);
+                else if (a === 'hc') abrirHCFila(citaAct._fila);
+              }
+            });
           });
           return { haCambiado: function() { return false; } };
-        });
+        }, { sinCabecera: true });
       }
 
       // Ediciones hechas directamente en la hoja (no avisan por localStorage): se recogen al volver a la pestaña
