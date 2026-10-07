@@ -1,7 +1,7 @@
 // ================================================================================
 // agenda/Recordatorios.gs
 // Recordatorios genéricos de la Agenda Web: llamar a un usuario, una reunión, un
-// evento, una nota suelta… Viven en su propia hoja "Recordatorios" (se crea sola
+// evento, una nota suelta, un festivo… Viven en su propia hoja "Recordatorios" (se crea sola
 // al guardar el primero), así que no tocan ni la hoja de Agenda ni la de Eventos.
 //
 // Columnas: ID | Fecha | Hora | Tipo | Texto | Hecho
@@ -12,7 +12,8 @@
 // COMPLETA ya actualizada, de modo que el cliente nunca tiene que "fusionar" nada.
 // ================================================================================
 
-const RECORDATORIO_TIPOS_ = ['Llamar', 'Reunión', 'Evento', 'Nota'];
+// 'Festivo' marca un día entero en la Agenda (no es una tarea: no se completa ni caduca).
+const RECORDATORIO_TIPOS_ = ['Llamar', 'Reunión', 'Evento', 'Nota', 'Festivo'];
 const RECORDATORIO_CABECERAS_ = ['ID', 'Fecha', 'Hora', 'Tipo', 'Texto', 'Hecho'];
 
 /** Devuelve la hoja de recordatorios; si no existe y `crear` es true, la crea. */

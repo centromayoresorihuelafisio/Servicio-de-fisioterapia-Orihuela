@@ -19,6 +19,8 @@
 .rc-t-reunion { --rc-c: #8b5cf6; --rc-bg: rgba(139,92,246,.15); }
 .rc-t-evento  { --rc-c: #14a38b; --rc-bg: rgba(20,163,139,.15); }
 .rc-t-nota    { --rc-c: #e0a000; --rc-bg: rgba(240,165,0,.20); }
+.rc-t-festivo { --rc-c: #e5484d; --rc-bg: rgba(229,72,77,.15); }
+.rcp-item.festivo .rcp-check { visibility: hidden; }
 
 .rcp { display: flex; flex-direction: column; height: 100%; min-height: 0; font-family: var(--font); font-size: 14px; color: var(--md-on-surface); background: var(--md-surface); }
 .rcp .material-symbols-outlined { font-size: 20px; }
@@ -105,6 +107,7 @@
         <button type="button" class="rcp-tipo rc-t-reunion" data-tipo="Reunión"><span class="material-symbols-outlined">groups</span>Reunión</button>
         <button type="button" class="rcp-tipo rc-t-evento"  data-tipo="Evento"><span class="material-symbols-outlined">event</span>Evento</button>
         <button type="button" class="rcp-tipo rc-t-nota"    data-tipo="Nota"><span class="material-symbols-outlined">sticky_note_2</span>Nota</button>
+        <button type="button" class="rcp-tipo rc-t-festivo" data-tipo="Festivo"><span class="material-symbols-outlined">flag</span>Festivo</button>
       </div>
       <input type="text" class="rcp-texto" placeholder="¿Qué quieres recordar?" maxlength="200" autocomplete="off" aria-label="Texto del recordatorio">
       <div class="rcp-fila">
@@ -133,7 +136,8 @@ window.PanelRecordatorios = {
     'Llamar':  { icono: 'call',          clase: 'llamar' },
     'Reunión': { icono: 'groups',        clase: 'reunion' },
     'Evento':  { icono: 'event',         clase: 'evento' },
-    'Nota':    { icono: 'sticky_note_2', clase: 'nota' }
+    'Nota':    { icono: 'sticky_note_2', clase: 'nota' },
+    'Festivo': { icono: 'flag',          clase: 'festivo' }
   },
 
   // "Hoy", "Mañana", "Ayer" o "Mié 7 oct". Vacío → "Sin fecha".
@@ -273,7 +277,7 @@ window.PanelRecordatorios = {
       if (modo === 'fecha') cuando.push(etiquetaFecha(r.fecha, h));
       if (r.hora && modo !== 'sin') cuando.push(r.hora);
       var atrasado = !r.hecho && r.fecha && r.fecha < h;
-      return '<div class="rcp-item' + (r.hecho ? ' hecho' : '') + (atrasado ? ' atrasado' : '') + (r.id === editandoId ? ' editando' : '') + '" data-id="' + esc(r.id) + '">' +
+      return '<div class="rcp-item' + (r.tipo === 'Festivo' ? ' festivo' : '') + (r.hecho ? ' hecho' : '') + (atrasado ? ' atrasado' : '') + (r.id === editandoId ? ' editando' : '') + '" data-id="' + esc(r.id) + '">' +
         '<button type="button" class="rcp-icono-btn rcp-check" data-act="hecho" title="' + (r.hecho ? 'Marcar como pendiente' : 'Marcar como hecho') + '">' +
           '<span class="material-symbols-outlined">' + (r.hecho ? 'check_circle' : 'radio_button_unchecked') + '</span></button>' +
         '<div class="rcp-cuerpo" data-act="editar" title="Editar">' +
@@ -293,14 +297,16 @@ window.PanelRecordatorios = {
 
     function renderListas() {
       var h = hoy();
-      var pend = lista.filter(function (r) { return !r.hecho; }).sort(cmp);
-      var hechos = lista.filter(function (r) { return r.hecho; }).sort(cmp).reverse().slice(0, 30);
+      var pend = lista.filter(function (r) { return !r.hecho && r.tipo !== 'Festivo'; }).sort(cmp);
+      var festivos = lista.filter(function (r) { return r.tipo === 'Festivo' && (!r.fecha || r.fecha >= h); }).sort(cmp);
+      var hechos = lista.filter(function (r) { return r.hecho && r.tipo !== 'Festivo'; }).sort(cmp).reverse().slice(0, 30);
       var html =
         grupoHtml('Atrasados', 'atrasados', pend.filter(function (r) { return r.fecha && r.fecha < h; }), h, 'fecha') +
         grupoHtml('Hoy', '', pend.filter(function (r) { return r.fecha === h; }), h, 'hoy') +
         grupoHtml('Próximos', '', pend.filter(function (r) { return r.fecha > h; }), h, 'fecha') +
-        grupoHtml('Sin fecha', '', pend.filter(function (r) { return !r.fecha; }), h, 'sin');
-      if (!pend.length) html += '<div class="rcp-vacio">No tienes recordatorios pendientes.</div>';
+        grupoHtml('Sin fecha', '', pend.filter(function (r) { return !r.fecha; }), h, 'sin') +
+        grupoHtml('Festivos', '', festivos, h, 'fecha');
+      if (!pend.length && !festivos.length) html += '<div class="rcp-vacio">No tienes recordatorios pendientes.</div>';
       if (hechos.length) {
         html += '<details class="rcp-hechos"' + (hechosAbierto ? ' open' : '') + '><summary><div class="rcp-grupo-tit">Hechos<span class="n">' + hechos.length + '</span></div></summary>' +
           hechos.map(function (r) { return itemHtml(r, h, 'fecha'); }).join('') + '</details>';
