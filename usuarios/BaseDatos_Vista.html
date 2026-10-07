@@ -481,7 +481,7 @@
     <?!= include('valoraciones/Panel_Valoracion'); ?>
     <?!= include('usuarios/Panel_Editar'); ?>
     <?!= include('agenda/Panel_Cita'); ?>
-    <?!= include('usuarios/Dialogo_Nuevo'); ?>
+    <?!= include('usuarios/Panel_Nuevo'); ?>
     <?!= include('historia/Panel_Huerfana'); ?>
     <?!= include('ui/JS_Formato_Nombre'); ?>
     <?!= include('ui/JS_Ficha'); ?>
@@ -1031,6 +1031,33 @@
           cancelar: function() { if (formularioActivo && formularioFila === fila) volverDeFormulario(); }
         });
       }
+      // Nuevo usuario en el panel lateral (usuarios/Panel_Nuevo). No hay paciente: se cierra la ficha que hubiera abierta y el
+      // formulario ocupa el panel. Al guardar, la hoja se reordena por prioridad, así que se recarga la tabla entera.
+      var FILA_NUEVO = 'nuevo';
+      async function abrirPanelNuevo() {
+        if (formularioActivo && formularioFila === FILA_NUEVO) {            // ya está abierto: solo se le da el foco
+          var n = document.querySelector('#ficha #nu-nombre'); if (n) n.focus();
+          return;
+        }
+        if (!(await descartarFormularioSiProcede())) return;
+        formularioActivo = false; controladorForm = null;
+        quitarSeleccion();                                                   // sin paciente seleccionado (cierra la ficha)
+        var el = document.getElementById('ficha');
+        fichaAbierta = false; formularioActivo = true; formularioFila = FILA_NUEVO;
+        document.body.classList.add('con-ficha');
+        document.body.classList.remove('ficha-ancha');
+        el.classList.add('abierta');
+        el.setAttribute('aria-hidden', 'false');
+        el.innerHTML = '<div class="ficha-form-cab"><button type="button" data-ficha-volver title="Cerrar"><span class="material-symbols-outlined">arrow_back</span></button><div class="ficha-form-tit">Nuevo usuario</div></div><div class="ficha-form-cuerpo"></div>';
+        controladorForm = PanelNuevo.abrir(el.querySelector('.ficha-form-cuerpo'), {
+          onGuardado: function(msj) {
+            mostrarAviso(typeof msj === 'string' && msj ? msj : 'Usuario guardado');
+            if (formularioActivo && formularioFila === FILA_NUEVO) volverDeFormulario(true);
+            cargar();
+          },
+          onCancelar: function() { if (formularioActivo && formularioFila === FILA_NUEVO) volverDeFormulario(); }
+        });
+      }
       async function volverDeFormulario(forzar) {
         if (forzar !== true && !(await descartarFormularioSiProcede())) return;
         formularioActivo = false; controladorForm = null;
@@ -1196,6 +1223,14 @@
 
       function renderFicha() {
         var el = document.getElementById('ficha'), p = pacienteSeleccionado, abierta = fichaAbierta && !!p;
+        // Nuevo usuario: el panel está abierto sin ningún paciente seleccionado; se mantiene hasta que se elija otra fila
+        // (entonces cae en la regla de más abajo y se descarta, como los demás formularios).
+        if (formularioActivo && formularioFila === FILA_NUEVO && !abierta) {
+          document.body.classList.add('con-ficha');
+          el.classList.add('abierta');
+          el.setAttribute('aria-hidden', 'false');
+          return;
+        }
         document.body.classList.toggle('con-ficha', abierta);
         el.classList.toggle('abierta', abierta);
         el.setAttribute('aria-hidden', abierta ? 'false' : 'true');
@@ -1304,17 +1339,8 @@
       });
 
       // ---------- Barra de herramientas ----------
-      // Nuevo usuario: diálogo modal (usuarios/Dialogo_Nuevo). Al guardar, la hoja se reordena por prioridad, así que
-      // si hay un formulario abierto en la ficha se cierra antes (sus datos apuntarían a una fila que ya no es la suya).
-      document.getElementById('btnNuevoPaciente').addEventListener('click', async function() {
-        if (document.querySelector('dialog[open]')) return;
-        if (formularioActivo) {
-          if (!(await descartarFormularioSiProcede())) return;
-          formularioActivo = false; controladorForm = null;
-          renderFicha();
-        }
-        DialogoNuevo.abrir({ onGuardado: function() { mostrarAviso('Usuario guardado'); cargar(); } });
-      });
+      // Nuevo usuario: formulario en el panel lateral (usuarios/Panel_Nuevo), como Valoración o Editar.
+      document.getElementById('btnNuevoPaciente').addEventListener('click', abrirPanelNuevo);
 
       document.getElementById('btnOrdenar').addEventListener('click', function() {
         var btn = document.getElementById('btnOrdenar');
