@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Valoraciones</title>
 
-    <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600&family=Material+Symbols+Outlined:opsz,wght,FILL@20..48,300..700,0..1&display=swap" rel="stylesheet">
 
     <style>
       *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -252,7 +252,8 @@
     <div class="barra-progreso"></div>
 
     <?!= include('ui/Modal_Deshacer'); ?>
-    <?!= include('valoraciones/Panel_Valoracion'); ?>
+    <?!= include('ui/JS_Paneles_Diferidos'); ?>
+    <?!= incluirPanel('valoraciones/Panel_Valoracion', 'PanelValoracion'); ?>
 
     <!-- Modal de edición de una valoración guardada (fecha incluida). -->
     <div class="modal-overlay" id="modalEditarOverlay">

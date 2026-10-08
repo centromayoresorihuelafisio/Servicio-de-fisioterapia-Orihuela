@@ -11,7 +11,7 @@ Funciona de dos formas a la vez:
 
 | Carpeta | Contenido |
 |---|---|
-| `core/` | Base común: `Config.gs` (nombres de hojas, columnas y claves de propiedades), `Utils.gs` (funciones compartidas), `Menu.gs`, `OnEdit.gs`, `PanelAdmin.gs` y `WebApp.gs` (router de la Web App) |
+| `core/` | Base común: `Config.gs` (nombres de hojas, columnas, claves de propiedades e interruptor de paneles), `Utils.gs` (funciones compartidas), `Menu.gs`, `OnEdit.gs`, `PanelAdmin.gs` y `WebApp.gs` (router de la Web App) |
 | `usuarios/` | Alta, edición, búsqueda y ordenación de usuarios; Base de Datos web; WhatsApp; sincronización con Contactos de Google |
 | `agenda/` | Citas, vista web de la Agenda, agenda semanal, eventos, recordatorios, copiar a la siguiente cita/semana y exportación a Google Calendar |
 | `valoraciones/` | Formulario de valoración y vista web de evolución |
@@ -37,6 +37,16 @@ El router está en `core/WebApp.gs` y sirve cada página según `?page=`. Sin pa
 | `huerfanaHC&fila=N` | Buscador de historia clínica huérfana |
 
 Con `&embed=1` la página se abre como ventana emergente. Los formularios se cierran según el contexto en que estén abiertos (diálogo de Sheets, ventana emergente o pestaña); ver `ui/JS_Cierre_Formulario.html`.
+
+## Paneles de formulario bajo demanda
+
+Los formularios del panel lateral (`Panel_Valoracion`, `Panel_Editar`, `Panel_Cita`, `Panel_Nuevo`, `Panel_Huerfana`) no van dentro del HTML de cada página: se descargan la primera vez que se abren y, además, se precargan en segundo plano unos segundos después de cargar la página.
+
+- Las páginas los declaran con `<?!= incluirPanel('ruta/Panel_X', 'PanelX'); ?>` (`core/WebApp.gs`) y el cargador está en `ui/JS_Paneles_Diferidos.html`.
+- El servidor los sirve con `obtenerPanelWeb()`, que solo acepta los nombres de la lista `PANELES_DIFERIDOS_`.
+- Al añadir un panel nuevo hay que darlo de alta en esa lista.
+- Interruptor: `PANELES_BAJO_DEMANDA` en `core/Config.gs`. Con `false` los paneles vuelven a incluirse dentro de la página, como antes.
+- `Panel_Recordatorios` y `Whatsapp_Dialogo` siguen incluidos con `include()`: sus estilos o su HTML se usan fuera del panel.
 
 ## Configuración
 

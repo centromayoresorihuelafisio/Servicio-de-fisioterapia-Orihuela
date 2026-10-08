@@ -44,6 +44,36 @@ function include(nombreArchivo) {
 }
 
 /**
+ * Paneles de formulario que las páginas pueden pedir bajo demanda (obtenerPanelWeb).
+ * Solo estos nombres se sirven: la función es llamable desde el navegador.
+ */
+const PANELES_DIFERIDOS_ = [
+  'valoraciones/Panel_Valoracion',
+  'usuarios/Panel_Editar',
+  'agenda/Panel_Cita',
+  'usuarios/Panel_Nuevo',
+  'historia/Panel_Huerfana'
+];
+
+/**
+ * Como include(), pero para un panel de formulario. Con PANELES_BAJO_DEMANDA = true no inyecta el panel:
+ * deja un resguardo (ui/JS_Paneles_Diferidos) que lo descargará cuando haga falta. Con false equivale a include().
+ *   <?!= incluirPanel('valoraciones/Panel_Valoracion', 'PanelValoracion'); ?>
+ * @param {string} archivo Ruta del panel, sin extensión.
+ * @param {string} global  Nombre del objeto global que define el panel (window.PanelValoracion...).
+ */
+function incluirPanel(archivo, global) {
+  if (!PANELES_BAJO_DEMANDA) return include(archivo);
+  return '<script>PanelesDiferidos.registrar(' + JSON.stringify(global) + ',' + JSON.stringify(archivo) + ');</script>';
+}
+
+/** Devuelve el HTML de un panel (estilos, plantilla y script) para que el navegador lo monte al abrirlo. */
+function obtenerPanelWeb(archivo) {
+  if (PANELES_DIFERIDOS_.indexOf(archivo) === -1) throw new Error('Panel no disponible: ' + archivo);
+  return include(archivo);
+}
+
+/**
  * Pasa a una plantilla las dos variables que necesita JS_Cierre_Formulario
  * para cerrar el formulario según dónde esté abierto:
  *   'dialogo' → modal de Sheets (showModalDialog)

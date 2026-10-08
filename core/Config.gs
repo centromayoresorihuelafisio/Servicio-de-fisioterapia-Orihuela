@@ -111,3 +111,10 @@ const COLUMNAS_NUM = {
   }
 };
 
+/**
+ * Paneles de formulario bajo demanda (ver ui/JS_Paneles_Diferidos.html).
+ * true  → Valoración, Editar, Cita, Nuevo usuario y Buscar huérfana no van dentro de la página: se piden
+ *         al servidor la primera vez (y se precargan en segundo plano), con lo que la página pesa mucho menos.
+ * false → vuelven a ir dentro de la página, exactamente como antes. Es el interruptor para deshacer el cambio.
+ */
+const PANELES_BAJO_DEMANDA = true;

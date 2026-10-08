@@ -5,10 +5,38 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Base de Datos</title>
 
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600&family=Roboto+Mono:wght@400;500&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600&family=Roboto+Mono:wght@400;500&family=Material+Symbols+Outlined:opsz,wght,FILL@20..48,300..700,0..1&display=swap" rel="stylesheet">
 
     <style>
+      /* Reset base (sustituye al preflight de Tailwind CDN, que ya no se carga) */
+      *,::before,::after{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}
+      html{line-height:1.5;-webkit-text-size-adjust:100%;tab-size:4;-webkit-tap-highlight-color:transparent}
+      body{line-height:inherit}
+      hr{height:0;color:inherit;border-top-width:1px}
+      h1,h2,h3,h4,h5,h6{font-size:inherit;font-weight:inherit}
+      a{color:inherit;text-decoration:inherit}
+      b,strong{font-weight:bolder}
+      code,kbd,samp,pre{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:1em}
+      small{font-size:80%}
+      table{text-indent:0;border-color:inherit;border-collapse:collapse}
+      button,input,optgroup,select,textarea{font-family:inherit;font-size:100%;font-weight:inherit;line-height:inherit;letter-spacing:inherit;color:inherit;margin:0;padding:0}
+      button,select{text-transform:none}
+      button,[type='button'],[type='reset'],[type='submit']{-webkit-appearance:button;background-color:transparent;background-image:none}
+      progress{vertical-align:baseline}
+      ::-webkit-inner-spin-button,::-webkit-outer-spin-button{height:auto}
+      [type='search']{-webkit-appearance:textfield;outline-offset:-2px}
+      ::-webkit-search-decoration{-webkit-appearance:none}
+      summary{display:list-item}
+      blockquote,dl,dd,hr,figure,p,pre,fieldset{margin:0}
+      fieldset,legend{padding:0}
+      ol,ul,menu{list-style:none;margin:0;padding:0}
+      textarea{resize:vertical}
+      input::placeholder,textarea::placeholder{opacity:1;color:#9ca3af}
+      button,[role="button"]{cursor:pointer}
+      :disabled{cursor:default}
+      img,svg,video,canvas,audio,iframe,embed,object{display:block;vertical-align:middle}
+      img,video{max-width:100%;height:auto}
+      [hidden]{display:none}
       *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
       <?!= include('ui/CSS_Global'); ?>
@@ -493,11 +521,12 @@
 
     <aside class="ficha" id="ficha" aria-hidden="true"></aside>
     <?!= include('ui/JS_Selector_Fecha'); ?>
-    <?!= include('valoraciones/Panel_Valoracion'); ?>
-    <?!= include('usuarios/Panel_Editar'); ?>
-    <?!= include('agenda/Panel_Cita'); ?>
-    <?!= include('usuarios/Panel_Nuevo'); ?>
-    <?!= include('historia/Panel_Huerfana'); ?>
+    <?!= include('ui/JS_Paneles_Diferidos'); ?>
+    <?!= incluirPanel('valoraciones/Panel_Valoracion', 'PanelValoracion'); ?>
+    <?!= incluirPanel('usuarios/Panel_Editar', 'PanelEditar'); ?>
+    <?!= incluirPanel('agenda/Panel_Cita', 'PanelCita'); ?>
+    <?!= incluirPanel('usuarios/Panel_Nuevo', 'PanelNuevo'); ?>
+    <?!= incluirPanel('historia/Panel_Huerfana', 'PanelHuerfana'); ?>
     <?!= include('ui/JS_Formato_Nombre'); ?>
     <?!= include('ui/JS_Ficha'); ?>
     <?!= include('usuarios/Whatsapp_Dialogo'); ?>

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Agenda</title>
 
-    <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600&family=Material+Symbols+Outlined:opsz,wght,FILL@20..48,300..700,0..1&display=swap" rel="stylesheet">
 
     <style>
       *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -1215,8 +1215,9 @@
     <?!= include('ui/JS_Formato_Nombre'); ?>
     <?!= include('ui/JS_Ficha'); ?>
     <?!= include('ui/JS_Selector_Fecha'); ?>
-    <?!= include('valoraciones/Panel_Valoracion'); ?>
-    <?!= include('agenda/Panel_Cita'); ?>
+    <?!= include('ui/JS_Paneles_Diferidos'); ?>
+    <?!= incluirPanel('valoraciones/Panel_Valoracion', 'PanelValoracion'); ?>
+    <?!= incluirPanel('agenda/Panel_Cita', 'PanelCita'); ?>
     <?!= include('agenda/Panel_Recordatorios'); ?>
 
     <div class="toast-deshacer" id="toastMover">
@@ -3088,6 +3089,19 @@
         fichaAbierta.html = html;
         FichaUsuario.pintar(fichaAbierta.caja, html);
       }
+      // El autocompletado de usuarios (datalist) sale de las mismas fichas que ya se cargan: así la Agenda no
+      // lee la Maestra una segunda vez al abrirse, y la lista se renueva sola cada vez que se refrescan las fichas.
+      function actualizarListaPacientes() {
+        var hNombre = FichaUsuario.cabecera(FICHAS.headers, 'Nombre') || 'Nombre';
+        var nombres = [];
+        Object.keys(FICHAS.porNombre || {}).forEach(function(k) {
+          var nombre = String(FICHAS.porNombre[k][hNombre] || '').trim();
+          if (nombre) nombres.push(nombre);
+        });
+        NOMBRES_PACIENTES = nombres;
+        document.getElementById('listaPacientes').innerHTML =
+          nombres.map(function(nm) { return '<option value="' + escapar(nm) + '">'; }).join('');
+      }
       // Carga (o recarga) todas las fichas. Si falla, se conserva lo que ya hubiera en memoria.
       // Sin lista de columnas: la ficha muestra también "Otros datos", así que se piden todas.
       function cargarFichas() {
@@ -3100,9 +3114,13 @@
             FICHAS.headers = res.headers || [];
             FICHAS.porNombre = res.fichas || {};
             FICHAS.t = Date.now();
+            actualizarListaPacientes();
             repintarFichaAbierta();                         // si la ficha abierta cambió en la hoja, se actualiza al momento
           })
-          .withFailureHandler(function() { FICHAS.cargando = false; /* no crítico: se reintenta en el próximo ciclo */ })
+          .withFailureHandler(function() {
+            FICHAS.cargando = false;   // no crítico: se reintenta en el próximo ciclo
+            if (!NOMBRES_PACIENTES.length) cargarListaPacientes();   // respaldo: al menos el autocompletado
+          })
           .obtenerFichasUsuariosWeb();
       }
 
@@ -3352,7 +3370,6 @@
       actualizarBotonHuecos();
       aplicarResumen();
       cargar();
-      cargarListaPacientes();
       cargarRecordatorios();
       cargarFichas();   // en segundo plano: cuando llegue, abrir una ficha ya no necesita al servidor
     </script>

@@ -6,13 +6,40 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Editar Paciente</title>
     
-    <!-- Tailwind CSS para utilidades ágiles (Layout de secciones) -->
-    <script src="https://cdn.tailwindcss.com"></script>
     
     <!-- Google Fonts & Material Symbols Outlined -->
-    <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600&family=Roboto+Mono:wght@400;500&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600&family=Roboto+Mono:wght@400;500&family=Material+Symbols+Outlined:opsz,wght,FILL@20..48,300..700,0..1&display=swap" rel="stylesheet">
     
     <style>
+      /* Reset base (sustituye al preflight de Tailwind CDN, que ya no se carga) */
+      *,::before,::after{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}
+      html{line-height:1.5;-webkit-text-size-adjust:100%;tab-size:4;-webkit-tap-highlight-color:transparent}
+      body{line-height:inherit}
+      hr{height:0;color:inherit;border-top-width:1px}
+      h1,h2,h3,h4,h5,h6{font-size:inherit;font-weight:inherit}
+      a{color:inherit;text-decoration:inherit}
+      b,strong{font-weight:bolder}
+      code,kbd,samp,pre{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:1em}
+      small{font-size:80%}
+      table{text-indent:0;border-color:inherit;border-collapse:collapse}
+      button,input,optgroup,select,textarea{font-family:inherit;font-size:100%;font-weight:inherit;line-height:inherit;letter-spacing:inherit;color:inherit;margin:0;padding:0}
+      button,select{text-transform:none}
+      button,[type='button'],[type='reset'],[type='submit']{-webkit-appearance:button;background-color:transparent;background-image:none}
+      progress{vertical-align:baseline}
+      ::-webkit-inner-spin-button,::-webkit-outer-spin-button{height:auto}
+      [type='search']{-webkit-appearance:textfield;outline-offset:-2px}
+      ::-webkit-search-decoration{-webkit-appearance:none}
+      summary{display:list-item}
+      blockquote,dl,dd,hr,figure,p,pre,fieldset{margin:0}
+      fieldset,legend{padding:0}
+      ol,ul,menu{list-style:none;margin:0;padding:0}
+      textarea{resize:vertical}
+      input::placeholder,textarea::placeholder{opacity:1;color:#9ca3af}
+      button,[role="button"]{cursor:pointer}
+      :disabled{cursor:default}
+      img,svg,video,canvas,audio,iframe,embed,object{display:block;vertical-align:middle}
+      img,video{max-width:100%;height:auto}
+      [hidden]{display:none}
       *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
       /* ── Material Design 3 / Nueva Paleta Azul Acero ── */
@@ -635,6 +662,30 @@
         from { opacity: 0; transform: translateY(8px); }
         to   { opacity: 1; transform: translateY(0); }
       }
+          /* Utilidades que usaba esta página de Tailwind (mismos nombres y valores) */
+      .flex{display:flex}
+      .inline-flex{display:inline-flex}
+      .flex-1{flex:1 1 0%}
+      .items-center{align-items:center}
+      .gap-3{gap:.75rem}
+      .gap-1\.5{gap:.375rem}
+      .mb-5{margin-bottom:1.25rem}
+      .px-3\.5{padding-left:.875rem;padding-right:.875rem}
+      .py-1\.5{padding-top:.375rem;padding-bottom:.375rem}
+      .rounded-full{border-radius:9999px}
+      .bg-\[\#e0f1fc\]{background-color:#e0f1fc}
+      .bg-\[--md-outline\]{background-color:var(--md-outline)}
+      .text-\[\#1d4a61\]{color:#1d4a61}
+      .font-semibold{font-weight:600}
+      .text-xs{font-size:.75rem;line-height:1rem}
+      .uppercase{text-transform:uppercase}
+      .tracking-wider{letter-spacing:.05em}
+      .h-\[1px\]{height:1px}
+      .text-\[16px\]{font-size:16px}
+      .text-\[18px\]{font-size:18px}
+      .text-\[20px\]{font-size:20px}
+      .text-\[22px\]{font-size:22px}
+      .text-\[24px\]{font-size:24px}
     </style>
   </head>
   <body>
