@@ -124,3 +124,54 @@ function _generarUrlWhatsappParaNombre(hoja, nombreCompleto) {
   const urlGenerada = "https://web.whatsapp.com/send?phone=" + it.telefono + "&text=" + encodeURIComponent(msjFinal);
   return { success: true, url: urlGenerada };
 }
+
+/**
+ * Datos para el asistente de WhatsApp desde la Base de Datos Web. Recibe filas de
+ * la Maestra y devuelve lo mismo que datosWhatsappLoteAgendaWeb (Web.gs): la
+ * plantilla cruda con {{nombre}} y, por paciente, nombre, primer nombre y
+ * teléfono ya con prefijo (o el error que impide escribirle).
+ */
+function datosWhatsappMaestraWeb(filas) {
+  try {
+    const hoja = getSS().getSheetByName(SHEETS.MAESTRA);
+    if (!hoja) return { success: false, message: "No se encontró la hoja 'Base de Datos Maestra'." };
+
+    const lastRow = hoja.getLastRow();
+    const vistos = Object.create(null);
+    const entradas = [];
+    let duplicados = 0;
+    (filas || []).forEach(function(f) {
+      const rowIdx = parseInt(f, 10);
+      if (!rowIdx || rowIdx < 2 || rowIdx > lastRow) {
+        entradas.push({ fila: f, nombre: '', error: 'Paciente no válido.' });
+        return;
+      }
+      const nombre = String(hoja.getRange(rowIdx, COLUMNAS_NUM.MAESTRA.NOMBRE).getValue() || '').trim();
+      if (!nombre) {
+        entradas.push({ fila: rowIdx, nombre: '', error: 'Esa fila no tiene nombre de paciente.' });
+        return;
+      }
+      if (vistos[nombre]) { duplicados++; return; }
+      vistos[nombre] = true;
+      entradas.push({ fila: rowIdx, nombre: nombre });
+    });
+
+    const porNombre = Object.create(null);
+    const nombres = entradas.filter(e => !e.error).map(e => e.nombre);
+    if (nombres.length) {
+      const datos = _datosWhatsappParaNombres_(hoja, nombres);
+      if (!datos.success) return { success: false, message: datos.message };
+      datos.items.forEach(it => { porNombre[it.nombre] = it; });
+    }
+
+    const items = entradas.map(function(e) {
+      if (e.error) return { fila: e.fila, nombre: e.nombre, primerNombre: '', telefono: '', error: e.error };
+      const it = porNombre[e.nombre];
+      return { fila: e.fila, nombre: e.nombre, primerNombre: it.primerNombre, telefono: it.telefono, error: it.error };
+    });
+    return { success: true, plantilla: _plantillaWhatsapp_(), items: items, duplicados: duplicados };
+  } catch (e) {
+    Logger.log('Error en datosWhatsappMaestraWeb: ' + e.message);
+    return { success: false, message: e.message };
+  }
+}

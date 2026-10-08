@@ -1,0 +1,349 @@
+<!--
+  Asistente de WhatsApp compartido por la Agenda y la Base de Datos.
+  Se incluye con <?!= include('usuarios/Whatsapp_Dialogo'); ?> y expone:
+    WhatsappDialogo.abrir(funcionServidor, filas)
+  `funcionServidor` es una función de Apps Script que recibe las filas y devuelve
+  { success, plantilla, items:[{fila, nombre, primerNombre, telefono, error}], duplicados }:
+    - Agenda:         'datosWhatsappLoteAgendaWeb'
+    - Base de Datos:  'datosWhatsappMaestraWeb'
+  Con 1 usuario muestra el mensaje para revisarlo; con varios, recorre uno a uno.
+-->
+<style>
+  #dlgWl {
+    --wl-surface: var(--ag-surface, var(--md-surface, #ffffff));
+    --wl-surface-2: var(--ag-page, var(--md-surface-variant, #f8fafd));
+    --wl-line: var(--ag-line, var(--md-outline, #e3e8ef));
+    --wl-text: var(--ag-text, var(--md-on-surface, #1f2430));
+    --wl-text-med: var(--ag-text-med, var(--md-on-surface-med, #586074));
+    --wl-text-low: var(--ag-text-low, var(--md-on-surface-low, #8a93a6));
+    --wl-accent: var(--ag-accent, var(--md-primary, #0b57d0));
+    --wl-accent-soft: var(--ag-accent-soft, var(--md-primary-light, rgba(194,231,255,.55)));
+    --wl-accent-dark: var(--ag-accent-dark, var(--md-primary-dark, #004a77));
+    --wl-container: var(--ag-container, var(--md-primary-container, #c2e7ff));
+    --wl-error: var(--ag-error, var(--md-error, #b3261e));
+    --wl-error-bg: var(--ag-error-bg, var(--md-error-bg, #fdecea));
+    --wl-overlay: var(--ag-overlay, rgba(32,33,36,.5));
+    margin: auto; border: none; border-radius: 20px; padding: 0; width: min(520px, 94vw); max-height: 90vh; overflow: hidden;
+    background: var(--wl-surface); color: var(--wl-text); box-shadow: 0 16px 48px rgba(0,0,0,.30);
+  }
+  #dlgWl::backdrop { background: var(--wl-overlay); }
+  #dlgWl[open] { display: flex; flex-direction: column; }
+  #dlgWl [hidden] { display: none !important; }
+  #dlgWl button, #dlgWl textarea, #dlgWl summary { font-family: inherit; }
+
+  .wl-cab { display: flex; align-items: center; gap: .8rem; padding: 1.1rem 1.25rem .8rem; }
+  .wl-avatar { width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center;
+    background: var(--wl-accent-soft); color: var(--wl-accent-dark); font-weight: 700; font-size: .95rem; }
+  .wl-cab-txt { flex: 1; min-width: 0; }
+  .wl-cab-txt h2 { margin: 0; font-size: 1.02rem; font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .wl-sub { font-size: .8rem; color: var(--wl-text-med); margin-top: 2px; }
+  .wl-x { border: none; background: transparent; color: var(--wl-text-med); font-size: 1.5rem; line-height: 1; cursor: pointer; padding: .15rem .6rem; border-radius: 10px; }
+  .wl-x:hover { background: var(--wl-accent-soft); color: var(--wl-accent-dark); }
+
+  .wl-nota { margin: 0 1.25rem .8rem; font-size: .82rem; color: var(--wl-text-med); }
+  .wl-nota.error { color: var(--wl-error); background: var(--wl-error-bg); padding: .5rem .75rem; border-radius: 10px; }
+  .wl-cuerpo { padding: 0 1.25rem 1rem; overflow-y: auto; }
+
+  .wl-chips { display: flex; flex-wrap: wrap; gap: .35rem; margin-bottom: .9rem; }
+  .wl-chip { border: 1px solid var(--wl-line); background: var(--wl-surface); color: var(--wl-text); border-radius: 999px; padding: .2rem .7rem; font-size: .78rem; cursor: pointer; }
+  .wl-chip:hover { background: var(--wl-accent-soft); }
+  .wl-chip.actual { border-color: var(--wl-accent); box-shadow: 0 0 0 1px var(--wl-accent); }
+  .wl-chip.abierto { background: rgba(37,211,102,.14); border-color: rgba(37,211,102,.45); color: #1fa855; }
+  .wl-chip.omitido { color: var(--wl-text-low); }
+  .wl-chip.error { background: var(--wl-error-bg); border-color: transparent; color: var(--wl-error); }
+
+  .wl-fila-msj { display: flex; justify-content: space-between; align-items: flex-end; gap: .75rem; }
+  .wl-etq { display: block; font-size: .75rem; font-weight: 600; color: var(--wl-text-med); margin: .2rem 0 .35rem; }
+  .wl-link { border: none; background: transparent; color: var(--wl-accent); font-size: .76rem; cursor: pointer; padding: 0 0 .35rem; white-space: nowrap; }
+  .wl-link:hover { text-decoration: underline; }
+  .wl-campo { width: 100%; box-sizing: border-box; border: 1px solid var(--wl-line); border-radius: 14px; padding: .65rem .85rem; font-size: .9rem; line-height: 1.45;
+    color: var(--wl-text); background: var(--wl-surface-2); resize: vertical; }
+  .wl-campo:focus { outline: none; border-color: var(--wl-accent); box-shadow: 0 0 0 1px var(--wl-accent); background: var(--wl-surface); }
+  .wl-plantilla { margin-top: .8rem; border: 1px solid var(--wl-line); border-radius: 14px; padding: .55rem .85rem .75rem; }
+  .wl-plantilla summary { cursor: pointer; font-size: .78rem; font-weight: 600; color: var(--wl-text-med); }
+  .wl-ayuda { margin: .4rem 0 .5rem; font-size: .76rem; color: var(--wl-text-low); }
+
+  .wl-pie { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: .5rem; padding: .8rem 1.25rem 1.1rem; border-top: 1px solid var(--wl-line); }
+  .wl-seg { display: inline-flex; padding: 3px; border-radius: 999px; background: var(--wl-surface-2); border: 1px solid var(--wl-line); margin-right: auto; }
+  .wl-seg button { border: none; background: transparent; color: var(--wl-text-med); font-size: .76rem; font-weight: 600; padding: .32rem .75rem; border-radius: 999px; cursor: pointer; }
+  .wl-seg button[aria-checked="true"] { background: var(--wl-container); color: var(--wl-accent-dark); }
+  .wl-btn { display: inline-flex; align-items: center; gap: .45rem; border: 1px solid var(--wl-line); background: var(--wl-surface); color: var(--wl-text); border-radius: 999px;
+    padding: .5rem 1.05rem; font-size: .85rem; font-weight: 600; cursor: pointer; text-decoration: none; }
+  .wl-btn:hover { background: var(--wl-accent-soft); }
+  .wl-btn.primario { background: var(--wl-container); border-color: var(--wl-container); color: var(--wl-accent-dark); }
+  .wl-btn.primario:hover { filter: brightness(.96); }
+  .wl-btn:focus-visible, .wl-seg button:focus-visible, .wl-chip:focus-visible, .wl-x:focus-visible { outline: 2px solid var(--wl-accent); outline-offset: 2px; }
+
+  .wl-resumen { font-size: .9rem; line-height: 1.5; }
+  .wl-resumen ul { margin: .4rem 0 .9rem; padding-left: 1.1rem; color: var(--wl-error); font-size: .82rem; }
+</style>
+
+<dialog id="dlgWl" aria-labelledby="wlTitulo">
+  <div class="wl-cab">
+    <span class="wl-avatar" id="wlAvatar" hidden></span>
+    <div class="wl-cab-txt">
+      <h2 id="wlTitulo">WhatsApp</h2>
+      <div class="wl-sub" id="wlSub" hidden></div>
+    </div>
+    <button type="button" class="wl-x" id="wlCerrar" title="Cerrar" aria-label="Cerrar">&times;</button>
+  </div>
+  <p class="wl-nota" id="wlNota" hidden></p>
+  <div class="wl-cuerpo" id="wlLote" hidden>
+    <div class="wl-chips" id="wlChips" hidden></div>
+    <div id="wlEdicion">
+      <div class="wl-fila-msj">
+        <label class="wl-etq" for="wlMensaje" id="wlEtqMensaje">Mensaje</label>
+        <button type="button" class="wl-link" id="wlReset" hidden>Restablecer mensaje</button>
+      </div>
+      <textarea class="wl-campo" id="wlMensaje" rows="4"></textarea>
+      <details class="wl-plantilla" id="wlPlantillaWrap" hidden>
+        <summary>Plantilla del lote (afecta a todos los usuarios)</summary>
+        <p class="wl-ayuda">Escribe {{nombre}} donde deba ir el nombre de cada usuario. Solo vale para este lote.</p>
+        <textarea class="wl-campo" id="wlPlantilla" rows="3"></textarea>
+      </details>
+    </div>
+    <div class="wl-resumen" id="wlResumen" hidden></div>
+  </div>
+  <div class="wl-pie" id="wlPie" hidden>
+    <div class="wl-seg" role="radiogroup" aria-label="Abrir con">
+      <button type="button" role="radio" id="wlModoWeb" aria-checked="true">WhatsApp Web</button>
+      <button type="button" role="radio" id="wlModoEsc" aria-checked="false">App de escritorio</button>
+    </div>
+    <button type="button" class="wl-btn" id="wlOmitir" hidden>Omitir</button>
+    <a class="wl-btn primario" id="wlAbrir" target="_blank" rel="noopener" role="button" tabindex="0"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" aria-hidden="true" viewBox="0 0 16 16" fill="currentColor"><path d="M13.601 2.326A7.854 7.854 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.933 7.933 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.898 7.898 0 0 0 13.6 2.326zM7.994 14.521a6.573 6.573 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.557 6.557 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592zm3.615-4.934c-.197-.099-1.17-.578-1.353-.646-.182-.065-.315-.099-.445.099-.133.197-.513.646-.627.775-.114.133-.232.148-.43.05-.197-.1-.836-.308-1.592-.985-.59-.525-.985-1.175-1.103-1.372-.114-.198-.011-.304.088-.403.087-.088.197-.232.296-.346.1-.114.133-.198.198-.33.065-.134.034-.248-.015-.347-.05-.099-.445-1.076-.612-1.47-.16-.389-.323-.335-.445-.34-.114-.007-.247-.007-.38-.007a.729.729 0 0 0-.529.247c-.182.198-.691.677-.691 1.654 0 .977.71 1.916.81 2.049.098.133 1.394 2.132 3.383 2.992.47.205.84.326 1.129.418.475.152.904.129 1.246.08.38-.058 1.171-.48 1.338-.943.164-.464.164-.86.114-.943-.049-.084-.182-.133-.38-.232z"/></svg> Abrir WhatsApp</a>
+  </div>
+</dialog>
+
+<script>
+var WhatsappDialogo = (function() {
+  var dlg = document.getElementById('dlgWl');
+  var wl = null;       // { plantilla, lote, duplicados, indice, items:[{fila, nombre, primerNombre, telefono, error, estado, mensajeManual}] }
+  var modo = 'web';    // 'web' | 'escritorio' (se recuerda en este navegador)
+  try { var guardado = localStorage.getItem('wlModo'); if (guardado === 'web' || guardado === 'escritorio') modo = guardado; } catch (e) {}
+
+  function el(id) { return document.getElementById(id); }
+
+  // Los avisos van dentro del diálogo: un toast quedaría tapado por la capa superior del <dialog>.
+  function nota(texto, error) {
+    var n = el('wlNota');
+    n.textContent = texto || '';
+    n.className = 'wl-nota' + (error ? ' error' : '');
+    n.hidden = !texto;
+  }
+
+  function render(plantilla, nombre) {
+    return String(plantilla).replace(/\{\{nombre\}\}/g, function() { return nombre; });
+  }
+  function mensajeDe(it) { return it.mensajeManual !== null ? it.mensajeManual : render(wl.plantilla, it.primerNombre); }
+
+  function iniciales(nombre) {
+    var p = String(nombre || '').trim().split(/\s+/).filter(Boolean);
+    return ((p[0] ? p[0].charAt(0) : '') + (p[1] ? p[1].charAt(0) : '')).toUpperCase() || '?';
+  }
+  function telefonoLegible(t) {
+    t = String(t || '');
+    if (/^34\d{9}$/.test(t)) return '+34 ' + t.slice(2, 5) + ' ' + t.slice(5, 7) + ' ' + t.slice(7, 9) + ' ' + t.slice(9);
+    return t ? '+' + t : '';
+  }
+
+  function cabecera(titulo, sub, ini) {
+    var a = el('wlAvatar');
+    a.hidden = !ini;
+    a.textContent = ini || '';
+    el('wlTitulo').textContent = titulo;
+    var s = el('wlSub');
+    s.textContent = sub || '';
+    s.hidden = !sub;
+  }
+
+  function pintarModo() {
+    el('wlModoWeb').setAttribute('aria-checked', String(modo === 'web'));
+    el('wlModoEsc').setAttribute('aria-checked', String(modo === 'escritorio'));
+  }
+  function fijarModo(m) {
+    modo = m;
+    try { localStorage.setItem('wlModo', m); } catch (e) {}
+    pintarModo();
+  }
+
+  // Siguiente usuario en estado "pendiente" después de `desde` (dando la vuelta); -1 si no queda ninguno.
+  function siguientePendiente(desde) {
+    var n = wl.items.length;
+    for (var k = 1; k <= n; k++) {
+      var i = (desde + k) % n;
+      if (wl.items[i].estado === 'pendiente') return i;
+    }
+    return -1;
+  }
+
+  function pintarChips() {
+    var cont = el('wlChips');
+    cont.textContent = '';
+    var simbolo = { pendiente: '', abierto: '✓ ', omitido: '— ', error: '! ' };
+    wl.items.forEach(function(it, i) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'wl-chip ' + it.estado + (i === wl.indice ? ' actual' : '');
+      b.textContent = simbolo[it.estado] + (it.primerNombre || it.nombre || 'Sin nombre');
+      b.title = (it.nombre || 'Fila ' + it.fila) + (it.error ? ' · ' + it.error : '');
+      b.addEventListener('click', function() {
+        if (it.error) { nota((it.nombre || 'Fila ' + it.fila) + ': ' + it.error, true); return; }
+        nota('');
+        wl.indice = i;
+        pintar();
+      });
+      cont.appendChild(b);
+    });
+  }
+
+  function pintarEtiqueta(it) {
+    var editado = it.mensajeManual !== null;
+    el('wlEtqMensaje').textContent = (wl.lote ? 'Mensaje para ' + (it.primerNombre || it.nombre) : 'Mensaje') + (editado ? ' (editado)' : '');
+    el('wlReset').textContent = wl.lote ? 'Volver a la plantilla' : 'Restablecer mensaje';
+    el('wlReset').hidden = !editado;
+  }
+
+  function pintarResumen() {
+    var cuenta = { abierto: 0, omitido: 0, error: 0, pendiente: 0 }, errores = [];
+    wl.items.forEach(function(it) { cuenta[it.estado]++; if (it.estado === 'error') errores.push(it); });
+    var r = el('wlResumen');
+    r.textContent = '';
+    var p = document.createElement('p');
+    p.textContent = 'Chats abiertos: ' + cuenta.abierto + ' · Omitidos: ' + cuenta.omitido + ' · No disponibles: ' + cuenta.error +
+      (wl.duplicados ? ' · Repetidos descartados: ' + wl.duplicados : '') + '.';
+    r.appendChild(p);
+    if (errores.length) {
+      var ul = document.createElement('ul');
+      errores.forEach(function(it) {
+        var li = document.createElement('li');
+        li.textContent = (it.nombre || 'Fila ' + it.fila) + ': ' + it.error;
+        ul.appendChild(li);
+      });
+      r.appendChild(ul);
+    }
+    var cerrar = document.createElement('button');
+    cerrar.type = 'button';
+    cerrar.className = 'wl-btn primario';
+    cerrar.textContent = 'Cerrar';
+    cerrar.addEventListener('click', function() { dlg.close(); });
+    r.appendChild(cerrar);
+  }
+
+  function pintar() {
+    var fin = (wl.indice === -1);
+    if (wl.lote) pintarChips();
+    el('wlResumen').hidden = !fin;
+    el('wlEdicion').hidden = fin;
+    el('wlPie').hidden = fin;
+    if (fin) { cabecera('Lote terminado'); pintarResumen(); return; }
+    var it = wl.items[wl.indice];
+    cabecera(it.nombre, telefonoLegible(it.telefono) + (wl.lote ? ' · ' + (wl.indice + 1) + ' de ' + wl.items.length : ''), iniciales(it.nombre));
+    el('wlMensaje').value = mensajeDe(it);
+    pintarEtiqueta(it);
+    pintarModo();
+    el('wlAbrir').focus();
+  }
+
+  // servidor: nombre de la función de Apps Script; filas: filas de la hoja de origen (Agenda o Maestra).
+  function abrir(servidor, filas) {
+    wl = null;
+    el('wlLote').hidden = true;
+    el('wlPie').hidden = true;
+    cabecera('WhatsApp');
+    nota(filas.length > 1 ? 'Preparando los datos de ' + filas.length + ' usuarios…' : 'Preparando el mensaje…');
+    if (!dlg.open) dlg.showModal();
+    google.script.run
+      .withSuccessHandler(function(res) {
+        if (!dlg.open) return;   // lo cerraste mientras cargaba
+        if (!res || !res.success) { nota((res && res.message) || 'No se pudieron preparar los datos.', true); return; }
+        if (!res.items.length) { nota('No hay usuarios para enviar.', true); return; }
+        var lote = res.items.length > 1;
+        wl = {
+          plantilla: res.plantilla, lote: lote, duplicados: res.duplicados || 0, indice: -1,
+          items: res.items.map(function(it) {
+            return { fila: it.fila, nombre: it.nombre, primerNombre: it.primerNombre, telefono: it.telefono,
+                     error: it.error, estado: it.error ? 'error' : 'pendiente', mensajeManual: null };
+          })
+        };
+        if (!lote && wl.items[0].error) {
+          var e0 = wl.items[0];
+          cabecera(e0.nombre || 'WhatsApp', '', e0.nombre ? iniciales(e0.nombre) : '');
+          nota(e0.error, true);
+          return;
+        }
+        nota('');
+        el('wlLote').hidden = false;
+        el('wlChips').hidden = !lote;
+        el('wlOmitir').hidden = !lote;
+        el('wlPlantilla').value = wl.plantilla;
+        el('wlPlantillaWrap').hidden = !lote;
+        el('wlPlantillaWrap').open = lote;
+        wl.indice = siguientePendiente(-1);
+        pintar();
+      })
+      .withFailureHandler(function(err) { nota('Error al preparar el mensaje: ' + err, true); })
+      [servidor](filas);
+  }
+
+  el('wlPlantilla').addEventListener('input', function() {
+    if (!wl) return;
+    wl.plantilla = this.value;
+    var it = wl.items[wl.indice];
+    if (it && it.mensajeManual === null) el('wlMensaje').value = mensajeDe(it);
+  });
+  el('wlMensaje').addEventListener('input', function() {
+    if (!wl || wl.indice < 0) return;
+    var it = wl.items[wl.indice];
+    it.mensajeManual = this.value;
+    pintarEtiqueta(it);
+  });
+  el('wlMensaje').addEventListener('keydown', function(e) {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); el('wlAbrir').click(); }
+  });
+  el('wlReset').addEventListener('click', function() {
+    if (!wl || wl.indice < 0) return;
+    wl.items[wl.indice].mensajeManual = null;
+    pintar();
+  });
+  el('wlOmitir').addEventListener('click', function() {
+    if (!wl || wl.indice < 0) return;
+    nota('');
+    wl.items[wl.indice].estado = 'omitido';
+    wl.indice = siguientePendiente(wl.indice);
+    pintar();
+  });
+  el('wlModoWeb').addEventListener('click', function() { fijarModo('web'); });
+  el('wlModoEsc').addEventListener('click', function() { fijarModo('escritorio'); });
+
+  // "Abrir WhatsApp" es un enlace real (así Chrome puede dirigirlo a la app). El href se fija en el propio clic,
+  // antes de que el navegador siga el enlace; el avance al siguiente usuario (o el cierre) se aplaza un instante
+  // para no cambiar el enlace antes de que se abra. En modo escritorio se usa whatsapp:// en la ventana principal
+  // (target _top) para no dejar una pestaña en blanco por usuario.
+  el('wlAbrir').addEventListener('click', function(e) {
+    if (!wl || wl.indice < 0) { e.preventDefault(); return; }
+    var it = wl.items[wl.indice];
+    var consulta = '?phone=' + it.telefono + '&text=' + encodeURIComponent(mensajeDe(it));
+    if (modo === 'escritorio') { this.href = 'whatsapp://send' + consulta; this.target = '_top'; }
+    else { this.href = 'https://web.whatsapp.com/send' + consulta; this.target = '_blank'; }
+    nota('');
+    it.estado = 'abierto';
+    var lote = wl.lote;
+    setTimeout(function() {
+      if (!wl) return;
+      if (!lote) { dlg.close(); return; }
+      wl.indice = siguientePendiente(wl.indice);
+      pintar();
+    }, 0);
+  });
+  el('wlAbrir').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); this.click(); }
+  });
+
+  el('wlCerrar').addEventListener('click', function() { dlg.close(); });
+  dlg.addEventListener('close', function() { wl = null; });
+  // Las teclas del diálogo no deben llegar a los atajos de la página (←, →, T, R, /, Esc...).
+  dlg.addEventListener('keydown', function(e) { e.stopPropagation(); });
+
+  return { abrir: abrir };
+})();
+</script>

@@ -1077,34 +1077,6 @@
       tbody tr:hover td.acciones-fila .acc-pill, tbody tr.seleccionada td.acciones-fila .acc-pill, td.acciones-fila .acc-pill:focus-within { transform: translate(0, -50%); }
       @media (hover: none) { td.acciones-fila .acc-pill { transform: translate(0, -50%); } }
 
-      /* ---------- Asistente de WhatsApp por lotes ---------- */
-      #dlgWl { border: none; border-radius: 16px; padding: 0; width: min(560px, 94vw); max-height: 90vh; box-shadow: 0 12px 40px rgba(0,0,0,.28); color: var(--ag-text); background: var(--ag-surface); }
-      #dlgWl::backdrop { background: var(--ag-overlay); }
-      #dlgWl[open] { display: flex; flex-direction: column; }
-      #dlgWl [hidden] { display: none !important; }
-      .wl-cab { display: flex; align-items: center; justify-content: space-between; padding: 1rem 1.25rem .5rem; }
-      .wl-cab h2 { margin: 0; font-size: 1.05rem; font-weight: 600; }
-      .wl-cerrar { border: none; background: transparent; font-size: 1.4rem; line-height: 1; cursor: pointer; color: var(--ag-text-med); padding: .1rem .55rem; border-radius: 8px; }
-      .wl-cerrar:hover { background: var(--ag-tinte-par); }
-      .wl-cuerpo { padding: 0 1.25rem 1rem; overflow-y: auto; }
-      .wl-nota { font-size: .82rem; color: var(--ag-text-med); margin: .25rem 0 .75rem; }
-      .wl-nota.error { color: var(--ag-error); }
-      .wl-lista { display: flex; flex-wrap: wrap; gap: .35rem; margin-bottom: .9rem; }
-      .wl-chip { border: 1px solid var(--ag-line); background: var(--ag-surface); color: var(--ag-text); border-radius: 999px; padding: .2rem .65rem; font: inherit; font-size: .78rem; cursor: pointer; }
-      .wl-chip:hover { background: var(--ag-tinte-par); }
-      .wl-chip.actual { border-color: var(--ag-accent); box-shadow: 0 0 0 1px var(--ag-accent); }
-      .wl-chip.abierto { background: #e6f4ea; border-color: #a8d5b5; color: #1e6b3a; }
-      .wl-chip.omitido { color: var(--ag-text-low); }
-      .wl-chip.error { background: var(--ag-error-bg); border-color: #f0b4af; color: var(--ag-error); }
-      .wl-paciente { background: var(--ag-accent-soft); color: var(--ag-accent-dark); border-radius: 999px; padding: .35rem .8rem; font-size: .88rem; font-weight: 600; margin-bottom: .75rem; display: inline-block; }
-      .wl-etq { display: block; font-size: .75rem; color: var(--ag-text-med); margin: .5rem 0 .25rem; }
-      .wl-campo { width: 100%; box-sizing: border-box; border: 1px solid var(--ag-line); border-radius: 10px; padding: .55rem .7rem; font: inherit; font-size: .88rem; color: var(--ag-text); resize: vertical; }
-      .wl-campo:focus { outline: none; border-color: var(--ag-accent); box-shadow: 0 0 0 1px var(--ag-accent); }
-      .wl-fila-msj { display: flex; justify-content: space-between; align-items: flex-end; gap: .75rem; }
-      .wl-link { border: none; background: transparent; color: var(--ag-accent); font: inherit; font-size: .75rem; cursor: pointer; padding: 0 0 .25rem; white-space: nowrap; }
-      .wl-pie { display: flex; justify-content: flex-end; gap: .5rem; padding: .75rem 1.25rem 1rem; border-top: 1px solid var(--ag-line); }
-      .wl-resumen { font-size: .9rem; line-height: 1.5; }
-      .wl-resumen ul { margin: .4rem 0 .75rem; padding-left: 1.1rem; color: var(--ag-error); font-size: .82rem; }
     </style>
   </head>
   <body>
@@ -1238,34 +1210,7 @@
     </div>
     <aside class="ficha" id="ficha" aria-hidden="true"></aside>
 
-    <dialog id="dlgWl" aria-labelledby="wlTitulo">
-      <div class="wl-cab">
-        <h2 id="wlTitulo">WhatsApp</h2>
-        <button type="button" class="wl-cerrar" id="wlCerrar" title="Cerrar" aria-label="Cerrar">&times;</button>
-      </div>
-      <div class="wl-cuerpo">
-        <p class="wl-nota" id="wlNota" hidden></p>
-        <div id="wlLote" hidden>
-          <div class="wl-lista" id="wlLista"></div>
-          <div id="wlEdicion">
-            <div class="wl-paciente" id="wlPaciente"></div>
-            <label class="wl-etq" for="wlPlantilla">Plantilla del lote (escribe {{nombre}} donde vaya el nombre)</label>
-            <textarea class="wl-campo" id="wlPlantilla" rows="3"></textarea>
-            <div class="wl-fila-msj">
-              <label class="wl-etq" for="wlMensaje" id="wlEtqMensaje">Mensaje</label>
-              <button type="button" class="wl-link" id="wlReset" hidden>Volver a la plantilla</button>
-            </div>
-            <textarea class="wl-campo" id="wlMensaje" rows="4"></textarea>
-          </div>
-          <div class="wl-resumen" id="wlResumen" hidden></div>
-        </div>
-      </div>
-      <div class="wl-pie" id="wlPie" hidden>
-        <button type="button" class="btn-toolbar" id="wlOmitir">Omitir</button>
-        <button type="button" class="btn-toolbar primario" id="wlAbrir">Abrir WhatsApp</button>
-      </div>
-    </dialog>
-
+    <?!= include('usuarios/Whatsapp_Dialogo'); ?>
     <?!= include('ui/Modal_Deshacer'); ?>
     <?!= include('ui/JS_Formato_Nombre'); ?>
     <?!= include('ui/JS_Ficha'); ?>
@@ -2341,24 +2286,8 @@
         cerrarPanel();
       }, true);
 
-      function abrirWhatsappFila(fila) {
-        // La ventana se abre en el propio clic (síncrono) para que no la bloquee el navegador.
-        var ventana = window.open('', '_blank');
-        google.script.run
-          .withSuccessHandler(function(res) {
-            if (res.success) {
-              if (ventana) ventana.location.href = res.url;
-            } else {
-              if (ventana) ventana.close();
-              mostrarAviso(res.message);
-            }
-          })
-          .withFailureHandler(function(err) {
-            if (ventana) ventana.close();
-            mostrarAviso('Error al abrir WhatsApp: ' + err);
-          })
-          .generarUrlWhatsappParaAgendaWeb(fila);
-      }
+      // Un solo usuario (botón de la fila, tarjeta lateral o barra de selección): ventana con el mensaje para revisarlo.
+      function abrirWhatsappFila(fila) { WhatsappDialogo.abrir('datosWhatsappLoteAgendaWeb', [fila]); }
 
       // Dar de alta al paciente de la cita (mismo proceso que el botón Alta de la Base de Datos).
       async function manejarAltaFila(fila) {
@@ -2381,189 +2310,8 @@
 
       document.getElementById('btnWhatsapp').addEventListener('click', function() {
         var sel = citasSeleccionadas();
-        if (sel.length === 1) abrirWhatsappFila(sel[0]._fila);
-        else if (sel.length > 1) iniciarWhatsappLote(sel);
+        if (sel.length) WhatsappDialogo.abrir('datosWhatsappLoteAgendaWeb', sel.map(function(c) { return c._fila; }));
       });
-
-      // ---------- WhatsApp por lotes (varias citas seleccionadas) ----------
-      // Un único diálogo recorre a los pacientes: revisas el mensaje, pulsas "Abrir WhatsApp" y el chat se abre
-      // siempre en la MISMA pestaña (nombre fijo), sin llenar el navegador de ventanas. El mensaje sale de una
-      // plantilla con {{nombre}} (la del servidor, editable aquí solo para este lote) y se puede ajustar por paciente.
-      var NOMBRE_PESTANA_WHATSAPP = 'whatsapp_lote';
-      var wl = null;   // { plantilla, items: [{fila, nombre, primerNombre, telefono, error, estado, mensajeManual}], indice, duplicados }
-      var wlDlg = document.getElementById('dlgWl');
-      function wlEl(id) { return document.getElementById(id); }
-
-      // Los avisos van dentro del diálogo: un toast quedaría tapado por la capa superior del <dialog>.
-      function wlNota(texto, error) {
-        var n = wlEl('wlNota');
-        n.textContent = texto || '';
-        n.className = 'wl-nota' + (error ? ' error' : '');
-        n.hidden = !texto;
-      }
-
-      function wlRender(plantilla, primerNombre) {
-        return String(plantilla).replace(/\{\{nombre\}\}/g, function() { return primerNombre; });
-      }
-
-      function wlMensajeDe(it) {
-        return it.mensajeManual !== null ? it.mensajeManual : wlRender(wl.plantilla, it.primerNombre);
-      }
-
-      // Siguiente paciente en estado "pendiente" después de `desde` (dando la vuelta); -1 si no queda ninguno.
-      function wlSiguientePendiente(desde) {
-        var n = wl.items.length;
-        for (var k = 1; k <= n; k++) {
-          var i = (desde + k) % n;
-          if (wl.items[i].estado === 'pendiente') return i;
-        }
-        return -1;
-      }
-
-      function wlPintarLista() {
-        var cont = wlEl('wlLista');
-        cont.textContent = '';
-        var simbolo = { pendiente: '', abierto: '✓ ', omitido: '— ', error: '! ' };
-        wl.items.forEach(function(it, i) {
-          var b = document.createElement('button');
-          b.type = 'button';
-          b.className = 'wl-chip ' + it.estado + (i === wl.indice ? ' actual' : '');
-          b.textContent = simbolo[it.estado] + (it.primerNombre || it.nombre || 'Sin nombre');
-          b.title = (it.nombre || 'Fila ' + it.fila) + (it.error ? ' · ' + it.error : '');
-          b.addEventListener('click', function() {
-            if (it.error) { wlNota((it.nombre || 'Fila ' + it.fila) + ': ' + it.error, true); return; }
-            wlNota('');
-            wl.indice = i;
-            wlPintar();
-          });
-          cont.appendChild(b);
-        });
-      }
-
-      function wlPintarEtiquetaMensaje(it) {
-        wlEl('wlEtqMensaje').textContent = 'Mensaje para ' + (it.primerNombre || it.nombre) +
-          (it.mensajeManual !== null ? ' (editado solo para este usuario)' : '');
-        wlEl('wlReset').hidden = it.mensajeManual === null;
-      }
-
-      function wlPintarResumen() {
-        var cuenta = { abierto: 0, omitido: 0, error: 0, pendiente: 0 }, errores = [];
-        wl.items.forEach(function(it) { cuenta[it.estado]++; if (it.estado === 'error') errores.push(it); });
-        var r = wlEl('wlResumen');
-        r.textContent = '';
-        var p = document.createElement('p');
-        p.textContent = 'Chats abiertos: ' + cuenta.abierto + ' · Omitidos: ' + cuenta.omitido + ' · No disponibles: ' + cuenta.error +
-          (wl.duplicados ? ' · Repetidos descartados: ' + wl.duplicados : '') + '.';
-        r.appendChild(p);
-        if (errores.length) {
-          var ul = document.createElement('ul');
-          errores.forEach(function(it) {
-            var li = document.createElement('li');
-            li.textContent = (it.nombre || 'Fila ' + it.fila) + ': ' + it.error;
-            ul.appendChild(li);
-          });
-          r.appendChild(ul);
-        }
-        var cerrar = document.createElement('button');
-        cerrar.type = 'button';
-        cerrar.className = 'btn-toolbar primario';
-        cerrar.textContent = 'Cerrar';
-        cerrar.addEventListener('click', function() { wlDlg.close(); });
-        r.appendChild(cerrar);
-      }
-
-      function wlPintar() {
-        wlPintarLista();
-        var fin = (wl.indice === -1);
-        wlEl('wlResumen').hidden = !fin;
-        wlEl('wlEdicion').hidden = fin;
-        wlEl('wlPie').hidden = fin;
-        wlEl('wlTitulo').textContent = fin ? 'WhatsApp · lote terminado' : 'WhatsApp · ' + (wl.indice + 1) + ' de ' + wl.items.length;
-        if (fin) { wlPintarResumen(); return; }
-        var it = wl.items[wl.indice];
-        wlEl('wlPaciente').textContent = it.nombre + ' · +' + it.telefono;
-        wlEl('wlMensaje').value = wlMensajeDe(it);
-        wlPintarEtiquetaMensaje(it);
-        wlEl('wlAbrir').focus();
-      }
-
-      function iniciarWhatsappLote(sel) {
-        wl = null;
-        wlEl('wlLote').hidden = true;
-        wlEl('wlPie').hidden = true;
-        wlEl('wlTitulo').textContent = 'WhatsApp';
-        wlNota('Preparando los datos de ' + sel.length + ' citas…');
-        if (!wlDlg.open) wlDlg.showModal();
-        var filas = sel.map(function(c) { return c._fila; });
-        google.script.run
-          .withSuccessHandler(function(res) {
-            if (!wlDlg.open) return;   // lo cerraste mientras cargaba
-            if (!res || !res.success) { wlNota((res && res.message) || 'No se pudieron preparar los datos.', true); return; }
-            wl = {
-              plantilla: res.plantilla,
-              duplicados: res.duplicados || 0,
-              indice: -1,
-              items: res.items.map(function(it) {
-                return { fila: it.fila, nombre: it.nombre, primerNombre: it.primerNombre, telefono: it.telefono,
-                         error: it.error, estado: it.error ? 'error' : 'pendiente', mensajeManual: null };
-              })
-            };
-            wl.indice = wlSiguientePendiente(-1);
-            wlNota('');
-            wlEl('wlLote').hidden = false;
-            wlEl('wlPlantilla').value = wl.plantilla;
-            wlPintar();
-          })
-          .withFailureHandler(function(err) { wlNota('Error al preparar el lote: ' + err, true); })
-          .datosWhatsappLoteAgendaWeb(filas);
-      }
-
-      wlEl('wlPlantilla').addEventListener('input', function() {
-        if (!wl) return;
-        wl.plantilla = this.value;
-        var it = wl.items[wl.indice];
-        if (it && it.mensajeManual === null) wlEl('wlMensaje').value = wlMensajeDe(it);
-      });
-
-      wlEl('wlMensaje').addEventListener('input', function() {
-        if (!wl || wl.indice < 0) return;
-        var it = wl.items[wl.indice];
-        it.mensajeManual = this.value;
-        wlPintarEtiquetaMensaje(it);
-      });
-
-      wlEl('wlReset').addEventListener('click', function() {
-        if (!wl || wl.indice < 0) return;
-        wl.items[wl.indice].mensajeManual = null;
-        wlPintar();
-      });
-
-      wlEl('wlOmitir').addEventListener('click', function() {
-        if (!wl || wl.indice < 0) return;
-        wlNota('');
-        wl.items[wl.indice].estado = 'omitido';
-        wl.indice = wlSiguientePendiente(wl.indice);
-        wlPintar();
-      });
-
-      // window.open va en el propio clic (síncrono) y con nombre fijo: así el navegador reutiliza la pestaña de
-      // WhatsApp Web en vez de abrir una nueva por paciente. No se usa 'noopener': anularía esa reutilización.
-      wlEl('wlAbrir').addEventListener('click', function() {
-        if (!wl || wl.indice < 0) return;
-        var it = wl.items[wl.indice];
-        var url = 'https://web.whatsapp.com/send?phone=' + it.telefono + '&text=' + encodeURIComponent(wlMensajeDe(it));
-        var v = window.open(url, NOMBRE_PESTANA_WHATSAPP);
-        if (!v) { wlNota('El navegador ha bloqueado la ventana emergente. Permítela para este sitio y vuelve a pulsar.', true); return; }
-        wlNota('');
-        it.estado = 'abierto';
-        wl.indice = wlSiguientePendiente(wl.indice);
-        wlPintar();
-      });
-
-      wlEl('wlCerrar').addEventListener('click', function() { wlDlg.close(); });
-      wlDlg.addEventListener('close', function() { wl = null; });
-      // Las teclas del diálogo no deben llegar a los atajos de la Agenda (←, →, T, R, /, Esc que quita la selección).
-      wlDlg.addEventListener('keydown', function(e) { e.stopPropagation(); });
 
       // ---------- Copiar Siguiente Cita / ×2 ----------
       async function manejarCopiarSeleccionadas(doble, forzar) {
