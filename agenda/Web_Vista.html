@@ -2287,7 +2287,10 @@
       }, true);
 
       // Un solo usuario (botón de la fila, tarjeta lateral o barra de selección): ventana con el mensaje para revisarlo.
-      function abrirWhatsappFila(fila) { WhatsappDialogo.abrir('datosWhatsappLoteAgendaWeb', [fila]); }
+      function abrirWhatsappFila(fila) {
+        var c = CITAS.find(function(x) { return x._fila == fila; });
+        WhatsappDialogo.abrir('datosWhatsappLoteAgendaWeb', [fila], c ? c['Usuario'] : '');
+      }
 
       // Dar de alta al paciente de la cita (mismo proceso que el botón Alta de la Base de Datos).
       async function manejarAltaFila(fila) {
@@ -2308,9 +2311,17 @@
         if (sel.length === 1) abrirValoracionCita(sel[0]['Usuario']);
       });
 
+      function filasWhatsappSeleccion() { return citasSeleccionadas().map(function(c) { return c._fila; }); }
       document.getElementById('btnWhatsapp').addEventListener('click', function() {
         var sel = citasSeleccionadas();
-        if (sel.length) WhatsappDialogo.abrir('datosWhatsappLoteAgendaWeb', sel.map(function(c) { return c._fila; }));
+        if (sel.length) WhatsappDialogo.abrir('datosWhatsappLoteAgendaWeb', filasWhatsappSeleccion(), sel.length === 1 ? sel[0]['Usuario'] : '');
+      });
+      // Al pasar el ratón por un botón de WhatsApp se piden ya los datos: al hacer clic el diálogo sale con el mensaje listo.
+      document.addEventListener('pointerover', function(e) {
+        var b = e.target.closest ? e.target.closest('.btn-whatsapp, #btnWhatsapp') : null;
+        if (!b || b.disabled) return;
+        var filas = (b.id === 'btnWhatsapp') ? filasWhatsappSeleccion() : [Number(b.dataset.fila)];
+        WhatsappDialogo.precargar('datosWhatsappLoteAgendaWeb', filas);
       });
 
       // ---------- Copiar Siguiente Cita / ×2 ----------

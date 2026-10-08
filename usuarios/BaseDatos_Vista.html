@@ -1535,7 +1535,12 @@
       // Un solo usuario: ventana con el mensaje predefinido para revisarlo y elegir WhatsApp Web o la app de escritorio.
       document.getElementById('btnWhatsapp').addEventListener('click', function() {
         if (!pacienteSeleccionado) return;
-        WhatsappDialogo.abrir('datosWhatsappMaestraWeb', [pacienteSeleccionado._fila]);
+        WhatsappDialogo.abrir('datosWhatsappMaestraWeb', [pacienteSeleccionado._fila], pacienteSeleccionado['Nombre']);
+      });
+      // Al pasar el ratón por el botón de WhatsApp de una fila se piden ya los datos: al hacer clic el diálogo sale con el mensaje listo.
+      document.addEventListener('pointerover', function(e) {
+        var btn = e.target.closest ? e.target.closest('.btn-whatsapp') : null;
+        if (btn && btn.dataset.fila) WhatsappDialogo.precargar('datosWhatsappMaestraWeb', [Number(btn.dataset.fila)]);
       });
 
       // ---------- Editar, Cita y Valoración: formularios en el panel lateral ----------

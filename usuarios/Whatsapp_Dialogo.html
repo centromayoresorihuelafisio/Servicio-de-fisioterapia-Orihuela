@@ -1,7 +1,8 @@
 <!--
   Asistente de WhatsApp compartido por la Agenda y la Base de Datos.
   Se incluye con <?!= include('usuarios/Whatsapp_Dialogo'); ?> y expone:
-    WhatsappDialogo.abrir(funcionServidor, filas)
+    WhatsappDialogo.abrir(funcionServidor, filas, nombreOpcional)
+    WhatsappDialogo.precargar(funcionServidor, filas)   // calienta los datos (p. ej. al pasar el ratón por el botón)
   `funcionServidor` es una función de Apps Script que recibe las filas y devuelve
   { success, plantilla, items:[{fila, nombre, primerNombre, telefono, error}], duplicados }:
     - Agenda:         'datosWhatsappLoteAgendaWeb'
@@ -23,13 +24,14 @@
     --wl-error: var(--ag-error, var(--md-error, #b3261e));
     --wl-error-bg: var(--ag-error-bg, var(--md-error-bg, #fdecea));
     --wl-overlay: var(--ag-overlay, rgba(32,33,36,.5));
-    margin: auto; border: none; border-radius: 20px; padding: 0; width: min(520px, 94vw); max-height: 90vh; overflow: hidden;
+    --wl-sombra: rgba(31,36,48,.16);
+    margin: auto; border: none; border-radius: 20px; padding: 0; width: min(580px, 94vw); max-height: 90vh; overflow: hidden;
     background: var(--wl-surface); color: var(--wl-text); box-shadow: 0 16px 48px rgba(0,0,0,.30);
   }
   #dlgWl::backdrop { background: var(--wl-overlay); }
   #dlgWl[open] { display: flex; flex-direction: column; }
   #dlgWl [hidden] { display: none !important; }
-  #dlgWl button, #dlgWl textarea, #dlgWl summary { font-family: inherit; }
+  #dlgWl button, #dlgWl textarea { font-family: inherit; }
 
   .wl-cab { display: flex; align-items: center; gap: .8rem; padding: 1.1rem 1.25rem .8rem; }
   .wl-avatar { width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center;
@@ -37,45 +39,68 @@
   .wl-cab-txt { flex: 1; min-width: 0; }
   .wl-cab-txt h2 { margin: 0; font-size: 1.02rem; font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .wl-sub { font-size: .8rem; color: var(--wl-text-med); margin-top: 2px; }
-  .wl-x { border: none; background: transparent; color: var(--wl-text-med); font-size: 1.5rem; line-height: 1; cursor: pointer; padding: .15rem .6rem; border-radius: 10px; }
+  .wl-x { border: none; background: transparent; color: var(--wl-text-med); font-size: 1.5rem; line-height: 1; cursor: pointer; padding: .15rem .6rem; border-radius: 10px;
+    transition: background-color 160ms ease, color 160ms ease; }
   .wl-x:hover { background: var(--wl-accent-soft); color: var(--wl-accent-dark); }
 
   .wl-nota { margin: 0 1.25rem .8rem; font-size: .82rem; color: var(--wl-text-med); }
   .wl-nota.error { color: var(--wl-error); background: var(--wl-error-bg); padding: .5rem .75rem; border-radius: 10px; }
-  .wl-cuerpo { padding: 0 1.25rem 1rem; overflow-y: auto; }
+  /* El padding superior evita que el borde de la píldora seleccionada quede recortado por el desplazamiento del cuerpo. */
+  .wl-cuerpo { padding: .4rem 1.25rem 1rem; overflow-y: auto; }
 
-  .wl-chips { display: flex; flex-wrap: wrap; gap: .35rem; margin-bottom: .9rem; }
-  .wl-chip { border: 1px solid var(--wl-line); background: var(--wl-surface); color: var(--wl-text); border-radius: 999px; padding: .2rem .7rem; font-size: .78rem; cursor: pointer; }
-  .wl-chip:hover { background: var(--wl-accent-soft); }
+  .wl-esq { padding: .4rem 1.25rem 1.2rem; display: grid; gap: .6rem; }
+  .wl-esq span { display: block; height: 14px; border-radius: 7px; background: linear-gradient(90deg, var(--wl-surface-2) 25%, var(--wl-line) 50%, var(--wl-surface-2) 75%); background-size: 200% 100%; animation: wl-brillo 1.2s linear infinite; }
+  .wl-esq span:nth-child(1) { width: 35%; } .wl-esq span:nth-child(2) { height: 76px; border-radius: 14px; } .wl-esq span:nth-child(3) { width: 55%; }
+  @keyframes wl-brillo { to { background-position: -200% 0; } }
+
+  .wl-chips { display: flex; flex-wrap: wrap; gap: .35rem; margin: 0 -2px .9rem; padding: 3px 2px; }
+  .wl-chip { border: 1px solid var(--wl-line); background: var(--wl-surface); color: var(--wl-text); border-radius: 999px; padding: .2rem .7rem; font-size: .78rem; cursor: pointer;
+    transition: transform 160ms ease, box-shadow 160ms ease, background-color 160ms ease; }
+  .wl-chip:hover { background: var(--wl-accent-soft); transform: translateY(-1px); box-shadow: 0 2px 6px var(--wl-sombra); }
   .wl-chip.actual { border-color: var(--wl-accent); box-shadow: 0 0 0 1px var(--wl-accent); }
   .wl-chip.abierto { background: rgba(37,211,102,.14); border-color: rgba(37,211,102,.45); color: #1fa855; }
   .wl-chip.omitido { color: var(--wl-text-low); }
   .wl-chip.error { background: var(--wl-error-bg); border-color: transparent; color: var(--wl-error); }
 
-  .wl-fila-msj { display: flex; justify-content: space-between; align-items: flex-end; gap: .75rem; }
-  .wl-etq { display: block; font-size: .75rem; font-weight: 600; color: var(--wl-text-med); margin: .2rem 0 .35rem; }
-  .wl-link { border: none; background: transparent; color: var(--wl-accent); font-size: .76rem; cursor: pointer; padding: 0 0 .35rem; white-space: nowrap; }
+  .wl-fila-msj { display: flex; justify-content: space-between; align-items: center; gap: .75rem; margin-bottom: .35rem; }
+  .wl-etq { display: block; font-size: .75rem; font-weight: 600; color: var(--wl-text-med); margin: 0; }
+  .wl-acc-msj { display: flex; align-items: center; gap: .4rem; }
+  .wl-link { border: none; background: transparent; color: var(--wl-accent); font-size: .76rem; cursor: pointer; padding: 0; white-space: nowrap; }
   .wl-link:hover { text-decoration: underline; }
+  .wl-icono { width: 30px; height: 30px; border-radius: 50%; border: none; background: transparent; color: var(--wl-text-med); cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
+    transition: transform 160ms ease, box-shadow 160ms ease, background-color 160ms ease, color 160ms ease; }
+  .wl-icono:hover { background: var(--wl-accent-soft); color: var(--wl-accent-dark); transform: translateY(-1px); box-shadow: 0 2px 6px var(--wl-sombra); }
+  .wl-icono[aria-expanded="true"] { background: var(--wl-accent-soft); color: var(--wl-accent-dark); }
   .wl-campo { width: 100%; box-sizing: border-box; border: 1px solid var(--wl-line); border-radius: 14px; padding: .65rem .85rem; font-size: .9rem; line-height: 1.45;
-    color: var(--wl-text); background: var(--wl-surface-2); resize: vertical; }
+    color: var(--wl-text); background: var(--wl-surface-2); resize: vertical; transition: border-color 160ms ease, box-shadow 160ms ease, background-color 160ms ease; }
   .wl-campo:focus { outline: none; border-color: var(--wl-accent); box-shadow: 0 0 0 1px var(--wl-accent); background: var(--wl-surface); }
-  .wl-plantilla { margin-top: .8rem; border: 1px solid var(--wl-line); border-radius: 14px; padding: .55rem .85rem .75rem; }
-  .wl-plantilla summary { cursor: pointer; font-size: .78rem; font-weight: 600; color: var(--wl-text-med); }
-  .wl-ayuda { margin: .4rem 0 .5rem; font-size: .76rem; color: var(--wl-text-low); }
+  .wl-plantilla { margin-top: .8rem; border: 1px solid var(--wl-line); border-radius: 14px; padding: .65rem .85rem .8rem; animation: wl-aparece 180ms ease; }
+  .wl-plantilla .wl-etq { margin-bottom: .2rem; }
+  .wl-ayuda { margin: 0 0 .5rem; font-size: .76rem; color: var(--wl-text-low); }
+  @keyframes wl-aparece { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
 
   .wl-pie { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: .5rem; padding: .8rem 1.25rem 1.1rem; border-top: 1px solid var(--wl-line); }
-  .wl-seg { display: inline-flex; padding: 3px; border-radius: 999px; background: var(--wl-surface-2); border: 1px solid var(--wl-line); margin-right: auto; }
-  .wl-seg button { border: none; background: transparent; color: var(--wl-text-med); font-size: .76rem; font-weight: 600; padding: .32rem .75rem; border-radius: 999px; cursor: pointer; }
-  .wl-seg button[aria-checked="true"] { background: var(--wl-container); color: var(--wl-accent-dark); }
+  /* Interruptor Web / escritorio: la pastilla se desliza de una opción a la otra. */
+  .wl-seg { position: relative; display: inline-grid; grid-template-columns: 1fr 1fr; padding: 3px; border-radius: 999px; background: var(--wl-surface-2); border: 1px solid var(--wl-line); margin-right: auto; }
+  .wl-seg::before { content: ''; position: absolute; top: 3px; bottom: 3px; left: 3px; width: calc((100% - 6px) / 2); border-radius: 999px; background: var(--wl-container);
+    box-shadow: 0 1px 3px rgba(0,0,0,.18); transition: transform 240ms cubic-bezier(.4, 0, .2, 1); }
+  .wl-seg[data-modo="escritorio"]::before { transform: translateX(100%); }
+  .wl-seg button { position: relative; z-index: 1; border: none; background: transparent; color: var(--wl-text-med); font-size: .76rem; font-weight: 600; padding: .34rem .85rem;
+    border-radius: 999px; cursor: pointer; white-space: nowrap; text-align: center; transition: color 200ms ease; }
+  .wl-seg button[aria-checked="true"] { color: var(--wl-accent-dark); }
   .wl-btn { display: inline-flex; align-items: center; gap: .45rem; border: 1px solid var(--wl-line); background: var(--wl-surface); color: var(--wl-text); border-radius: 999px;
-    padding: .5rem 1.05rem; font-size: .85rem; font-weight: 600; cursor: pointer; text-decoration: none; }
-  .wl-btn:hover { background: var(--wl-accent-soft); }
+    padding: .5rem 1.05rem; font-size: .85rem; font-weight: 600; cursor: pointer; text-decoration: none;
+    transition: transform 160ms ease, box-shadow 160ms ease, background-color 160ms ease, color 160ms ease, border-color 160ms ease, filter 160ms ease; }
+  .wl-btn:hover { background: var(--wl-accent-soft); transform: translateY(-1px); box-shadow: 0 3px 10px var(--wl-sombra); }
+  .wl-btn:active { transform: translateY(0); box-shadow: 0 1px 2px var(--wl-sombra); }
   .wl-btn.primario { background: var(--wl-container); border-color: var(--wl-container); color: var(--wl-accent-dark); }
   .wl-btn.primario:hover { filter: brightness(.96); }
-  .wl-btn:focus-visible, .wl-seg button:focus-visible, .wl-chip:focus-visible, .wl-x:focus-visible { outline: 2px solid var(--wl-accent); outline-offset: 2px; }
+  .wl-btn.omitir:hover { background: var(--wl-error-bg); color: var(--wl-error); border-color: transparent; }
+  .wl-btn:focus-visible, .wl-seg button:focus-visible, .wl-chip:focus-visible, .wl-x:focus-visible, .wl-icono:focus-visible { outline: 2px solid var(--wl-accent); outline-offset: 2px; }
 
   .wl-resumen { font-size: .9rem; line-height: 1.5; }
   .wl-resumen ul { margin: .4rem 0 .9rem; padding-left: 1.1rem; color: var(--wl-error); font-size: .82rem; }
+  @media (prefers-reduced-motion: reduce) { #dlgWl *, #dlgWl *::before { transition: none !important; animation: none !important; } }
 </style>
 
 <dialog id="dlgWl" aria-labelledby="wlTitulo">
@@ -88,28 +113,32 @@
     <button type="button" class="wl-x" id="wlCerrar" title="Cerrar" aria-label="Cerrar">&times;</button>
   </div>
   <p class="wl-nota" id="wlNota" hidden></p>
+  <div class="wl-esq" id="wlEsq" hidden aria-hidden="true"><span></span><span></span><span></span></div>
   <div class="wl-cuerpo" id="wlLote" hidden>
     <div class="wl-chips" id="wlChips" hidden></div>
     <div id="wlEdicion">
       <div class="wl-fila-msj">
         <label class="wl-etq" for="wlMensaje" id="wlEtqMensaje">Mensaje</label>
-        <button type="button" class="wl-link" id="wlReset" hidden>Restablecer mensaje</button>
+        <div class="wl-acc-msj">
+          <button type="button" class="wl-link" id="wlReset" hidden>Restablecer mensaje</button>
+          <button type="button" class="wl-icono" id="wlBtnPlantilla" title="Editar mensaje de plantilla" aria-label="Editar mensaje de plantilla" aria-expanded="false" aria-controls="wlPlantillaWrap"><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg></button>
+        </div>
       </div>
       <textarea class="wl-campo" id="wlMensaje" rows="4"></textarea>
-      <details class="wl-plantilla" id="wlPlantillaWrap" hidden>
-        <summary>Plantilla del lote (afecta a todos los usuarios)</summary>
-        <p class="wl-ayuda">Escribe {{nombre}} donde deba ir el nombre de cada usuario. Solo vale para este lote.</p>
+      <div class="wl-plantilla" id="wlPlantillaWrap" hidden>
+        <label class="wl-etq" for="wlPlantilla">Mensaje de plantilla</label>
+        <p class="wl-ayuda" id="wlAyuda"></p>
         <textarea class="wl-campo" id="wlPlantilla" rows="3"></textarea>
-      </details>
+      </div>
     </div>
     <div class="wl-resumen" id="wlResumen" hidden></div>
   </div>
   <div class="wl-pie" id="wlPie" hidden>
-    <div class="wl-seg" role="radiogroup" aria-label="Abrir con">
+    <div class="wl-seg" id="wlSeg" role="radiogroup" aria-label="Abrir con" data-modo="web">
       <button type="button" role="radio" id="wlModoWeb" aria-checked="true">WhatsApp Web</button>
       <button type="button" role="radio" id="wlModoEsc" aria-checked="false">App de escritorio</button>
     </div>
-    <button type="button" class="wl-btn" id="wlOmitir" hidden>Omitir</button>
+    <button type="button" class="wl-btn omitir" id="wlOmitir" hidden>Omitir</button>
     <a class="wl-btn primario" id="wlAbrir" target="_blank" rel="noopener" role="button" tabindex="0"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" aria-hidden="true" viewBox="0 0 16 16" fill="currentColor"><path d="M13.601 2.326A7.854 7.854 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.933 7.933 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.898 7.898 0 0 0 13.6 2.326zM7.994 14.521a6.573 6.573 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.557 6.557 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592zm3.615-4.934c-.197-.099-1.17-.578-1.353-.646-.182-.065-.315-.099-.445.099-.133.197-.513.646-.627.775-.114.133-.232.148-.43.05-.197-.1-.836-.308-1.592-.985-.59-.525-.985-1.175-1.103-1.372-.114-.198-.011-.304.088-.403.087-.088.197-.232.296-.346.1-.114.133-.198.198-.33.065-.134.034-.248-.015-.347-.05-.099-.445-1.076-.612-1.47-.16-.389-.323-.335-.445-.34-.114-.007-.247-.007-.38-.007a.729.729 0 0 0-.529.247c-.182.198-.691.677-.691 1.654 0 .977.71 1.916.81 2.049.098.133 1.394 2.132 3.383 2.992.47.205.84.326 1.129.418.475.152.904.129 1.246.08.38-.058 1.171-.48 1.338-.943.164-.464.164-.86.114-.943-.049-.084-.182-.133-.38-.232z"/></svg> Abrir WhatsApp</a>
   </div>
 </dialog>
@@ -119,10 +148,48 @@ var WhatsappDialogo = (function() {
   var dlg = document.getElementById('dlgWl');
   var wl = null;       // { plantilla, lote, duplicados, indice, items:[{fila, nombre, primerNombre, telefono, error, estado, mensajeManual}] }
   var modo = 'web';    // 'web' | 'escritorio' (se recuerda en este navegador)
+  var peticion = 0;    // descarta respuestas de una apertura anterior que llegan tarde
   try { var guardado = localStorage.getItem('wlModo'); if (guardado === 'web' || guardado === 'escritorio') modo = guardado; } catch (e) {}
 
   function el(id) { return document.getElementById(id); }
 
+  // ---------- Carga de datos: caché corta + peticiones compartidas (para que abrir sea casi instantáneo) ----------
+  // Si el ratón ya pasó por el botón, los datos están (o van de camino) cuando haces clic. La caché solo guarda
+  // resultados sin errores y dura poco, así que un teléfono corregido en la hoja no se queda atascado.
+  var CACHE_MS = 45000, cache = Object.create(null), enVuelo = Object.create(null);
+
+  function cargar(servidor, filas, ok, ko) {
+    var k = servidor + '|' + filas.join(',');
+    var c = cache[k];
+    if (c && Date.now() - c.t < CACHE_MS) { if (ok) ok(c.res); return; }
+    if (!enVuelo[k]) {
+      enVuelo[k] = [];
+      google.script.run
+        .withSuccessHandler(function(res) {
+          var cbs = enVuelo[k]; delete enVuelo[k];
+          if (res && res.success && res.items.every(function(it) { return !it.error; })) cache[k] = { t: Date.now(), res: res };
+          cbs.forEach(function(cb) { cb.ok(res); });
+        })
+        .withFailureHandler(function(err) {
+          var cbs = enVuelo[k]; delete enVuelo[k];
+          cbs.forEach(function(cb) { if (cb.ko) cb.ko(err); });
+        })
+        [servidor](filas);
+    }
+    if (ok) enVuelo[k].push({ ok: ok, ko: ko });
+  }
+  function precargar(servidor, filas) { if (filas && filas.length) cargar(servidor, filas, null, null); }
+
+  // Calienta la conexión con WhatsApp Web mientras revisas el mensaje (ahorra el saludo TLS al abrir el chat).
+  function precalentarWeb() {
+    if (modo !== 'web') return;
+    var l = document.createElement('link');
+    l.rel = 'preconnect'; l.href = 'https://web.whatsapp.com';
+    document.head.appendChild(l);
+    setTimeout(function() { if (l.parentNode) l.parentNode.removeChild(l); }, 20000);
+  }
+
+  // ---------- Utilidades ----------
   // Los avisos van dentro del diálogo: un toast quedaría tapado por la capa superior del <dialog>.
   function nota(texto, error) {
     var n = el('wlNota');
@@ -130,12 +197,10 @@ var WhatsappDialogo = (function() {
     n.className = 'wl-nota' + (error ? ' error' : '');
     n.hidden = !texto;
   }
-
   function render(plantilla, nombre) {
     return String(plantilla).replace(/\{\{nombre\}\}/g, function() { return nombre; });
   }
   function mensajeDe(it) { return it.mensajeManual !== null ? it.mensajeManual : render(wl.plantilla, it.primerNombre); }
-
   function iniciales(nombre) {
     var p = String(nombre || '').trim().split(/\s+/).filter(Boolean);
     return ((p[0] ? p[0].charAt(0) : '') + (p[1] ? p[1].charAt(0) : '')).toUpperCase() || '?';
@@ -145,7 +210,6 @@ var WhatsappDialogo = (function() {
     if (/^34\d{9}$/.test(t)) return '+34 ' + t.slice(2, 5) + ' ' + t.slice(5, 7) + ' ' + t.slice(7, 9) + ' ' + t.slice(9);
     return t ? '+' + t : '';
   }
-
   function cabecera(titulo, sub, ini) {
     var a = el('wlAvatar');
     a.hidden = !ini;
@@ -155,8 +219,8 @@ var WhatsappDialogo = (function() {
     s.textContent = sub || '';
     s.hidden = !sub;
   }
-
   function pintarModo() {
+    el('wlSeg').setAttribute('data-modo', modo);
     el('wlModoWeb').setAttribute('aria-checked', String(modo === 'web'));
     el('wlModoEsc').setAttribute('aria-checked', String(modo === 'escritorio'));
   }
@@ -164,6 +228,14 @@ var WhatsappDialogo = (function() {
     modo = m;
     try { localStorage.setItem('wlModo', m); } catch (e) {}
     pintarModo();
+    precalentarWeb();
+  }
+  function alternarPlantilla(mostrar) {
+    var w = el('wlPlantillaWrap');
+    if (typeof mostrar !== 'boolean') mostrar = w.hidden;
+    w.hidden = !mostrar;
+    el('wlBtnPlantilla').setAttribute('aria-expanded', String(mostrar));
+    if (mostrar) el('wlPlantilla').focus();
   }
 
   // Siguiente usuario en estado "pendiente" después de `desde` (dando la vuelta); -1 si no queda ninguno.
@@ -176,6 +248,7 @@ var WhatsappDialogo = (function() {
     return -1;
   }
 
+  // ---------- Pintado ----------
   function pintarChips() {
     var cont = el('wlChips');
     cont.textContent = '';
@@ -195,14 +268,12 @@ var WhatsappDialogo = (function() {
       cont.appendChild(b);
     });
   }
-
   function pintarEtiqueta(it) {
     var editado = it.mensajeManual !== null;
     el('wlEtqMensaje').textContent = (wl.lote ? 'Mensaje para ' + (it.primerNombre || it.nombre) : 'Mensaje') + (editado ? ' (editado)' : '');
     el('wlReset').textContent = wl.lote ? 'Volver a la plantilla' : 'Restablecer mensaje';
     el('wlReset').hidden = !editado;
   }
-
   function pintarResumen() {
     var cuenta = { abierto: 0, omitido: 0, error: 0, pendiente: 0 }, errores = [];
     wl.items.forEach(function(it) { cuenta[it.estado]++; if (it.estado === 'error') errores.push(it); });
@@ -228,7 +299,6 @@ var WhatsappDialogo = (function() {
     cerrar.addEventListener('click', function() { dlg.close(); });
     r.appendChild(cerrar);
   }
-
   function pintar() {
     var fin = (wl.indice === -1);
     if (wl.lote) pintarChips();
@@ -239,52 +309,64 @@ var WhatsappDialogo = (function() {
     var it = wl.items[wl.indice];
     cabecera(it.nombre, telefonoLegible(it.telefono) + (wl.lote ? ' · ' + (wl.indice + 1) + ' de ' + wl.items.length : ''), iniciales(it.nombre));
     el('wlMensaje').value = mensajeDe(it);
+    el('wlAyuda').textContent = 'Escribe {{nombre}} donde deba ir el nombre' + (wl.lote ? ' de cada usuario. Afecta a todos los usuarios de este lote.' : ' del usuario. Solo vale para este mensaje.');
     pintarEtiqueta(it);
     pintarModo();
     el('wlAbrir').focus();
   }
 
-  // servidor: nombre de la función de Apps Script; filas: filas de la hoja de origen (Agenda o Maestra).
-  function abrir(servidor, filas) {
+  // ---------- Apertura ----------
+  // servidor: función de Apps Script; filas: filas de la hoja de origen; nombre (opcional, 1 usuario): para pintar
+  // la cabecera al instante mientras llegan los datos.
+  function abrir(servidor, filas, nombre) {
+    var mia = ++peticion;
     wl = null;
     el('wlLote').hidden = true;
     el('wlPie').hidden = true;
-    cabecera('WhatsApp');
-    nota(filas.length > 1 ? 'Preparando los datos de ' + filas.length + ' usuarios…' : 'Preparando el mensaje…');
+    nota('');
+    var unico = filas.length === 1;
+    cabecera(unico && nombre ? nombre : 'WhatsApp',
+      unico ? 'Preparando el mensaje…' : 'Preparando los datos de ' + filas.length + ' usuarios…',
+      unico && nombre ? iniciales(nombre) : '');
+    el('wlEsq').hidden = false;
     if (!dlg.open) dlg.showModal();
-    google.script.run
-      .withSuccessHandler(function(res) {
-        if (!dlg.open) return;   // lo cerraste mientras cargaba
-        if (!res || !res.success) { nota((res && res.message) || 'No se pudieron preparar los datos.', true); return; }
-        if (!res.items.length) { nota('No hay usuarios para enviar.', true); return; }
-        var lote = res.items.length > 1;
-        wl = {
-          plantilla: res.plantilla, lote: lote, duplicados: res.duplicados || 0, indice: -1,
-          items: res.items.map(function(it) {
-            return { fila: it.fila, nombre: it.nombre, primerNombre: it.primerNombre, telefono: it.telefono,
-                     error: it.error, estado: it.error ? 'error' : 'pendiente', mensajeManual: null };
-          })
-        };
-        if (!lote && wl.items[0].error) {
-          var e0 = wl.items[0];
-          cabecera(e0.nombre || 'WhatsApp', '', e0.nombre ? iniciales(e0.nombre) : '');
-          nota(e0.error, true);
-          return;
-        }
-        nota('');
-        el('wlLote').hidden = false;
-        el('wlChips').hidden = !lote;
-        el('wlOmitir').hidden = !lote;
-        el('wlPlantilla').value = wl.plantilla;
-        el('wlPlantillaWrap').hidden = !lote;
-        el('wlPlantillaWrap').open = lote;
-        wl.indice = siguientePendiente(-1);
-        pintar();
-      })
-      .withFailureHandler(function(err) { nota('Error al preparar el mensaje: ' + err, true); })
-      [servidor](filas);
+    precalentarWeb();
+    cargar(servidor, filas, function(res) {
+      if (mia !== peticion || !dlg.open) return;   // cerrado o sustituido mientras cargaba
+      el('wlEsq').hidden = true;
+      if (!res || !res.success) { cabecera('WhatsApp'); nota((res && res.message) || 'No se pudieron preparar los datos.', true); return; }
+      if (!res.items.length) { cabecera('WhatsApp'); nota('No hay usuarios para enviar.', true); return; }
+      var lote = res.items.length > 1;
+      wl = {
+        plantilla: res.plantilla, lote: lote, duplicados: res.duplicados || 0, indice: -1,
+        items: res.items.map(function(it) {
+          return { fila: it.fila, nombre: it.nombre, primerNombre: it.primerNombre, telefono: it.telefono,
+                   error: it.error, estado: it.error ? 'error' : 'pendiente', mensajeManual: null };
+        })
+      };
+      if (!lote && wl.items[0].error) {
+        var e0 = wl.items[0];
+        cabecera(e0.nombre || 'WhatsApp', '', e0.nombre ? iniciales(e0.nombre) : '');
+        nota(e0.error, true);
+        return;
+      }
+      el('wlLote').hidden = false;
+      el('wlChips').hidden = !lote;
+      el('wlOmitir').hidden = !lote;
+      el('wlPlantilla').value = wl.plantilla;
+      alternarPlantilla(false);
+      wl.indice = siguientePendiente(-1);
+      pintar();
+    }, function(err) {
+      if (mia !== peticion || !dlg.open) return;
+      el('wlEsq').hidden = true;
+      cabecera('WhatsApp');
+      nota('Error al preparar el mensaje: ' + err, true);
+    });
   }
 
+  // ---------- Eventos ----------
+  el('wlBtnPlantilla').addEventListener('click', function() { alternarPlantilla(); });
   el('wlPlantilla').addEventListener('input', function() {
     if (!wl) return;
     wl.plantilla = this.value;
@@ -340,10 +422,11 @@ var WhatsappDialogo = (function() {
   });
 
   el('wlCerrar').addEventListener('click', function() { dlg.close(); });
-  dlg.addEventListener('close', function() { wl = null; });
+  dlg.addEventListener('close', function() { wl = null; peticion++; });
   // Las teclas del diálogo no deben llegar a los atajos de la página (←, →, T, R, /, Esc...).
   dlg.addEventListener('keydown', function(e) { e.stopPropagation(); });
 
-  return { abrir: abrir };
+  pintarModo();
+  return { abrir: abrir, precargar: precargar };
 })();
 </script>
