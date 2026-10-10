@@ -1100,7 +1100,17 @@
             if (formularioActivo && formularioFila === FILA_NUEVO) volverDeFormulario(true);
             cargar();
           },
-          onCancelar: function() { if (formularioActivo && formularioFila === FILA_NUEVO) volverDeFormulario(); }
+          onCancelar: function() { if (formularioActivo && formularioFila === FILA_NUEVO) volverDeFormulario(); },
+          // El alta coincide con un usuario que ya existe y se ha elegido editarlo: se descarta el alta (la elección ya es
+          // explícita, no hace falta preguntar por los cambios sin guardar) y se abre el formulario de edición de esa fila.
+          onAbrirEditar: function(fila) {
+            var p = TODOS.find(function(x) { return x._fila === fila; });
+            if (!p) return false;
+            formularioActivo = false; controladorForm = null;
+            fichaAbierta = true; fijarSeleccion(p);
+            abrirFormularioPanel('editar');
+            return true;
+          }
         });
       }
       async function volverDeFormulario(forzar) {
@@ -1617,5 +1627,3 @@
     </script>
   </body>
 </html>
-
-

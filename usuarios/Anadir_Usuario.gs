@@ -1,4 +1,3 @@
-
 /**
  * Abre el diálogo modal con el formulario HTML.
  */
@@ -52,6 +51,102 @@ function buscarUsuarioPorDniWeb(dni) {
     Logger.log('Error en buscarUsuarioPorDniWeb: ' + e.message);
     return { existe: false }; // ante un error en la comprobación, no bloqueamos el alta por esto
   }
+}
+
+/**
+ * Busca en la Base de Datos Maestra usuarios que puedan ser la misma persona que la del alta
+ * que se está rellenando. Sirve sobre todo para los usuarios SIN DNI, donde buscarUsuarioPorDniWeb
+ * no tiene nada que comparar. Como aquella, no bloquea nada: solo informa; es el formulario
+ * (usuarios/Panel_Nuevo) quien decide qué hacer con la respuesta.
+ *
+ * Un usuario existente es candidato si cumple AL MENOS UNO de estos criterios:
+ *  - 'dni':      mismo DNI (solo si el alta lo trae).
+ *  - 'telefono': algún teléfono del alta (1 o 2) coincide con el Teléfono 1 o 2 de la fila, sin
+ *                espacios ni prefijo 34. Se ignoran números de menos de 9 dígitos.
+ *  - 'nombre':   mismas palabras en cualquier orden, ignorando partículas (DE, DEL, LA...). Cuenta
+ *                como parecido si coinciden al menos dos palabras y son más de la mitad de las del
+ *                nombre más corto (así da igual si la hoja guarda "APELLIDOS NOMBRE" o al revés).
+ *
+ * Devuelve como mucho 6 candidatos, ordenados por fiabilidad (DNI > teléfono > nombre).
+ * `fila` es la fila real en la hoja, la misma que usa BaseDatos como _fila.
+ *
+ * @param {{nombre: string, dni: string, telefono1: string, telefono2: string}} datos
+ * @return {{candidatos: Array<{fila: number, nombre: string, dni: string, telefono: string, estado: string, motivos: string[]}>, total: number}}
+ */
+function buscarPosiblesDuplicadosWeb(datos) {
+  try {
+    datos = datos || {};
+    const dniNuevo = normalizarDniUsuario(datos.dni);
+    const telsNuevos = [datos.telefono1, datos.telefono2].map(normalizarTelefono).filter(t => t.length >= 9);
+    const palabrasNuevo = _palabrasNombre_(datos.nombre);
+    if (!dniNuevo && telsNuevos.length === 0 && palabrasNuevo.length === 0) return { candidatos: [], total: 0 };
+
+    const hoja = getSS().getSheetByName(SHEETS.MAESTRA);
+    if (!hoja || hoja.getLastRow() < 2) return { candidatos: [], total: 0 };
+
+    const valores = hoja.getDataRange().getValues();
+    const cab = valores[0].map(h => h.toString().trim().toLowerCase());
+    const idx = nombreCol => cab.indexOf(nombreCol.toLowerCase());
+    const cNombre = idx(COLUMNAS.MAESTRA.NOMBRE);
+    const cDni = idx(COLUMNAS.MAESTRA.DNI);
+    const cTel1 = idx(COLUMNAS.MAESTRA.TELEFONO_1);
+    const cTel2 = idx(COLUMNAS.MAESTRA.TELEFONO_2);
+    const cEstado = idx(COLUMNAS.MAESTRA.ESTADO);
+    if (cNombre === -1) return { candidatos: [], total: 0 };
+
+    const celda = (fila, c) => (c === -1 || fila[c] === null || fila[c] === undefined) ? '' : fila[c].toString().trim();
+
+    const encontrados = [];
+    for (let i = 1; i < valores.length; i++) {
+      const fila = valores[i];
+      const nombre = celda(fila, cNombre);
+      if (!nombre) continue; // huecos en la hoja
+
+      const motivos = [];
+      let puntos = 0;
+      if (dniNuevo && normalizarDniUsuario(celda(fila, cDni)) === dniNuevo) { motivos.push('dni'); puntos += 4; }
+      if (telsNuevos.length) {
+        const telsFila = [celda(fila, cTel1), celda(fila, cTel2)].map(normalizarTelefono);
+        if (telsNuevos.some(t => telsFila.indexOf(t) !== -1)) { motivos.push('telefono'); puntos += 2; }
+      }
+      if (_nombresParecidos_(palabrasNuevo, _palabrasNombre_(nombre))) { motivos.push('nombre'); puntos += 1; }
+      if (!motivos.length) continue;
+
+      encontrados.push({
+        fila: i + 1, // valores[0] es la fila 1 de la hoja
+        nombre: nombre,
+        dni: celda(fila, cDni),
+        telefono: celda(fila, cTel1) || celda(fila, cTel2),
+        estado: celda(fila, cEstado),
+        motivos: motivos,
+        puntos: puntos
+      });
+    }
+
+    encontrados.sort((a, b) => b.puntos - a.puntos || a.fila - b.fila);
+    return {
+      candidatos: encontrados.slice(0, 6).map(c => { delete c.puntos; return c; }),
+      total: encontrados.length
+    };
+  } catch (e) {
+    Logger.log('Error en buscarPosiblesDuplicadosWeb: ' + e.message);
+    return { candidatos: [], total: 0 }; // ante un error en la comprobación, no bloqueamos el alta por esto
+  }
+}
+
+/** Palabras significativas de un nombre: normalizado con la regla única, sin partículas ni repetidas. */
+function _palabrasNombre_(texto) {
+  const PARTICULAS = ['DE', 'DEL', 'LA', 'LAS', 'LOS', 'EL', 'Y', 'E'];
+  return normalizarNombreUsuario(texto).split(' ')
+    .filter((w, i, arr) => w && PARTICULAS.indexOf(w) === -1 && arr.indexOf(w) === i);
+}
+
+/** ¿Dos nombres (ya convertidos en listas de palabras) pueden ser la misma persona? Ver buscarPosiblesDuplicadosWeb. */
+function _nombresParecidos_(a, b) {
+  if (!a.length || !b.length) return false;
+  const comunes = a.filter(w => b.indexOf(w) !== -1).length;
+  if (comunes === a.length && comunes === b.length) return true; // mismas palabras
+  return comunes >= 2 && comunes * 2 > Math.min(a.length, b.length);
 }
 
 /**
@@ -386,6 +481,3 @@ function generarHistoriaClinicaRegistroUsuario(patientData) {
     return { success: false, message: error.message };
   }
 }
-
-
-

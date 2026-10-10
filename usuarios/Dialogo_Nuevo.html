@@ -1,0 +1,575 @@
+<!--
+  usuarios/Dialogo_Nuevo.html
+  Formulario de Nuevo usuario como diálogo modal (<dialog>) dentro de la Base de Datos Web.
+  Se incluye desde usuarios/BaseDatos_Vista con <?!= include('usuarios/Dialogo_Nuevo'); ?>
+  API: DialogoNuevo.abrir({ onGuardado })   → crea el diálogo, lo muestra y devuelve { cerrar() }.
+  Comportamiento:
+    · Esc, la X y Cancelar piden confirmación solo si hay datos sin guardar (se compara con el estado inicial).
+    · Las confirmaciones (descartar cambios, posible DNI duplicado) viven DENTRO del diálogo: un <dialog> modal
+      queda por encima de todo (capa superior), así que el modal de la página no se vería.
+    · Al guardar muestra el aviso, cierra y llama a onGuardado() (la página recarga la tabla).
+  Origen: usuarios/Anadir_Usuario_Vista.html (que se mantiene tal cual para el menú de Sheets).
+  Usa las mismas funciones de servidor: guardarPaciente, buscarUsuarioPorDniWeb y
+  generarHistoriaClinicaRegistroUsuario (usuarios/Anadir_Usuario.gs). CSS acotado a dialog.nu y basado en los
+  tokens de la página (--md-*, respeta el tema oscuro).
+  Requiere ui/JS_Formato_Nombre en la página (sanitizeName, sanitizeDni, formatoNombreFinal, formatoDni).
+-->
+<style>
+dialog.nu {
+  --nu-radius: 12px;
+  --nu-elev-2: 0 3px 6px rgba(43,92,117,.12), 0 2px 8px rgba(43,92,117,.08);
+  --nu-elev-3: 0 8px 16px rgba(43,92,117,.16), 0 4px 12px rgba(43,92,117,.08);
+  --nu-ease: cubic-bezier(.3,0,0,1);
+  --nu-warn: var(--on-warn, #8a5d1a);
+  padding: 0; border: 1px solid var(--md-outline); border-radius: 18px;
+  width: min(680px, 96vw); max-height: min(92vh, 900px);
+  background: var(--md-surface); color: var(--md-on-surface);
+  font-family: var(--font); font-size: 14px; box-shadow: 0 24px 48px rgba(0,0,0,.28);
+  overflow: hidden;
+}
+dialog.nu[open] { display: flex; flex-direction: column; animation: nu-in 180ms var(--nu-ease) both; }
+dialog.nu::backdrop { background: rgba(20,28,34,.5); backdrop-filter: blur(2px); }
+@keyframes nu-in { from { opacity: 0; transform: translateY(10px) scale(.985); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { dialog.nu[open] { animation: none; } }
+
+.nu .ms { font-family: 'Material Symbols Outlined'; font-weight: 400; font-style: normal; font-size: 20px; line-height: 1; letter-spacing: normal; text-transform: none; display: inline-block; white-space: nowrap; direction: ltr; font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20; user-select: none; flex-shrink: 0; color: var(--md-on-surface-med); }
+.nu .ms-sm { font-size: 16px; } .nu .ms-lg { font-size: 22px; }
+.nu .ms-fill { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 20; }
+
+/* ── Cabecera / cuerpo / pie ── */
+.nu .nu-cab { flex: none; display: flex; align-items: center; gap: .75rem; padding: .9rem 1rem .9rem 1.25rem; border-bottom: 1px solid var(--md-outline); }
+.nu .nu-cab .icono { width: 38px; height: 38px; border-radius: 10px; background: var(--md-primary-light); display: grid; place-items: center; }
+.nu .nu-cab .icono .ms { color: var(--md-primary); }
+.nu .nu-cab h2 { flex: 1; font-size: 1.05rem; font-weight: 600; }
+.nu .nu-cab h2 small { display: block; font-size: .75rem; font-weight: 400; color: var(--md-on-surface-med); margin-top: 1px; }
+.nu .nu-x { border: none; background: none; cursor: pointer; width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; }
+.nu .nu-x:hover { background: var(--md-surface-variant); }
+.nu .nu-cuerpo { flex: 1; min-height: 0; overflow: auto; }
+.nu .card-section { padding: 1.1rem 1.35rem 1.3rem; border-bottom: 1px solid var(--md-outline); }
+.nu .card-section:last-child { border-bottom: none; }
+.nu .section-label { display: flex; align-items: center; gap: .6rem; margin-bottom: 1.1rem; }
+.nu .section-pill { display: inline-flex; align-items: center; gap: .375rem; font-size: .6875rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--md-primary-dark); background: var(--md-primary-light); padding: .35rem .875rem .35rem .75rem; border-radius: 999px; }
+.nu .section-pill .ms { font-size: 15px; color: var(--md-primary); }
+.nu .section-divider { flex: 1; height: 1px; background: var(--md-outline); }
+.nu .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.1rem 1rem; align-items: start; }
+.nu .span-2 { grid-column: 1 / -1; }
+.nu .nu-msg { flex: none; display: none; padding: .7rem 1.35rem; font-size: .8125rem; font-weight: 500; }
+.nu .nu-msg.success { display: block; background: var(--md-success-bg); color: var(--md-success); }
+.nu .nu-msg.error { display: block; background: var(--md-error-bg); color: var(--md-error); }
+.nu .nu-pie { flex: none; display: flex; align-items: center; justify-content: space-between; gap: .75rem; padding: .75rem 1.1rem; border-top: 1px solid var(--md-outline); background: var(--md-surface); }
+.nu .nu-pie .hint { font-size: .75rem; color: var(--md-on-surface-med); }
+.nu .nu-pie .hint b { color: var(--md-primary); }
+.nu .nu-pie .botones { display: flex; gap: .5rem; margin-left: auto; }
+
+/* ── Campos outlined con etiqueta flotante ── */
+.nu .md-field { position: relative; display: flex; flex-direction: column; }
+.nu .md-field-inner { position: relative; display: flex; align-items: center; }
+.nu .md-field-inner .leading-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); pointer-events: none; z-index: 2; }
+.nu .md-field label {
+  position: absolute; left: 44px; top: 50%; transform: translateY(-50%); font-size: .9375rem; font-weight: 400; color: var(--md-on-surface-med);
+  pointer-events: none; background: var(--md-surface); padding: 0 6px; z-index: 2; white-space: nowrap; max-width: calc(100% - 52px); overflow: hidden; text-overflow: ellipsis;
+  transition: top 220ms var(--nu-ease), font-size 220ms var(--nu-ease), color 220ms var(--nu-ease), left 220ms var(--nu-ease);
+}
+.nu .md-field label .req { color: var(--md-primary); margin-left: 2px; }
+.nu .md-field.has-value label, .nu .md-field:focus-within label,
+.nu .md-field input:not(:placeholder-shown) ~ label, .nu .md-field textarea:not(:placeholder-shown) ~ label {
+  top: 0; left: 12px; font-size: .75rem; font-weight: 500; color: var(--md-on-surface-med);
+}
+.nu .md-field:focus-within label { color: var(--md-primary); }
+.nu .md-field input, .nu .md-field textarea {
+  width: 100%; height: 52px; padding: 0 14px 0 44px; border: 1.5px solid var(--md-outline); border-radius: var(--nu-radius); background: transparent;
+  color: var(--md-on-surface); font-family: var(--font); font-size: .9375rem; outline: none; color-scheme: light dark;
+  transition: border-color 200ms var(--nu-ease), box-shadow 200ms var(--nu-ease);
+}
+.nu .md-field input[type="date"]:not(:focus) { color: transparent; }
+.nu .md-field.has-value input[type="date"], .nu .md-field input[type="date"]:focus { color: var(--md-on-surface); }
+.nu .md-field input::placeholder, .nu .md-field textarea::placeholder { opacity: 0; }
+.nu .md-field input:hover, .nu .md-field textarea:hover { border-color: var(--md-on-surface-med); }
+.nu .md-field input:focus, .nu .md-field textarea:focus { border-color: var(--md-primary); border-width: 2px; box-shadow: 0 0 0 3px rgba(43,92,117,.14); padding-left: 43px; }
+.nu .md-field:focus-within .leading-icon .ms { color: var(--md-primary); }
+.nu .md-field textarea { height: auto; min-height: 96px; padding-top: 18px; padding-bottom: 12px; resize: vertical; }
+.nu .md-field.is-textarea label { top: 24px; }
+.nu .md-field.is-textarea.has-value label, .nu .md-field.is-textarea:focus-within label { top: 0; }
+.nu .md-field.is-textarea .leading-icon { top: 24px; transform: none; }
+.nu .support-text { font-size: .75rem; color: var(--md-error); padding: 4px 0 0 14px; min-height: 0; display: none; }
+.nu .md-field.has-error .support-text { display: block; }
+.nu .md-field.has-error input, .nu .md-field.has-error textarea { border-color: var(--md-error); border-width: 2px; box-shadow: none; }
+.nu .md-field.has-error label, .nu .md-field.has-error:focus-within label, .nu .md-field.has-error .leading-icon .ms { color: var(--md-error) !important; }
+
+/* ── Desplegables ── */
+.nu .multiselect { position: relative; }
+.nu .ms-toggle {
+  width: 100%; min-height: 52px; padding: 0 44px 0 44px; border: 1.5px solid var(--md-outline); border-radius: var(--nu-radius); background: transparent; cursor: pointer;
+  display: flex; align-items: center; position: relative; font-size: .9375rem; color: var(--md-on-surface); user-select: none; outline: none;
+  transition: border-color 200ms var(--nu-ease), box-shadow 200ms var(--nu-ease);
+}
+.nu .ms-toggle:hover { border-color: var(--md-on-surface-med); }
+.nu .ms-toggle.open, .nu .ms-toggle:focus-visible { border-color: var(--md-primary); border-width: 2px; padding-left: 43px; box-shadow: 0 0 0 3px rgba(43,92,117,.14); }
+.nu .ms-leading { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); display: flex; }
+.nu .ms-trailing { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); display: flex; }
+.nu .ms-trailing .ms { transition: transform 200ms ease; }
+.nu .ms-toggle.open .ms-trailing .ms { transform: rotate(180deg); color: var(--md-primary); }
+.nu .ms-toggle.open .ms-leading .ms { color: var(--md-primary); }
+.nu .ms-label {
+  position: absolute; left: 44px; top: 50%; transform: translateY(-50%); font-size: .9375rem; color: var(--md-on-surface-med); background: var(--md-surface); padding: 0 6px; z-index: 1; white-space: nowrap; pointer-events: none;
+  transition: top 220ms var(--nu-ease), font-size 220ms var(--nu-ease), color 220ms var(--nu-ease), left 220ms var(--nu-ease);
+}
+.nu .ms-toggle.open .ms-label, .nu .ms-toggle.has-value .ms-label, .nu .ms-toggle:focus-visible .ms-label { top: 0; left: 12px; font-size: .75rem; font-weight: 500; }
+.nu .ms-toggle.open .ms-label { color: var(--md-primary); }
+.nu .ms-display { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nu .ms-toggle:not(.has-value) .ms-display { opacity: 0; }
+.nu .ms-menu { position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 30; background: var(--md-surface); border: 1px solid var(--md-outline); border-radius: var(--nu-radius); box-shadow: var(--nu-elev-3); display: none; overflow: hidden; }
+.nu .ms-menu.open { display: block; }
+.nu .ms-search-wrap { display: flex; align-items: center; gap: .5rem; padding: .6rem .85rem .5rem; border-bottom: 1px solid var(--md-outline); }
+.nu .ms-search-input { flex: 1; border: none; background: transparent; font-family: var(--font); font-size: .875rem; color: var(--md-on-surface); outline: none; padding: .125rem 0; }
+.nu .ms-items-wrap { max-height: 200px; overflow-y: auto; }
+.nu .ms-item { display: flex; align-items: center; gap: .75rem; padding: .7rem 1rem; cursor: pointer; font-size: .875rem; color: var(--md-on-surface); }
+.nu .ms-item:hover { background: var(--md-primary-light); }
+.nu .ms-item:has(input:checked), .nu .ms-item.selected { background: var(--md-primary-container); font-weight: 500; }
+.nu .ms-item input[type="checkbox"] { width: 17px; height: 17px; accent-color: var(--md-primary); cursor: pointer; flex-shrink: 0; margin: 0; }
+.nu .ms-item-hidden { display: none !important; }
+.nu .ms-vacio { padding: .8rem 1rem; font-size: .8125rem; color: var(--md-on-surface-med); display: none; }
+
+/* ── Evaluación de gravedad ── */
+.nu .gravedad-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
+.nu .grav-card { background: var(--md-bg); border: 1px solid var(--md-outline); border-radius: var(--nu-radius); padding: .85rem 1rem; transition: border-color 160ms var(--nu-ease), background 160ms var(--nu-ease); }
+.nu .grav-card:has(input:checked) { border-color: var(--md-primary); background: var(--md-surface); }
+.nu .grav-card.has-error { border-color: var(--md-error); }
+.nu .grav-question { font-size: .8125rem; font-weight: 500; margin-bottom: .65rem; line-height: 1.35; }
+.nu .radio-row { display: flex; gap: .5rem; }
+.nu .radio-pill {
+  position: relative; flex: 1; display: flex; align-items: center; justify-content: center; gap: .35rem; padding: .45rem .6rem; min-height: 36px; border-radius: 999px; border: 1.5px solid var(--md-outline);
+  cursor: pointer; font-size: .8125rem; font-weight: 500; color: var(--md-on-surface-med); background: var(--md-surface); user-select: none; overflow: hidden;
+  transition: background 160ms var(--nu-ease), border-color 160ms var(--nu-ease), color 160ms var(--nu-ease);
+}
+.nu .radio-pill input { position: absolute; opacity: 0; pointer-events: none; }
+.nu .radio-pill:has(input:focus-visible) { outline: 2px solid var(--md-primary); outline-offset: 2px; }
+.nu .radio-pill .ms { font-size: 14px; }
+.nu .radio-pill:hover { background: var(--md-surface-variant); }
+.nu .radio-pill.yes:has(input:checked) { background: var(--md-success-bg); border-color: transparent; color: var(--md-success); }
+.nu .radio-pill.yes:has(input:checked) .ms { color: var(--md-success); }
+.nu .radio-pill.no:has(input:checked) { background: var(--md-error-bg); border-color: transparent; color: var(--md-error); }
+.nu .radio-pill.no:has(input:checked) .ms { color: var(--md-error); }
+.nu .severity-row { display: flex; align-items: center; gap: 1rem; padding: .9rem 1.1rem; margin-top: 1rem; background: var(--md-bg); border: 1px solid var(--md-outline); border-radius: var(--nu-radius); transition: border-color 160ms var(--nu-ease); }
+.nu .severity-row.filled { border-color: var(--md-primary); background: var(--md-surface); }
+.nu .sev-label { font-size: .8125rem; font-weight: 500; color: var(--md-on-surface-med); white-space: nowrap; }
+.nu .sev-chip { display: inline-flex; align-items: center; font-size: .875rem; font-weight: 500; color: var(--md-on-surface-med); background: var(--md-surface-variant); padding: .35rem 1rem; border-radius: 999px; }
+.nu .sev-chip.leve { background: var(--md-success-bg); color: var(--md-success); }
+.nu .sev-chip.moderado { background: var(--md-warning-bg); color: var(--nu-warn); }
+.nu .sev-chip.urgente { background: var(--md-error-bg); color: var(--md-error); }
+
+/* ── Interruptores ── */
+.nu .toggle-field { position: relative; display: flex; align-items: center; gap: .9rem; padding: .85rem 1rem; background: var(--md-bg); border: 1px solid var(--md-outline); border-radius: var(--nu-radius); cursor: pointer; user-select: none; transition: border-color 160ms var(--nu-ease), background 160ms var(--nu-ease); }
+.nu .toggle-field input { position: absolute; opacity: 0; pointer-events: none; }
+.nu .toggle-field:has(input:focus-visible) { outline: 2px solid var(--md-primary); outline-offset: 2px; }
+.nu .toggle-field:has(input:checked) { border-color: var(--md-primary); background: var(--md-surface); }
+.nu .toggle-icon { width: 38px; height: 38px; background: var(--md-primary-light); border-radius: 10px; display: grid; place-items: center; flex-shrink: 0; }
+.nu .toggle-icon .ms { color: var(--md-primary); }
+.nu .toggle-text { flex: 1; min-width: 0; }
+.nu .toggle-text strong { display: block; font-size: .875rem; font-weight: 500; }
+.nu .toggle-text span { display: block; font-size: .75rem; color: var(--md-on-surface-med); margin-top: 1px; }
+.nu .toggle-track { position: relative; width: 44px; height: 26px; background: var(--md-surface-variant); border: 2px solid var(--md-outline); border-radius: 999px; flex-shrink: 0; transition: background 160ms var(--nu-ease), border-color 160ms var(--nu-ease); }
+.nu .toggle-thumb { position: absolute; top: 50%; left: 3px; transform: translateY(-50%); width: 14px; height: 14px; background: var(--md-outline); border-radius: 50%; transition: left 200ms var(--nu-ease), width 160ms var(--nu-ease), height 160ms var(--nu-ease), background 160ms var(--nu-ease); }
+.nu .toggle-field:has(input:checked) .toggle-track { background: var(--md-primary); border-color: var(--md-primary); }
+.nu .toggle-field:has(input:checked) .toggle-thumb { background: var(--md-on-primary); width: 18px; height: 18px; left: 19px; }
+
+/* ── Botones ── */
+.nu .btn { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; padding: 0 1.4rem; height: 40px; border-radius: 999px; font-family: var(--font); font-size: .875rem; font-weight: 600; cursor: pointer; border: none; transition: filter 150ms var(--nu-ease), background 150ms var(--nu-ease); }
+.nu .btn .ms { font-size: 18px; color: inherit; }
+.nu .btn-primary { background: var(--md-primary-container); color: var(--md-primary-dark); }
+.nu .btn-primary:hover:not(:disabled) { filter: brightness(.97); }
+.nu .btn-ghost { background: transparent; color: var(--md-primary); border: 1px solid var(--md-outline); font-weight: 500; }
+.nu .btn-ghost:hover:not(:disabled) { background: var(--md-primary-light); }
+.nu .btn:disabled { background: rgba(128,134,139,.2); color: var(--md-on-surface-low); cursor: not-allowed; border-color: transparent; }
+.nu .btn:focus-visible, .nu .nu-x:focus-visible { outline: 2px solid var(--md-primary); outline-offset: 2px; }
+.nu .spinner { animation: nu-spin .8s linear infinite; }
+@keyframes nu-spin { to { transform: rotate(360deg); } }
+
+/* ── Confirmación interna (descartar / posible duplicado) ── */
+.nu .nu-conf { position: absolute; inset: 0; z-index: 60; display: none; align-items: center; justify-content: center; padding: 1.5rem; background: rgba(20,28,34,.45); }
+.nu .nu-conf.visible { display: flex; }
+.nu .nu-conf-caja { width: min(380px, 100%); background: var(--md-surface); border-radius: 16px; box-shadow: var(--nu-elev-3); padding: 1.25rem 1.35rem 1rem; }
+.nu .nu-conf-caja p { white-space: pre-line; line-height: 1.5; font-size: .9rem; }
+.nu .nu-conf-botones { display: flex; justify-content: flex-end; gap: .5rem; margin-top: 1.1rem; }
+
+@media (max-width: 600px) {
+  .nu .grid-2, .nu .gravedad-grid { grid-template-columns: 1fr; }
+  .nu .nu-pie .hint { display: none; }
+}
+</style>
+
+<script>
+window.DialogoNuevo = {
+  abrir: function (opts) {
+    opts = opts || {};
+    var PATOLOGIAS = ["MS","MI","Dolor Crónico","Cervicalgia","Dorsalgia","Lumbalgia","Omalgia","Coxalgia","Gonalgia","Tendinopatía","Fascitis Plantar","Traumatismo","Caída","Fractura","Luxación","Esguince","Prótesis Hombro","Prótesis Rodilla","Estabilidad","Debilidad Muscular","Limitación Funcional","Alteración Marcha","Hernia Discal","Radiculopatía MS","Radiculopatía MI","Estenosis Medular","Parkinson","Esclerosis","Ictus","Linfedema","Cardiopatía","Enfermedad Respiratoria","Cáncer","Otro"];
+    var SEVERITY_MAP = [
+      { label: '🟢 Leve', cls: 'leve', min: 0, max: 3 },
+      { label: '🟠 Moderado', cls: 'moderado', min: 4, max: 6 },
+      { label: '🔴 Urgente', cls: 'urgente', min: 7, max: 9 }
+    ];
+    var ESTADOS = ["🟢 Activo", "🟡 En espera", "🕐 Contactará"], ESTADO_DEF = "🟡 En espera";
+    var INGRESOS = ["📄 Volante", "🔁 Derivación propia", "🕰️ Antiguo paciente"], INGRESO_DEF = "📄 Volante";
+
+    function hoyLocal() {
+      var d = new Date(), m = String(d.getMonth() + 1).padStart(2, '0'), dd = String(d.getDate()).padStart(2, '0');
+      return d.getFullYear() + '-' + m + '-' + dd;
+    }
+    function campo(id, icono, etiqueta, opciones) {
+      opciones = opciones || {};
+      return '<div class="md-field' + (opciones.textarea ? ' is-textarea' : '') + (opciones.span ? ' span-2' : '') + '">' +
+        '<div class="md-field-inner">' +
+          '<div class="leading-icon"><span class="ms">' + icono + '</span></div>' +
+          (opciones.textarea
+            ? '<textarea id="nu-' + id + '" name="' + opciones.name + '" rows="3" placeholder=" "></textarea>'
+            : '<input type="' + (opciones.type || 'text') + '" id="nu-' + id + '" name="' + opciones.name + '" placeholder=" "' + (opciones.inputmode ? ' inputmode="' + opciones.inputmode + '"' : '') + ' autocomplete="off">') +
+          '<label for="nu-' + id + '">' + etiqueta + (opciones.req ? '<span class="req">*</span>' : '') + '</label>' +
+        '</div><span class="support-text"></span></div>';
+    }
+    function desplegable(id, icono, etiqueta, valorIni, conBuscador) {
+      return '<div class="multiselect" id="nu-ms-' + id + '">' +
+        '<div class="ms-toggle' + (valorIni ? ' has-value' : '') + '" tabindex="0" role="button" aria-haspopup="listbox" aria-expanded="false" aria-label="' + etiqueta + '">' +
+          '<div class="ms-leading"><span class="ms">' + icono + '</span></div>' +
+          '<span class="ms-label">' + etiqueta + '</span>' +
+          '<span class="ms-display">' + (valorIni || '— Selecciona —') + '</span>' +
+          '<div class="ms-trailing"><span class="ms">expand_more</span></div>' +
+        '</div>' +
+        '<div class="ms-menu" role="listbox">' +
+          (conBuscador ? '<div class="ms-search-wrap"><span class="ms ms-sm">search</span><input class="ms-search-input" type="text" placeholder="Buscar patología…" aria-label="Buscar patología" autocomplete="off"></div>' : '') +
+          '<div class="ms-items-wrap"></div>' +
+          (conBuscador ? '<div class="ms-vacio">Sin resultados</div>' : '') +
+        '</div></div>';
+    }
+    function pregunta(n, texto, valorSi) {
+      return '<div class="grav-card"><p class="grav-question">' + texto + '</p><div class="radio-row">' +
+        '<label class="radio-pill yes"><input type="radio" name="gravedad_q' + n + '" value="' + valorSi + '"><span class="ms">check</span> Sí</label>' +
+        '<label class="radio-pill no"><input type="radio" name="gravedad_q' + n + '" value="0"><span class="ms">close</span> No</label>' +
+      '</div></div>';
+    }
+    function interruptor(id, icono, titulo, sub, marcado) {
+      return '<label class="toggle-field"><input type="checkbox" id="nu-' + id + '"' + (marcado ? ' checked' : '') + '>' +
+        '<div class="toggle-icon"><span class="ms ms-fill">' + icono + '</span></div>' +
+        '<div class="toggle-text"><strong>' + titulo + '</strong><span>' + sub + '</span></div>' +
+        '<div class="toggle-track"><div class="toggle-thumb"></div></div></label>';
+    }
+    function seccion(icono, titulo, contenido) {
+      return '<div class="card-section"><div class="section-label"><span class="section-pill"><span class="ms ms-sm">' + icono + '</span>' + titulo + '</span><div class="section-divider"></div></div>' + contenido + '</div>';
+    }
+
+    var dlg = document.createElement('dialog');
+    dlg.className = 'nu';
+    dlg.setAttribute('aria-labelledby', 'nu-titulo');
+    dlg.innerHTML =
+      '<div class="nu-cab"><div class="icono"><span class="ms ms-lg ms-fill">person_add</span></div>' +
+        '<h2 id="nu-titulo">Nuevo usuario<small>Servicio de Fisioterapia</small></h2>' +
+        '<button type="button" class="nu-x" aria-label="Cerrar"><span class="ms">close</span></button></div>' +
+      '<div class="nu-cuerpo"><form class="nu-form" novalidate onsubmit="return false">' +
+        seccion('badge', 'Datos personales', '<div class="grid-2">' +
+          campo('nombre', 'person', 'Nombre completo', { name: 'Nombre', req: true }) +
+          campo('dni', 'id_card', 'Identificación (DNI / SIP)', { name: 'DNI' }) +
+          campo('fi', 'event', 'Fecha de inscripción', { name: 'Fecha inscripción', type: 'date', req: true }) +
+          campo('fn', 'cake', 'Fecha de nacimiento', { name: 'Fecha nacimiento', type: 'date' }) +
+        '</div>') +
+        seccion('contacts', 'Contacto y estado', '<div class="grid-2">' +
+          campo('tel1', 'call', 'Teléfono principal', { name: 'Teléfono 1', type: 'tel', inputmode: 'tel' }) +
+          campo('tel2', 'smartphone', 'Teléfono secundario', { name: 'Teléfono 2', type: 'tel', inputmode: 'tel' }) +
+          '<div><input type="hidden" name="Estado" class="nu-estado" value="' + ESTADO_DEF + '">' + desplegable('estado', 'radio_button_checked', 'Estado', ESTADO_DEF, false) + '</div>' +
+          '<div><input type="hidden" name="Tipo de Ingreso" class="nu-ingreso" value="' + INGRESO_DEF + '">' + desplegable('ingreso', 'login', 'Tipo de ingreso', INGRESO_DEF, false) + '</div>' +
+        '</div>') +
+        seccion('medical_information', 'Diagnóstico', '<div class="grid-2">' +
+          desplegable('pat1', 'assignment', 'Patología 1', '', true) + desplegable('pat2', 'assignment', 'Patología 2', '', true) +
+        '</div>') +
+        seccion('monitor_heart', 'Evaluación de gravedad',
+          '<div class="gravedad-grid">' +
+            pregunta(1, 'Riesgo de pérdida de AVD', 3) + pregunta(2, 'Dolor alto limita actividades', 2) + pregunta(3, 'Patología aguda', 2) +
+            pregunta(4, 'Hospitalización / cirugía reciente', 1) + pregunta(5, 'Posibilidad de cronificación', 1) +
+          '</div><div class="severity-row"><span class="sev-label">Gravedad asignada:</span><span class="sev-chip">Completa la evaluación</span></div>') +
+        seccion('edit_note', 'Observaciones',
+          campo('obs', 'notes', 'Notas adicionales', { name: 'Observaciones', textarea: true }) +
+          '<div class="grid-2" style="margin-top:1.1rem">' +
+            interruptor('hc', 'description', 'Historia Clínica', 'Crear documento de HC', false) +
+            interruptor('contacto', 'contacts', 'Google Contacts', 'Añadir contacto Google', true) +
+          '</div>') +
+      '</form></div>' +
+      '<div class="nu-msg" role="alert"></div>' +
+      '<div class="nu-pie"><span class="hint">Los campos con <b>*</b> son obligatorios.</span>' +
+        '<div class="botones"><button type="button" class="btn btn-ghost nu-cancelar">Cancelar</button>' +
+        '<button type="button" class="btn btn-primary nu-guardar"><span class="ms">save</span>Guardar usuario</button></div></div>' +
+      '<div class="nu-conf" role="alertdialog" aria-modal="true"><div class="nu-conf-caja"><p></p><div class="nu-conf-botones">' +
+        '<button type="button" class="btn btn-ghost nu-conf-no"></button><button type="button" class="btn btn-primary nu-conf-si"></button></div></div></div>';
+    document.body.appendChild(dlg);
+
+    function q(sel) { return dlg.querySelector(sel); }
+    function qa(sel) { return Array.prototype.slice.call(dlg.querySelectorAll(sel)); }
+    var form = q('.nu-form'), msg = q('.nu-msg'), btnGuardar = q('.nu-guardar'), btnCancelar = q('.nu-cancelar');
+    var chip = q('.sev-chip'), sevRow = q('.severity-row');
+    var guardando = false, guardado = false, inicial = '';
+
+    /* ── Campos de texto ── */
+    function sync(el) {
+      var f = el.closest('.md-field');
+      if (f) f.classList.toggle('has-value', el.value.trim() !== '');
+    }
+    function formatPhone(input) {
+      var d = input.value.replace(/\D/g, '').slice(0, 9), f = d.slice(0, 3);
+      if (d.length > 3) f += ' ' + d.slice(3, 5);
+      if (d.length > 5) f += ' ' + d.slice(5, 7);
+      if (d.length > 7) f += ' ' + d.slice(7, 9);
+      input.value = f;
+    }
+    function setError(el, texto) {
+      var f = el.closest('.md-field'); if (!f) return;
+      f.classList.add('has-error');
+      f.querySelector('.support-text').textContent = texto;
+      el.setAttribute('aria-invalid', 'true');
+    }
+    function clearError(el) {
+      var f = el.closest('.md-field'); if (!f) return;
+      f.classList.remove('has-error');
+      el.removeAttribute('aria-invalid');
+    }
+    var iNombre = q('#nu-nombre'), iDni = q('#nu-dni'), iFi = q('#nu-fi'), iFn = q('#nu-fn'), iTel1 = q('#nu-tel1'), iTel2 = q('#nu-tel2');
+    iFi.value = hoyLocal();
+    qa('.md-field input, .md-field textarea').forEach(function (el) {
+      sync(el);
+      el.addEventListener('input', function () { sync(el); clearError(el); });
+      el.addEventListener('change', function () { sync(el); clearError(el); });
+    });
+    iNombre.addEventListener('input', function (e) { if (!e.isComposing) sanitizeName(iNombre); });
+    iDni.addEventListener('input', function (e) { if (!e.isComposing) sanitizeDni(iDni); });
+    iTel1.addEventListener('input', function () { formatPhone(iTel1); });
+    iTel2.addEventListener('input', function () { formatPhone(iTel2); });
+    qa('.md-field input:not([type="date"])').forEach(function (el) {
+      el.addEventListener('keydown', function (e) { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); enviar(); } });
+    });
+
+    /* ── Desplegables ── */
+    function cerrarMenus() {
+      var hubo = false;
+      qa('.ms-menu.open').forEach(function (m) {
+        hubo = true; m.classList.remove('open');
+        var t = m.parentElement.querySelector('.ms-toggle');
+        t.classList.remove('open'); t.setAttribute('aria-expanded', 'false');
+        var s = m.querySelector('.ms-search-input');
+        if (s) { s.value = ''; qa('.ms-item-hidden').forEach(function (i) { i.classList.remove('ms-item-hidden'); }); var v = m.querySelector('.ms-vacio'); if (v) v.style.display = 'none'; }
+      });
+      return hubo;
+    }
+    function alternar(toggle, menu) {
+      var abierto = menu.classList.contains('open');
+      cerrarMenus();
+      if (!abierto) {
+        menu.classList.add('open'); toggle.classList.add('open'); toggle.setAttribute('aria-expanded', 'true');
+        menu.scrollIntoView({ block: 'nearest' });
+        var s = menu.querySelector('.ms-search-input'); if (s) setTimeout(function () { s.focus(); }, 30);
+      }
+    }
+    function normalizar(t) { return (t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim(); }
+    function activarToggle(toggle, menu) {
+      toggle.addEventListener('click', function (e) { e.stopPropagation(); alternar(toggle, menu); });
+      toggle.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle.click(); } });
+    }
+    function unico(idMs, opciones, oculto) {
+      var ms = q('#nu-ms-' + idMs), toggle = ms.querySelector('.ms-toggle'), menu = ms.querySelector('.ms-menu'), wrap = menu.querySelector('.ms-items-wrap'), disp = toggle.querySelector('.ms-display');
+      opciones.forEach(function (opt) {
+        var it = document.createElement('div'); it.className = 'ms-item'; it.setAttribute('role', 'option'); it.textContent = opt;
+        if (opt === oculto.value) it.classList.add('selected');
+        it.addEventListener('click', function (e) {
+          e.stopPropagation();
+          wrap.querySelectorAll('.ms-item').forEach(function (i) { i.classList.remove('selected'); });
+          it.classList.add('selected'); oculto.value = opt; disp.textContent = opt; toggle.classList.add('has-value');
+          cerrarMenus(); toggle.focus();
+        });
+        wrap.appendChild(it);
+      });
+      activarToggle(toggle, menu);
+    }
+    function multiple(idMs, nombre) {
+      var ms = q('#nu-ms-' + idMs), toggle = ms.querySelector('.ms-toggle'), menu = ms.querySelector('.ms-menu'), wrap = menu.querySelector('.ms-items-wrap');
+      var disp = toggle.querySelector('.ms-display'), buscar = menu.querySelector('.ms-search-input'), vacio = menu.querySelector('.ms-vacio');
+      function actualizar() {
+        var sel = Array.prototype.map.call(wrap.querySelectorAll('input:checked'), function (c) { return c.value; });
+        disp.textContent = sel.length ? sel.join(', ') : '— Selecciona —';
+        toggle.classList.toggle('has-value', sel.length > 0);
+      }
+      PATOLOGIAS.forEach(function (p) {
+        var l = document.createElement('label'); l.className = 'ms-item';
+        var cb = document.createElement('input'); cb.type = 'checkbox'; cb.name = nombre; cb.value = p;
+        l.appendChild(cb); l.appendChild(document.createTextNode(p)); wrap.appendChild(l);
+        cb.addEventListener('change', actualizar);
+      });
+      buscar.addEventListener('click', function (e) { e.stopPropagation(); });
+      buscar.addEventListener('input', function () {
+        var t = normalizar(buscar.value), visibles = 0;
+        wrap.querySelectorAll('.ms-item').forEach(function (it) {
+          var oculto = t.length > 0 && normalizar(it.textContent).indexOf(t) === -1;
+          it.classList.toggle('ms-item-hidden', oculto); if (!oculto) visibles++;
+        });
+        vacio.style.display = visibles ? 'none' : 'block';
+      });
+      activarToggle(toggle, menu);
+    }
+    unico('estado', ESTADOS, q('.nu-estado'));
+    unico('ingreso', INGRESOS, q('.nu-ingreso'));
+    multiple('pat1', 'Patología 1');
+    multiple('pat2', 'Patología 2');
+    dlg.addEventListener('click', function (e) { if (!e.target.closest('.multiselect')) cerrarMenus(); });
+
+    /* ── Gravedad ── */
+    function gravedadCompleta() { return [1, 2, 3, 4, 5].every(function (n) { return !!q('input[name="gravedad_q' + n + '"]:checked'); }); }
+    function calcGravedad() {
+      var total = 0;
+      chip.className = 'sev-chip';
+      if (!gravedadCompleta()) { chip.textContent = 'Completa la evaluación'; sevRow.classList.remove('filled'); return; }
+      for (var i = 1; i <= 5; i++) total += +q('input[name="gravedad_q' + i + '"]:checked').value;
+      var s = SEVERITY_MAP.filter(function (x) { return total >= x.min && total <= x.max; })[0];
+      if (s) { chip.textContent = s.label; chip.classList.add(s.cls); sevRow.classList.add('filled'); }
+    }
+    qa('input[name^="gravedad_q"]').forEach(function (r) {
+      r.addEventListener('change', function () {
+        r.closest('.grav-card').classList.remove('has-error');
+        calcGravedad();
+        if (gravedadCompleta() && msg.classList.contains('error')) ocultarMsg();   // el aviso de "faltan preguntas" ya no aplica
+      });
+    });
+
+    /* ── Estado del formulario (para saber si hay algo sin guardar) ── */
+    function estado() {
+      var fd = new FormData(form), partes = [];
+      fd.forEach(function (v, k) { partes.push(k + '=' + v); });
+      partes.push('hc=' + q('#nu-hc').checked, 'contacto=' + q('#nu-contacto').checked);
+      return partes.join('\u0001');
+    }
+    function haCambiado() { return !guardado && estado() !== inicial; }
+    inicial = estado();
+
+    /* ── Confirmación interna ── */
+    var conf = q('.nu-conf'), confTexto = conf.querySelector('p'), confSi = q('.nu-conf-si'), confNo = q('.nu-conf-no'), confResolver = null;
+    function confirmar(texto, textoNo, textoSi) {
+      return new Promise(function (resolve) {
+        confTexto.textContent = texto; confNo.textContent = textoNo; confSi.textContent = textoSi;
+        conf.classList.add('visible'); confResolver = resolve; confSi.focus();
+      });
+    }
+    function cerrarConfirmacion(valor) {
+      if (!confResolver) return;
+      var r = confResolver; confResolver = null; conf.classList.remove('visible'); r(valor);
+    }
+    confSi.addEventListener('click', function () { cerrarConfirmacion(true); });
+    confNo.addEventListener('click', function () { cerrarConfirmacion(false); });
+
+    /* ── Cierre ── */
+    function cerrar() { if (dlg.open) dlg.close(); }
+    dlg.addEventListener('close', function () { setTimeout(function () { if (dlg.parentNode) dlg.parentNode.removeChild(dlg); }, 0); });
+    async function intentarCerrar() {
+      if (guardando) return;
+      if (confResolver) { cerrarConfirmacion(false); return; }
+      if (cerrarMenus()) return;
+      if (haCambiado()) {
+        var descartar = await confirmar('Hay datos sin guardar en el formulario. ¿Quieres descartarlos?', 'Seguir editando', 'Descartar');
+        if (!descartar) return;
+      }
+      cerrar();
+    }
+    dlg.addEventListener('keydown', function (e) {
+      if (e.key !== 'Escape') return;
+      e.preventDefault(); e.stopPropagation();
+      intentarCerrar();
+    }, true);
+    dlg.addEventListener('cancel', function (e) { e.preventDefault(); intentarCerrar(); });
+    q('.nu-x').addEventListener('click', intentarCerrar);
+    btnCancelar.addEventListener('click', intentarCerrar);
+    // clic en el fondo oscuro (fuera de la caja)
+    dlg.addEventListener('mousedown', function (e) {
+      if (e.target === dlg) intentarCerrar();
+    });
+
+    /* ── Guardar ── */
+    function mostrarMsg(texto, tipo) { msg.textContent = texto; msg.className = 'nu-msg ' + tipo; }
+    function ocultarMsg() { msg.className = 'nu-msg'; msg.textContent = ''; }
+    function ponerBotonGuardando(si) {
+      btnGuardar.disabled = si; btnCancelar.disabled = si;
+      btnGuardar.innerHTML = si ? '<span class="ms spinner">refresh</span>Guardando…' : '<span class="ms">save</span>Guardar usuario';
+    }
+    function recogerDatos() {
+      var fd = new FormData(form), datos = {};
+      fd.forEach(function (v, k) {
+        if (datos[k] !== undefined) datos[k] = Array.isArray(datos[k]) ? datos[k].concat([v]) : [datos[k], v];
+        else datos[k] = v;
+      });
+      [1, 2, 3, 4, 5].forEach(function (n) { delete datos['gravedad_q' + n]; });
+      datos.Gravedad = chip.textContent.trim();
+      datos.anadirContacto = q('#nu-contacto').checked;
+      return datos;
+    }
+    function enviar() {
+      if (guardando || confResolver) return;
+      ocultarMsg();
+      var errores = false;
+      if (!iNombre.value.trim()) { setError(iNombre, 'El nombre es obligatorio.'); errores = true; }
+      if (!iFi.value) { setError(iFi, 'La fecha de inscripción es obligatoria.'); errores = true; }
+      if (errores) { var primero = q('.md-field.has-error input'); if (primero) primero.focus(); return; }
+      if (!gravedadCompleta()) {
+        qa('.grav-card').forEach(function (c) { if (!c.querySelector('input:checked')) c.classList.add('has-error'); });
+        mostrarMsg('Por favor, completa todas las preguntas de evaluación de gravedad.', 'error');
+        sevRow.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        return;
+      }
+      // Valores finales con la regla única (sin espacios sobrantes) antes de enviar
+      iNombre.value = formatoNombreFinal(iNombre.value);
+      iDni.value = formatoDni(iDni.value).trim();
+      var datos = recogerDatos(), dni = iDni.value.trim();
+      // Aviso de posible alta duplicada (por DNI): no bloquea, solo informa y deja decidir.
+      if (dni) {
+        ponerBotonGuardando(true);
+        google.script.run
+          .withSuccessHandler(async function (r) {
+            if (r && r.existe) {
+              ponerBotonGuardando(false);
+              var seguir = await confirmar('Ya existe un usuario con este DNI: ' + (r.nombre || '(sin nombre)') + '.\n\n¿Guardar de todas formas?', 'Cancelar', 'Guardar igualmente');
+              if (!seguir) return;
+            }
+            guardar(datos);
+          })
+          .withFailureHandler(function () { guardar(datos); })   // si la comprobación falla no bloqueamos el alta
+          .buscarUsuarioPorDniWeb(dni);
+      } else {
+        guardar(datos);
+      }
+    }
+    function guardar(datos) {
+      guardando = true; ponerBotonGuardando(true);
+      google.script.run
+        .withSuccessHandler(function (res) {
+          guardando = false;
+          if (res && res.success) {
+            guardado = true;
+            mostrarMsg(res.message || 'Usuario guardado correctamente.', 'success');
+            btnGuardar.disabled = true; btnCancelar.disabled = true;
+            btnGuardar.innerHTML = '<span class="ms">check_circle</span>Guardado';
+            if (q('#nu-hc').checked) {
+              google.script.run
+                .withSuccessHandler(function (r) { if (r && r.success) console.log('✅ Historia clínica:', r.url); else console.error('❌', r && r.message); })
+                .withFailureHandler(function (err) { console.error('❌', err); })
+                .generarHistoriaClinicaRegistroUsuario(datos);
+            }
+            setTimeout(function () { cerrar(); if (opts.onGuardado) opts.onGuardado(res); }, 900);
+          } else {
+            ponerBotonGuardando(false);
+            mostrarMsg((res && res.message) || 'No se pudo guardar el usuario.', 'error');
+          }
+        })
+        .withFailureHandler(function (err) {
+          guardando = false; ponerBotonGuardando(false);
+          mostrarMsg('Error al guardar el paciente: ' + (err && err.message ? err.message : err), 'error');
+        })
+        .guardarPaciente(datos);
+    }
+    btnGuardar.addEventListener('click', enviar);
+
+    dlg.showModal();
+    iNombre.focus();
+    return { cerrar: cerrar, haCambiado: haCambiado };
+  }
+};
+</script>

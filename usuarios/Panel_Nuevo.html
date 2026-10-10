@@ -2,17 +2,19 @@
   usuarios/Panel_Nuevo.html
   Formulario de Nuevo usuario como módulo del panel lateral de la Base de Datos Web (igual que Panel_Valoracion / Panel_Editar).
   Se incluye desde usuarios/BaseDatos_Vista con include('usuarios/Panel_Nuevo') en un scriptlet de impresion.
-  API: PanelNuevo.abrir(contenedor, { onGuardado, onCancelar })
+  API: PanelNuevo.abrir(contenedor, { onGuardado, onCancelar, onAbrirEditar })
   Devuelve { haCambiado(), alEscape(), cerrar() }:
     · haCambiado() → true si hay datos sin guardar (la Base de Datos pregunta antes de descartar).
     · alEscape()   → cierra primero una confirmación o un desplegable abierto; devuelve true si lo ha gestionado.
   Comportamiento:
     · El título y el botón de volver los pone el panel de la página (ficha-form-cab); aquí solo va el formulario.
     · Cancelar delega en onCancelar(): la página pregunta por los cambios sin guardar con su propio confirm.
-    · La confirmación de posible DNI duplicado vive DENTRO del panel (capa sobre el formulario).
+    · El aviso de posible usuario ya existente (mismo DNI, teléfono o nombre parecido) vive DENTRO del panel (capa sobre el formulario).
+      No bloquea: permite editar el usuario existente, guardar igualmente como nuevo o seguir editando el formulario.
+    · Editar el existente → onAbrirEditar(fila): la página abre su formulario de edición (devuelve false si no encuentra esa fila).
     · Al guardar muestra el mensaje y, tras un instante, llama a onGuardado(mensaje) (la página recarga la tabla).
-  Origen: usuarios/Dialogo_Nuevo.html (el diálogo modal anterior). Usa las mismas funciones de servidor:
-  guardarPaciente, buscarUsuarioPorDniWeb y generarHistoriaClinicaRegistroUsuario (usuarios/Anadir_Usuario.gs).
+  Funciones de servidor (usuarios/Anadir_Usuario.gs): guardarPaciente, buscarPosiblesDuplicadosWeb y
+  generarHistoriaClinicaRegistroUsuario.
   CSS acotado a .nu y basado en los tokens de la página (--md-*, respeta el tema oscuro). A 400 px todo va en una columna.
   Requiere ui/JS_Formato_Nombre en la página (sanitizeName, sanitizeDni, formatoNombreFinal, formatoDni).
 -->
@@ -182,6 +184,22 @@
 .nu .nu-conf-caja p { white-space: pre-line; line-height: 1.5; font-size: .9rem; }
 .nu .nu-conf-botones { display: flex; justify-content: flex-end; gap: .5rem; margin-top: 1.1rem; }
 
+/* ── Aviso de posible usuario ya existente (lista de coincidencias) ── */
+.nu .nu-dupcapa { position: absolute; inset: 0; z-index: 60; display: none; align-items: center; justify-content: center; padding: 1.5rem; background: rgba(20,28,34,.45); }
+.nu .nu-dupcapa.visible { display: flex; }
+.nu .nu-dup-caja { width: min(420px, 100%); max-height: 100%; display: flex; flex-direction: column; background: var(--md-surface); border-radius: 16px; box-shadow: var(--nu-elev-3); padding: 1.25rem 1.35rem 1rem; }
+.nu .nu-dup-tit { font-weight: 600; font-size: 1rem; }
+.nu .nu-dup-sub { margin-top: .35rem; color: var(--md-on-surface-med); font-size: .85rem; line-height: 1.45; }
+.nu .nu-dup-lista { margin-top: .9rem; display: flex; flex-direction: column; gap: .5rem; overflow-y: auto; min-height: 0; }
+.nu .nu-dup-item { display: flex; align-items: center; gap: .75rem; padding: .6rem .7rem; border: 1px solid var(--md-outline); border-radius: 12px; }
+.nu .nu-dup-datos { flex: 1; min-width: 0; }
+.nu .nu-dup-nombre { font-weight: 600; font-size: .9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nu .nu-dup-meta { margin-top: .15rem; font-size: .78rem; color: var(--md-on-surface-med); }
+.nu .nu-dup-motivos { margin-top: .3rem; display: flex; flex-wrap: wrap; gap: .3rem; }
+.nu .nu-dup-motivos span { font-size: .7rem; font-weight: 600; padding: .1rem .5rem; border-radius: 999px; background: var(--md-primary-light); color: var(--md-primary); }
+.nu .nu-dup-mas { font-size: .8rem; color: var(--md-on-surface-med); padding: .1rem .2rem; }
+.nu .nu-dup-pie { display: flex; justify-content: flex-end; gap: .5rem; margin-top: 1.1rem; flex-wrap: wrap; }
+
 </style>
 
 <script>
@@ -278,7 +296,13 @@ window.PanelNuevo = {
         '<div class="botones"><button title="Cerrar sin guardar" type="button" class="btn btn-ghost nu-cancelar">Cancelar</button>' +
         '<button title="Guardar el usuario nuevo" type="button" class="btn btn-primary nu-guardar"><span class="ms">save</span>Guardar usuario</button></div></div>' +
       '<div class="nu-conf" role="alertdialog" aria-modal="true"><div class="nu-conf-caja"><p></p><div class="nu-conf-botones">' +
-        '<button type="button" class="btn btn-ghost nu-conf-no"></button><button type="button" class="btn btn-primary nu-conf-si"></button></div></div></div>';
+        '<button type="button" class="btn btn-ghost nu-conf-no"></button><button type="button" class="btn btn-primary nu-conf-si"></button></div></div></div>' +
+      '<div class="nu-dupcapa" role="alertdialog" aria-modal="true"><div class="nu-dup-caja">' +
+        '<div class="nu-dup-tit">Puede que este usuario ya exista</div>' +
+        '<p class="nu-dup-sub">Hay usuarios en la base de datos que coinciden. Si es el mismo, abre su ficha para editarlo en vez de crear otro.</p>' +
+        '<div class="nu-dup-lista"></div>' +
+        '<div class="nu-dup-pie"><button type="button" class="btn btn-ghost nu-dup-volver">Seguir editando</button>' +
+          '<button type="button" class="btn btn-ghost nu-dup-nuevo">Es otro usuario: guardar</button></div></div></div>';
     host.appendChild(dlg);
 
     function q(sel) { return dlg.querySelector(sel); }
@@ -442,6 +466,48 @@ window.PanelNuevo = {
     confSi.addEventListener('click', function () { cerrarConfirmacion(true); });
     confNo.addEventListener('click', function () { cerrarConfirmacion(false); });
 
+    /* ── Aviso de posible usuario ya existente ── */
+    // Resuelve con { accion: 'editar', fila } | { accion: 'guardar' } | { accion: 'volver' }.
+    var dupCapa = q('.nu-dupcapa'), dupLista = q('.nu-dup-lista'), dupVolver = q('.nu-dup-volver'), dupNuevo = q('.nu-dup-nuevo'), dupResolver = null;
+    var ETIQUETA_MOTIVO = { dni: 'Mismo DNI', telefono: 'Mismo teléfono', nombre: 'Nombre parecido' };
+    function elegirDuplicado(res) {
+      return new Promise(function (resolve) {
+        dupLista.innerHTML = '';
+        res.candidatos.forEach(function (c) {
+          var item = document.createElement('div'); item.className = 'nu-dup-item';
+          var datos = document.createElement('div'); datos.className = 'nu-dup-datos';
+          var nom = document.createElement('div'); nom.className = 'nu-dup-nombre'; nom.textContent = c.nombre || '(sin nombre)'; nom.title = c.nombre || '';
+          var meta = document.createElement('div'); meta.className = 'nu-dup-meta'; meta.textContent = [c.dni, c.telefono, c.estado].filter(Boolean).join(' · ') || 'Sin más datos';
+          var mot = document.createElement('div'); mot.className = 'nu-dup-motivos';
+          (c.motivos || []).forEach(function (m) { var s = document.createElement('span'); s.textContent = ETIQUETA_MOTIVO[m] || m; mot.appendChild(s); });
+          datos.appendChild(nom); datos.appendChild(meta); datos.appendChild(mot);
+          var btn = document.createElement('button'); btn.type = 'button'; btn.className = 'btn btn-primary'; btn.title = 'Abrir su ficha para editarla';
+          btn.innerHTML = '<span class="ms">edit</span>Editar';
+          btn.addEventListener('click', function () { cerrarDuplicado({ accion: 'editar', fila: c.fila }); });
+          item.appendChild(datos); item.appendChild(btn); dupLista.appendChild(item);
+        });
+        if (res.total > res.candidatos.length) {
+          var mas = document.createElement('div'); mas.className = 'nu-dup-mas';
+          mas.textContent = 'y ' + (res.total - res.candidatos.length) + ' coincidencia(s) más, menos probables.';
+          dupLista.appendChild(mas);
+        }
+        dupCapa.classList.add('visible'); dupResolver = resolve;
+        var primero = dupLista.querySelector('button'); if (primero) primero.focus();
+      });
+    }
+    function cerrarDuplicado(valor) {
+      if (!dupResolver) return;
+      var r = dupResolver; dupResolver = null; dupCapa.classList.remove('visible'); r(valor);
+    }
+    dupVolver.addEventListener('click', function () { cerrarDuplicado({ accion: 'volver' }); });
+    dupNuevo.addEventListener('click', function () { cerrarDuplicado({ accion: 'guardar' }); });
+    // Abre en la página el formulario de edición del usuario ya existente. Si la página no encuentra esa fila, el panel sigue abierto.
+    function irAEditar(fila) {
+      if (!opts.onAbrirEditar || opts.onAbrirEditar(fila) === false) {
+        mostrarMsg('No se pudo abrir la ficha de ese usuario. Recarga la tabla e inténtalo de nuevo.', 'error');
+      }
+    }
+
     /* ── Cierre ── */
     // El panel no se cierra solo: avisa a la página (onCancelar), que pregunta por los cambios sin guardar
     // y vuelve a la tabla. Esc lo gestiona la página a través de alEscape().
@@ -453,6 +519,7 @@ window.PanelNuevo = {
     }
     function alEscape() {
       if (confResolver) { cerrarConfirmacion(false); return true; }   // confirmación abierta: Esc = no / seguir editando
+      if (dupResolver) { cerrarDuplicado({ accion: 'volver' }); return true; }   // aviso de posible duplicado abierto: Esc = seguir editando
       return cerrarMenus();                                           // desplegable abierto: se cierra primero
     }
     btnCancelar.addEventListener('click', function () { if (!guardando && opts.onCancelar) opts.onCancelar(); });
@@ -476,7 +543,7 @@ window.PanelNuevo = {
       return datos;
     }
     function enviar() {
-      if (guardando || confResolver) return;
+      if (guardando || confResolver || dupResolver) return;
       ocultarMsg();
       var errores = false;
       if (!iNombre.value.trim()) { setError(iNombre, 'El nombre es obligatorio.'); errores = true; }
@@ -492,23 +559,21 @@ window.PanelNuevo = {
       iNombre.value = formatoNombreFinal(iNombre.value);
       iDni.value = formatoDni(iDni.value).trim();
       var datos = recogerDatos(), dni = iDni.value.trim();
-      // Aviso de posible alta duplicada (por DNI): no bloquea, solo informa y deja decidir.
-      if (dni) {
-        ponerBotonGuardando(true);
-        google.script.run
-          .withSuccessHandler(async function (r) {
-            if (r && r.existe) {
-              ponerBotonGuardando(false);
-              var seguir = await confirmar('Ya existe un usuario con este DNI: ' + (r.nombre || '(sin nombre)') + '.\n\n¿Guardar de todas formas?', 'Cancelar', 'Guardar igualmente');
-              if (!seguir) return;
-            }
-            guardar(datos);
-          })
-          .withFailureHandler(function () { guardar(datos); })   // si la comprobación falla no bloqueamos el alta
-          .buscarUsuarioPorDniWeb(dni);
-      } else {
-        guardar(datos);
-      }
+      // Aviso de posible usuario ya existente (mismo DNI, teléfono o nombre parecido). No bloquea: deja elegir entre
+      // editar el que ya existe, guardar igualmente como nuevo o seguir editando el formulario.
+      ponerBotonGuardando(true);
+      google.script.run
+        .withSuccessHandler(async function (r) {
+          if (r && r.candidatos && r.candidatos.length) {
+            ponerBotonGuardando(false);
+            var eleccion = await elegirDuplicado(r);
+            if (eleccion.accion === 'volver') return;
+            if (eleccion.accion === 'editar') { irAEditar(eleccion.fila); return; }
+          }
+          guardar(datos);
+        })
+        .withFailureHandler(function () { guardar(datos); })   // si la comprobación falla no bloqueamos el alta
+        .buscarPosiblesDuplicadosWeb({ nombre: iNombre.value, dni: dni, telefono1: iTel1.value, telefono2: iTel2.value });
     }
     function guardar(datos) {
       guardando = true; ponerBotonGuardando(true);
