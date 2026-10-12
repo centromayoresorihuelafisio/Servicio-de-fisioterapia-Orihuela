@@ -1103,6 +1103,8 @@
           onCancelar: function() { if (formularioActivo && formularioFila === FILA_NUEVO) volverDeFormulario(); },
           // El alta coincide con un usuario que ya existe y se ha elegido editarlo: se descarta el alta (la elección ya es
           // explícita, no hace falta preguntar por los cambios sin guardar) y se abre el formulario de edición de esa fila.
+          // Lista de usuarios ya cargada en la página: el panel la usa para avisar de duplicados sin llamar al servidor.
+          obtenerUsuarios: function() { return TODOS; },
           onAbrirEditar: function(fila) {
             var p = TODOS.find(function(x) { return x._fila === fila; });
             if (!p) return false;

@@ -2,19 +2,19 @@
   usuarios/Panel_Nuevo.html
   Formulario de Nuevo usuario como módulo del panel lateral de la Base de Datos Web (igual que Panel_Valoracion / Panel_Editar).
   Se incluye desde usuarios/BaseDatos_Vista con include('usuarios/Panel_Nuevo') en un scriptlet de impresion.
-  API: PanelNuevo.abrir(contenedor, { onGuardado, onCancelar, onAbrirEditar })
+  API: PanelNuevo.abrir(contenedor, { onGuardado, onCancelar, onAbrirEditar, obtenerUsuarios })
   Devuelve { haCambiado(), alEscape(), cerrar() }:
     · haCambiado() → true si hay datos sin guardar (la Base de Datos pregunta antes de descartar).
     · alEscape()   → cierra primero una confirmación o un desplegable abierto; devuelve true si lo ha gestionado.
   Comportamiento:
     · El título y el botón de volver los pone el panel de la página (ficha-form-cab); aquí solo va el formulario.
     · Cancelar delega en onCancelar(): la página pregunta por los cambios sin guardar con su propio confirm.
-    · El aviso de posible usuario ya existente (mismo DNI, teléfono o nombre parecido) vive DENTRO del panel (capa sobre el formulario).
-      No bloquea: permite editar el usuario existente, guardar igualmente como nuevo o seguir editando el formulario.
+    · Avisos de usuario ya existente (mismo DNI, teléfono o nombre parecido): en línea bajo cada campo mientras se rellena y, al guardar,
+      en una capa DENTRO del panel. La comprobación es LOCAL, contra la lista que da opts.obtenerUsuarios() (en BaseDatos es TODOS, ya
+      cargada en la página): sin llamadas al servidor. Nunca bloquea: se puede editar el existente, guardar igualmente o seguir editando.
     · Editar el existente → onAbrirEditar(fila): la página abre su formulario de edición (devuelve false si no encuentra esa fila).
     · Al guardar muestra el mensaje y, tras un instante, llama a onGuardado(mensaje) (la página recarga la tabla).
-  Funciones de servidor (usuarios/Anadir_Usuario.gs): guardarPaciente, buscarPosiblesDuplicadosWeb y
-  generarHistoriaClinicaRegistroUsuario.
+  Funciones de servidor (usuarios/Anadir_Usuario.gs): guardarPaciente y generarHistoriaClinicaRegistroUsuario.
   CSS acotado a .nu y basado en los tokens de la página (--md-*, respeta el tema oscuro). A 400 px todo va en una columna.
   Requiere ui/JS_Formato_Nombre en la página (sanitizeName, sanitizeDni, formatoNombreFinal, formatoDni).
 -->
@@ -199,6 +199,16 @@
 .nu .nu-dup-motivos span { font-size: .7rem; font-weight: 600; padding: .1rem .5rem; border-radius: 999px; background: var(--md-primary-light); color: var(--md-primary); }
 .nu .nu-dup-mas { font-size: .8rem; color: var(--md-on-surface-med); padding: .1rem .2rem; }
 .nu .nu-dup-pie { display: flex; justify-content: flex-end; gap: .5rem; margin-top: 1.1rem; flex-wrap: wrap; }
+
+/* ── Aviso en línea bajo un campo: ya existe un usuario con ese dato (una sola línea, para no ocupar alto) ── */
+.nu .nu-aviso { display: none; align-items: center; gap: .4rem; margin: 4px 0 0 14px; padding: .15rem .3rem .15rem .5rem; min-height: 28px; border-radius: 8px; border-left: 3px solid var(--md-warning); background: var(--md-warning-bg); color: var(--md-on-surface); font-size: .75rem; line-height: 1.3; }
+.nu .nu-aviso.visible { display: flex; }
+.nu .nu-aviso > .ms { font-size: 16px; color: var(--md-warning); flex: none; }
+.nu .nu-aviso-txt { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nu .nu-aviso-nom { font-weight: 600; }
+.nu .nu-aviso-mas { flex: none; color: var(--md-on-surface-med); font-weight: 600; }
+.nu .nu-aviso-btn { flex: none; border: 0; background: transparent; color: var(--md-primary); font: inherit; font-weight: 600; cursor: pointer; padding: .15rem .4rem; border-radius: 6px; }
+.nu .nu-aviso-btn:hover { background: var(--md-primary-light); }
 
 </style>
 
@@ -508,6 +518,96 @@ window.PanelNuevo = {
       }
     }
 
+    /* ── Coincidencias con usuarios ya existentes (comprobación local) ── */
+    // Misma regla que buscarPosiblesDuplicadosWeb e Informe_Duplicados (usuarios/*.gs): si cambia allí, hay que cambiarla aquí.
+    //  · DNI: igual. · Teléfono: igual a alguno de los dos de la ficha (sin espacios ni prefijo 34, mínimo 9 dígitos).
+    //  · Nombre: mismas palabras en cualquier orden, sin partículas; parecido si comparten ≥2 y son más de la mitad de las del más corto.
+    var PARTICULAS = ['DE', 'DEL', 'LA', 'LAS', 'LOS', 'EL', 'Y', 'E'];
+    function normNombre(t) {
+      if (!t) return '';
+      return String(t).normalize('NFC').toUpperCase().replace(/Ñ/g, '\u0001').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .replace(/\u0001/g, 'Ñ').replace(/[^A-ZÑ ]/g, '').replace(/ {2,}/g, ' ').trim();
+    }
+    function palabrasNombre(t) {
+      return normNombre(t).split(' ').filter(function (w, i, arr) { return w && PARTICULAS.indexOf(w) === -1 && arr.indexOf(w) === i; });
+    }
+    function nombresParecidos(a, b) {
+      if (!a.length || !b.length) return false;
+      var comunes = a.filter(function (w) { return b.indexOf(w) !== -1; }).length;
+      if (comunes === a.length && comunes === b.length) return true;
+      return comunes >= 2 && comunes * 2 > Math.min(a.length, b.length);
+    }
+    function normTel(t) {
+      if (!t) return '';
+      var l = String(t).replace(/\D/g, '');
+      if (l.indexOf('34') === 0 && l.length > 9) l = l.substring(2);
+      return l;
+    }
+    function normDni(t) { return t ? String(t).trim().toUpperCase() : ''; }
+    // → { total, candidatos[0..6] }, cada uno { fila, nombre, dni, telefono, estado, motivos }. Los más fiables primero.
+    function coincidencias(nombre, dni, telefonos) {
+      var lista = (opts.obtenerUsuarios && opts.obtenerUsuarios()) || [];
+      var dniN = normDni(dni), pal = palabrasNombre(nombre);
+      var tels = telefonos.map(normTel).filter(function (t) { return t.length >= 9; });
+      var out = [];
+      lista.forEach(function (p) {
+        var nom = String(p['Nombre'] == null ? '' : p['Nombre']).trim();
+        if (!nom) return;
+        var motivos = [], puntos = 0;
+        if (dniN && normDni(p['DNI']) === dniN) { motivos.push('dni'); puntos += 4; }
+        if (tels.length) {
+          var tf = [normTel(p['Teléfono 1']), normTel(p['Teléfono 2'])];
+          if (tels.some(function (t) { return tf.indexOf(t) !== -1; })) { motivos.push('telefono'); puntos += 2; }
+        }
+        if (nombresParecidos(pal, palabrasNombre(nom))) { motivos.push('nombre'); puntos += 1; }
+        if (!motivos.length) return;
+        out.push({ fila: p._fila, nombre: nom, dni: String(p['DNI'] || '').trim(), telefono: String(p['Teléfono 1'] || p['Teléfono 2'] || '').trim(),
+                   estado: String(p['Estado'] || '').trim(), motivos: motivos, puntos: puntos });
+      });
+      out.sort(function (a, b) { return b.puntos - a.puntos || a.fila - b.fila; });
+      return { total: out.length, candidatos: out.slice(0, 6) };
+    }
+
+    /* ── Aviso en línea bajo DNI, teléfonos y nombre ── */
+    var AVISO_TXT = { dni: 'Coincidencia:', telefono: 'Coincidencia:', nombre: 'Coincidencia:' };
+    // Una sola línea para no ocupar alto en el panel lateral: enseña la coincidencia más fiable; si hay más, "+N" (el texto flotante y
+    // la capa que sale al guardar las listan todas).
+    function pintarAviso(input, tipo, res) {
+      var campoEl = input.closest('.md-field'), a = campoEl.querySelector('.nu-aviso');
+      if (!a) { a = document.createElement('div'); a.className = 'nu-aviso'; a.setAttribute('role', 'status'); campoEl.appendChild(a); }
+      a.textContent = '';
+      if (!res.total) { a.classList.remove('visible'); return; }
+      var c = res.candidatos[0];
+      var ico = document.createElement('span'); ico.className = 'ms'; ico.textContent = 'warning';
+      var txt = document.createElement('span'); txt.className = 'nu-aviso-txt';
+      txt.title = res.candidatos.map(function (x) { return x.nombre; }).join('\n');
+      txt.appendChild(document.createTextNode(AVISO_TXT[tipo] + ' '));
+      var nom = document.createElement('b'); nom.className = 'nu-aviso-nom'; nom.textContent = c.nombre; txt.appendChild(nom);
+      a.appendChild(ico); a.appendChild(txt);
+      if (res.total > 1) {
+        var mas = document.createElement('span'); mas.className = 'nu-aviso-mas'; mas.textContent = '+' + (res.total - 1);
+        mas.title = 'Hay ' + (res.total - 1) + ' coincidencia(s) más. Pasa el ratón por el texto para verlas todas.'; a.appendChild(mas);
+      }
+      var btn = document.createElement('button'); btn.type = 'button'; btn.className = 'nu-aviso-btn'; btn.textContent = 'Editar'; btn.title = 'Abrir su ficha para editarla';
+      btn.addEventListener('click', function () { irAEditar(c.fila); });
+      a.appendChild(btn); a.classList.add('visible');
+    }
+    function revisarCampo(input, tipo) {
+      pintarAviso(input, tipo, tipo === 'dni' ? coincidencias('', input.value, [])
+        : tipo === 'telefono' ? coincidencias('', '', [input.value]) : coincidencias(input.value, '', []));
+    }
+    var temporizadores = {};
+    function revisarDiferido(input, tipo) {   // mientras se escribe: pequeña espera para no recalcular en cada tecla
+      clearTimeout(temporizadores[input.id]);
+      temporizadores[input.id] = setTimeout(function () { revisarCampo(input, tipo); }, 300);
+    }
+    iDni.addEventListener('input', function () { revisarDiferido(iDni, 'dni'); });
+    iTel1.addEventListener('input', function () { revisarDiferido(iTel1, 'telefono'); });
+    iTel2.addEventListener('input', function () { revisarDiferido(iTel2, 'telefono'); });
+    // El nombre se revisa al salir del campo: mientras se escribe daría coincidencias a medias.
+    iNombre.addEventListener('input', function () { clearTimeout(temporizadores[iNombre.id]); pintarAviso(iNombre, 'nombre', { total: 0, candidatos: [] }); });
+    iNombre.addEventListener('blur', function () { revisarCampo(iNombre, 'nombre'); });
+
     /* ── Cierre ── */
     // El panel no se cierra solo: avisa a la página (onCancelar), que pregunta por los cambios sin guardar
     // y vuelve a la tabla. Esc lo gestiona la página a través de alEscape().
@@ -542,7 +642,7 @@ window.PanelNuevo = {
       datos.anadirContacto = q('#nu-contacto').checked;
       return datos;
     }
-    function enviar() {
+    async function enviar() {
       if (guardando || confResolver || dupResolver) return;
       ocultarMsg();
       var errores = false;
@@ -559,21 +659,15 @@ window.PanelNuevo = {
       iNombre.value = formatoNombreFinal(iNombre.value);
       iDni.value = formatoDni(iDni.value).trim();
       var datos = recogerDatos(), dni = iDni.value.trim();
-      // Aviso de posible usuario ya existente (mismo DNI, teléfono o nombre parecido). No bloquea: deja elegir entre
-      // editar el que ya existe, guardar igualmente como nuevo o seguir editando el formulario.
-      ponerBotonGuardando(true);
-      google.script.run
-        .withSuccessHandler(async function (r) {
-          if (r && r.candidatos && r.candidatos.length) {
-            ponerBotonGuardando(false);
-            var eleccion = await elegirDuplicado(r);
-            if (eleccion.accion === 'volver') return;
-            if (eleccion.accion === 'editar') { irAEditar(eleccion.fila); return; }
-          }
-          guardar(datos);
-        })
-        .withFailureHandler(function () { guardar(datos); })   // si la comprobación falla no bloqueamos el alta
-        .buscarPosiblesDuplicadosWeb({ nombre: iNombre.value, dni: dni, telefono1: iTel1.value, telefono2: iTel2.value });
+      // Último freno antes de crear el alta: si coincide con usuarios ya existentes (DNI, teléfono o nombre parecido) se avisa.
+      // No bloquea: deja elegir entre editar el que ya existe, guardar igualmente como nuevo o seguir editando el formulario.
+      var cands = coincidencias(iNombre.value, dni, [iTel1.value, iTel2.value]);
+      if (cands.total) {
+        var eleccion = await elegirDuplicado(cands);
+        if (eleccion.accion === 'volver') return;
+        if (eleccion.accion === 'editar') { irAEditar(eleccion.fila); return; }
+      }
+      guardar(datos);
     }
     function guardar(datos) {
       guardando = true; ponerBotonGuardando(true);
