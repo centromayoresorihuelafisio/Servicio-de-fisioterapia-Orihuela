@@ -442,6 +442,19 @@
       }
       .badge-sesion.s1, .badge-sesion.sn { background: rgba(0,74,119,.08); color: var(--ag-text-med); }
       .badge-sesion.s1 { box-shadow: inset 0 0 0 1.5px var(--ag-accent); } /* primera sesión: mismo gris + anillo azul fino */
+      /* Sesión: al pasar el ratón por el número aparece un − / + (como los botones de asistencia). La vista normal y la de − / + ocupan
+         la misma casilla de la rejilla: el ancho no cambia al pasar el ratón y no hay parpadeo. */
+      .ses-ctl { display: inline-grid; align-items: center; justify-items: center; }
+      .ses-ctl > * { grid-area: 1 / 1; }
+      .ses-paso { display: inline-flex; align-items: center; gap: .1rem; height: 24px; padding: 0 .15rem; border-radius: 999px; background: rgba(0,74,119,.08); visibility: hidden; }
+      .ses-num { min-width: 1.1ch; text-align: center; font-size: .8rem; font-weight: 700; color: var(--ag-text-med); font-variant-numeric: tabular-nums; }
+      .btn-ses { width: 20px; height: 20px; padding: 0; border: none; border-radius: 50%; background: transparent; color: var(--ag-text-med); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; transition: all var(--ag-t); }
+      .btn-ses .material-symbols-outlined { font-size: 18px; }
+      .btn-ses:hover:not(:disabled) { background: rgba(0,74,119,.16); color: var(--ag-accent); }
+      .btn-ses:disabled { opacity: .35; cursor: default; }
+      .ses-ctl:hover .ses-paso, .ses-ctl:focus-within .ses-paso { visibility: visible; }
+      .ses-ctl:hover .ses-vista, .ses-ctl:focus-within .ses-vista { visibility: hidden; }
+      @media (hover: none) { .ses-paso { visibility: visible; } .ses-vista { visibility: hidden; } }
       .ic-nota { font-size: 16px; vertical-align: -3px; margin-right: .3rem; color: var(--ag-text-low); }
       .btn-fila {
         display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px;
@@ -1497,6 +1510,52 @@
         return '<span class="badge-sesion ' + (t === '1' ? 's1' : 'sn') + (etiqueta ? ' etq' : '') + '" title="' + (t === '1' ? 'Primera sesión' : 'Sesión ' + t) + '">' + (etiqueta ? 'Sesión ' : '') + t + '</span>';
       }
 
+      // Sesión con − / +. Solo si es un número (vacío o texto libre se quedan como estaban). Mínimo 1.
+      function htmlSesion(valor, fila) {
+        var t = (valor + '').trim();
+        if (!/^\d+$/.test(t)) return badgeSesion(valor, true);
+        var n = parseInt(t, 10);
+        return '<span class="ses-ctl" data-fila="' + fila + '"><span class="ses-vista">' + badgeSesion(valor, true) + '</span>' +
+          '<span class="ses-paso"><button type="button" class="btn-ses" data-ses="-1"' + (n <= 1 ? ' disabled' : '') + ' title="Restar una sesión"><span class="material-symbols-outlined">remove</span></button>' +
+          '<span class="ses-num">' + n + '</span>' +
+          '<button type="button" class="btn-ses" data-ses="1" title="Sumar una sesión"><span class="material-symbols-outlined">add</span></button></span></span>';
+      }
+
+      // El número cambia al instante en pantalla; se guarda UNA sola vez cuando se deja de pulsar (0,5 s), aunque se hayan dado varios clics.
+      // Si el servidor falla, vuelve al valor con el que se empezó.
+      var sesionesPendientes = {};   // fila → { timer, previo, valor }
+      function cambiarSesion(fila, delta) {
+        var cita = CITAS.find(function(c) { return c._fila == fila; });
+        if (!cita) return;
+        var actual = parseInt(String(cita['Sesión']).trim(), 10);
+        if (isNaN(actual)) return;
+        var nuevo = Math.max(1, actual + delta);
+        if (nuevo === actual) return;
+        var p = sesionesPendientes[fila];
+        if (!p) p = sesionesPendientes[fila] = { previo: cita['Sesión'] };   // valor con el que empezó la tanda de clics
+        p.valor = nuevo;
+        cita['Sesión'] = nuevo;
+        render();
+        clearTimeout(p.timer);
+        p.timer = setTimeout(function() { guardarSesion(fila); }, 500);
+      }
+
+      function guardarSesion(fila) {
+        var p = sesionesPendientes[fila];
+        if (!p) return;
+        delete sesionesPendientes[fila];
+        if (String(p.valor) === String(p.previo).trim()) return;   // se ha vuelto al valor de partida: nada que guardar
+        function revertir(msg) {
+          var cita = CITAS.find(function(c) { return c._fila == fila; });
+          if (cita) { cita['Sesión'] = p.previo; render(); }
+          mostrarAviso(msg);
+        }
+        google.script.run
+          .withSuccessHandler(function(res) { if (!res || !res.success) revertir((res && res.message) || 'No se pudo guardar el cambio.'); })
+          .withFailureHandler(function(err) { revertir('Error al guardar: ' + err); })
+          .actualizarCampoAgendaWeb(fila, 'Sesión', p.valor);
+      }
+
       // Quita emojis del texto que viene de la hoja (el icono del chip ya indica el estado).
       function sinEmoji(v) {
         var o = (v === null || v === undefined) ? '' : String(v);
@@ -1585,7 +1644,7 @@
           var contenido;
           if (header === 'Notas') contenido = '<span class="material-symbols-outlined ic-nota-btn">sticky_note_2</span><span class="nota-txt' + (vacio ? ' vacia' : '') + '" title="' + (vacio ? 'Añadir nota' : valorAttr) + '">' + (vacio ? 'Añadir nota…' : escapar(valor)) + '</span>';
           else if (vacio) contenido = '—';
-          else if (header === 'Sesión') contenido = badgeSesion(valor, true);
+          else if (header === 'Sesión') contenido = htmlSesion(valor, fila);
           else contenido = escapar(valor);
 
           var clases = 'editable' + (vacio ? ' vacio' : '') + (header === 'Notas' ? ' celda-notas' + (vacio ? '' : ' con-nota') : '');
@@ -1795,7 +1854,7 @@
 
         return '<div class="' + clases.join(' ') + '" data-fila="' + c._fila + '">' +
           '<div class="tj-top"><span class="asa material-symbols-outlined" title="Arrastra para mover la cita a otro hueco libre">drag_indicator</span><span class="chk"></span><span class="tj-hora">' + escapar(hora) + '</span>' + tagTxt +
-            '<span class="tj-fill"></span>' + (vacioTxt(c['Sesión']) ? '' : badgeSesion(c['Sesión'], true)) + '<span class="tj-acciones">' + htmlBotonesFila(c._fila, c) + '</span></div>' +
+            '<span class="tj-fill"></span>' + (vacioTxt(c['Sesión']) ? '' : htmlSesion(c['Sesión'], c._fila)) + '<span class="tj-acciones">' + htmlBotonesFila(c._fila, c) + '</span></div>' +
           '<div class="tj-nombre" data-ficha-fila="' + c._fila + '" title="' + escapar(c['Usuario']) + '">' + avatarHtml(c['Usuario']) + '<span class="nombre-u">' + escapar(c['Usuario']) + '</span></div>' +
           asis + notas + '</div>';
       }
@@ -2076,6 +2135,14 @@
         if (btnAsis) {
           var contenedor = btnAsis.closest('[data-fila]');
           if (contenedor) guardarAsistencia(contenedor.dataset.fila, btnAsis.classList.contains('activo') ? '' : btnAsis.dataset.asis);
+          return;
+        }
+
+        // Sesión: − / + (aparecen al pasar el ratón por el número). Se atiende aquí para que no abra la edición en línea ni seleccione la fila.
+        var btnSes = t.closest('[data-ses]');
+        if (btnSes) {
+          var ctlSes = btnSes.closest('.ses-ctl');
+          if (ctlSes && !btnSes.disabled) cambiarSesion(ctlSes.dataset.fila, parseInt(btnSes.dataset.ses, 10));
           return;
         }
 
