@@ -16,7 +16,7 @@
     · Al guardar muestra el mensaje y, tras un instante, llama a onGuardado(mensaje) (la página recarga la tabla).
   Funciones de servidor (usuarios/Anadir_Usuario.gs): guardarPaciente y generarHistoriaClinicaRegistroUsuario.
   CSS acotado a .nu y basado en los tokens de la página (--md-*, respeta el tema oscuro). A 400 px todo va en una columna.
-  Requiere ui/JS_Formato_Nombre en la página (sanitizeName, sanitizeDni, formatoNombreFinal, formatoDni).
+  Requiere ui/JS_Formato_Nombre en la página (sanitizeName, sanitizeDni, formatoNombreFinal, formatoDni, validarDni).
 -->
 <style>
 .nu {
@@ -354,6 +354,14 @@ window.PanelNuevo = {
     });
     iNombre.addEventListener('input', function (e) { if (!e.isComposing) sanitizeName(iNombre); });
     iDni.addEventListener('input', function (e) { if (!e.isComposing) sanitizeDni(iDni); });
+    // Letra de control del DNI/NIE (ui/JS_Formato_Nombre → validarDni). Solo si el valor tiene forma de DNI/NIE: el campo también
+    // admite SIP u otros documentos. Se avisa en cuanto el número está completo y también impide guardar; si no hay DNI, se deja vacío.
+    function mensajeLetraDni() {
+      if (typeof validarDni !== 'function') return '';   // ui/JS_Formato_Nombre sin actualizar: no se valida, pero el alta sigue funcionando
+      var v = validarDni(iDni.value);
+      return (v.aplica && !v.valido) ? 'La letra no coincide con el número (debería ser ' + v.letra + '). Revísalo.' : '';
+    }
+    iDni.addEventListener('input', function () { var m = mensajeLetraDni(); if (m) setError(iDni, m); else clearError(iDni); });
     iTel1.addEventListener('input', function () { formatPhone(iTel1); });
     iTel2.addEventListener('input', function () { formatPhone(iTel2); });
     qa('.md-field input:not([type="date"])').forEach(function (el) {
@@ -648,6 +656,8 @@ window.PanelNuevo = {
       var errores = false;
       if (!iNombre.value.trim()) { setError(iNombre, 'El nombre es obligatorio.'); errores = true; }
       if (!iFi.value) { setError(iFi, 'La fecha de inscripción es obligatoria.'); errores = true; }
+      var msgDni = mensajeLetraDni();
+      if (msgDni) { setError(iDni, msgDni); errores = true; }
       if (errores) { var primero = q('.md-field.has-error input'); if (primero) primero.focus(); return; }
       if (!gravedadCompleta()) {
         qa('.grav-card').forEach(function (c) { if (!c.querySelector('input:checked')) c.classList.add('has-error'); });

@@ -11,6 +11,8 @@
   bloque de script), ANTES del script principal de la página. Uso:
     enlazarFormatoNombre(inputElemento);   enlazarFormatoDni(inputElemento);
   Para valores ya escritos: formatoNombreFinal(texto) (quita además los espacios de los extremos).
+  Letra del DNI/NIE: validarDni(texto) → { aplica, valido, letra }. Solo se valida lo que tiene forma de DNI (8 cifras + letra) o de
+  NIE (X/Y/Z + 7 cifras + letra): el campo también admite SIP u otros documentos y esos no se tocan (aplica = false).
 -->
 <script>
   function formatoNombreEscribiendo(v) {
@@ -24,6 +26,16 @@
   }
   function formatoNombreFinal(v) { return formatoNombreEscribiendo(v).trim(); }
   function formatoDni(v) { return (v || '').toString().toUpperCase(); }
+  // Letra de control del DNI/NIE (resto de dividir el número entre 23). `letra` es la que correspondería al número escrito.
+  var LETRAS_DNI_ = 'TRWAGMYFPDXBNJZSQVHLCKE';
+  function validarDni(v) {
+    var s = (v || '').toString().toUpperCase().replace(/[\s-]/g, '');
+    var m = /^([XYZ]?)(\d{7,8})([A-Z])$/.exec(s);
+    if (!m || m[2].length !== (m[1] ? 7 : 8)) return { aplica: false };
+    var numero = parseInt(({ X: '0', Y: '1', Z: '2' }[m[1]] || '') + m[2], 10);
+    var letra = LETRAS_DNI_.charAt(numero % 23);
+    return { aplica: true, valido: letra === m[3], letra: letra };
+  }
   function sinTildes(v) { return (v || '').toString().normalize('NFD').replace(/[\u0300-\u036f]/g, ''); }
 
   // Aplica `fn` al valor del input conservando la posición del cursor (si no cambia nada, no lo toca).

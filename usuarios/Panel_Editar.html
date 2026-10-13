@@ -14,7 +14,7 @@
   Seguridad: actualizarPaciente escribe la fila entera en el número de fila que recibe, sin comprobar de quién es.
   Por eso el panel comprueba la identidad dos veces: al abrir (contra el nombre que tenía la tabla) y otra vez justo
   antes de guardar (contra la fila tal como se cargó: columna Nº y Nombre). Si no coinciden, no se guarda nada.
-  Requiere ui/JS_Formato_Nombre en la página (enlazarFormatoNombre / enlazarFormatoDni).
+  Requiere ui/JS_Formato_Nombre en la página (enlazarFormatoNombre / enlazarFormatoDni / validarDni).
 -->
 <style>
 .pe {
@@ -30,6 +30,8 @@
 .pe .pe-scroll { flex: 1; min-height: 0; overflow: auto; }
 .pe .pe-estado { padding: 2rem 1.25rem; text-align: center; color: var(--md-on-surface-med); font-size: .85rem; }
 .pe .pe-estado.error { color: var(--md-error); }
+.pe .pe-dni-msg { display: none; font-size: .75rem; color: var(--md-error); padding: 4px 0 0 14px; }
+.pe .pe-dni-msg.visible { display: block; }
 
 /* ── Secciones ── */
 .pe .card-section { padding: 1.1rem 1.25rem 1.3rem; border-bottom: 1px solid var(--md-outline); }
@@ -410,6 +412,9 @@ window.PanelEditar = {
       // los datos ya guardados no se tocan hasta que alguien edite ese campo.
       enlazarFormatoNombre(byName('Nombre')[0]);
       enlazarFormatoDni(byName('DNI')[0]);
+      // Letra del DNI/NIE: ver revisarLetraDni(). Se comprueba al escribir y al salir del campo.
+      var inpDni = byName('DNI')[0];
+      if (inpDni) ['input', 'blur'].forEach(function (ev) { inpDni.addEventListener(ev, revisarLetraDni); });
       headers.forEach(function (h) {
         if (h.indexOf("Patología") !== -1) updateMsLabel(h.replace(/\s/g, ''), h);
       });
@@ -450,7 +455,24 @@ window.PanelEditar = {
       }
       return n;
     }
+    // Letra de control del DNI/NIE (ui/JS_Formato_Nombre → validarDni). Solo se exige si el DNI se ha CAMBIADO en esta edición: un
+    // DNI antiguo mal guardado no debe impedir modificar otros datos de la ficha. Devuelve false si hay que corregirlo.
+    function revisarLetraDni() {
+      if (typeof validarDni !== 'function') return true;   // ui/JS_Formato_Nombre sin actualizar: no se valida, pero la edición sigue funcionando
+      var inp = byName('DNI')[0]; if (!inp) return true;
+      var campoEl = inp.closest('.field'), msg = campoEl && campoEl.querySelector('.pe-dni-msg');
+      var cambiado = inp.value.trim().toUpperCase() !== String(originalData['DNI'] || '').trim().toUpperCase();
+      var v = validarDni(inp.value), mal = cambiado && v.aplica && !v.valido;
+      if (campoEl && !msg) { msg = document.createElement('div'); msg.className = 'pe-dni-msg'; msg.setAttribute('role', 'alert'); campoEl.appendChild(msg); }
+      if (msg) { msg.textContent = mal ? 'La letra no coincide con el número (debería ser ' + v.letra + '). Revísalo.' : ''; msg.classList.toggle('visible', mal); }
+      return !mal;
+    }
     function mostrarResumen() {
+      if (!revisarLetraDni()) {   // DNI cambiado con la letra mal: no se abre la revisión hasta corregirlo
+        var campoDni = byName('DNI')[0];
+        if (campoDni) { campoDni.focus(); campoDni.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
+        return;
+      }
       var data = recogerDatos(), html = '', changedCount = 0;
       for (var key in data) {
         if (key === 'Nº') continue;
