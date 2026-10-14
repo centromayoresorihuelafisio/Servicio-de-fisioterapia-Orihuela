@@ -346,7 +346,6 @@ window.PanelNuevo = {
     }
     var iNombre = q('#nu-nombre'), iDni = q('#nu-dni'), iFi = q('#nu-fi'), iFn = q('#nu-fn'), iTel1 = q('#nu-tel1'), iTel2 = q('#nu-tel2');
     iFi.value = hoyLocal();
-    if (window.SelectorFecha) { SelectorFecha.enlazar(iFi, { borrar: false }); SelectorFecha.enlazar(iFn, {}); }   // calendario moderno (ui/JS_Selector_Fecha)
     qa('.md-field input, .md-field textarea').forEach(function (el) {
       sync(el);
       el.addEventListener('input', function () { sync(el); clearError(el); });
