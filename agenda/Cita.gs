@@ -130,6 +130,7 @@ function obtenerSemanasYHuecos() {
     const data = sheet.getDataRange().getValues();
     const NUM_SEMANAS_A_CARGAR = 60; // Ajusta según necesites
 
+    const cerradosDisp = leerDisponibilidad_(); // horas cerradas (agenda/Disponibilidad.gs)
     const semanasData = [];
     let currentWeek = null;
     let currentDay = null;
@@ -185,6 +186,8 @@ function obtenerSemanasYHuecos() {
           if (!currentDay) continue; // Seguridad
 
           const horaDisplay = Utilities.formatDate(row[2], timeZone, 'HH:mm');
+          // Hora cerrada en Disponibilidad: no se ofrece como hueco (currentDateKey es dd/MM/yyyy → yyyy-MM-dd).
+          if (disponibilidadCerrada_(cerradosDisp, currentDateKey.split('/').reverse().join('-'), horaDisplay)) continue;
           const rowNumber = i + 1;
 
           const huecoValue = JSON.stringify({

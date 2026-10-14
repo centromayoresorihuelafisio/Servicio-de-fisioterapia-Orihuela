@@ -1,0 +1,224 @@
+<!--
+  agenda/Panel_Disponibilidad.html
+  Panel lateral de DISPONIBILIDAD de la Agenda Web: abrir o cerrar horas (huecos) para un rango de fechas.
+  Se carga bajo demanda desde agenda/Web_Vista con <?!= incluirPanel('agenda/Panel_Disponibilidad', 'PanelDisponibilidad'); ?>
+  API: PanelDisponibilidad.abrir(contenedor, { semana, hoy, obtener, aplicar, onAplicado, onCancelar })
+    · semana        → lunes de la semana que se está viendo ("yyyy-MM-dd"); el rango empieza siendo esa semana (lunes a viernes)
+    · hoy()         → "yyyy-MM-dd" de hoy (opcional)
+    · obtener(desde, hasta) → promesa con { success, cerrados: { "yyyy-MM-dd": ["08:00", ...] } }  (horas cerradas ahora)
+    · aplicar({ desde, hasta, dias: [1..5], cerrados: ["13:30", ...] }) → promesa con { success, mensaje | message, ... }
+    · onAplicado(res) → se llama cuando el servidor confirma; la página cierra el panel y recarga la semana
+  Devuelve { haCambiado(), alEscape(), cerrar() }.
+  Servidor: agenda/Disponibilidad.gs (obtenerDisponibilidadWeb, aplicarDisponibilidadWeb). Estilos acotados a .dsp y basados en los
+  tokens --md-* (como Panel_Recordatorios).
+  Marcada = hora DISPONIBLE (por defecto todas). Al aplicar, las horas sin marca quedan cerradas en todas las fechas del rango que
+  coincidan con los días de la semana elegidos; lo que hubiera antes en esas fechas se sustituye. Las citas ya puestas se mantienen.
+-->
+<style>
+.dsp { display: flex; flex-direction: column; height: 100%; min-height: 0; font-family: var(--font); font-size: 14px; color: var(--md-on-surface); background: var(--md-surface); }
+.dsp-scroll { flex: 1; min-height: 0; overflow: auto; padding: 1rem 1.1rem; display: flex; flex-direction: column; gap: 1.2rem; }
+.dsp-sec { display: flex; flex-direction: column; gap: .65rem; }
+.dsp-sec h3 { margin: 0; font-size: .78rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--md-on-surface-med); }
+.dsp-ayuda { margin: 0; font-size: .8rem; line-height: 1.45; color: var(--md-on-surface-med); }
+.dsp-fechas { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
+.dsp-campo > span { display: block; margin: 0 0 .2rem .2rem; font-size: .72rem; font-weight: 600; color: var(--md-on-surface-med); }
+.dsp input[type=date] { width: 100%; padding: .6rem .75rem; border: 1.5px solid var(--md-outline); border-radius: 12px; background: transparent; color: var(--md-on-surface); font-family: var(--font); font-size: .9rem; outline: none; transition: all 150ms; }
+.dsp input[type=date]:hover { border-color: var(--md-on-surface-med); }
+.dsp input[type=date]:focus { border-color: var(--md-primary); box-shadow: 0 0 0 3px rgba(43,92,117,.12); }
+.dsp-rapidas { display: flex; flex-wrap: wrap; gap: .35rem; }
+.dsp-rapida, .dsp-link { border: none; background: var(--md-surface-variant); color: var(--md-on-surface-med); border-radius: 999px; padding: .2rem .7rem; font-family: var(--font); font-size: .76rem; font-weight: 600; cursor: pointer; transition: all 150ms; }
+.dsp-rapida:hover, .dsp-link:hover { background: var(--md-primary-light); color: var(--md-primary-dark); }
+.dsp-dias { display: flex; gap: .4rem; }
+.dsp-dia { flex: 1; height: 36px; border-radius: 10px; border: 1.5px solid var(--md-outline); background: transparent; color: var(--md-on-surface-med); font-family: var(--font); font-size: .85rem; font-weight: 700; cursor: pointer; transition: all 150ms; }
+.dsp-dia:hover { background: var(--md-surface-variant); }
+.dsp-dia[aria-pressed=true] { background: var(--md-primary-light); border-color: var(--md-primary); color: var(--md-primary-dark); }
+.dsp-bloque-cab { display: flex; align-items: center; justify-content: space-between; margin-bottom: .4rem; font-size: .85rem; font-weight: 600; }
+.dsp-horas { display: grid; grid-template-columns: repeat(4, 1fr); gap: .4rem; }
+.dsp-hora { height: 34px; border-radius: 10px; border: 1.5px solid var(--md-primary); background: var(--md-primary-light); color: var(--md-primary-dark); font-family: var(--font); font-size: .82rem; font-weight: 600; font-variant-numeric: tabular-nums; cursor: pointer; transition: all 150ms; }
+.dsp-hora:hover { filter: brightness(.97); }
+.dsp-hora[aria-pressed=false] { border: 1.5px dashed var(--md-outline); background: transparent; color: var(--md-on-surface-med); text-decoration: line-through; opacity: .8; }
+.dsp-todas { align-self: flex-start; }
+.dsp-resumen { margin: 0; font-size: .82rem; line-height: 1.5; color: var(--md-on-surface-med); }
+.dsp-resumen b { color: var(--md-on-surface); }
+.dsp-resumen .aviso { display: block; margin-top: .3rem; color: var(--md-on-surface); }
+.dsp-msg { display: none; margin: 0; font-size: .82rem; color: var(--md-error); }
+.dsp-msg.visible { display: block; }
+.dsp-pie { display: flex; align-items: center; justify-content: flex-end; gap: .5rem; padding: .8rem 1.1rem; border-top: 1px solid var(--md-outline); background: var(--md-surface); }
+.dsp-btn { display: inline-flex; align-items: center; justify-content: center; height: 38px; padding: 0 1.2rem; border-radius: 999px; cursor: pointer; border: 1px solid var(--md-outline); background: transparent; color: var(--md-primary); font-family: var(--font); font-size: .85rem; font-weight: 600; transition: all 150ms; }
+.dsp-btn:hover:not(:disabled) { background: var(--md-primary-light); }
+.dsp-btn.primario { background: var(--md-primary-container); border-color: var(--md-primary-container); color: var(--md-primary-dark); }
+.dsp-btn:disabled { opacity: .5; cursor: not-allowed; }
+.dsp button:focus-visible, .dsp input:focus-visible { outline: 2px solid var(--md-primary); outline-offset: 2px; }
+</style>
+<script>
+window.PanelDisponibilidad = (function () {
+  var DIAS = [[1, 'L', 'Lunes'], [2, 'M', 'Martes'], [3, 'X', 'Miércoles'], [4, 'J', 'Jueves'], [5, 'V', 'Viernes']];
+  var MAX_DIAS = 400;   // igual que en el servidor
+  function dos(n) { return (n < 10 ? '0' : '') + n; }
+  function franja(desdeMin, hastaMin) { var o = []; for (var m = desdeMin; m < hastaMin; m += 30) o.push(dos(Math.floor(m / 60)) + ':' + dos(m % 60)); return o; }
+  // Los mismos huecos que genera la hoja de la Agenda: mañana 08:00–14:00 y tarde 16:00–20:00, cada 30 minutos.
+  var MANANA = franja(8 * 60, 14 * 60), TARDE = franja(16 * 60, 20 * 60), TODAS = MANANA.concat(TARDE);
+
+  function partes(iso) { var p = iso.split('-'); return [+p[0], +p[1], +p[2]]; }
+  function aISO(d) { return d.getFullYear() + '-' + dos(d.getMonth() + 1) + '-' + dos(d.getDate()); }
+  function sumar(iso, n) { var p = partes(iso); return aISO(new Date(p[0], p[1] - 1, p[2] + n)); }
+  function esISO(t) { return /^\d{4}-\d{2}-\d{2}$/.test(t || ''); }
+  function lunesDe(iso) { var p = partes(iso), d = new Date(p[0], p[1] - 1, p[2]); return sumar(iso, -((d.getDay() + 6) % 7)); }
+  function corta(iso) { var p = partes(iso); return dos(p[2]) + '/' + dos(p[1]); }
+  // Fechas del rango cuyo día de la semana (1=lunes … 5=viernes) esté en `dias` (objeto { 1: true, ... }). [] si el rango no es válido.
+  function fechasDelRango(desde, hasta, dias) {
+    if (!esISO(desde) || !esISO(hasta) || desde > hasta) return [];
+    var out = [], p = partes(desde);
+    for (var i = 0; i <= MAX_DIAS + 400; i++) {
+      var d = new Date(p[0], p[1] - 1, p[2] + i), iso = aISO(d);
+      if (iso > hasta) break;
+      if (dias[d.getDay()]) out.push(iso);
+    }
+    return out;
+  }
+  function esc(t) { return String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+
+  return {
+    abrir: function (host, opts) {
+      opts = opts || {};
+      var hoy = opts.hoy ? opts.hoy() : aISO(new Date());
+      var lunes = lunesDe(opts.semana && esISO(opts.semana) ? opts.semana : hoy);
+      var desde = lunes, hasta = sumar(lunes, 4);
+      var dias = { 1: true, 2: true, 3: true, 4: true, 5: true };
+      var cerradas = {};          // hora → true si está cerrada
+      var editado = false, guardando = false, cargando = false, mixto = false, token = 0, temporizador = null;
+
+      host.innerHTML =
+        '<div class="dsp">' +
+          '<div class="dsp-scroll">' +
+            '<section class="dsp-sec"><h3>Días</h3>' +
+              '<div class="dsp-fechas">' +
+                '<label class="dsp-campo"><span>Desde</span><input type="date" class="dsp-desde"></label>' +
+                '<label class="dsp-campo"><span>Hasta</span><input type="date" class="dsp-hasta"></label>' +
+              '</div>' +
+              '<div class="dsp-rapidas"><button type="button" class="dsp-rapida" data-rap="semana">Esta semana</button><button type="button" class="dsp-rapida" data-rap="mes">Este mes</button></div>' +
+              '<div class="dsp-dias" role="group" aria-label="Días de la semana">' +
+                DIAS.map(function (d) { return '<button type="button" class="dsp-dia" data-dia="' + d[0] + '" title="' + d[2] + '" aria-pressed="true">' + d[1] + '</button>'; }).join('') +
+              '</div>' +
+            '</section>' +
+            '<section class="dsp-sec"><h3>Horas disponibles</h3>' +
+              '<p class="dsp-ayuda">Las horas marcadas están disponibles. Quita la marca de las que no se pueden dar (fuera del horario, vacaciones, imprevistos…). Las citas ya puestas no se tocan.</p>' +
+              '<div><div class="dsp-bloque-cab"><span>Mañana</span><button type="button" class="dsp-link" data-bloque="manana"></button></div><div class="dsp-horas" data-grupo="manana"></div></div>' +
+              '<div><div class="dsp-bloque-cab"><span>Tarde</span><button type="button" class="dsp-link" data-bloque="tarde"></button></div><div class="dsp-horas" data-grupo="tarde"></div></div>' +
+              '<button type="button" class="dsp-link dsp-todas" data-accion="abrir-todas">Abrir todas</button>' +
+            '</section>' +
+            '<p class="dsp-resumen" aria-live="polite"></p>' +
+            '<p class="dsp-msg" role="alert"></p>' +
+          '</div>' +
+          '<div class="dsp-pie"><button type="button" class="dsp-btn dsp-cancelar">Cancelar</button><button type="button" class="dsp-btn primario dsp-aplicar">Aplicar</button></div>' +
+        '</div>';
+
+      var raiz = host.querySelector('.dsp');
+      function q(s) { return raiz.querySelector(s); }
+      var iDesde = q('.dsp-desde'), iHasta = q('.dsp-hasta'), resumen = q('.dsp-resumen'), msg = q('.dsp-msg'), btnAplicar = q('.dsp-aplicar'), btnCancelar = q('.dsp-cancelar');
+
+      function fechas() { return fechasDelRango(desde, hasta, dias); }
+      function valido() { var f = fechas(); return f.length > 0 && f.length <= MAX_DIAS; }
+      function mostrarMsg(t) { msg.textContent = t || ''; msg.classList.toggle('visible', !!t); }
+
+      function pintarHoras() {
+        [['manana', MANANA], ['tarde', TARDE]].forEach(function (g) {
+          q('[data-grupo="' + g[0] + '"]').innerHTML = g[1].map(function (h) {
+            return '<button type="button" class="dsp-hora" data-h="' + h + '" aria-pressed="' + (cerradas[h] ? 'false' : 'true') + '">' + h + '</button>';
+          }).join('');
+          var todasCerradas = g[1].every(function (h) { return cerradas[h]; });
+          q('[data-bloque="' + g[0] + '"]').textContent = (todasCerradas ? 'Abrir ' : 'Cerrar ') + g[0].replace('manana', 'mañana');
+        });
+      }
+
+      function pintarResumen() {
+        var f = fechas();
+        if (cargando) { resumen.textContent = 'Leyendo el horario actual…'; }
+        else if (!esISO(desde) || !esISO(hasta)) { resumen.textContent = 'Indica las fechas «Desde» y «Hasta».'; }
+        else if (desde > hasta) { resumen.textContent = 'Revisa el rango: «Desde» no puede ser posterior a «Hasta».'; }
+        else if (!Object.keys(dias).some(function (k) { return dias[k]; })) { resumen.textContent = 'Elige al menos un día de la semana.'; }
+        else if (!f.length) { resumen.textContent = 'Ese rango no incluye ninguno de los días elegidos.'; }
+        else if (f.length > MAX_DIAS) { resumen.textContent = 'El rango es demasiado largo (máximo ' + MAX_DIAS + ' días a la vez).'; }
+        else {
+          var c = TODAS.filter(function (h) { return cerradas[h]; }).length;
+          var letras = DIAS.filter(function (d) { return dias[d[0]]; }).map(function (d) { return d[1]; }).join(' ');
+          resumen.innerHTML = 'Se aplicará a <b>' + f.length + ' día' + (f.length === 1 ? '' : 's') + '</b> (' + esc(letras) + ', del ' + corta(desde) + ' al ' + corta(hasta) + '). ' +
+            (c === 0 ? '<b>Todas las horas abiertas.</b>' : '<b>' + c + ' hora' + (c === 1 ? '' : 's') + ' cerrada' + (c === 1 ? '' : 's') + '</b> de ' + TODAS.length + '.') +
+            (mixto ? '<span class="aviso">Algunos de esos días tienen ahora un horario distinto: se sustituirá por este.</span>' : '');
+        }
+        btnAplicar.disabled = guardando || cargando || !valido();
+        btnAplicar.textContent = guardando ? 'Guardando…' : 'Aplicar';
+        btnCancelar.disabled = guardando;
+      }
+
+      function pintarFechas() { iDesde.value = desde; iHasta.value = hasta; }
+      function pintarDias() { Array.prototype.forEach.call(raiz.querySelectorAll('.dsp-dia'), function (b) { b.setAttribute('aria-pressed', dias[b.getAttribute('data-dia')] ? 'true' : 'false'); }); }
+
+      // Lee del servidor lo que hay cerrado ahora en el rango: si el usuario aún no ha tocado las horas, las muestra tal cual; si los
+      // días del rango tienen horarios distintos, lo avisa. Una respuesta vieja (el rango cambió mientras tanto) se ignora.
+      function programarCarga() { clearTimeout(temporizador); temporizador = setTimeout(cargarEstado, 250); }
+      function cargarEstado() {
+        var f = fechas();
+        if (!f.length || f.length > MAX_DIAS || !opts.obtener) { mixto = false; cargando = false; pintarResumen(); return; }
+        var mio = ++token; cargando = true; pintarResumen();
+        Promise.resolve(opts.obtener(desde, hasta)).then(function (res) {
+          if (mio !== token || !host.isConnected) return;
+          cargando = false;
+          if (!res || res.success === false) { mostrarMsg((res && res.message) || 'No se pudo leer la disponibilidad actual.'); pintarResumen(); return; }
+          mostrarMsg('');
+          var por = res.cerrados || {};
+          var claves = f.map(function (x) { return (por[x] || []).slice().sort().join(','); });
+          mixto = claves.some(function (k) { return k !== claves[0]; });
+          if (!editado) { cerradas = {}; (por[f[0]] || []).forEach(function (h) { cerradas[h] = true; }); pintarHoras(); }
+          pintarResumen();
+        }, function () {
+          if (mio !== token || !host.isConnected) return;
+          cargando = false; mostrarMsg('No se pudo leer la disponibilidad actual.'); pintarResumen();
+        });
+      }
+
+      function cambiarRango() { mostrarMsg(''); pintarResumen(); programarCarga(); }
+
+      raiz.addEventListener('click', function (e) {
+        var b = e.target.closest('button'); if (!b || guardando) return;
+        if (b.hasAttribute('data-h')) { var h = b.getAttribute('data-h'); if (cerradas[h]) delete cerradas[h]; else cerradas[h] = true; editado = true; pintarHoras(); mostrarMsg(''); pintarResumen(); return; }
+        if (b.hasAttribute('data-dia')) { var d = b.getAttribute('data-dia'); dias[d] = !dias[d]; pintarDias(); cambiarRango(); return; }
+        if (b.hasAttribute('data-bloque')) {
+          var lista = b.getAttribute('data-bloque') === 'manana' ? MANANA : TARDE;
+          var cerrar = !lista.every(function (x) { return cerradas[x]; });
+          lista.forEach(function (x) { if (cerrar) cerradas[x] = true; else delete cerradas[x]; });
+          editado = true; pintarHoras(); mostrarMsg(''); pintarResumen(); return;
+        }
+        if (b.getAttribute('data-accion') === 'abrir-todas') { cerradas = {}; editado = true; pintarHoras(); mostrarMsg(''); pintarResumen(); return; }
+        if (b.hasAttribute('data-rap')) {
+          if (b.getAttribute('data-rap') === 'semana') { desde = lunesDe(hoy); hasta = sumar(desde, 4); }
+          else { var p = partes(hoy); desde = aISO(new Date(p[0], p[1] - 1, 1)); hasta = aISO(new Date(p[0], p[1], 0)); }
+          pintarFechas(); cambiarRango(); return;
+        }
+      });
+      iDesde.addEventListener('change', function () { desde = iDesde.value; if (esISO(desde) && esISO(hasta) && hasta < desde) { hasta = desde; pintarFechas(); } cambiarRango(); });
+      iHasta.addEventListener('change', function () { hasta = iHasta.value; cambiarRango(); });
+
+      btnCancelar.addEventListener('click', function () { if (opts.onCancelar) opts.onCancelar(); });
+      btnAplicar.addEventListener('click', function () {
+        if (guardando || !valido()) return;
+        guardando = true; mostrarMsg(''); pintarResumen();
+        var datos = { desde: desde, hasta: hasta, dias: DIAS.map(function (d) { return d[0]; }).filter(function (d) { return dias[d]; }), cerrados: TODAS.filter(function (h) { return cerradas[h]; }) };
+        Promise.resolve(opts.aplicar(datos)).then(function (res) {
+          guardando = false;
+          if (res && res.success) { editado = false; pintarResumen(); if (opts.onAplicado) opts.onAplicado(res); }
+          else { pintarResumen(); mostrarMsg((res && (res.message || res.mensaje)) || 'No se pudo guardar.'); }
+        }, function (err) { guardando = false; pintarResumen(); mostrarMsg('Error al guardar: ' + ((err && err.message) || err)); });
+      });
+
+      pintarFechas(); pintarDias(); pintarHoras(); pintarResumen(); cargarEstado();
+
+      return {
+        haCambiado: function () { return editado && !guardando; },   // horas tocadas y aún sin aplicar
+        alEscape: function () { return false; },                     // el Esc lo gestiona la página (cierra, preguntando si hay cambios)
+        cerrar: function () { token++; clearTimeout(temporizador); }
+      };
+    }
+  };
+})();
+</script>

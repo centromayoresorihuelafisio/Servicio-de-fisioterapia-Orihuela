@@ -51,6 +51,7 @@ const PANELES_DIFERIDOS_ = [
   'valoraciones/Panel_Valoracion',
   'usuarios/Panel_Editar',
   'agenda/Panel_Cita',
+  'agenda/Panel_Disponibilidad',
   'usuarios/Panel_Nuevo',
   'historia/Panel_Huerfana'
 ];

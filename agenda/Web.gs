@@ -149,6 +149,7 @@ function obtenerAgendaSemanaWeb(fechaISO) {
       formulasCol = rangoHC.getFormulas();
     }
 
+    const cerradosDisp = leerDisponibilidad_(); // horas cerradas (agenda/Disponibilidad.gs)
     const citas = [];
     for (let i = 0; i < data.length; i++) {
       const row = data[i];
@@ -167,6 +168,10 @@ function obtenerAgendaSemanaWeb(fechaISO) {
 
       const usuarioRaw = colUsuario !== -1 ? row[colUsuario] : null;
       const tieneReserva = !!(usuarioRaw && usuarioRaw.toString().trim() !== '');
+
+      // Hueco LIBRE en una hora cerrada en Disponibilidad: no es un hueco real, no se devuelve (así no se ve, no cuenta como libre y no
+      // se puede arrastrar a él). Una cita ya puesta en esa hora sí se devuelve: nunca se esconde una cita.
+      if (!tieneReserva && colHora !== -1 && disponibilidadCerrada_(cerradosDisp, Utilities.formatDate(fecha, tz, 'yyyy-MM-dd'), Utilities.formatDate(row[colHora], tz, 'HH:mm'))) continue;
 
       const cita = {
         _fila: filaInicioAbs + i,
@@ -788,6 +793,7 @@ function _prepararCopiaCita(sheet, indiceInfo, tz, fila, doble) {
   let sesionActual = colSesion !== -1 ? sheet.getRange(fila, colSesion + 1).getValue() : 0;
   sesionActual = (typeof sesionActual === 'number' && sesionActual >= 1) ? sesionActual : (parseInt(sesionActual, 10) || 0);
 
+  const cerradosDisp = leerDisponibilidad_(); // horas cerradas (agenda/Disponibilidad.gs)
   const destinos = [];
   let fechaCursor = fecha;
   for (let i = 0; i < offsets.length; i++) {
@@ -803,6 +809,9 @@ function _prepararCopiaCita(sheet, indiceInfo, tz, fila, doble) {
     }
 
     const ocupante = sheet.getRange(filaDestino, colUsuario + 1).getValue();
+    if (!(ocupante && ocupante.toString().trim() !== '') && disponibilidadCerrada_(cerradosDisp, Utilities.formatDate(fechaCursor, tz, 'yyyy-MM-dd'), horaKey)) {
+      return { error: `El hueco de las ${horaKey} del ${fechaTexto} está cerrado en Disponibilidad.` };
+    }
     destinos.push({
       filaDestino: filaDestino,
       fechaTexto: fechaTexto,
