@@ -1090,6 +1090,23 @@
       tbody tr:hover td.acciones-fila .acc-pill, tbody tr.seleccionada td.acciones-fila .acc-pill, td.acciones-fila .acc-pill:focus-within { transform: translate(0, -50%); }
       @media (hover: none) { td.acciones-fila .acc-pill { transform: translate(0, -50%); } }
 
+      /* ===== Resumen del día: discreto en reposo, color solo si hay algo que hacer ===== */
+      .dia-resumen { margin-left: auto; display: flex; align-items: center; gap: .6rem; flex-shrink: 0; }
+      .dia-resumen .dia-stats { margin-left: 0; background: none; padding: 0; white-space: nowrap; color: var(--ag-text-med); opacity: .6; transition: opacity var(--ag-t); }
+      .dia-cab:hover .dia-resumen .dia-stats { opacity: 1; }
+      /* Barra fina (4 px, colores al 40 %): solo aparece al pasar el ratón por el día; se reserva el hueco para que nada se mueva */
+      .ocup { width: 96px; height: 4px; opacity: 0; transition: opacity var(--ag-t); background: color-mix(in srgb, var(--ag-line) 60%, transparent); }
+      .ocup .o-reg  { background: color-mix(in srgb, var(--ag-ok-bar) 40%, transparent); }
+      .ocup .o-cita { background: color-mix(in srgb, var(--ag-accent) 40%, transparent); }
+      .dia-cab:hover .ocup { opacity: 1; }
+      /* Chip ámbar muy suave: asistencias sin registrar (hoy y días pasados); al pulsarlo filtra ese día */
+      .dia-pend { font-family: var(--font); font-size: .72rem; font-weight: 600; line-height: 1.55; padding: 0 .6rem; border: 0; border-radius: 999px; cursor: pointer; white-space: nowrap;
+        color: var(--ag-warning-text); background: color-mix(in srgb, var(--ag-aviso-bar) 16%, transparent); transition: background var(--ag-t); }
+      .dia-pend:hover { background: color-mix(in srgb, var(--ag-aviso-bar) 30%, transparent); }
+      .dia-pend.activo { background: color-mix(in srgb, var(--ag-aviso-bar) 34%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ag-aviso-bar) 55%, transparent); }
+      /* Pantalla táctil: no hay hover, así que queda solo la línea tenue (sin barra) */
+      @media (hover: none) { .ocup { display: none; } }
+      @media print { .dia-pend, .ocup { display: none; } .dia-resumen .dia-stats { opacity: 1; } }
     </style>
   </head>
   <body>
@@ -1262,6 +1279,7 @@
       var NOMBRES_PACIENTES = [];
       var vista = 'semana';            // 'semana' (tabla) | 'hoy' (tarjetas del día de hoy)
       var filtrosActivos = new Set();  // 'sinAsistencia' | 'sinHC' | 'conNotas'
+      var filtroDiaSinAsis = null;     // fecha ISO si el filtro «sin asistencia» se limita a un solo día (chip del resumen del día)
       var RECORDATORIOS = [];            // recordatorios genéricos (agenda/Recordatorios.gs)
       var plegadoManual = {};          // fechaISO -> true/false: días plegados o desplegados a mano
       var DURACION_CITA_MIN = 30;      // para marcar "Ahora" y atenuar las citas ya terminadas
@@ -1449,6 +1467,7 @@
       }
 
       function pasaFiltrosRapidos(c) {
+        if (filtroDiaSinAsis && c._fechaISO !== filtroDiaSinAsis) return false;
         var ok = true;
         filtrosActivos.forEach(function(f) { if (!cumpleFiltro(c, f)) ok = false; });
         return ok;
@@ -1600,17 +1619,33 @@
         return '<span class="dia-num">' + d + '</span><span class="dia-txt"><b>' + escapar(nombre) + '</b><small>' + MESES_ES[m] + ' ' + p[0] + '</small></span>';
       }
 
+      // Resumen del día: en reposo, una línea tenue («12 citas · 4 libres»); color solo si hay asistencias por registrar
+      // (chip ámbar que filtra); la barra fina aparece al pasar el ratón y el desglose va en el tooltip.
       function htmlStatsDia(t, fechaISO) {
-        var txt = t.citas === 0 ? 'Sin citas' : t.citas + (t.citas === 1 ? ' cita' : ' citas');
-        if (t.libres > 0) txt += ' · ' + t.libres + (t.libres === 1 ? ' libre' : ' libres');
-        if (t.citas > 0 && fechaISO <= hoyISO()) txt += ' · ' + t.registradas + ' de ' + t.citas + ' registradas';
-        var total = t.citas + t.libres, barra = '';
-        if (total > 0) {
-          var sin = t.citas - t.registradas;
-          barra = '<span class="ocup" title="' + t.registradas + ' registradas · ' + sin + ' sin registrar · ' + t.libres + ' libres">' +
-            '<span class="o-reg" style="width:' + (100 * t.registradas / total) + '%"></span><span class="o-cita" style="width:' + (100 * sin / total) + '%"></span></span>';
+        var txt;
+        if (t.citas === 0 && t.libres === 0) {
+          txt = 'Cerrado';
+        } else {
+          txt = t.citas === 0 ? 'Sin citas' : t.citas + (t.citas === 1 ? ' cita' : ' citas');
+          if (t.libres > 0) txt += ' · ' + t.libres + (t.libres === 1 ? ' libre' : ' libres');
         }
-        return '<span class="dia-stats">' + txt + '</span>' + barra;
+
+        var sin = t.citas - t.registradas, pasadoOHoy = fechaISO <= hoyISO();
+        var pend = pasadoOHoy ? sin : 0, chip = '';
+        if (pend > 0) {
+          var activo = filtroDiaSinAsis === fechaISO;
+          chip = '<button type="button" class="dia-pend' + (activo ? ' activo' : '') + '" data-sin-asis="' + fechaISO + '" aria-pressed="' + activo + '" title="' +
+            (activo ? 'Quitar el filtro' : 'Ver solo las citas sin asistencia de este día') + '">' + pend + ' sin registrar</button>';
+        }
+
+        var total = t.citas + t.libres, barra = '', desglose = '';
+        if (total > 0) {
+          desglose = pasadoOHoy
+            ? t.registradas + ' registradas · ' + sin + ' sin registrar · ' + t.libres + ' libres'
+            : t.citas + ' citas · ' + t.libres + ' libres';
+          barra = '<span class="ocup"><span class="o-reg" style="width:' + (100 * t.registradas / total) + '%"></span><span class="o-cita" style="width:' + (100 * sin / total) + '%"></span></span>';
+        }
+        return '<span class="dia-resumen"' + (desglose ? ' title="' + desglose + '"' : '') + '>' + chip + '<span class="dia-stats">' + txt + '</span>' + barra + '</span>';
       }
 
       function htmlLineaAhora(ahora, numColumnas) {
@@ -1687,6 +1722,11 @@
         var scrollPrevio = cont.scrollTop; // se conserva al repintar (ediciones, selección, refrescos)
         var termino = normalizar(document.getElementById('inputBusqueda').value);
         var hoy = hoyISO();
+
+        if (filtroDiaSinAsis) {   // al registrar la última asistencia pendiente del día, se vuelve a la vista normal
+          var tf = calcularTotalesDia()[filtroDiaSinAsis];
+          if (!tf || tf.citas - tf.registradas <= 0) { filtroDiaSinAsis = null; filtrosActivos.delete('sinAsistencia'); }
+        }
 
         var filtradas = CITAS.filter(function(c) {
           if (vista === 'hoy' && c._fechaISO !== hoy) return false;
@@ -2125,7 +2165,20 @@
         render();
       }
 
+      function alternarFiltroDiaSinAsis(fechaISO) {
+        if (filtroDiaSinAsis === fechaISO) {
+          filtroDiaSinAsis = null;
+          filtrosActivos.delete('sinAsistencia');
+        } else {
+          filtroDiaSinAsis = fechaISO;
+          filtrosActivos.add('sinAsistencia');
+          plegadoManual[fechaISO] = false;   // que el día quede abierto al quitar el filtro
+        }
+        render();
+      }
+
       function limpiarFiltros() {
+        filtroDiaSinAsis = null;
         filtrosActivos.clear();
         document.getElementById('inputBusqueda').value = '';
         render();
@@ -2142,6 +2195,10 @@
           if (contenedor) guardarAsistencia(contenedor.dataset.fila, btnAsis.classList.contains('activo') ? '' : btnAsis.dataset.asis);
           return;
         }
+
+        // Chip «N sin registrar» del resumen del día: filtra las citas sin asistencia de ese día (otro clic lo quita)
+        var btnPend = t.closest('[data-sin-asis]');
+        if (btnPend) { alternarFiltroDiaSinAsis(btnPend.dataset.sinAsis); return; }
 
         // Sesión: − / + (aparecen al pasar el ratón por el número). Se atiende aquí para que no abra la edición en línea ni seleccione la fila.
         var btnSes = t.closest('[data-ses]');
