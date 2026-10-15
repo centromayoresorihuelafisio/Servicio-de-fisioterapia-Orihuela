@@ -1247,6 +1247,7 @@
     <?!= include('usuarios/Whatsapp_Dialogo'); ?>
     <?!= include('ui/Modal_Deshacer'); ?>
     <?!= include('ui/JS_Formato_Nombre'); ?>
+    <?!= include('ui/JS_Valoraciones_Cache'); ?>
     <?!= include('ui/JS_Ficha'); ?>
     <?!= include('ui/JS_Selector_Fecha'); ?>
     <?!= include('ui/JS_Paneles_Diferidos'); ?>
@@ -2376,13 +2377,13 @@
         // Sin valoraciones previas abre directamente el formulario de Nueva valoración; con valoraciones, su panel
         // (evolución, historial, añadir / editar / eliminar). Lo decide valoraciones/Panel_Valoraciones.
         return abrirPanelLateral(clave, 'Valoraciones · ' + nombre, false, function(cont) {
-          return PanelValoraciones.abrir(cont, {
+          return PanelValoraciones.abrir(cont, Object.assign({
             paciente: nombre,
             dni: dniUsuario,
             telefono: telUsuario,
             onGuardado: function() { mostrarAviso('Valoración guardada'); if (panelClave === clave) cerrarPanel(true); },
             onCancelar: function() { if (panelClave === clave) cerrarPanel(); }
-          });
+          }, ValoracionesCache.opcionesPanel(nombre, dniUsuario)));   // valoraciones ya precargadas: el panel se abre al instante
         });
       }
 
@@ -3235,11 +3236,14 @@
         var hs = res.headers || [];
         return FichaUsuario.html(res.paciente, hs, {
           nombre: nombre,
-          acciones: ['whatsapp', 'hc', 'cita', 'valoracion'],
+          // «Valoración» (formulario) si el usuario no tiene ninguna; «Valoraciones» (su panel) si ya tiene
+          acciones: ['whatsapp', 'hc', 'cita', ValoracionesCache.accion(nombre, FichaUsuario.valor(res.paciente, hs, 'DNI'))],
           // "Otros datos" no repite la columna de prioridad (la primera) ni la Historia clínica, igual que la Base de Datos
           excluir: [hs[0]].concat(hs.filter(function(h) { return String(h).toLowerCase().indexOf('historia') !== -1; }))
         });
       }
+      // Al terminar la precarga de valoraciones (o cambiar), el botón de la ficha abierta puede pasar de «Valoración» a «Valoraciones».
+      ValoracionesCache.alCambiar(function() { repintarFichaAbierta(); });
       function repintarFichaAbierta() {
         if (!fichaAbierta || !panelAbierto || panelClave !== fichaAbierta.clave) return;
         var res = fichaDeMemoria(fichaAbierta.nombre);

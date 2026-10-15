@@ -5,10 +5,16 @@
   <?!= incluirPanel('valoraciones/Panel_Valoraciones', 'PanelValoraciones'); ?>
   (y está en la lista PANELES_DIFERIDOS_ de core/WebApp.gs).
 
-  API: PanelValoraciones.abrir(contenedor, { paciente, dni, telefono, onGuardado, onCancelar, onCambio })
+  API: PanelValoraciones.abrir(contenedor, { paciente, dni, telefono, historial, obsoleto, alHistorial, onGuardado, onCancelar, onCambio })
   Devuelve { haCambiado(), alEscape() } igual que los demás paneles.
 
-  Qué hace al abrirse (lee el historial con obtenerValoracionesUsuarioWeb, valoraciones/Web.gs):
+  Datos: si la página ya tiene las valoraciones en memoria (ui/JS_Valoraciones_Cache) se pasan en `historial` y el panel
+  se abre al instante, sin esperar al servidor. Si además `obsoleto` es true (datos de hace más de un minuto), se
+  refrescan en segundo plano sin que se note. Sin `historial`, el panel las pide él mismo (obtenerValoracionesUsuarioWeb,
+  valoraciones/Web.gs). `alHistorial(historial)` se llama cada vez que el panel obtiene un historial más reciente
+  (al abrir con refresco, tras añadir, editar, eliminar o deshacer) para que la página actualice su memoria.
+
+  Qué hace al abrirse:
     · Usuario SIN valoraciones  -> monta directamente el formulario de Nueva valoración (valoraciones/Panel_Valoracion),
                                    exactamente como antes. Al guardar o cancelar llama a onGuardado / onCancelar de la página.
     · Usuario CON valoraciones  -> muestra su panel: valores actuales con su evolución, gráfica por métrica e historial.
@@ -293,18 +299,37 @@ window.PanelValoraciones = {
     }
 
     // ---------- Carga del historial ----------
+    function tomarTelefono() {
+      if (telefono) return;
+      for (var i = S.historial.length - 1; i >= 0; i--) if (S.historial[i].telefono) { telefono = String(S.historial[i].telefono); break; }
+    }
     function cargar(despues) {
       google.script.run
         .withSuccessHandler(function (res) {
           if (!conectado()) return;
           if (!res || !res.success) { S.vista = 'error'; S.msg = (res && res.message) || ''; pintar(); return; }
           S.historial = res.historial || [];
-          if (!telefono) { for (var i = S.historial.length - 1; i >= 0; i--) if (S.historial[i].telefono) { telefono = String(S.historial[i].telefono); break; } }
+          tomarTelefono();
+          if (opts.alHistorial) opts.alHistorial(S.historial.slice());
           despues();
         })
         .withFailureHandler(function (err) {
           if (!conectado()) return;
           S.vista = 'error'; S.msg = String((err && err.message) || err || ''); pintar();
+        })
+        .obtenerValoracionesUsuarioWeb(nombre, dni);
+    }
+    // Refresco en segundo plano: no muestra nada de «Cargando». Actualiza la memoria de la página aunque el panel ya se haya
+    // cerrado, y repinta la lista solo si hay algo distinto y el usuario no está en medio de un formulario o una edición.
+    function refrescarFondo() {
+      google.script.run
+        .withSuccessHandler(function (res) {
+          if (!res || !res.success) return;
+          var nuevo = res.historial || [];
+          if (opts.alHistorial) opts.alHistorial(nuevo.slice());
+          if (!conectado() || JSON.stringify(nuevo) === JSON.stringify(S.historial)) return;
+          S.historial = nuevo; tomarTelefono();
+          if (S.vista === 'lista' && !ocupado) pintar();
         })
         .obtenerValoracionesUsuarioWeb(nombre, dni);
     }
@@ -324,7 +349,7 @@ window.PanelValoraciones = {
         onGuardado: function () {
           if (!conectado()) return;
           avisarOtrasVentanas();
-          if (S.directo) { if (opts.onGuardado) opts.onGuardado(); return; }   // como siempre: la página cierra el formulario
+          if (S.directo) { refrescarFondo(); if (opts.onGuardado) opts.onGuardado(); return; }   // como siempre: la página cierra el formulario; la memoria se actualiza sola
           aviso('Valoración guardada');
           S.vista = 'cargando'; pintar();
           recargarYMostrarLista();
@@ -451,12 +476,19 @@ window.PanelValoraciones = {
     });
 
     function iniciar() {
-      cargar(function () {
+      var alTerminar = function () {
         if (!S.historial.length) { S.directo = true; irANueva(); }   // sin valoraciones: directo al formulario, como siempre
         else mostrarLista();
-      });
+      };
+      if (Array.isArray(opts.historial)) {                            // datos ya en memoria: se abre al instante, sin esperar al servidor
+        S.historial = opts.historial.slice(); tomarTelefono();
+        alTerminar();
+        if (opts.obsoleto) refrescarFondo();
+      } else {
+        pintar();                                                     // «Cargando valoraciones…»
+        cargar(alTerminar);
+      }
     }
-    pintar();
     iniciar();
 
     return {
