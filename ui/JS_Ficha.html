@@ -16,7 +16,12 @@
   Uso:
     FichaUsuario.pintar(contenedor, FichaUsuario.html(paciente, cabeceras, opciones));
     contenedor.addEventListener('click', function(e) { FichaUsuario.alClic(e, { cerrar, estado, accion }); });
-  opciones: { nombre, acciones, pie, extraCabecera, excluir }  (ver FichaUsuario.html)
+  opciones: { nombre, acciones, pie, extraCabecera, excluir, valoraciones }  (ver FichaUsuario.html)
+
+  Seccion "Valoraciones" (opcion valoraciones: true): historial del usuario (resumen, grafica de evolucion y
+  valoraciones anteriores). Se carga sola al pintar la ficha con obtenerValoracionesUsuarioWeb (valoraciones/Web.gs)
+  y se actualiza en su sitio, sin repintar la ficha. Tras guardar una valoracion, la pagina llama a
+  FichaUsuario.valoracionesInvalidar() para que se vuelva a leer. Solo lectura: editar o borrar sigue en la pagina Valoraciones.
 -->
 <script>
 var FichaUsuario = (function() {
@@ -152,6 +157,178 @@ var FichaUsuario = (function() {
     return '<div class="fu-label"><span class="fu-pill">' + icono(ic) + esc(titulo) + '</span><span class="fu-linea"></span></div>';
   }
 
+  // ---------- Seccion "Valoraciones" ----------
+  // Misma informacion y mismos colores que la ficha de la pagina Valoraciones (valoraciones/Web_Vista), en version compacta.
+  var VAL_METRICAS = [
+    { k: 'funcionGlobal', etq: 'Función Global' }, { k: 'pegDolor', etq: 'PEG Dolor' }, { k: 'pegActividad', etq: 'PEG Actividad' }, { k: 'pegVida', etq: 'PEG Vida' },
+    { k: 'analgesicos', etq: 'Analgésicos' }, { k: 'mediaColumna', etq: 'Columna' }, { k: 'mediaMS', etq: 'Miembro Superior' }, { k: 'mediaMI', etq: 'Miembro Inferior' }
+  ];
+  var VAL_ETQ_CORTA = { pegDolor: 'Dolor', pegActividad: 'Actividad', pegVida: 'Vida', analgesicos: 'Analgés.', mediaColumna: 'Columna', mediaMS: 'M. Sup.', mediaMI: 'M. Inf.', funcionGlobal: 'F. Global' };
+  var VAL_ORDEN = ['pegDolor', 'pegActividad', 'pegVida', 'analgesicos', 'mediaColumna', 'mediaMS', 'mediaMI', 'funcionGlobal'];
+  var VAL_ESCALA_MAX = { analgesicos: 5 };            // Analgésicos es 0-5; el resto 0-10
+  // Direccion del color: PEG y Analgésicos, alto = malo; Columna / M. Superior / M. Inferior / Función Global, alto = bueno.
+  var VAL_TIPO = { pegDolor: 'dolor', pegActividad: 'dolor', pegVida: 'dolor', mediaColumna: 'funcion', mediaMS: 'funcion', mediaMI: 'funcion', funcionGlobal: 'funcion', analgesicos: 'analg' };
+  var VAL_VISIBLES = 3;                               // valoraciones que se listan sin pulsar "Ver anteriores"
+  var VAL_FRESCO_MS = 30000;                          // pasado este tiempo, al abrir la ficha se vuelve a leer en segundo plano
+  var VAL = { cache: {}, gen: 0, metrica: 'funcionGlobal', mas: {} };
+
+  function valClave(nombre, dni) { return norm(nombre) + '|' + String(dni || '').trim().toUpperCase(); }
+  function valFecha(iso) {
+    if (!iso) return '—';
+    var p = iso.split('-');
+    return p.length === 3 ? p[2] + '/' + p[1] + '/' + p[0].slice(2) : iso;
+  }
+  function valSeveridad(v, campo) {
+    var t = VAL_TIPO[campo] || 'dolor';
+    if (t === 'funcion') return v <= 3 ? 'sev-alto' : v <= 7 ? 'sev-medio' : 'sev-ok';
+    if (t === 'analg') return v <= 2 ? 'sev-ok' : v === 3 ? 'sev-medio' : 'sev-alto';
+    return v <= 3 ? 'sev-ok' : v <= 6 ? 'sev-medio' : 'sev-alto';
+  }
+  function valPildora(v, campo) {
+    if (v === null || v === undefined) return '<span class="fu-sev sev-vacio">—</span>';
+    return '<span class="fu-sev ' + valSeveridad(v, campo) + '">' + v + '</span>';
+  }
+  function valChipTipo(tipo) {
+    if (!tipo) return '';
+    var c = norm(tipo);
+    return '<span class="fu-tipo ' + (c === 'inicial' || c === 'seguimiento' || c === 'final' ? c : '') + '">' + esc(tipo) + '</span>';
+  }
+  // Diferencia entre las dos ultimas valoraciones con dato. Mejora = sube en escalas de funcion, baja en dolor y analgesicos.
+  function valDelta(historial, campo) {
+    var v = [];
+    for (var i = historial.length - 1; i >= 0 && v.length < 2; i--) {
+      if (historial[i][campo] !== null && historial[i][campo] !== undefined) v.push(historial[i][campo]);
+    }
+    if (v.length < 2) return '';
+    var d = Math.round((v[0] - v[1]) * 10) / 10;
+    var mejora = VAL_TIPO[campo] === 'funcion' ? d > 0 : d < 0;
+    var cls = d === 0 ? 'igual' : (mejora ? 'mejora' : 'empeora');
+    return '<span class="fu-delta ' + cls + '" title="Respecto a la valoración anterior">' + icono(d === 0 ? 'remove' : (d > 0 ? 'arrow_upward' : 'arrow_downward')) + (d > 0 ? '+' : '') + d + '</span>';
+  }
+
+  // Grafica de evolucion de la metrica elegida (SVG sin librerias; se escala al ancho del panel).
+  function valGrafica(historial) {
+    var metrica = VAL.metrica, W = 480, H = 170, padL = 26, padR = 18, padT = 20, padB = 24, n = historial.length, puntos = [];
+    historial.forEach(function(h, i) { var v = h[metrica]; if (v !== null && v !== undefined) puntos.push({ i: i, v: v, fecha: h.fecha, tipo: h.tipo }); });
+    if (!puntos.length) return '<p class="fu-vacio">Sin datos de esta métrica.</p>';
+    var max = VAL_ESCALA_MAX[metrica] || 10;
+    var x = function(i) { return n <= 1 ? (padL + (W - padL - padR) / 2) : padL + (i / (n - 1)) * (W - padL - padR); };
+    var y = function(v) { return padT + (1 - v / max) * (H - padT - padB); };
+    var linea = puntos.map(function(p, k) { return (k === 0 ? 'M' : 'L') + x(p.i).toFixed(1) + ',' + y(p.v).toFixed(1); }).join(' ');
+    var area = puntos.length > 1 ? linea + ' L' + x(puntos[puntos.length - 1].i).toFixed(1) + ',' + y(0).toFixed(1) + ' L' + x(puntos[0].i).toFixed(1) + ',' + y(0).toFixed(1) + ' Z' : '';
+    var guias = (max === 5 ? [0, 1, 2, 3, 4, 5] : [0, 5, 10]).map(function(v) {
+      var yy = y(v).toFixed(1);
+      return '<line x1="' + padL + '" x2="' + (W - padR) + '" y1="' + yy + '" y2="' + yy + '" class="fu-g-guia" /><text x="2" y="' + (parseFloat(yy) + 4) + '" class="fu-g-etq">' + v + '</text>';
+    }).join('');
+    var circulos = puntos.map(function(p) {
+      return '<circle cx="' + x(p.i).toFixed(1) + '" cy="' + y(p.v).toFixed(1) + '" r="5" class="fu-g-punto ' + valSeveridad(p.v, metrica) + '"><title>' + valFecha(p.fecha) + ' (' + esc(p.tipo) + '): ' + p.v + '</title></circle>';
+    }).join('');
+    var valores = puntos.length <= 8 ? puntos.map(function(p) {
+      return '<text x="' + x(p.i).toFixed(1) + '" y="' + (y(p.v) - 10).toFixed(1) + '" text-anchor="middle" class="fu-g-valor">' + p.v + '</text>';
+    }).join('') : '';
+    var fechas = historial.map(function(h, i) {
+      if (n > 6 && i !== 0 && i !== n - 1) return '';
+      var ancla = n === 1 ? 'middle' : (i === 0 ? 'start' : (i === n - 1 ? 'end' : 'middle'));
+      var xx = i === 0 && n > 1 ? padL : (i === n - 1 && n > 1 ? W - padR : x(i));
+      return '<text x="' + xx.toFixed(1) + '" y="' + (H - 6) + '" text-anchor="' + ancla + '" class="fu-g-etq">' + valFecha(h.fecha) + '</text>';
+    }).join('');
+    return '<svg viewBox="0 0 ' + W + ' ' + H + '" class="fu-grafica" role="img" aria-label="Evolución de ' + esc(VAL_ETQ_CORTA[metrica]) + '">' + guias + (area ? '<path d="' + area + '" class="fu-g-area" />' : '') +
+      '<path d="' + linea + '" class="fu-g-linea" fill="none" />' + circulos + valores + fechas + '</svg>';
+  }
+
+  function valHistorialItem(r) {
+    var vals = VAL_ORDEN.map(function(k) { return '<div class="fu-v-mv"><span class="fu-v-etq">' + VAL_ETQ_CORTA[k] + '</span>' + valPildora(r[k], k) + '</div>'; }).join('');
+    return '<details class="fu-hist"><summary><span class="fu-hist-fecha">' + valFecha(r.fecha) + '</span>' + valChipTipo(r.tipo) +
+      '<span class="fu-hist-res" title="Función Global · PEG Dolor">' + valPildora(r.funcionGlobal, 'funcionGlobal') + valPildora(r.pegDolor, 'pegDolor') + '</span>' +
+      '<span class="material-symbols-outlined fu-chev">expand_more</span></summary>' +
+      '<div class="fu-hist-det"><div class="fu-v-vals">' + vals + '</div>' + (r.notas ? '<div class="fu-hist-notas">' + esc(r.notas) + '</div>' : '') + '</div></details>';
+  }
+
+  // Contenido de la seccion segun el estado de la carga.
+  function valCuerpo(e, k) {
+    if (!e || e.estado === 'cargando') return '<p class="fu-vacio">Cargando valoraciones…</p>';
+    if (e.estado === 'error') return '<p class="fu-vacio">No se pudieron cargar las valoraciones. <button type="button" class="fu-enlace" data-fu="val-reintentar">Reintentar</button></p>';
+    var h = e.historial || [];
+    if (!h.length) return '<p class="fu-vacio">Sin valoraciones todavía.</p>';
+    var u = h[h.length - 1];
+    var kpi = function(campo, etq) { return '<div class="fu-kpi"><div class="fu-kpi-etq">' + etq + '</div><div class="fu-kpi-val">' + valPildora(u[campo], campo) + valDelta(h, campo) + '</div></div>'; };
+    var out = '<div class="fu-v-meta">' + h.length + (h.length === 1 ? ' valoración' : ' valoraciones') + ' · última ' + valFecha(u.fecha) + '</div>' +
+      '<div class="fu-kpis">' + kpi('funcionGlobal', 'Función Global') + kpi('pegDolor', 'PEG Dolor') + '</div>';
+    if (h.length > 1) {
+      out += '<div class="fu-chips-met">' + VAL_METRICAS.map(function(m) {
+        return '<button type="button" class="fu-chip-met' + (m.k === VAL.metrica ? ' activo' : '') + '" data-fu="val-metrica" data-metrica="' + m.k + '" title="Ver la evolución de ' + m.etq.toLowerCase() + '">' + m.etq + '</button>';
+      }).join('') + '</div>' + valGrafica(h);
+    }
+    var lista = h.slice().reverse(), mas = !!VAL.mas[k], extra = lista.length - VAL_VISIBLES;
+    out += '<div class="fu-hist-lista">' + (mas ? lista : lista.slice(0, VAL_VISIBLES)).map(valHistorialItem).join('') + '</div>';
+    if (extra > 0) out += '<button type="button" class="fu-enlace" data-fu="val-mas">' + (mas ? 'Ver menos' : 'Ver ' + extra + (extra === 1 ? ' anterior' : ' anteriores')) + '</button>';
+    return out;
+  }
+
+  // Seccion completa. Si faltan datos (o son viejos), se marca como pendiente y pintar() lanza la carga.
+  function htmlValoraciones(nombre, dni) {
+    var k = valClave(nombre, dni), e = VAL.cache[k];
+    var pendiente = !e || (e.estado !== 'cargando' && Date.now() - e.t > VAL_FRESCO_MS);
+    return '<section class="fu-sec fu-valoraciones" data-val-clave="' + esc(k) + '" data-val-nombre="' + esc(nombre) + '" data-val-dni="' + esc(dni || '') + '"' + (pendiente ? ' data-val-pendiente="1"' : '') + '>' +
+      htmlLabel('Valoraciones', 'monitoring') + '<div class="fu-valoraciones-cuerpo">' + valCuerpo(e, k) + '</div></section>';
+  }
+
+  // Repinta SOLO la seccion (todas las copias que haya en pantalla de ese usuario), sin tocar el resto de la ficha.
+  function valRepintar(k) {
+    var secciones = document.querySelectorAll('.fu-valoraciones');
+    for (var i = 0; i < secciones.length; i++) {
+      var sec = secciones[i];
+      if (sec.getAttribute('data-val-clave') !== k) continue;
+      var cuerpo = sec.querySelector('.fu-valoraciones-cuerpo');
+      if (cuerpo) cuerpo.innerHTML = valCuerpo(VAL.cache[k], k);
+      sec.removeAttribute('data-val-pendiente');
+    }
+  }
+
+  function valCargar(nombre, dni) {
+    var k = valClave(nombre, dni), previo = VAL.cache[k], gen = VAL.gen;
+    if (previo && previo.cargando) return;
+    if (!previo) previo = VAL.cache[k] = { estado: 'cargando', historial: [], t: 0 };
+    else if (previo.estado === 'error') { previo.estado = 'cargando'; valRepintar(k); }
+    previo.cargando = true;
+    if (typeof google === 'undefined' || !google.script || !google.script.run) { previo.cargando = false; previo.estado = 'error'; valRepintar(k); return; }
+    google.script.run
+      .withSuccessHandler(function(res) {
+        if (gen !== VAL.gen) { valCargar(nombre, dni); return; }            // se invalido mientras llegaba: se vuelve a pedir
+        if (!res || !res.success) { VAL.cache[k] = { estado: 'error', historial: [], t: Date.now() }; }
+        else { VAL.cache[k] = { estado: 'ok', historial: res.historial || [], t: Date.now() }; }
+        valRepintar(k);
+      })
+      .withFailureHandler(function() {
+        if (gen !== VAL.gen) return;
+        VAL.cache[k] = { estado: 'error', historial: [], t: Date.now() };
+        valRepintar(k);
+      })
+      .obtenerValoracionesUsuarioWeb(nombre, dni || '');
+  }
+
+  // Lanza la carga de las secciones de valoraciones que acaban de pintarse y aun no tienen datos recientes.
+  function valCargarPendientes(contenedor) {
+    var pend = contenedor.querySelectorAll('.fu-valoraciones[data-val-pendiente]');
+    for (var i = 0; i < pend.length; i++) valCargar(pend[i].getAttribute('data-val-nombre'), pend[i].getAttribute('data-val-dni'));
+  }
+
+  // Tras guardar una valoracion: se olvida lo leido y se vuelve a pedir lo que este a la vista.
+  function valoracionesInvalidar() {
+    VAL.cache = {}; VAL.gen++;
+    var visibles = document.querySelectorAll('.fu-valoraciones');
+    for (var i = 0; i < visibles.length; i++) valCargar(visibles[i].getAttribute('data-val-nombre'), visibles[i].getAttribute('data-val-dni'));
+  }
+
+  function valClic(accion, c) {
+    var sec = c.closest('.fu-valoraciones');
+    if (!sec) return;
+    var k = sec.getAttribute('data-val-clave');
+    if (accion === 'val-metrica') { VAL.metrica = c.getAttribute('data-metrica'); valRepintar(k); }
+    else if (accion === 'val-mas') { VAL.mas[k] = !VAL.mas[k]; valRepintar(k); }
+    else if (accion === 'val-reintentar') valCargar(sec.getAttribute('data-val-nombre'), sec.getAttribute('data-val-dni'));
+  }
+
   function htmlCabecera(p, headers, o) {
     var edad = valor(p, headers, 'Edad'), est = valor(p, headers, 'Estado');
     if (/^\d+$/.test(edad)) edad += ' años';
@@ -184,6 +361,7 @@ var FichaUsuario = (function() {
   //   o.pie            botones propios de la pagina: [{ id, icono, texto, titulo, peligro }] (opcional; titulo = descripcion al pasar el raton)
   //   o.extraCabecera  HTML extra junto al estado (opcional)
   //   o.excluir        cabeceras que no deben salir en "Otros datos" (opcional)
+  //   o.valoraciones   true = añade la seccion "Valoraciones" (historial del usuario, se carga sola)
   function html(p, headers, o) {
     o = o || {}; headers = headers || [];
     if (!o.nombre) o.nombre = valor(p, headers, 'Nombre');
@@ -203,6 +381,9 @@ var FichaUsuario = (function() {
       }
       return '<section class="fu-sec">' + htmlLabel(s.titulo, s.icono) + campos + '</section>';
     }).join('');
+
+    // Valoraciones del usuario (opcional): despues de los datos de la ficha y antes de "Otros datos".
+    if (o.valoraciones) cuerpo += htmlValoraciones(o.nombre, valor(p, headers, 'DNI'));
 
     // Cualquier otra columna de la hoja, con su nombre tal cual, plegada y al final.
     var otros = headers.filter(function(h) {
@@ -236,6 +417,7 @@ var FichaUsuario = (function() {
     cuerpo = contenedor.querySelector('.fu-cuerpo');
     if (cuerpo && scroll) cuerpo.scrollTop = scroll;
     if (abierto) { det = contenedor.querySelector('.fu-otros'); if (det) det.open = true; }
+    valCargarPendientes(contenedor);
   }
 
   // Un solo manejador de clics para la ficha. La copia la resuelve el componente; el resto lo decide la pagina:
@@ -249,6 +431,7 @@ var FichaUsuario = (function() {
     else if (a === 'cerrar') { if (h && h.cerrar) h.cerrar(); }
     else if (a === 'estado') { if (h && h.estado) h.estado(c); }
     else if (a === 'accion') { if (h && h.accion) h.accion(c.getAttribute('data-acc')); }
+    else if (a === 'val-metrica' || a === 'val-mas' || a === 'val-reintentar') valClic(a, c);
     else return false;
     return true;
   }
@@ -315,7 +498,8 @@ var FichaUsuario = (function() {
   return {
     html: html, mensaje: mensaje, pintar: pintar, alClic: alClic, menuEstado: menuEstado, cerrarMenu: cerrarMenu,
     estadosDisponibles: estadosDisponibles, claseEstado: claseEstado, textoEstado: textoEstado,
-    cabecera: cabecera, valor: valor, norm: norm, formatearTel: formatearTel, copiar: copiar
+    cabecera: cabecera, valor: valor, norm: norm, formatearTel: formatearTel, copiar: copiar,
+    valoracionesInvalidar: valoracionesInvalidar
   };
 })();
 </script>

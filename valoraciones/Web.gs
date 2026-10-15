@@ -33,29 +33,11 @@ function obtenerValoracionesWeb() {
       const nombre = (fila[C.NOMBRE - 1] || '').toString().trim();
       if (!nombre) return; // fila vacía o incompleta, se ignora
 
-      const fechaCelda = fila[C.FECHA - 1];
-      const fechaISO = fechaCelda instanceof Date ? Utilities.formatDate(fechaCelda, tz, 'yyyy-MM-dd') : '';
-
       const dni = normalizarDniValoracion_(fila[C.DNI - 1]);
       // Clave de agrupación: el DNI identifica a la persona; sin DNI, se cae al nombre como hasta ahora.
       const clave = dni ? 'D:' + dni : 'N:' + nombre;
 
-      const registro = {
-        _fila: i + 2, // fila real en la hoja (para poder editarla o borrarla)
-        nombre: nombre, // nombre tal cual está en ESA fila (la ficha usa el del primero; esto sirve para validar al editar/borrar)
-        fecha: fechaISO,
-        tipo: (fila[C.TIPO - 1] || '').toString(),
-        telefono: (fila[C.TELEFONO - 1] || '').toString(),
-        pegDolor: numeroOVacio_(fila[C.PEG_DOLOR - 1]),
-        pegActividad: numeroOVacio_(fila[C.PEG_ACTIVIDAD - 1]),
-        pegVida: numeroOVacio_(fila[C.PEG_VIDA - 1]),
-        mediaColumna: numeroOVacio_(fila[C.MEDIA_COLUMNA - 1]),
-        mediaMS: numeroOVacio_(fila[C.MEDIA_MS - 1]),
-        mediaMI: numeroOVacio_(fila[C.MEDIA_MI - 1]),
-        funcionGlobal: numeroOVacio_(fila[C.FUNCION_GLOBAL - 1]),
-        analgesicos: numeroOVacio_(fila[C.ANALGESICOS - 1]),
-        notas: (fila[C.NOTAS - 1] || '').toString()
-      };
+      const registro = registroValoracion_(fila, i, C, tz);
 
       if (!porPaciente[clave]) {
         porPaciente[clave] = {
@@ -86,6 +68,84 @@ function obtenerValoracionesWeb() {
   } catch (e) {
     Logger.log('Error en obtenerValoracionesWeb: ' + e.message);
     return { pacientes: [], error: e.message };
+  }
+}
+
+/**
+ * Convierte una fila de la hoja "Valoraciones" en el registro que viaja al cliente.
+ * Lo comparten obtenerValoracionesWeb (página Valoraciones) y obtenerValoracionesUsuarioWeb
+ * (sección Valoraciones de la ficha de usuario), para que los dos pinten exactamente los mismos datos.
+ * @param {Array} fila   Valores de la fila (0-based).
+ * @param {number} i     Posición de la fila dentro de lo leído (la fila real de la hoja es i + 2).
+ * @param {Object} C     COLUMNAS_NUM.VALORACIONES
+ * @param {string} tz    Zona horaria para formatear la fecha.
+ */
+function registroValoracion_(fila, i, C, tz) {
+  const fechaCelda = fila[C.FECHA - 1];
+  return {
+    _fila: i + 2, // fila real en la hoja (para poder editarla o borrarla)
+    nombre: (fila[C.NOMBRE - 1] || '').toString().trim(), // nombre tal cual está en ESA fila (sirve para validar al editar/borrar)
+    fecha: fechaCelda instanceof Date ? Utilities.formatDate(fechaCelda, tz, 'yyyy-MM-dd') : '',
+    tipo: (fila[C.TIPO - 1] || '').toString(),
+    telefono: (fila[C.TELEFONO - 1] || '').toString(),
+    pegDolor: numeroOVacio_(fila[C.PEG_DOLOR - 1]),
+    pegActividad: numeroOVacio_(fila[C.PEG_ACTIVIDAD - 1]),
+    pegVida: numeroOVacio_(fila[C.PEG_VIDA - 1]),
+    mediaColumna: numeroOVacio_(fila[C.MEDIA_COLUMNA - 1]),
+    mediaMS: numeroOVacio_(fila[C.MEDIA_MS - 1]),
+    mediaMI: numeroOVacio_(fila[C.MEDIA_MI - 1]),
+    funcionGlobal: numeroOVacio_(fila[C.FUNCION_GLOBAL - 1]),
+    analgesicos: numeroOVacio_(fila[C.ANALGESICOS - 1]),
+    notas: (fila[C.NOTAS - 1] || '').toString()
+  };
+}
+
+/**
+ * Historial de valoraciones de UN usuario, de la más antigua a la más reciente. Lo usa la sección
+ * "Valoraciones" de la ficha de usuario (Agenda y Base de Datos).
+ *
+ * Qué filas son del usuario: si tiene DNI y la fila también, deben coincidir; si a alguno de los dos
+ * le falta el DNI, se compara el nombre (sin tildes, mayúsculas ni espacios de más). Es la misma idea
+ * que la agrupación de la página Valoraciones, pero tolerante con las diferencias de escritura del nombre.
+ *
+ * @param {string} nombre Nombre del usuario.
+ * @param {string=} dni   DNI del usuario (opcional).
+ * @return {{success: boolean, historial?: Array, message?: string}}
+ */
+function obtenerValoracionesUsuarioWeb(nombre, dni) {
+  try {
+    const objetivo = normalizarNombreFicha_(nombre);
+    const dniObjetivo = normalizarDniValoracion_(dni);
+    if (!objetivo && !dniObjetivo) return { success: true, historial: [] };
+
+    const sheet = getSS().getSheetByName(SHEETS.VALORACIONES);
+    if (!sheet) return { success: false, message: `No se encontró la hoja "${SHEETS.VALORACIONES}".` };
+
+    const lastRow = sheet.getLastRow();
+    if (lastRow < 2) return { success: true, historial: [] };
+
+    const tz = Session.getScriptTimeZone();
+    const C = COLUMNAS_NUM.VALORACIONES;
+    // La columna DNI puede no existir todavía en la hoja: se lee solo hasta donde llegue.
+    const ultimaCol = Math.min(C.DNI, sheet.getMaxColumns());
+    const datos = sheet.getRange(2, 1, lastRow - 1, ultimaCol).getValues();
+
+    const historial = [];
+    datos.forEach((fila, i) => {
+      const nombreFila = (fila[C.NOMBRE - 1] || '').toString().trim();
+      if (!nombreFila) return; // fila vacía o incompleta
+      const dniFila = normalizarDniValoracion_(fila[C.DNI - 1]);
+      const esDelUsuario = (dniObjetivo && dniFila)
+        ? dniObjetivo === dniFila
+        : normalizarNombreFicha_(nombreFila) === objetivo;
+      if (esDelUsuario) historial.push(registroValoracion_(fila, i, C, tz));
+    });
+
+    historial.sort((a, b) => (a.fecha < b.fecha ? -1 : a.fecha > b.fecha ? 1 : a._fila - b._fila));
+    return { success: true, historial: historial };
+  } catch (e) {
+    Logger.log('Error en obtenerValoracionesUsuarioWeb: ' + e.message);
+    return { success: false, message: e.message };
   }
 }
 

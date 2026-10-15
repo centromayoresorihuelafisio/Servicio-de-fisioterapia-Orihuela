@@ -1068,6 +1068,7 @@
         el.querySelector('.ficha-form-tit').textContent = def.titulo + ' · ' + (p['Nombre'] || '');
         controladorForm = def.montar(el.querySelector('.ficha-form-cuerpo'), p, {
           guardado: function(msj) {
+            FichaUsuario.valoracionesInvalidar();   // por si se acaba de guardar una valoración: la ficha la vuelve a leer
             mostrarAviso(typeof msj === 'string' && msj ? msj : def.aviso);
             if (formularioActivo && formularioFila === fila) volverDeFormulario(true);
             cargar();
@@ -1273,6 +1274,7 @@
           acciones: ['whatsapp', { id: 'hc', texto: tieneHC ? 'Historia' : 'Crear HC', titulo: tieneHC ? 'Abrir la historia clínica' : 'Crear la historia clínica' }, 'editar', 'cita', 'valoracion'],
           extraCabecera: prioridadNum(p) !== null ? '<span class="fu-extra" title="Puntuación de \'Ordenar Usuarios\'">Prioridad ' + esc(prioridadTxt(p)) + '</span>' : '',
           excluir: [COL_HISTORIA, colPrioridad()],
+          valoraciones: true,                       // historial de valoraciones del usuario (ui/JS_Ficha)
           pie: pie
         });
       }
