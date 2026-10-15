@@ -522,6 +522,7 @@
     <aside class="ficha" id="ficha" aria-hidden="true"></aside>
     <?!= include('ui/JS_Paneles_Diferidos'); ?>
     <?!= incluirPanel('valoraciones/Panel_Valoracion', 'PanelValoracion'); ?>
+    <?!= incluirPanel('valoraciones/Panel_Valoraciones', 'PanelValoraciones'); ?>
     <?!= incluirPanel('usuarios/Panel_Editar', 'PanelEditar'); ?>
     <?!= incluirPanel('agenda/Panel_Cita', 'PanelCita'); ?>
     <?!= incluirPanel('usuarios/Panel_Nuevo', 'PanelNuevo'); ?>
@@ -1017,9 +1018,11 @@
       var formularioActivo = false, formularioFila = null, controladorForm = null;
       var FORMULARIOS_PANEL = {
         valoracion: {
-          titulo: 'Valoración', aviso: 'Valoración guardada',
+          titulo: 'Valoraciones', aviso: 'Valoración guardada',
+          // Sin valoraciones previas abre directamente el formulario de Nueva valoración; con valoraciones, su panel
+          // (evolución, historial, añadir / editar / eliminar). Lo decide valoraciones/Panel_Valoraciones.
           montar: function(cont, p, cb) {
-            return PanelValoracion.abrir(cont, { paciente: p['Nombre'] || '', telefono: p['Teléfono 1'] || '', dni: p['DNI'] || '', onGuardado: cb.guardado, onCancelar: cb.cancelar });
+            return PanelValoraciones.abrir(cont, { paciente: p['Nombre'] || '', telefono: p['Teléfono 1'] || '', dni: p['DNI'] || '', onGuardado: cb.guardado, onCancelar: cb.cancelar });
           }
         },
         editar: {
@@ -1068,7 +1071,6 @@
         el.querySelector('.ficha-form-tit').textContent = def.titulo + ' · ' + (p['Nombre'] || '');
         controladorForm = def.montar(el.querySelector('.ficha-form-cuerpo'), p, {
           guardado: function(msj) {
-            FichaUsuario.valoracionesInvalidar();   // por si se acaba de guardar una valoración: la ficha la vuelve a leer
             mostrarAviso(typeof msj === 'string' && msj ? msj : def.aviso);
             if (formularioActivo && formularioFila === fila) volverDeFormulario(true);
             cargar();
@@ -1274,7 +1276,6 @@
           acciones: ['whatsapp', { id: 'hc', texto: tieneHC ? 'Historia' : 'Crear HC', titulo: tieneHC ? 'Abrir la historia clínica' : 'Crear la historia clínica' }, 'editar', 'cita', 'valoracion'],
           extraCabecera: prioridadNum(p) !== null ? '<span class="fu-extra" title="Puntuación de \'Ordenar Usuarios\'">Prioridad ' + esc(prioridadTxt(p)) + '</span>' : '',
           excluir: [COL_HISTORIA, colPrioridad()],
-          valoraciones: true,                       // historial de valoraciones del usuario (ui/JS_Ficha)
           pie: pie
         });
       }

@@ -49,6 +49,7 @@ function include(nombreArchivo) {
  */
 const PANELES_DIFERIDOS_ = [
   'valoraciones/Panel_Valoracion',
+  'valoraciones/Panel_Valoraciones',
   'usuarios/Panel_Editar',
   'agenda/Panel_Cita',
   'agenda/Panel_Disponibilidad',

@@ -86,6 +86,7 @@ function registroValoracion_(fila, i, C, tz) {
     _fila: i + 2, // fila real en la hoja (para poder editarla o borrarla)
     nombre: (fila[C.NOMBRE - 1] || '').toString().trim(), // nombre tal cual está en ESA fila (sirve para validar al editar/borrar)
     fecha: fechaCelda instanceof Date ? Utilities.formatDate(fechaCelda, tz, 'yyyy-MM-dd') : '',
+    dni: normalizarDniValoracion_(fila[C.DNI - 1]), // DNI de ESA fila (sirve para validar al editar/borrar/deshacer)
     tipo: (fila[C.TIPO - 1] || '').toString(),
     telefono: (fila[C.TELEFONO - 1] || '').toString(),
     pegDolor: numeroOVacio_(fila[C.PEG_DOLOR - 1]),
@@ -101,8 +102,8 @@ function registroValoracion_(fila, i, C, tz) {
 }
 
 /**
- * Historial de valoraciones de UN usuario, de la más antigua a la más reciente. Lo usa la sección
- * "Valoraciones" de la ficha de usuario (Agenda y Base de Datos).
+ * Historial de valoraciones de UN usuario, de la más antigua a la más reciente. Lo usa el panel lateral
+ * de valoraciones del usuario (valoraciones/Panel_Valoraciones), abierto desde la ficha en Agenda y Base de Datos.
  *
  * Qué filas son del usuario: si tiene DNI y la fila también, deben coincidir; si a alguno de los dos
  * le falta el DNI, se compara el nombre (sin tildes, mayúsculas ni espacios de más). Es la misma idea

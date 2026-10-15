@@ -1,0 +1,474 @@
+<!--
+  valoraciones/Panel_Valoraciones.html
+  Panel lateral de las VALORACIONES DE UN USUARIO, como módulo de la Web App (mismo patrón que Panel_Valoracion).
+  Se incluye desde usuarios/BaseDatos_Vista y agenda/Web_Vista con
+  <?!= incluirPanel('valoraciones/Panel_Valoraciones', 'PanelValoraciones'); ?>
+  (y está en la lista PANELES_DIFERIDOS_ de core/WebApp.gs).
+
+  API: PanelValoraciones.abrir(contenedor, { paciente, dni, telefono, onGuardado, onCancelar, onCambio })
+  Devuelve { haCambiado(), alEscape() } igual que los demás paneles.
+
+  Qué hace al abrirse (lee el historial con obtenerValoracionesUsuarioWeb, valoraciones/Web.gs):
+    · Usuario SIN valoraciones  -> monta directamente el formulario de Nueva valoración (valoraciones/Panel_Valoracion),
+                                   exactamente como antes. Al guardar o cancelar llama a onGuardado / onCancelar de la página.
+    · Usuario CON valoraciones  -> muestra su panel: valores actuales con su evolución, gráfica por métrica e historial.
+                                   Desde ahí se puede añadir una valoración, editar o eliminar una existente (con
+                                   «Deshacer») y copiar el teléfono: las mismas funciones que la ficha de la página Valoraciones.
+                                   Guardar / cancelar vuelve al panel (no se sale de él).
+
+  onCambio(): se llama tras añadir, editar o eliminar una valoración desde el panel (opcional).
+  Usa los colores de ui/CSS_Global (--md-*) y todo su CSS va acotado a .pvs.
+-->
+<style>
+  .pvs { position: relative; display: flex; flex-direction: column; min-height: 0; height: 100%; font-family: var(--font, system-ui, sans-serif); font-size: 13px; color: var(--md-on-surface, #1f1f1f); }
+  .pvs *, .pvs *::before, .pvs *::after { box-sizing: border-box; }
+  .pvs button { font-family: inherit; }
+  .pvs .ms { font-family: 'Material Symbols Outlined'; font-weight: 400; font-style: normal; font-size: 18px; line-height: 1; letter-spacing: normal; text-transform: none; display: inline-block; white-space: nowrap; direction: ltr; flex-shrink: 0; user-select: none; }
+  .pvs.ocupado { cursor: progress; }
+  .pvs.ocupado button { pointer-events: none; opacity: .6; }
+
+  .pvs-estado { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .8rem; padding: 2rem 1rem; text-align: center; color: var(--md-on-surface-med, #5f6368); }
+
+  /* Cabecera de la lista: resumen, valores actuales y acciones */
+  .pvs-sub { padding: .2rem 1.2rem .7rem; font-size: .78rem; color: var(--md-on-surface-med, #5f6368); }
+  .pvs-kpis { display: flex; gap: .6rem; padding: 0 1.2rem .8rem; }
+  .pvs-kpi { flex: 1; background: var(--md-surface-variant, #eef1f6); border-radius: 12px; padding: .6rem .8rem; }
+  .pvs-kpi-etq { font-size: .66rem; text-transform: uppercase; letter-spacing: .06em; color: var(--md-on-surface-low, #80868b); font-weight: 600; margin-bottom: .35rem; }
+  .pvs-kpi-val { display: flex; align-items: center; gap: .6rem; }
+  .pvs-kpi-val .pvs-sev { font-size: .95rem; padding: .15rem .7rem; }
+  .pvs-acciones { display: flex; flex-wrap: wrap; gap: .4rem; padding: 0 1.2rem .9rem; border-bottom: 1px solid var(--md-outline, #dadce0); }
+  .pvs-acc { display: inline-flex; align-items: center; gap: .3rem; border: 1px solid var(--md-outline, #dadce0); background: var(--md-surface, #fff); border-radius: 999px; padding: .35rem .8rem; font-size: .78rem; font-weight: 500; cursor: pointer; color: var(--md-on-surface, #1f1f1f); }
+  .pvs-acc:hover { background: var(--md-surface-variant, #eef1f6); }
+  .pvs-acc.primario { background: var(--md-primary-container, #c2e7ff); border-color: transparent; color: var(--md-primary-dark, #0842a0); }
+  .pvs-acc .ms { font-size: 17px; }
+  .pvs button:focus-visible, .pvs input:focus-visible, .pvs select:focus-visible, .pvs textarea:focus-visible { outline: 2px solid var(--md-primary, #0b57d0); outline-offset: 2px; }
+
+  .pvs-cuerpo { flex: 1; min-height: 0; overflow: auto; padding: .4rem 1.2rem 1.4rem; }
+  .pvs-sec { padding: .8rem 0; border-bottom: 1px solid var(--md-outline, #dadce0); }
+  .pvs-sec:last-child { border-bottom: none; }
+  .pvs-sec h3 { font-size: .66rem; text-transform: uppercase; letter-spacing: .06em; color: var(--md-on-surface-low, #80868b); font-weight: 600; margin: 0 0 .55rem; }
+  .pvs-vacio { color: var(--md-on-surface-low, #80868b); font-size: .84rem; }
+
+  /* Pastillas de severidad (mismos colores que la página Valoraciones) */
+  .pvs-sev { display: inline-block; font-size: .76rem; font-weight: 600; padding: .1rem .6rem; border-radius: 999px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .pvs-sev.sev-ok    { background: var(--md-success-bg, #e6f4ea); color: var(--md-success, #146c2e); }
+  .pvs-sev.sev-medio { background: var(--md-warning-bg, #fef1d6); color: var(--on-warn, #6b4300); }
+  .pvs-sev.sev-alto  { background: var(--md-error-bg, #f9dddb);   color: var(--on-err, #9c2a1f); }
+  .pvs-sev.sev-vacio { background: var(--md-surface-variant, #eef1f6); color: var(--md-on-surface-low, #80868b); }
+  .pvs-delta { display: inline-flex; align-items: center; font-size: .78rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .pvs-delta .ms { font-size: 15px; }
+  .pvs-delta.mejora { color: var(--md-success, #146c2e); } .pvs-delta.empeora { color: var(--md-error, #b3261e); } .pvs-delta.igual { color: var(--md-on-surface-low, #80868b); }
+  .pvs-tipo { font-size: .7rem; font-weight: 600; padding: .1rem .55rem; border-radius: 999px; background: var(--md-surface-variant, #eef1f6); color: var(--md-on-surface-med, #5f6368); }
+  .pvs-tipo.inicial { background: var(--md-purple-bg, #f1e4fd); color: var(--on-purple, #5a2596); }
+  .pvs-tipo.seguimiento { background: var(--md-primary-light, #d3e3fd); color: var(--md-primary-dark, #0842a0); }
+  .pvs-tipo.final { background: var(--md-success-bg, #e6f4ea); color: var(--md-success, #146c2e); }
+
+  /* Gráfica de evolución */
+  .pvs-chips { display: flex; flex-wrap: wrap; gap: .3rem; margin-bottom: .6rem; }
+  .pvs-chip { border: 1px solid var(--md-outline, #dadce0); background: var(--md-surface, #fff); color: var(--md-on-surface-med, #5f6368); border-radius: 999px; padding: .2rem .7rem; font-size: .74rem; font-weight: 600; cursor: pointer; }
+  .pvs-chip:hover { background: var(--md-surface-variant, #eef1f6); }
+  .pvs-chip.activo { background: var(--md-primary-container, #c2e7ff); border-color: transparent; color: var(--md-primary-dark, #0842a0); }
+  .pvs-grafica { display: block; width: 100%; height: auto; }
+  .pvs-g-linea { stroke: var(--md-primary, #0b57d0); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
+  .pvs-g-area { fill: var(--md-primary, #0b57d0); fill-opacity: .1; }
+  .pvs-g-guia { stroke: var(--md-outline, #dadce0); stroke-width: 1; stroke-dasharray: 2,3; }
+  .pvs-g-etq { font-size: 11px; fill: var(--md-on-surface-low, #80868b); font-family: var(--font, system-ui, sans-serif); }
+  .pvs-g-valor { font-size: 11px; font-weight: 700; fill: var(--md-on-surface, #1f1f1f); font-family: var(--font, system-ui, sans-serif); }
+  .pvs-g-punto { stroke: var(--md-surface, #fff); stroke-width: 2; }
+  .pvs-g-punto.sev-ok { fill: var(--md-success, #146c2e); } .pvs-g-punto.sev-medio { fill: var(--md-warning, #b06000); } .pvs-g-punto.sev-alto { fill: var(--md-error, #b3261e); }
+
+  /* Historial */
+  .pvs-hist { border: 1px solid var(--md-outline, #dadce0); border-radius: 14px; padding: .65rem .8rem; margin-bottom: .55rem; }
+  .pvs-hist:hover { background: var(--md-surface-variant, #eef1f6); }
+  .pvs-hist-cab { display: flex; align-items: center; gap: .5rem; margin-bottom: .5rem; }
+  .pvs-hist-fecha { font-size: .86rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .pvs-esp { flex: 1; }
+  .pvs-ico { border: none; background: none; cursor: pointer; width: 28px; height: 28px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; color: var(--md-on-surface-med, #5f6368); }
+  .pvs-ico:hover { background: var(--md-outline, #dadce0); }
+  .pvs-ico.peligro:hover { color: var(--md-error, #b3261e); }
+  .pvs-vals { display: grid; grid-template-columns: repeat(4, 1fr); gap: .45rem .5rem; }
+  .pvs-mv { display: flex; flex-direction: column; gap: .15rem; align-items: flex-start; }
+  .pvs-mv-etq { font-size: .62rem; text-transform: uppercase; letter-spacing: .04em; color: var(--md-on-surface-low, #80868b); font-weight: 600; }
+  .pvs-notas { margin-top: .5rem; font-size: .8rem; color: var(--md-on-surface-med, #5f6368); overflow-wrap: anywhere; white-space: pre-wrap; }
+  .pvs-conf { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; margin-top: .6rem; padding: .5rem .6rem; border-radius: 10px; background: var(--md-error-bg, #f9dddb); color: var(--on-err, #9c2a1f); font-weight: 600; }
+  .pvs-conf span { flex: 1; min-width: 9rem; }
+  .pvs-btn { border: 1px solid var(--md-outline, #dadce0); background: var(--md-surface, #fff); color: var(--md-on-surface, #1f1f1f); border-radius: 999px; padding: .35rem .9rem; font-size: .78rem; font-weight: 600; cursor: pointer; }
+  .pvs-btn:hover { background: var(--md-surface-variant, #eef1f6); }
+  .pvs-btn.primario { background: var(--md-primary, #0b57d0); border-color: transparent; color: var(--md-on-primary, #fff); }
+  .pvs-btn.primario:hover { filter: brightness(1.08); }
+  .pvs-btn.peligro { background: var(--md-error, #b3261e); border-color: transparent; color: #fff; }
+
+  /* Sub-vistas (nueva valoración / editar) dentro del panel */
+  .pvs-vista-cab { flex: none; display: flex; align-items: center; gap: .5rem; padding: .55rem .8rem; border-bottom: 1px solid var(--md-outline, #dadce0); }
+  .pvs-vista-cab .pvs-ico { width: 34px; height: 34px; }
+  .pvs-vista-tit { flex: 1; min-width: 0; font-size: .9rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pvs-form-host { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
+  .pvs-form-host > * { flex: 1 1 auto; min-height: 0; }
+  .pvs-edit { flex: 1; min-height: 0; overflow: auto; padding: 1rem 1.2rem; display: grid; grid-template-columns: 1fr 1fr; gap: .8rem; align-content: start; }
+  .pvs-edit label { display: flex; flex-direction: column; gap: .25rem; font-size: .72rem; font-weight: 600; color: var(--md-on-surface-med, #5f6368); }
+  .pvs-edit label.ancho { grid-column: 1 / -1; }
+  .pvs-edit input, .pvs-edit select, .pvs-edit textarea { font: inherit; font-size: .88rem; font-weight: 400; color: var(--md-on-surface, #1f1f1f); background: var(--md-surface, #fff); border: 1px solid var(--md-outline, #dadce0); border-radius: 8px; padding: .45rem .6rem; width: 100%; }
+  .pvs-edit textarea { resize: vertical; min-height: 3.2rem; }
+  .pvs-pie { flex: none; display: flex; justify-content: flex-end; gap: .5rem; padding: .7rem 1.2rem; border-top: 1px solid var(--md-outline, #dadce0); }
+
+  /* Aviso «Valoración eliminada · Deshacer» */
+  .pvs-undo { position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); z-index: 5; display: flex; align-items: center; gap: 1rem; background: #323232; color: #fff; padding: .6rem 1rem; border-radius: 10px; font-size: .82rem; box-shadow: 0 4px 16px rgba(0,0,0,.25); white-space: nowrap; }
+  .pvs-undo button { background: none; border: none; color: #8ab4f8; font-weight: 700; font-size: .82rem; cursor: pointer; padding: 0; }
+  .pvs-undo button:hover { text-decoration: underline; }
+  @media (max-width: 420px) { .pvs-edit { grid-template-columns: 1fr; } .pvs-vals { grid-template-columns: repeat(3, 1fr); } }
+</style>
+<script>
+window.PanelValoraciones = {
+  abrir: function (host, opts) {
+    opts = opts || {};
+    var nombre = String(opts.paciente || '').trim();
+    var dni = String(opts.dni || '').trim();
+    var telefono = String(opts.telefono || '').trim();
+
+    // ---------- Métricas (mismas que la página Valoraciones) ----------
+    var METRICAS = [
+      { k: 'funcionGlobal', etq: 'Función Global' }, { k: 'pegDolor', etq: 'PEG Dolor' }, { k: 'pegActividad', etq: 'PEG Actividad' }, { k: 'pegVida', etq: 'PEG Vida' },
+      { k: 'analgesicos', etq: 'Analgésicos' }, { k: 'mediaColumna', etq: 'Columna' }, { k: 'mediaMS', etq: 'Miembro Superior' }, { k: 'mediaMI', etq: 'Miembro Inferior' }
+    ];
+    var ETQ_CORTA = { pegDolor: 'Dolor', pegActividad: 'Actividad', pegVida: 'Vida', analgesicos: 'Analgés.', mediaColumna: 'Columna', mediaMS: 'M. Sup.', mediaMI: 'M. Inf.', funcionGlobal: 'F. Global' };
+    var ORDEN_MINI = ['pegDolor', 'pegActividad', 'pegVida', 'analgesicos', 'mediaColumna', 'mediaMS', 'mediaMI', 'funcionGlobal'];
+    var ESCALA_MAX = { analgesicos: 5 };   // Analgésicos 0-5; el resto 0-10
+    // Dirección del color: PEG y Analgésicos, alto = malo; Columna / M. Superior / M. Inferior / Función Global, alto = bueno.
+    var TIPO_METRICA = { pegDolor: 'dolor', pegActividad: 'dolor', pegVida: 'dolor', mediaColumna: 'funcion', mediaMS: 'funcion', mediaMI: 'funcion', funcionGlobal: 'funcion', analgesicos: 'analg' };
+    var CAMPOS_EDICION = [
+      { id: 'analgesicos', etq: 'Analgésicos (0-5)', max: 5, paso: 1 }, { id: 'pegDolor', etq: 'PEG Dolor (0-10)', max: 10, paso: 0.1 },
+      { id: 'pegActividad', etq: 'PEG Actividad (0-10)', max: 10, paso: 0.1 }, { id: 'pegVida', etq: 'PEG Vida (0-10)', max: 10, paso: 0.1 },
+      { id: 'funcionGlobal', etq: 'Función Global (0-10)', max: 10, paso: 0.1 }, { id: 'mediaColumna', etq: 'Columna (0-10)', max: 10, paso: 0.1 },
+      { id: 'mediaMS', etq: 'Miembro Superior (0-10)', max: 10, paso: 0.1 }, { id: 'mediaMI', etq: 'Miembro Inferior (0-10)', max: 10, paso: 0.1 }
+    ];
+
+    // ---------- Estado ----------
+    var S = { vista: 'cargando', historial: [], metrica: 'funcionGlobal', confirmar: null, edit: null, editTocado: false, directo: false, msg: '' };
+    var ctlForm = null;       // controlador del formulario de Nueva valoración mientras está montado
+    var undoEl = null, undoTimer = null, vivo = true, ocupado = false;
+
+    var root = document.createElement('div');
+    root.className = 'pvs';
+    host.innerHTML = '';
+    host.appendChild(root);
+    function conectado() { return vivo && root.isConnected; }
+
+    // ---------- Utilidades ----------
+    function esc(t) { return (t === null || t === undefined ? '' : String(t)).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
+    function ms(n) { return '<span class="ms">' + n + '</span>'; }
+    function norm(t) { return String(t === null || t === undefined ? '' : t).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim(); }
+    function fechaCorta(iso) { if (!iso) return '—'; var p = iso.split('-'); return p.length === 3 ? p[2] + '/' + p[1] + '/' + p[0].slice(2) : iso; }
+    function formatearTel(t) { var d = String(t || '').replace(/\D/g, ''); return d.length === 9 ? d.slice(0, 3) + ' ' + d.slice(3, 6) + ' ' + d.slice(6) : String(t || ''); }
+    function aviso(txt) { if (typeof mostrarAviso === 'function') mostrarAviso(txt); }
+    function confirmar(txt) { return (typeof mostrarConfirm === 'function') ? mostrarConfirm(txt) : Promise.resolve(window.confirm(txt)); }
+    function avisarOtrasVentanas() {
+      // El evento 'storage' solo llega a OTRAS ventanas (p. ej. la página Valoraciones abierta aparte): lleva marca de tiempo para que cada valor sea distinto.
+      try { localStorage.setItem('valoracionesActualizadas', JSON.stringify({ ts: Date.now() })); } catch (e) { /* localStorage no disponible */ }
+      if (opts.onCambio) opts.onCambio();
+    }
+    function sev(v, campo) {
+      var t = TIPO_METRICA[campo] || 'dolor';
+      if (t === 'funcion') return v <= 3 ? 'sev-alto' : v <= 7 ? 'sev-medio' : 'sev-ok';
+      if (t === 'analg') return v <= 2 ? 'sev-ok' : v === 3 ? 'sev-medio' : 'sev-alto';
+      return v <= 3 ? 'sev-ok' : v <= 6 ? 'sev-medio' : 'sev-alto';
+    }
+    function pastilla(v, campo) {
+      if (v === null || v === undefined) return '<span class="pvs-sev sev-vacio">—</span>';
+      return '<span class="pvs-sev ' + sev(v, campo) + '">' + v + '</span>';
+    }
+    function chipTipo(tipo) {
+      if (!tipo) return '';
+      var c = norm(tipo);
+      return '<span class="pvs-tipo ' + (c === 'inicial' || c === 'seguimiento' || c === 'final' ? c : '') + '">' + esc(tipo) + '</span>';
+    }
+    // Diferencia entre las dos últimas valoraciones con dato. Mejora = sube en escalas de función, baja en dolor y analgésicos.
+    function delta(h, campo) {
+      var v = [];
+      for (var i = h.length - 1; i >= 0 && v.length < 2; i--) if (h[i][campo] !== null && h[i][campo] !== undefined) v.push(h[i][campo]);
+      if (v.length < 2) return '';
+      var d = Math.round((v[0] - v[1]) * 10) / 10;
+      var mejora = TIPO_METRICA[campo] === 'funcion' ? d > 0 : d < 0;
+      return '<span class="pvs-delta ' + (d === 0 ? 'igual' : (mejora ? 'mejora' : 'empeora')) + '" title="Respecto a la valoración anterior">' + ms(d === 0 ? 'remove' : (d > 0 ? 'arrow_upward' : 'arrow_downward')) + (d > 0 ? '+' : '') + d + '</span>';
+    }
+
+    // ---------- Gráfica de evolución (SVG sin librerías; se escala al ancho del panel) ----------
+    function grafica(h) {
+      var m = S.metrica, W = 480, H = 210, padL = 26, padR = 18, padT = 22, padB = 26, n = h.length, puntos = [];
+      h.forEach(function (r, i) { var v = r[m]; if (v !== null && v !== undefined) puntos.push({ i: i, v: v, fecha: r.fecha, tipo: r.tipo }); });
+      if (!puntos.length) return '<p class="pvs-vacio">Sin datos suficientes para graficar esta métrica.</p>';
+      var max = ESCALA_MAX[m] || 10;
+      var x = function (i) { return n <= 1 ? (padL + (W - padL - padR) / 2) : padL + (i / (n - 1)) * (W - padL - padR); };
+      var y = function (v) { return padT + (1 - v / max) * (H - padT - padB); };
+      var linea = puntos.map(function (p, k) { return (k === 0 ? 'M' : 'L') + x(p.i).toFixed(1) + ',' + y(p.v).toFixed(1); }).join(' ');
+      var area = puntos.length > 1 ? linea + ' L' + x(puntos[puntos.length - 1].i).toFixed(1) + ',' + y(0).toFixed(1) + ' L' + x(puntos[0].i).toFixed(1) + ',' + y(0).toFixed(1) + ' Z' : '';
+      var guias = (max === 5 ? [0, 1, 2, 3, 4, 5] : [0, 5, 10]).map(function (v) {
+        var yy = y(v).toFixed(1);
+        return '<line x1="' + padL + '" x2="' + (W - padR) + '" y1="' + yy + '" y2="' + yy + '" class="pvs-g-guia" /><text x="2" y="' + (parseFloat(yy) + 4) + '" class="pvs-g-etq">' + v + '</text>';
+      }).join('');
+      var circulos = puntos.map(function (p) {
+        return '<circle cx="' + x(p.i).toFixed(1) + '" cy="' + y(p.v).toFixed(1) + '" r="5" class="pvs-g-punto ' + sev(p.v, m) + '"><title>' + fechaCorta(p.fecha) + ' (' + esc(p.tipo) + '): ' + p.v + '</title></circle>';
+      }).join('');
+      var valores = puntos.length <= 8 ? puntos.map(function (p) {
+        return '<text x="' + x(p.i).toFixed(1) + '" y="' + (y(p.v) - 10).toFixed(1) + '" text-anchor="middle" class="pvs-g-valor">' + p.v + '</text>';
+      }).join('') : '';
+      var fechas = h.map(function (r, i) {
+        if (n > 6 && i !== 0 && i !== n - 1) return '';
+        var ancla = n === 1 ? 'middle' : (i === 0 ? 'start' : (i === n - 1 ? 'end' : 'middle'));
+        var xx = i === 0 && n > 1 ? padL : (i === n - 1 && n > 1 ? W - padR : x(i));
+        return '<text x="' + xx.toFixed(1) + '" y="' + (H - 6) + '" text-anchor="' + ancla + '" class="pvs-g-etq">' + fechaCorta(r.fecha) + '</text>';
+      }).join('');
+      return '<svg viewBox="0 0 ' + W + ' ' + H + '" class="pvs-grafica" role="img" aria-label="Evolución de ' + esc(ETQ_CORTA[m]) + '">' + guias + (area ? '<path d="' + area + '" class="pvs-g-area" />' : '') +
+        '<path d="' + linea + '" class="pvs-g-linea" fill="none" />' + circulos + valores + fechas + '</svg>';
+    }
+
+    // ---------- Vistas ----------
+    function htmlRegistro(r) {
+      var conf = S.confirmar === r._fila;
+      return '<article class="pvs-hist"><div class="pvs-hist-cab"><span class="pvs-hist-fecha">' + fechaCorta(r.fecha) + '</span>' + chipTipo(r.tipo) + '<span class="pvs-esp"></span>' +
+        '<button type="button" class="pvs-ico" data-act="editar" data-fila="' + r._fila + '" title="Editar valoración" aria-label="Editar valoración">' + ms('edit') + '</button>' +
+        '<button type="button" class="pvs-ico peligro" data-act="eliminar" data-fila="' + r._fila + '" title="Eliminar valoración" aria-label="Eliminar valoración">' + ms('delete') + '</button></div>' +
+        '<div class="pvs-vals">' + ORDEN_MINI.map(function (k) { return '<div class="pvs-mv"><span class="pvs-mv-etq">' + ETQ_CORTA[k] + '</span>' + pastilla(r[k], k) + '</div>'; }).join('') + '</div>' +
+        (r.notas ? '<div class="pvs-notas">' + esc(r.notas) + '</div>' : '') +
+        (conf ? '<div class="pvs-conf" role="alert"><span>¿Eliminar esta valoración?</span><button type="button" class="pvs-btn" data-act="eliminar-no">Cancelar</button><button type="button" class="pvs-btn peligro" data-act="eliminar-ok" data-fila="' + r._fila + '">Eliminar</button></div>' : '') +
+        '</article>';
+    }
+
+    function htmlLista() {
+      var h = S.historial, tel = telefono;
+      var accNueva = '<button type="button" class="pvs-acc primario" data-act="nueva" title="Nueva valoración de este usuario">' + ms('assignment') + 'Nueva valoración</button>';
+      var accTel = tel ? '<button type="button" class="pvs-acc" data-act="copiar-tel" title="Copiar el teléfono">' + ms('content_copy') + 'Copiar teléfono</button>' : '';
+      if (!h.length) {
+        return '<div class="pvs-sub">' + (dni ? esc(dni) + ' · ' : '') + (tel ? esc(formatearTel(tel)) + ' · ' : '') + 'Sin valoraciones</div>' +
+          '<div class="pvs-acciones">' + accNueva + accTel + '</div><div class="pvs-cuerpo"><p class="pvs-vacio">Este usuario ya no tiene valoraciones. Puedes añadir una nueva.</p></div>';
+      }
+      var u = h[h.length - 1];
+      var kpi = function (campo, etq) { return '<div class="pvs-kpi"><div class="pvs-kpi-etq">' + etq + '</div><div class="pvs-kpi-val">' + pastilla(u[campo], campo) + delta(h, campo) + '</div></div>'; };
+      var chips = METRICAS.map(function (m) { return '<button type="button" class="pvs-chip' + (m.k === S.metrica ? ' activo' : '') + '" data-act="metrica" data-m="' + m.k + '" title="Ver la evolución de ' + m.etq.toLowerCase() + '">' + m.etq + '</button>'; }).join('');
+      return '<div class="pvs-sub">' + (dni ? esc(dni) + ' · ' : '') + (tel ? esc(formatearTel(tel)) : 'Sin teléfono') + ' · ' + h.length + (h.length === 1 ? ' valoración' : ' valoraciones') + '</div>' +
+        '<div class="pvs-kpis">' + kpi('funcionGlobal', 'Función Global') + kpi('pegDolor', 'PEG Dolor') + '</div>' +
+        '<div class="pvs-acciones">' + accNueva + accTel + '</div>' +
+        '<div class="pvs-cuerpo">' +
+          '<section class="pvs-sec"><h3>Evolución</h3><div class="pvs-chips">' + chips + '</div>' + grafica(h) + '</section>' +
+          '<section class="pvs-sec"><h3>Historial</h3>' + h.slice().reverse().map(htmlRegistro).join('') + '</section>' +
+        '</div>';
+    }
+
+    function htmlCab(titulo) {
+      return '<div class="pvs-vista-cab"><button type="button" class="pvs-ico" data-act="volver" title="Volver a las valoraciones (Esc)" aria-label="Volver a las valoraciones">' + ms('arrow_back') + '</button><div class="pvs-vista-tit">' + esc(titulo) + '</div></div>';
+    }
+
+    function htmlEditar() {
+      var r = S.edit, num = function (c) { var v = r[c.id]; return '<label>' + c.etq + '<input type="number" id="pvs-e-' + c.id + '" min="0" max="' + c.max + '" step="' + c.paso + '" value="' + (v === null || v === undefined ? '' : v) + '"></label>'; };
+      return htmlCab('Editar valoración · ' + fechaCorta(r.fecha)) +
+        '<div class="pvs-edit">' +
+          '<label>Fecha<input type="date" id="pvs-e-fecha" value="' + esc(r.fecha || '') + '"></label>' +
+          '<label>Tipo<select id="pvs-e-tipo">' + ['Inicial', 'Seguimiento', 'Final'].map(function (t) { return '<option value="' + t + '"' + ((r.tipo || 'Inicial') === t ? ' selected' : '') + '>' + t + '</option>'; }).join('') + '</select></label>' +
+          '<label class="ancho">Teléfono<input type="text" id="pvs-e-telefono" value="' + esc(r.telefono || '') + '"></label>' +
+          CAMPOS_EDICION.map(num).join('') +
+          '<label class="ancho">Notas<textarea id="pvs-e-notas" rows="2">' + esc(r.notas || '') + '</textarea></label>' +
+        '</div>' +
+        '<div class="pvs-pie"><button type="button" class="pvs-btn" data-act="volver">Cancelar</button><button type="button" class="pvs-btn primario" data-act="guardar-edicion" title="Guardar los cambios de la valoración">Guardar</button></div>';
+    }
+
+    function pintar() {
+      if (!conectado()) return;
+      var cuerpo = root.querySelector('.pvs-cuerpo'), scroll = cuerpo ? cuerpo.scrollTop : 0;
+      root.classList.toggle('ocupado', ocupado);
+      if (S.vista === 'cargando') {
+        root.innerHTML = '<div class="pvs-estado">Cargando valoraciones…</div>';
+      } else if (S.vista === 'error') {
+        root.innerHTML = '<div class="pvs-estado"><div>No se pudieron cargar las valoraciones.' + (S.msg ? '<br><small>' + esc(S.msg) + '</small>' : '') + '</div><button type="button" class="pvs-btn" data-act="reintentar">Reintentar</button></div>';
+      } else if (S.vista === 'lista') {
+        root.innerHTML = htmlLista();
+        cuerpo = root.querySelector('.pvs-cuerpo');
+        if (cuerpo) cuerpo.scrollTop = scroll;
+      } else if (S.vista === 'editar') {
+        root.innerHTML = htmlEditar();
+        var e = root.querySelector('.pvs-edit');
+        e.addEventListener('input', function () { S.editTocado = true; });
+        e.addEventListener('change', function () { S.editTocado = true; });
+      }
+      // La vista 'nueva' no pasa por aquí: monta el formulario directamente (ver irANueva).
+      if (undoEl) root.appendChild(undoEl);
+    }
+
+    // ---------- Carga del historial ----------
+    function cargar(despues) {
+      google.script.run
+        .withSuccessHandler(function (res) {
+          if (!conectado()) return;
+          if (!res || !res.success) { S.vista = 'error'; S.msg = (res && res.message) || ''; pintar(); return; }
+          S.historial = res.historial || [];
+          if (!telefono) { for (var i = S.historial.length - 1; i >= 0; i--) if (S.historial[i].telefono) { telefono = String(S.historial[i].telefono); break; } }
+          despues();
+        })
+        .withFailureHandler(function (err) {
+          if (!conectado()) return;
+          S.vista = 'error'; S.msg = String((err && err.message) || err || ''); pintar();
+        })
+        .obtenerValoracionesUsuarioWeb(nombre, dni);
+    }
+    function mostrarLista() { ctlForm = null; S.vista = 'lista'; S.confirmar = null; pintar(); }
+    function recargarYMostrarLista() { cargar(mostrarLista); }
+
+    // ---------- Nueva valoración (formulario valoraciones/Panel_Valoracion montado dentro del panel) ----------
+    function irANueva() {
+      S.vista = 'nueva'; S.confirmar = null;
+      root.classList.remove('ocupado');
+      // Con "directo" (usuario sin valoraciones) no hay a dónde volver dentro del panel: la cabecera de la página se encarga de salir.
+      root.innerHTML = (S.directo ? '' : htmlCab('Nueva valoración')) + '<div class="pvs-form-host"></div>';
+      if (undoEl) root.appendChild(undoEl);
+      var cont = root.querySelector('.pvs-form-host');
+      ctlForm = PanelValoracion.abrir(cont, {
+        paciente: nombre, dni: dni, telefono: telefono,
+        onGuardado: function () {
+          if (!conectado()) return;
+          avisarOtrasVentanas();
+          if (S.directo) { if (opts.onGuardado) opts.onGuardado(); return; }   // como siempre: la página cierra el formulario
+          aviso('Valoración guardada');
+          S.vista = 'cargando'; pintar();
+          recargarYMostrarLista();
+        },
+        onCancelar: function () {
+          if (!conectado()) return;
+          if (S.directo) { if (opts.onCancelar) opts.onCancelar(); return; }
+          mostrarLista();
+        }
+      });
+    }
+
+    // ---------- Editar ----------
+    function irAEditar(reg) {
+      S.edit = Object.assign({}, reg); S.editTocado = false; S.vista = 'editar'; S.confirmar = null;
+      pintar();
+    }
+    function valorONulo(id) { var v = root.querySelector('#pvs-e-' + id).value; return v === '' ? null : Number(v); }
+    function guardarEdicion() {
+      var r = S.edit, fecha = root.querySelector('#pvs-e-fecha').value;
+      if (!fecha) { aviso('La fecha es obligatoria.'); return; }
+      var datos = {
+        fila: r._fila, nombreEsperado: r.nombre || nombre, dniEsperado: r.dni || '', fechaOriginal: r.fecha || '',
+        fecha: fecha, tipo: root.querySelector('#pvs-e-tipo').value, telefono: root.querySelector('#pvs-e-telefono').value,
+        notas: root.querySelector('#pvs-e-notas').value
+      };
+      for (var i = 0; i < CAMPOS_EDICION.length; i++) {
+        var c = CAMPOS_EDICION[i], v = valorONulo(c.id);
+        if (v !== null && (isNaN(v) || v < 0 || v > c.max)) { aviso('Revisa ' + c.etq.replace(/ \(.*/, '') + ': debe estar entre 0 y ' + c.max + '.'); return; }
+        datos[c.id] = v;
+      }
+      ocupado = true; root.classList.add('ocupado');
+      google.script.run
+        .withSuccessHandler(function (res) {
+          ocupado = false;
+          if (!conectado()) return;
+          root.classList.remove('ocupado');
+          if (!res || !res.success) { aviso((res && res.message) || 'No se pudo guardar la valoración.'); return; }
+          S.editTocado = false;
+          aviso('Valoración actualizada.');
+          avisarOtrasVentanas();
+          recargarYMostrarLista();
+        })
+        .withFailureHandler(function (err) { ocupado = false; if (!conectado()) return; root.classList.remove('ocupado'); aviso('Error al guardar: ' + ((err && err.message) || err)); })
+        .actualizarValoracionWeb(datos);
+    }
+
+    // ---------- Eliminar (con confirmación en la propia tarjeta y «Deshacer») ----------
+    function eliminar(fila) {
+      var reg = S.historial.filter(function (h) { return h._fila === fila; })[0];
+      if (!reg) return;
+      var snapshot = Object.assign({}, reg, { nombre: reg.nombre || nombre, dni: reg.dni || '' });   // foto completa para poder deshacer
+      ocupado = true; pintar();
+      google.script.run
+        .withSuccessHandler(function (res) {
+          ocupado = false;
+          if (!conectado()) return;
+          if (!res || !res.success) { S.confirmar = null; pintar(); aviso((res && res.message) || 'No se pudo eliminar la valoración.'); return; }
+          avisarOtrasVentanas();
+          mostrarUndo(snapshot);
+          recargarYMostrarLista();
+        })
+        .withFailureHandler(function (err) { ocupado = false; if (!conectado()) return; S.confirmar = null; pintar(); aviso('Error al eliminar: ' + ((err && err.message) || err)); })
+        .eliminarValoracionWeb(reg._fila, snapshot.nombre, reg.fecha || '', snapshot.dni);
+    }
+    function quitarUndo() { if (undoTimer) { clearTimeout(undoTimer); undoTimer = null; } if (undoEl) { undoEl.remove(); undoEl = null; } }
+    function mostrarUndo(snapshot) {
+      quitarUndo();
+      undoEl = document.createElement('div');
+      undoEl.className = 'pvs-undo'; undoEl.setAttribute('role', 'status');
+      undoEl.innerHTML = '<span>Valoración eliminada.</span><button type="button" data-act="deshacer">Deshacer</button>';
+      undoEl._snapshot = snapshot;
+      undoTimer = setTimeout(quitarUndo, 8000);
+    }
+    function deshacer() {
+      if (!undoEl || ocupado) return;
+      var snapshot = undoEl._snapshot;
+      ocupado = true; root.classList.add('ocupado');
+      google.script.run
+        .withSuccessHandler(function (res) {
+          ocupado = false;
+          if (!conectado()) return;
+          root.classList.remove('ocupado');
+          if (!res || !res.success) { aviso((res && res.message) || 'No se pudo deshacer.'); return; }   // el botón sigue para reintentar
+          quitarUndo();
+          avisarOtrasVentanas();
+          recargarYMostrarLista();
+        })
+        .withFailureHandler(function (err) { ocupado = false; if (!conectado()) return; root.classList.remove('ocupado'); aviso('Error al deshacer: ' + ((err && err.message) || err)); })
+        .restaurarValoracionWeb(snapshot);
+    }
+
+    // ---------- Volver de una sub-vista (pregunta si hay cambios sin guardar) ----------
+    function hayCambios() {
+      if (S.vista === 'nueva') return !!(ctlForm && ctlForm.haCambiado && ctlForm.haCambiado());
+      if (S.vista === 'editar') return S.editTocado;
+      return false;
+    }
+    function volver() {
+      if (S.vista !== 'nueva' && S.vista !== 'editar') return Promise.resolve();
+      var pregunta = hayCambios() ? confirmar('Hay cambios sin guardar. ¿Quieres descartarlos?') : Promise.resolve(true);
+      return pregunta.then(function (ok) { if (ok && conectado()) mostrarLista(); });
+    }
+
+    // ---------- Eventos ----------
+    root.addEventListener('click', function (e) {
+      var c = e.target.closest('[data-act]');
+      if (!c || !root.contains(c) || ocupado) return;
+      var act = c.getAttribute('data-act'), fila = parseInt(c.getAttribute('data-fila'), 10);
+      if (act === 'metrica') { S.metrica = c.getAttribute('data-m'); pintar(); }
+      else if (act === 'nueva') irANueva();
+      else if (act === 'copiar-tel') {
+        var ok = function () { aviso('Teléfono copiado.'); }, ko = function () { aviso('No se pudo copiar el teléfono.'); };
+        try { navigator.clipboard.writeText(telefono).then(ok, ko); } catch (err) { ko(); }
+      }
+      else if (act === 'editar') { var reg = S.historial.filter(function (h) { return h._fila === fila; })[0]; if (reg) irAEditar(reg); }
+      else if (act === 'eliminar') { S.confirmar = fila; pintar(); }
+      else if (act === 'eliminar-no') { S.confirmar = null; pintar(); }
+      else if (act === 'eliminar-ok') eliminar(fila);
+      else if (act === 'guardar-edicion') guardarEdicion();
+      else if (act === 'volver') volver();
+      else if (act === 'reintentar') { S.vista = 'cargando'; pintar(); iniciar(); }
+      else if (act === 'deshacer') deshacer();
+    });
+
+    function iniciar() {
+      cargar(function () {
+        if (!S.historial.length) { S.directo = true; irANueva(); }   // sin valoraciones: directo al formulario, como siempre
+        else mostrarLista();
+      });
+    }
+    pintar();
+    iniciar();
+
+    return {
+      haCambiado: hayCambios,
+      // Esc: primero cierra lo que esté abierto dentro del panel; si no hay nada, lo gestiona la página (cerrar el panel).
+      alEscape: function () {
+        if (S.confirmar !== null) { S.confirmar = null; pintar(); return true; }
+        if ((S.vista === 'nueva' && !S.directo) || S.vista === 'editar') { volver(); return true; }
+        return false;
+      },
+      cerrar: function () { vivo = false; quitarUndo(); }
+    };
+  }
+};
+</script>
