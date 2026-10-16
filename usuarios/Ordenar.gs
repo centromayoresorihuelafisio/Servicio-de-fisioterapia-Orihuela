@@ -57,7 +57,7 @@ function ordenarPacientes() {
     }
 
     const estado = estadoRaw.toString().trim();
-    const esAlta = estado === "✔️ Alta";
+    const esAlta = estado === ESTADOS_PACIENTE.ALTA;
     const ingreso = row[idxIngreso].toString().trim();
     const gravedad = row[idxGravedad].toString().trim();
     const fechaUlt = parseFecha(row[idxUltimaVisita]);
@@ -66,11 +66,11 @@ function ordenarPacientes() {
     let score = 0;
 
     switch (estado) {
-      case "🟢 Activo": score += 5000; break;
-      case "🟡 En espera": score += 4000; break;
-      case "✔️ Alta": score += 3000; break;
-      case "🕐 Contactará": score += 2000; break;
-      case "🚫 No responde": score += 1000; break;
+      case ESTADOS_PACIENTE.ACTIVO: score += 5000; break;
+      case ESTADOS_PACIENTE.EN_ESPERA: score += 4000; break;
+      case ESTADOS_PACIENTE.ALTA: score += 3000; break;
+      case ESTADOS_PACIENTE.CONTACTARA: score += 2000; break;
+      case ESTADOS_PACIENTE.NO_RESPONDE: score += 1000; break;
     }
 
     if (ingreso === "📄 Volante" || ingreso === "🔁 Derivación propia") {

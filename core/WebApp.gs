@@ -69,6 +69,14 @@ function incluirPanel(archivo, global) {
   return '<script>PanelesDiferidos.registrar(' + JSON.stringify(global) + ',' + JSON.stringify(archivo) + ');</script>';
 }
 
+/**
+ * Entrega a la página los estados de usuario de core/Config.gs (ESTADOS_PACIENTE) como variable global del navegador.
+ * Se pone UNA vez por página, antes de ui/JS_Ficha y de los paneles que lo usan.
+ */
+function incluirEstados() {
+  return '<script>var ESTADOS_PACIENTE = ' + JSON.stringify(ESTADOS_PACIENTE) + ';</script>';
+}
+
 /** Devuelve el HTML de un panel (estilos, plantilla y script) para que el navegador lo monte al abrirlo. */
 function obtenerPanelWeb(archivo) {
   if (PANELES_DIFERIDOS_.indexOf(archivo) === -1) throw new Error('Panel no disponible: ' + archivo);

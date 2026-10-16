@@ -118,3 +118,25 @@ const COLUMNAS_NUM = {
  * false → vuelven a ir dentro de la página, exactamente como antes. Es el interruptor para deshacer el cambio.
  */
 const PANELES_BAJO_DEMANDA = true;
+
+/**
+ * Estados de un usuario (columna "Estado" de la Maestra). FUENTE ÚNICA: el texto lleva emoji y debe
+ * coincidir exactamente con lo que hay escrito en las celdas de la hoja.
+ * - Servidor: se usa directamente (ESTADOS_PACIENTE.ALTA, ...).
+ * - Cliente (HTML): las páginas lo reciben con <script> generado por incluirEstados() (core/WebApp.gs),
+ *   y los archivos de las vistas lo leen como ESTADOS_PACIENTE.
+ * LISTA_EDICION = los que se ofrecen al editar y en la ficha; LISTA_NUEVO = los que se ofrecen al crear un usuario.
+ */
+const ESTADOS_PACIENTE = (function () {
+  const e = {
+    ACTIVO: "🟢 Activo",
+    EN_ESPERA: "🟡 En espera",
+    ALTA: "✔️ Alta",
+    CONTACTARA: "🕐 Contactará",
+    NO_RESPONDE: "🚫 No responde"
+  };
+  e.LISTA_EDICION = [e.ACTIVO, e.EN_ESPERA, e.CONTACTARA, e.NO_RESPONDE, e.ALTA];
+  e.LISTA_NUEVO = [e.ACTIVO, e.EN_ESPERA, e.CONTACTARA];
+  e.DEFECTO_NUEVO = e.EN_ESPERA;
+  return e;
+})();

@@ -318,13 +318,13 @@ function guardarCitasMultiples(formData) {
   });
   
   if (successCount > 0) {
-    actualizarEstadoPaciente(nombreUsuario, "🟢 Activo");
+    actualizarEstadoPaciente(nombreUsuario, ESTADOS_PACIENTE.ACTIVO);
 
     ordenarPacientes();
     invalidarCacheAgenda_(sheet); // sin esto, agenda/Web.gs sirve la semana cacheada (hasta 90s) aunque el sondeo del cliente pregunte al instante
 
     let message = `Registro exitoso de **${successCount}** cita(s).`;
-    message += `<br>Estado de **${nombreUsuario}** actualizado a **🟢 Activo** e Historia Clínica vinculada.`;
+    message += `<br>Estado de **${nombreUsuario}** actualizado a **${ESTADOS_PACIENTE.ACTIVO}** e Historia Clínica vinculada.`;
     return { success: true, message: message };
   } else {
     return { success: false, message: "No se pudo guardar ninguna cita: " + failureMessages.join('; ') };

@@ -181,13 +181,13 @@ function _ejecutarAltaEnFila(sheet, activeRow) {
   const tipoIngresoRange = sheet.getRange(activeRow, tipoIngresoCol + 1);
 
   const estadoActual = estadoRange.getValue();
-  if (estadoActual === "✔️ Alta") {
+  if (estadoActual === ESTADOS_PACIENTE.ALTA) {
     return { success: false, message: "El usuario ya está dado de alta." };
   }
 
   const ultimaVisitaRange = (ultimaVisitaCol !== -1) ? sheet.getRange(activeRow, ultimaVisitaCol + 1) : null;
 
-  estadoRange.setValue("✔️ Alta");
+  estadoRange.setValue(ESTADOS_PACIENTE.ALTA);
   tipoIngresoRange.setValue("");
   // La Fecha de inscripción NO se toca: se conserva al dar el alta.
 

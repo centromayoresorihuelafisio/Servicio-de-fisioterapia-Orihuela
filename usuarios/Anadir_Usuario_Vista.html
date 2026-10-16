@@ -1207,12 +1207,12 @@
 
           <!-- Estado convertido a dropdown MD3 custom de selección única -->
           <div class="field">
-            <input type="hidden" id="estado" name="Estado" value="🟡 En espera">
+            <input type="hidden" id="estado" name="Estado" value="<?= ESTADOS_PACIENTE.DEFECTO_NUEVO ?>">
             <div class="multiselect" id="ms_estado">
               <div class="ms-toggle has-value" id="toggle_estado" tabindex="0" role="button" aria-haspopup="listbox" aria-expanded="false" aria-label="Seleccionar estado">
                 <div class="ms-leading"><span class="ms">radio_button_checked</span></div>
                 <span class="ms-label">Estado</span>
-                <span class="ms-display">🟡 En espera</span>
+                <span class="ms-display"><?= ESTADOS_PACIENTE.DEFECTO_NUEVO ?></span>
                 <div class="ms-trailing"><span class="ms">expand_more</span></div>
               </div>
               <div class="ms-menu" id="menu_estado" role="listbox"></div>
@@ -1723,7 +1723,7 @@
     // Inicialización de componentes clínicos personalizados
     buildMultiselect('menu1','toggle1','Patología 1','items1');
     buildMultiselect('menu2','toggle2','Patología 2','items2');
-    buildSingleSelect('menu_estado', 'toggle_estado', 'estado', ["🟢 Activo", "🟡 En espera", "🕐 Contactará"], "🟡 En espera");
+    buildSingleSelect('menu_estado', 'toggle_estado', 'estado', <?!= JSON.stringify(ESTADOS_PACIENTE.LISTA_NUEVO) ?>, <?!= JSON.stringify(ESTADOS_PACIENTE.DEFECTO_NUEVO) ?>);
     buildSingleSelect('menu_tipoIngreso', 'toggle_tipoIngreso', 'tipoIngreso', ["📄 Volante", "🔁 Derivación propia", "🕰️ Antiguo paciente"], "📄 Volante");
 
     // Manejador global para cerrar menús al hacer clic fuera de ellos
@@ -1866,8 +1866,8 @@
               ['toggle1','toggle2'].forEach(id => document.getElementById(id)?.classList.remove('has-value'));
 
               // Resetea Estado y Tipo Ingreso
-              document.getElementById('estado').value = "🟡 En espera";
-              document.getElementById('toggle_estado').querySelector('.ms-display').textContent = "🟡 En espera";
+              document.getElementById('estado').value = <?!= JSON.stringify(ESTADOS_PACIENTE.DEFECTO_NUEVO) ?>;
+              document.getElementById('toggle_estado').querySelector('.ms-display').textContent = <?!= JSON.stringify(ESTADOS_PACIENTE.DEFECTO_NUEVO) ?>;
               document.getElementById('tipoIngreso').value = "📄 Volante";
               document.getElementById('toggle_tipoIngreso').querySelector('.ms-display').textContent = "📄 Volante";
 

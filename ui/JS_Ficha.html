@@ -21,7 +21,7 @@
 <script>
 var FichaUsuario = (function() {
   // Estados que se ofrecen siempre en el menu (se anaden los demas que existan en la hoja).
-  var ESTADOS_BASE = ['🟢 Activo', '🟡 En espera', '🕐 Contactará', '🚫 No responde', '✔️ Alta'];
+  var ESTADOS_BASE = ESTADOS_PACIENTE.LISTA_EDICION.slice();
 
   // Secciones de la ficha, en orden. Cada campo: col = cabecera real de la hoja, etq = etiqueta que se muestra,
   // tipo = como se pinta (tel, copia, gravedad, limpio, largo; sin tipo = texto normal).

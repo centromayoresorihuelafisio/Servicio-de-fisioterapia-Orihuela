@@ -222,7 +222,7 @@ window.PanelNuevo = {
       { label: '🟠 Moderado', cls: 'moderado', min: 4, max: 6 },
       { label: '🔴 Urgente', cls: 'urgente', min: 7, max: 9 }
     ];
-    var ESTADOS = ["🟢 Activo", "🟡 En espera", "🕐 Contactará"], ESTADO_DEF = "🟡 En espera";
+    var ESTADOS = ESTADOS_PACIENTE.LISTA_NUEVO.slice(), ESTADO_DEF = ESTADOS_PACIENTE.DEFECTO_NUEVO;
     var INGRESOS = ["📄 Volante", "🔁 Derivación propia", "🕰️ Antiguo paciente"], INGRESO_DEF = "📄 Volante";
 
     function hoyLocal() {
