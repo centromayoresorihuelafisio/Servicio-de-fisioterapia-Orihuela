@@ -10,9 +10,11 @@
  *    "Enlaces HC" para que la revises.
  *  - Idempotente: los enlaces que ya apuntan a la ficha web se saltan. Si se agota el tiempo, vuelve a ejecutarla.
  *
- * Uso (desde el editor de Apps Script, sin menú):
- *   1) enlazarHCaFichaWeb()      → calcula, te enseña el resumen y pide confirmación antes de escribir nada.
- *   2) revertirEnlacesHCaDocs()  → vuelve a enlazar los Docs originales (por si hubiera que deshacer).
+ * Uso (desde el editor de Apps Script, sin menú; los mensajes salen en el "Registro de ejecución"):
+ *   1) previsualizarEnlacesHC()              → NO escribe en la Maestra; deja el plan en la hoja "Enlaces HC".
+ *   2) enlazarHCaFichaWeb()                  → aplica el cambio y lo verifica.
+ *   3) revertirEnlacesHCaDocs()              → solo cuenta lo que se restauraría;
+ *      revertirEnlacesHCaDocsConfirmado()    → vuelve a enlazar los Docs originales (deshacer).
  * Requiere que la Web App esté desplegada (se usa su URL).
  */
 
@@ -23,13 +25,80 @@ const ENL_HC_ = {
   TOLERANCIA_MS: 2 * 60 * 1000     // el Doc cuenta como modificado si es >2 min posterior a lo anotado al migrar
 };
 
-function enlazarHCaFichaWeb() {
-  const ui = SpreadsheetApp.getUi();
-  const inicio = Date.now();
+/** PASO 1 (no escribe en la Maestra): calcula qué se cambiaría y lo deja en la hoja "Enlaces HC" y en el registro. */
+function previsualizarEnlacesHC() {
   const ctx = enlHC_contexto_();
-  const plan = [];      // { fila, nombre, resultado, detalle, urlAntes, nuevo }
-  let hastaCorte = false;
+  const r = enlHC_calcularPlan_(ctx);
+  enlHC_escribirLog_(ctx.ss, r.plan);
+  enlHC_aviso_('Vista previa: se cambiarían ' + enlHC_n_(r.plan, 'Cambiar') + ' enlaces. ' + enlHC_resumen_(r) +
+    '\nNo se ha escrito nada en la Maestra. Revisa la hoja "' + ENL_HC_.HOJA_LOG + '" y, si todo está bien, ejecuta enlazarHCaFichaWeb().');
+}
 
+/** PASO 2: aplica el cambio de enlaces (recalcula el plan en el momento). Se puede deshacer con revertirEnlacesHCaDocs(). */
+function enlazarHCaFichaWeb() {
+  const ctx = enlHC_contexto_();
+  const r = enlHC_calcularPlan_(ctx);
+  const plan = r.plan, aCambiar = plan.filter(function (p) { return p.resultado === 'Cambiar'; });
+  if (!aCambiar.length) {
+    enlHC_escribirLog_(ctx.ss, plan);
+    enlHC_aviso_('No hay enlaces que cambiar. ' + enlHC_resumen_(r));
+    return;
+  }
+  // Se escribe la columna entera de una vez, reutilizando los valores originales en las filas que no cambian.
+  const nuevos = ctx.ricos.map(function (fila) { return [fila[0]]; });
+  aCambiar.forEach(function (p) {
+    nuevos[p.fila - 2] = [SpreadsheetApp.newRichTextValue().setText(ENL_HC_.TEXTO).setLinkUrl(p.nuevo).build()];
+  });
+  ctx.hoja.getRange(2, ctx.colHC + 1, nuevos.length, 1).setRichTextValues(nuevos);
+  SpreadsheetApp.flush();
+
+  // Comprobación posterior: releer y verificar que cada fila cambiada apunta a su ficha.
+  const rel = ctx.hoja.getRange(2, ctx.colHC + 1, nuevos.length, 1).getRichTextValues();
+  let mal = 0;
+  aCambiar.forEach(function (p) {
+    const u = rel[p.fila - 2][0] && rel[p.fila - 2][0].getLinkUrl();
+    if (u !== p.nuevo) { mal++; p.resultado = 'Error de escritura'; } else p.resultado = 'Cambiada';
+  });
+  enlHC_escribirLog_(ctx.ss, plan);
+  enlHC_aviso_(mal ? 'ATENCIÓN: ' + mal + ' enlaces no se escribieron bien. Revisa la hoja "' + ENL_HC_.HOJA_LOG + '".'
+    : '✅ ' + aCambiar.length + ' enlaces cambiados y verificados. ' + enlHC_resumen_(r) + ' Detalle en la hoja "' + ENL_HC_.HOJA_LOG + '".' +
+      (r.hastaCorte ? ' (Se agotó el tiempo: vuelve a ejecutarla para el resto.)' : ''));
+}
+
+/** Deshacer, paso 1: solo cuenta cuántos enlaces se restaurarían. */
+function revertirEnlacesHCaDocs() {
+  const r = enlHC_planRevertir_(enlHC_contexto_());
+  enlHC_aviso_('Se restaurarían ' + r.n + ' enlaces a su Doc original (' + r.sinDoc + ' creadas en la web no tienen Doc y se quedan). ' +
+    'Para hacerlo de verdad ejecuta revertirEnlacesHCaDocsConfirmado().');
+}
+
+/** Deshacer, paso 2: vuelve a enlazar cada fila a su Doc original (guardado en "Historias Clínicas"). */
+function revertirEnlacesHCaDocsConfirmado() {
+  const ctx = enlHC_contexto_();
+  const r = enlHC_planRevertir_(ctx);
+  if (!r.n) { enlHC_aviso_('No hay enlaces que revertir.'); return; }
+  ctx.hoja.getRange(2, ctx.colHC + 1, r.ricos.length, 1).setRichTextValues(r.ricos);
+  SpreadsheetApp.flush();
+  enlHC_aviso_('✅ ' + r.n + ' enlaces restaurados a sus Docs. Lo escrito en la ficha web desde la migración no pasa a los Docs.');
+}
+
+// ----------------------------------------------------------------------------- internas
+
+/** Se ejecuta desde el editor de Apps Script, donde no hay diálogos: el mensaje va al registro (y a un aviso en la hoja si está abierta). */
+function enlHC_aviso_(msg) {
+  Logger.log(msg);
+  try { getSS().toast(msg.slice(0, 200), 'Enlazar HC', 10); } catch (e) { /* sin hoja abierta */ }
+}
+function enlHC_n_(plan, r) { return plan.filter(function (p) { return p.resultado === r; }).length; }
+function enlHC_resumen_(r) {
+  const n = function (x) { return enlHC_n_(r.plan, x); };
+  return 'Ya enlazadas: ' + n('Ya enlazada') + ' · Doc modificado tras migrar (se dejan con su Doc): ' + n('Doc modificado después de migrar') +
+    ' · Sin migrar/revisar: ' + (n('Sin migrar') + n('Revisar')) + '.';
+}
+
+function enlHC_calcularPlan_(ctx) {
+  const inicio = Date.now(), plan = [];
+  let hastaCorte = false;
   ctx.links.forEach(function (l) {
     if (hastaCorte) return;
     if (Date.now() - inicio > ENL_HC_.MARGEN_MS) { hastaCorte = true; return; }
@@ -48,60 +117,21 @@ function enlazarHCaFichaWeb() {
     }
     plan.push({ fila: l.fila, nombre: l.nombre, resultado: 'Cambiar', detalle: '', urlAntes: l.url, nuevo: hcUrlFicha_(hc.id) });
   });
-
-  const n = function (r) { return plan.filter(function (p) { return p.resultado === r; }).length; };
-  const aCambiar = plan.filter(function (p) { return p.resultado === 'Cambiar'; });
-  enlHC_escribirLog_(ctx.ss, plan);
-  if (!aCambiar.length) {
-    ui.alert('Enlazar HC a la ficha web', 'No hay enlaces que cambiar.\n\nYa enlazadas: ' + n('Ya enlazada') + '\nDoc modificado tras migrar: ' + n('Doc modificado después de migrar') +
-      '\nSin migrar / revisar: ' + (n('Sin migrar') + n('Revisar')) + '\n\nDetalle en la hoja "' + ENL_HC_.HOJA_LOG + '".', ui.ButtonSet.OK);
-    return;
-  }
-  const r = ui.alert('Enlazar HC a la ficha web',
-    'Se cambiarán ' + aCambiar.length + ' enlaces de la Maestra para que abran la ficha web.\n\n' +
-    'Ya enlazadas: ' + n('Ya enlazada') + '\nSe dejan con su Doc (modificado después de migrar): ' + n('Doc modificado después de migrar') +
-    '\nSin migrar / revisar: ' + (n('Sin migrar') + n('Revisar')) + (hastaCorte ? '\n\n(Se agotó el tiempo: tras esto, vuelve a ejecutarla para el resto.)' : '') +
-    '\n\nLos Docs no se tocan y se puede deshacer con revertirEnlacesHCaDocs().\n\n¿Continuar?', ui.ButtonSet.YES_NO);
-  if (r !== ui.Button.YES) { ctx.ss.toast('No se ha cambiado nada.', 'Enlazar HC', 6); return; }
-
-  // Se escribe la columna entera de una vez, reutilizando los valores originales en las filas que no cambian.
-  const nuevos = ctx.ricos.map(function (fila) { return [fila[0]]; });
-  aCambiar.forEach(function (p) {
-    nuevos[p.fila - 2] = [SpreadsheetApp.newRichTextValue().setText(ENL_HC_.TEXTO).setLinkUrl(p.nuevo).build()];
-  });
-  ctx.hoja.getRange(2, ctx.colHC + 1, nuevos.length, 1).setRichTextValues(nuevos);
-  SpreadsheetApp.flush();
-
-  // Comprobación posterior: releer y verificar que cada fila cambiada apunta a su ficha.
-  const rel = ctx.hoja.getRange(2, ctx.colHC + 1, nuevos.length, 1).getRichTextValues();
-  let mal = 0;
-  aCambiar.forEach(function (p) { const u = rel[p.fila - 2][0] && rel[p.fila - 2][0].getLinkUrl(); if (u !== p.nuevo) { mal++; p.resultado = 'Error de escritura'; } else p.resultado = 'Cambiada'; });
-  enlHC_escribirLog_(ctx.ss, plan);
-  ui.alert('Enlazar HC a la ficha web', mal ? 'Atención: ' + mal + ' enlaces no se escribieron bien. Revisa la hoja "' + ENL_HC_.HOJA_LOG + '".'
-    : '✅ ' + aCambiar.length + ' enlaces cambiados y verificados.\n\nAhora "Historia" abre la ficha web. Para el resto de filas, mira la hoja "' + ENL_HC_.HOJA_LOG + '".', ui.ButtonSet.OK);
+  return { plan: plan, hastaCorte: hastaCorte };
 }
 
-/** Deshace enlazarHCaFichaWeb(): vuelve a enlazar cada fila a su Doc original (guardado en "Historias Clínicas"). */
-function revertirEnlacesHCaDocs() {
-  const ui = SpreadsheetApp.getUi();
-  const ctx = enlHC_contexto_();
+function enlHC_planRevertir_(ctx) {
   const ricos = ctx.ricos.map(function (f) { return [f[0]]; });
   let n = 0, sinDoc = 0;
   ctx.links.forEach(function (l) {
     if (!hcEsFichaWeb_(l.url)) return;
     const hc = ctx.porId[hcIdDeUrl_(l.url)];
-    if (!hc || !/^https?:/i.test(hc.doc)) { sinDoc++; return; }     // HC creada ya en la web: no tiene Doc al que volver
+    if (!hc || !/^https?:/i.test(hc.doc)) { sinDoc++; return; }
     ricos[l.fila - 2] = [SpreadsheetApp.newRichTextValue().setText(ENL_HC_.TEXTO).setLinkUrl(hc.doc).build()];
     n++;
   });
-  if (!n) { ui.alert('No hay enlaces que revertir (sin Doc original: ' + sinDoc + ').'); return; }
-  if (ui.alert('Revertir enlaces', 'Se volverán a enlazar ' + n + ' historias a su Google Doc original. Las que se crearon directamente en la web (' + sinDoc + ') no tienen Doc y se quedan como están.\n\nLo escrito en la ficha web desde la migración NO pasa a los Docs.\n\n¿Continuar?', ui.ButtonSet.YES_NO) !== ui.Button.YES) return;
-  ctx.hoja.getRange(2, ctx.colHC + 1, ricos.length, 1).setRichTextValues(ricos);
-  SpreadsheetApp.flush();
-  ui.alert('✅ ' + n + ' enlaces restaurados a sus Docs.');
+  return { ricos: ricos, n: n, sinDoc: sinDoc };
 }
-
-// ----------------------------------------------------------------------------- internas
 
 function enlHC_contexto_() {
   const ss = getSS();
