@@ -1145,6 +1145,10 @@
       async function accionPaciente(acc, fila) {
         var p = TODOS.find(function(x) { return x._fila === fila; });
         if (!p) return;
+        if (acc === 'fichahc') {
+          window.open(<?!= JSON.stringify(baseUrl) ?> + '?page=hc&nombre=' + encodeURIComponent(p['Nombre']), '_blank', 'noopener');
+          return;
+        }
         if (acc === 'hc') {
           var url = COL_HISTORIA ? p[COL_HISTORIA] : '';
           if (esUrl(url)) { window.open(url.trim(), '_blank', 'noopener'); return; }
@@ -1275,7 +1279,7 @@
       function htmlFicha(p) {
         var tieneHC = esUrl(COL_HISTORIA ? p[COL_HISTORIA] : '');
         fichaTieneVal = ValoracionesCache.tiene(p['Nombre'], p['DNI']);   // para repintar si cambia al terminar la precarga
-        var pie = tieneHC ? [{ id: 'actualizarhc', icono: 'sync', texto: 'Actualizar HC', titulo: 'Actualizar el documento con los datos actuales' }]
+        var pie = tieneHC ? [{ id: 'fichahc', icono: 'article', texto: 'Ficha HC', titulo: 'Abrir la ficha de historia clínica en la app (versión de prueba)' }, { id: 'actualizarhc', icono: 'sync', texto: 'Actualizar HC', titulo: 'Actualizar el documento con los datos actuales' }]
                           : [{ id: 'crearhc', icono: 'note_add', texto: 'Crear HC', titulo: 'Crear la historia clínica' }, { id: 'buscarhc', icono: 'manage_search', texto: 'Buscar HC', titulo: 'Buscar una historia ya existente en Drive' }];
         pie = pie.concat([{ id: 'alta', icono: 'how_to_reg', texto: 'Alta', titulo: 'Dar de alta al usuario' }, { id: 'eliminar', icono: 'delete', texto: 'Eliminar', titulo: 'Eliminar al usuario', peligro: true }]);
         return FichaUsuario.html(p, HEADERS, {

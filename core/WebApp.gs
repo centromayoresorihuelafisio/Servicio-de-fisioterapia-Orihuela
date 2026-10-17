@@ -134,6 +134,11 @@ function doGet(e) {
     return servirFormularioEdicionWeb(e.parameter.fila, e.parameter.embed === '1');
   }
 
+  // Caso especial: ficha de historia clínica en HTML (?page=hc&nombre=XXX o &fila=N de la Maestra).
+  if (page === 'hc') {
+    return servirFichaHCWeb(e.parameter);
+  }
+
   // Caso especial: buscador de Historia Clínica huérfana para un paciente
   // concreto (?page=huerfanaHC&fila=N), abierto como ventana emergente desde
   // el botón "Buscar Huérfana" de la Base de Datos Web.
