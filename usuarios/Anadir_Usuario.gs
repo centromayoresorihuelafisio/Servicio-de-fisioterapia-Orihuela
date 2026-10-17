@@ -360,7 +360,7 @@ function generarHistoriaClinicaRegistroUsuario(patientData) {
     const templateId = scriptProperties.getProperty(PROP_KEYS.DOC_TEMPLATE_ID);
     const folderId = scriptProperties.getProperty(PROP_KEYS.DRIVE_FOLDER_ID);
 
-    if (!templateId || !folderId) {
+    if (HC_WEB_MODO_PRUEBA && (!templateId || !folderId)) {
       return { success: false, message: 'Falta configurar el ID de la Plantilla o de la Carpeta de Destino. Ve al menú ⚙️ Config y actualiza los valores.' };
     }
 
@@ -443,6 +443,16 @@ function generarHistoriaClinicaRegistroUsuario(patientData) {
           };
         }
       }
+    }
+
+    // HC definitiva (sin Doc): fila nueva en "Historias Clínicas" + episodio abierto desde la fecha de inscripción.
+    if (!HC_WEB_MODO_PRUEBA) {
+      const nueva = hcCrearHC_(nombre, patientData['Fecha inscripción'] || '');
+      if (histColIndex !== -1 && targetRow !== -1) {
+        sheet.getRange(targetRow, histColIndex + 1).setRichTextValue(
+          SpreadsheetApp.newRichTextValue().setText("Ver Historia Clínica").setLinkUrl(nueva.url).build());
+      }
+      return { success: true, url: nueva.url };
     }
 
     // 1. Duplicar la plantilla en la carpeta de destino de Google Drive

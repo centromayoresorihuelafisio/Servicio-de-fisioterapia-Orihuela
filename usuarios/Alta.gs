@@ -226,7 +226,8 @@ function _ejecutarAltaEnFila(sheet, activeRow) {
     }
 
     if (docUrl) {
-      const docResult = actualizarFechaAltaEnDoc(docUrl);
+      // HC en la ficha web → la fecha de alta va al episodio abierto de "Episodios HC"; si el enlace aún es un Doc, como siempre.
+      const docResult = hcEsFichaWeb_(docUrl) ? hcAltaEnHoja_(docUrl) : actualizarFechaAltaEnDoc(docUrl);
       finalMessage += "\n\n" + docResult;
     } else {
       finalMessage += "\n\n⚠️ No se encontró una URL válida de Historia Clínica (hipervínculo) para actualizar.";

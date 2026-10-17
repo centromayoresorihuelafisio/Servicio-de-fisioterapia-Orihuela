@@ -1279,7 +1279,8 @@
       function htmlFicha(p) {
         var tieneHC = esUrl(COL_HISTORIA ? p[COL_HISTORIA] : '');
         fichaTieneVal = ValoracionesCache.tiene(p['Nombre'], p['DNI']);   // para repintar si cambia al terminar la precarga
-        var pie = tieneHC ? [{ id: 'fichahc', icono: 'article', texto: 'Ficha HC', titulo: 'Abrir la ficha de historia clínica en la app (versión de prueba)' }, { id: 'actualizarhc', icono: 'sync', texto: 'Actualizar HC', titulo: 'Actualizar el documento con los datos actuales' }]
+        var esFichaWeb = tieneHC && /[?&]page=hc&id=/.test(p[COL_HISTORIA]);   // la HC ya vive en la ficha web: no hay Doc que actualizar
+        var pie = esFichaWeb ? [] : tieneHC ? [{ id: 'fichahc', icono: 'article', texto: 'Ficha HC', titulo: 'Abrir la ficha de historia clínica en la app (versión de prueba)' }, { id: 'actualizarhc', icono: 'sync', texto: 'Actualizar HC', titulo: 'Actualizar el documento con los datos actuales' }]
                           : [{ id: 'crearhc', icono: 'note_add', texto: 'Crear HC', titulo: 'Crear la historia clínica' }, { id: 'buscarhc', icono: 'manage_search', texto: 'Buscar HC', titulo: 'Buscar una historia ya existente en Drive' }];
         pie = pie.concat([{ id: 'alta', icono: 'how_to_reg', texto: 'Alta', titulo: 'Dar de alta al usuario' }, { id: 'eliminar', icono: 'delete', texto: 'Eliminar', titulo: 'Eliminar al usuario', peligro: true }]);
         return FichaUsuario.html(p, HEADERS, {

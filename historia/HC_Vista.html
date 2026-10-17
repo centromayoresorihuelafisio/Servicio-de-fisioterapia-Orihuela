@@ -73,9 +73,10 @@
 
   /* ---------- datos ---------- */
   .campos{margin:14px 0 0;display:grid;gap:0}
-  .campo{display:grid;grid-template-columns:104px 1fr;align-items:center;gap:10px;padding:9px 0;border-top:1px solid color-mix(in srgb,var(--md-outline) 55%,transparent)}
+  .campo{display:grid;grid-template-columns:30px 1fr;align-items:center;gap:10px;padding:9px 0;border-top:1px solid color-mix(in srgb,var(--md-outline) 55%,transparent)}
   .campo:first-child{border-top:0}
-  .campo dt{margin:0;font-size:12px;color:var(--md-on-surface-low);font-weight:500}
+  .campo dt{margin:0;width:30px;height:30px;border-radius:10px;display:grid;place-items:center;background:var(--md-primary-light);color:var(--md-primary)}
+  .campo dt svg.i{width:16px;height:16px}
   .campo dd{margin:0;font-weight:500;display:flex;align-items:center;gap:8px;min-width:0}
   .campo dd.nulo{color:var(--md-on-surface-low);font-weight:400}
   .acc{margin-left:auto;display:flex;gap:2px}
@@ -149,7 +150,7 @@
   .notas.foco{grid-template-columns:1fr}
   .notas.foco .nota:not(.activa){display:none}
   @media (max-width:760px){.notas{grid-template-columns:1fr}}
-  .nota{display:flex;flex-direction:column;padding:0;overflow:hidden}
+  .nota{display:flex;flex-direction:column;padding:0;overflow:clip}
   .nota-cab{display:flex;align-items:center;gap:11px;padding:14px 14px 8px 16px}
   .nota-cab .sp{flex:1}
   .nota textarea{display:block;width:100%;min-height:380px;border:0;resize:none;background:transparent;color:inherit;font:inherit;font-size:14.5px;line-height:1.7;padding:6px 18px 18px;overflow:hidden}
@@ -190,6 +191,18 @@
   .esq{background:linear-gradient(90deg,var(--md-surface-variant),var(--md-surface-1),var(--md-surface-variant));background-size:200% 100%;animation:esq 1.2s linear infinite;border-radius:12px}
   @keyframes esq{to{background-position:-200% 0}}
   .nota textarea:disabled{opacity:.7}
+  .avatar{box-shadow:0 0 0 3px var(--md-bg),0 0 0 6px var(--aro,var(--md-outline));transition:box-shadow .3s}
+  .avatar.ok{--aro:var(--md-success)}.avatar.alta{--aro:var(--md-purple)}.avatar.warn{--aro:var(--md-warning)}
+  .cabecera{gap:22px}
+  .nota-cab{position:sticky;top:var(--alto-top,58px);z-index:5;background:var(--md-surface);border-bottom:1px solid transparent;padding-bottom:10px}
+  .nota-cab.pegada{border-bottom-color:color-mix(in srgb,var(--md-outline) 70%,transparent)}
+  @media print{.nota-cab{position:static!important}.avatar{box-shadow:none}}
+  .asist-filas{display:grid;gap:5px;margin:2px 0 1px}
+  .asist-fila{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--md-on-surface-med)}
+  .asist-fila i{width:8px;height:8px;border-radius:50%;flex:none;opacity:.7}
+  .asist-fila b{margin-left:auto;font-size:15px;color:var(--md-on-surface);font-weight:700}
+  .asist-fila.ok i,.stack.suave .s-ok{background:#6fae85}.asist-fila.mal i,.stack.suave .s-mal{background:#c98a86}.asist-fila.av i,.stack.suave .s-av{background:#d9bd7c}
+  .stack.suave{height:6px}.stack.suave i{opacity:.55}
   a.btn{text-decoration:none}
   a.enlace{color:var(--md-primary);font-weight:600;text-decoration:none}a.enlace:hover{text-decoration:underline}
   @media print{.aviso-prueba,.aviso-err{display:none!important}}
@@ -226,7 +239,6 @@
       <section class="card">
         <span class="sec">Datos personales</span>
         <dl class="campos" id="campos"></dl>
-        <p class="pie-lateral"><svg class="i" style="width:14px;height:14px;margin-top:2px" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v5h1"/></svg>Se leen de la Base de Datos. Para cambiarlos, edita al usuario.</p>
       </section>
 
       <section class="card">
@@ -242,7 +254,6 @@
     <!-- ================= zona principal ================= -->
     <main>
       <div class="tiles" id="tiles"></div>
-      <section class="card asist-card" id="asistCard" aria-label="Asistencia a citas"></section>
 
       <div class="notas" id="notas">
         <section class="card nota activa" data-k="historia">
@@ -272,7 +283,7 @@
 </template>
 <script>
 (function () {
-  var PARAMS = { nombre: <?!= JSON.stringify(nombre) ?>, fila: <?!= JSON.stringify(fila) ?> };
+  var PARAMS = { nombre: <?!= JSON.stringify(nombre) ?>, fila: <?!= JSON.stringify(fila) ?>, id: <?!= JSON.stringify(idHC) ?> };
   var MODO_PRUEBA = <?!= JSON.stringify(modoPrueba) ?>;
   var D = null;                 // datos de la ficha
   var episodios = [], valoraciones = [], asistencia = null;
@@ -299,7 +310,7 @@
   function falloGuardado(msg) { $('guardado').classList.remove('ocupado'); $('guardadoTxt').textContent = 'Sin guardar'; error(msg || 'No se pudo guardar. Tus cambios siguen en pantalla; copia el texto antes de recargar.'); }
 
   /* ---------- carga ---------- */
-  google.script.run.withSuccessHandler(pintar).withFailureHandler(function (e) { fallo(e && e.message); }).obtenerHCWeb(PARAMS.nombre, PARAMS.fila);
+  google.script.run.withSuccessHandler(pintar).withFailureHandler(function (e) { fallo(e && e.message); }).obtenerHCWeb(PARAMS.nombre, PARAMS.fila, PARAMS.id);
   function fallo(msg) {
     $('estadoCarga').innerHTML = '<div><p><b>No se pudo cargar la historia</b></p><p>' + esc(msg || '') + '</p></div>';
   }
@@ -323,9 +334,19 @@
   function pintarMeta() {
     var est = D.usuario.estado, t = est.replace(/^[^\p{L}]+/u, '');
     var cls = /alta/i.test(t) ? 'alta' : /activ/i.test(t) ? 'ok' : '';
+    $('avatar').className = 'avatar ' + (cls || '');
     $('meta').innerHTML = t ? '<span class="chip dot ' + cls + '">' + esc(t) + '</span>' : '';
   }
-  function campo(k, v, extra) { return '<div class="campo"><dt>' + k + '</dt><dd' + (v ? '' : ' class="nulo"') + '>' + (v ? esc(v) : '—') + (extra || '') + '</dd></div>'; }
+  var ICD = {
+    dni: '<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="M6.5 16c.6-1.4 1.6-2 2.5-2s1.9.6 2.5 2M14 10h4M14 14h3"/>',
+    nac: '<path d="M4 20h16M6 20v-6h12v6M12 14V9M12 9c-1 0-1.5-.8-1.5-1.5 0-1 1.5-2.5 1.5-2.5s1.5 1.5 1.5 2.5C13.5 8.2 13 9 12 9z"/>',
+    tel: '<path d="M5 4h4l2 5-2.5 1.5a11 11 0 005 5L15 13l5 2v4a2 2 0 01-2 2A16 16 0 013 6a2 2 0 012-2z"/>',
+    ins: '<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4M16 3v4M4 10h16M12 13v4M10 15h4"/>'
+  };
+  function campo(ic, titulo, v, extra) {
+    if (!v) return '';
+    return '<div class="campo" title="' + titulo + '"><dt><svg class="i" viewBox="0 0 24 24">' + ICD[ic] + '</svg></dt><dd>' + esc(v) + (extra || '') + '</dd></div>';
+  }
   function acciones(tel) {
     var d = String(tel || '').replace(/\D/g, ''); if (!d) return '';
     var wa = d.length === 9 ? '34' + d : d;
@@ -333,11 +354,11 @@
       '<a class="mini wa" href="https://wa.me/' + wa + '" target="_blank" rel="noopener" aria-label="WhatsApp"><svg class="i" viewBox="0 0 24 24"><path d="M3 21l1.6-4.7A8.5 8.5 0 1112 20.5a8.4 8.4 0 01-4-1z"/></svg></a></span>';
   }
   function pintarCampos() {
-    var u = D.usuario;
-    $('campos').innerHTML = campo('DNI', u.dni) +
-      campo('Nacimiento', u.nacimiento, u.edad ? ' <span class="chip" style="height:22px;font-size:12px">' + esc(u.edad) + (/^\d+$/.test(u.edad) ? ' años' : '') + '</span>' : '') +
-      campo('Teléfono', u.telefono, acciones(u.telefono)) + campo('Teléfono 2', u.telefono2, acciones(u.telefono2)) +
-      campo('Inscripción', u.inscripcion);
+    var u = D.usuario, edad = u.edad ? ' <span class="chip" style="height:22px;font-size:12px">' + esc(u.edad) + (/^\d+$/.test(u.edad) ? ' años' : '') + '</span>' : '';
+    var h = campo('dni', 'DNI', u.dni) + campo('nac', 'Fecha de nacimiento', u.nacimiento, edad) +
+      campo('tel', 'Teléfono', u.telefono, acciones(u.telefono)) + campo('tel', 'Teléfono 2', u.telefono2, acciones(u.telefono2)) +
+      campo('ins', 'Fecha de inscripción', u.inscripcion);
+    $('campos').innerHTML = h || '<p class="vacio-tile">Sin datos personales.</p>';
   }
 
   /* ---------- episodios ---------- */
@@ -402,7 +423,7 @@
     var vacio = '<div class="v">—</div><div class="tr"><span class="vacio-tile">Sin valoraciones</span></div>';
     var out = '';
     function pie(u) { return '<div class="tr"><span>' + fmtISO(u.fecha) + ' · ' + esc(u.tipo) + '</span></div>'; }
-    function cap(n) { return n > 1 ? '<span>vs. valoración inicial</span>' : '<span>Primera valoración</span>'; }
+    function cap(n) { return n > 1 ? '<span>vs. inicial</span>' : '<span>Primera valoración</span>'; }
     var sd = serie('dolor'), sf = serie('funcion'), sa = serie('analg');
     var u, p, n;
     n = sd.length; u = sd[n - 1]; p = sd[0];
@@ -416,23 +437,22 @@
     out += tile('pill', 'pur', 'Analgésicos', n ? { html: '<div class="v txt">' + analgCorto(u.analg) + '<small>' + u.analg + ' / 5</small></div><div class="bar"><i style="width:' + u.analg * 20 + '%;background:' + ucol(u.analg) + '"></i></div><div class="tr">' +
       (n > 1 ? (u.analg === p.analg ? '<span class="chip sm">= sin cambio</span>' : '<span class="chip sm ' + (u.analg < p.analg ? 'ok' : 'mal') + '">' + (u.analg < p.analg ? '↓ ' : '↑ ') + Math.abs(u.analg - p.analg) + (Math.abs(u.analg - p.analg) === 1 ? ' nivel' : ' niveles') + '</span>') : '') +
       '<span>' + (analgDetalle(u.analg) || 'sin consumo') + '</span></div>' + pie(u) } : { html: vacio });
-    $('tiles').innerHTML = out;
-    pintarAsistencia();
+    $('tiles').innerHTML = out + htmlAsistencia();
   }
-  function pintarAsistencia() {
-    var a = asistencia, card = $('asistCard');
-    if (!a) { card.innerHTML = '<p class="vacio-tile" style="margin:0">No se pudo leer la Agenda.</p>'; return; }
+  function htmlAsistencia() {
+    var a = asistencia, cab = function (extra) { return '<div class="th"><span class="ic sm ok">' + svg('cal') + '</span><span class="k">Asistencia a citas</span></div>'; };
+    if (!a) return '<div class="tile">' + cab() + '<div class="vacio-tile">No se pudo leer la Agenda.</div></div>';
     var tot = a.asistidas + a.noAsistidas + a.justificadas, pct = tot ? Math.round(100 * a.asistidas / tot) : 0;
-    var ult = episodios[episodios.length - 1], sem = ult && ult.ingreso ? Math.floor(dias(ult.ingreso, ult.alta) / 7) : 0;
-    var sub = ult && ult.ingreso ? 'Desde el ' + fmtISO(ult.ingreso) + ' · ' + sem + (sem === 1 ? ' semana' : ' semanas') + ' · según la Agenda' : 'Según la Agenda';
-    var chip = tot ? '<span class="chip dot ' + (pct >= 80 ? 'ok' : pct >= 60 ? 'warn' : 'mal') + '">' + pct + ' % de asistencia</span>' : '';
-    var h = '<div class="ac-cab"><span class="ic ok">' + svg('cal') + '</span><div class="ht"><h2>Asistencia a citas</h2><span>' + sub + '</span></div><span class="sp"></span>' + chip + '</div>';
-    if (!tot) h += '<p class="vacio-tile" style="margin:14px 0 4px">Todavía no hay citas pasadas en la Agenda para este usuario.</p>';
-    else h += '<div class="ac-grid"><div class="ac-n ok"><b>' + a.asistidas + '</b><span>Asistidas</span></div><div class="ac-n mal"><b>' + a.noAsistidas + '</b><span>No asistidas</span></div><div class="ac-n av"><b>' + a.justificadas + '</b><span>Justificadas</span></div></div>' +
-      '<div class="stack" role="img" aria-label="Reparto de asistencias"><i class="s-ok" style="flex:' + a.asistidas + '"></i><i class="s-mal" style="flex:' + a.noAsistidas + '"></i><i class="s-av" style="flex:' + a.justificadas + '"></i></div>' +
-      '<div class="ac-pie"><span>' + tot + ' citas pasadas</span><span>' + (a.pendientes ? a.pendientes + ' pendientes o sin registrar (no cuentan en el porcentaje)' : '') + '</span></div>';
-    if (a.telefonoDistinto || a.otras) h += '<div class="ac-pie"><span>' + (a.telefonoDistinto ? a.telefonoDistinto + ' cita(s) con el mismo nombre y otro teléfono: no contadas' : '') + '</span><span>' + (a.otras ? a.otras + ' con valor no clasificado' : '') + '</span></div>';
-    card.innerHTML = h;
+    var ult = episodios[episodios.length - 1];
+    var nota = [];
+    if (a.telefonoDistinto) nota.push(a.telefonoDistinto + ' cita(s) con el mismo nombre y otro teléfono no se cuentan');
+    if (a.otras) nota.push(a.otras + ' con un valor de asistencia no clasificado');
+    var tit = 'Desde ' + (ult && ult.ingreso ? fmtISO(ult.ingreso) : 'el principio') + ', según la Agenda. Las citas pendientes no cuentan en el porcentaje.' + (nota.length ? ' · ' + nota.join(' · ') : '');
+    if (!tot) return '<div class="tile" title="' + esc(tit) + '">' + cab() + '<div class="v">—</div><div class="tr"><span class="vacio-tile">Sin citas pasadas</span></div></div>';
+    return '<div class="tile" title="' + esc(tit) + '">' + cab() +
+      '<div class="asist-filas"><div class="asist-fila ok"><i></i>Asistidas<b>' + a.asistidas + '</b></div><div class="asist-fila mal"><i></i>No asistidas<b>' + a.noAsistidas + '</b></div><div class="asist-fila av"><i></i>Justificadas<b>' + a.justificadas + '</b></div></div>' +
+      '<div class="stack suave" role="img" aria-label="Reparto de asistencias"><i class="s-ok" style="flex:' + a.asistidas + '"></i><i class="s-mal" style="flex:' + a.noAsistidas + '"></i><i class="s-av" style="flex:' + a.justificadas + '"></i></div>' +
+      '<div class="tr"><span>' + pct + ' % · ' + tot + ' citas' + (a.pendientes ? ' · ' + a.pendientes + ' pend.' : '') + '</span></div></div>';
   }
 
   /* ---------- notas clínicas: autoajuste, autoguardado ---------- */
@@ -483,6 +503,12 @@
   function volcarPendiente() { ['historia', 'tratamiento'].forEach(function (k) { if (sucio[k]) { clearTimeout(temporizadores[k]); encolar(k); } }); }
   document.addEventListener('visibilitychange', function () { if (document.hidden) volcarPendiente(); });
   window.addEventListener('beforeunload', function (e) { if (pendientes > 0 || sucio.historia || sucio.tratamiento) { volcarPendiente(); e.preventDefault(); e.returnValue = ''; } });
+  function medirTop() { var t = document.querySelector('.top'); if (t) document.documentElement.style.setProperty('--alto-top', t.offsetHeight + 'px'); }
+  window.addEventListener('resize', medirTop); medirTop();
+  window.addEventListener('scroll', function () {
+    var top = (parseInt(getComputedStyle(document.documentElement).getPropertyValue('--alto-top'), 10) || 58) + 1;
+    document.querySelectorAll('.nota-cab').forEach(function (c) { c.classList.toggle('pegada', c.getBoundingClientRect().top <= top && c.parentNode.getBoundingClientRect().bottom > 120); });
+  }, { passive: true });
   window.addEventListener('beforeprint', function () { $('fechaImpresion').textContent = fmt(new Date()); });
 
   /* ---------- ripple ---------- */

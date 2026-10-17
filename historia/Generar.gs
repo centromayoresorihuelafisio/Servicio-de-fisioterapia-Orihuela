@@ -43,7 +43,8 @@ function _generarHistoriaClinicaEnFila(sheet, rowIndex) {
   const templateId = scriptProperties.getProperty(PROP_KEYS.DOC_TEMPLATE_ID);
   const folderId = scriptProperties.getProperty(PROP_KEYS.DRIVE_FOLDER_ID);
 
-  if (!templateId || !folderId) {
+  // La plantilla de Doc y la carpeta solo hacen falta mientras las HC se creen como Docs (HC_WEB_MODO_PRUEBA = true).
+  if (HC_WEB_MODO_PRUEBA && (!templateId || !folderId)) {
     return {
       success: false,
       message: '⚠️ Falta configurar el ID de la Plantilla o de la Carpeta de Destino.\nVe al menú ⚙️ Config y actualiza los valores.'
@@ -99,6 +100,21 @@ function _generarHistoriaClinicaEnFila(sheet, rowIndex) {
   };
   fechaInscripcion = parseGoogleSheetDate(fechaInscripcion);
   fechaNacimiento = parseGoogleSheetDate(fechaNacimiento);
+
+  // HC definitiva (sin Doc): se crea la fila en "Historias Clínicas" con un episodio abierto y el enlace apunta a la ficha web.
+  if (!HC_WEB_MODO_PRUEBA) {
+    try {
+      const tz0 = Session.getScriptTimeZone();
+      const nueva = hcCrearHC_(nombre, fechaInscripcion instanceof Date ? Utilities.formatDate(fechaInscripcion, tz0, 'yyyy-MM-dd') : '');
+      if (colIndex !== -1) {
+        sheet.getRange(rowIndex, colIndex + 1).setRichTextValue(
+          SpreadsheetApp.newRichTextValue().setText("Ver Historia Clínica").setLinkUrl(nueva.url).build());
+      }
+      return { success: true, message: `Historia clínica creada para ${nombre}.`, url: nueva.url };
+    } catch (e) {
+      return { success: false, message: 'No se pudo crear la historia clínica: ' + e.message };
+    }
+  }
 
   // Calculamos la edad real aquí al vuelo
   const edad = fechaNacimiento ? calcularEdadDesdeFecha_(fechaNacimiento) : '';
@@ -158,6 +174,9 @@ function actualizarDatosHistoriaClinicaWeb(fila) {
 
   if (!docUrl) {
     return { success: false, message: "⚠️ Este paciente no tiene ninguna Historia Clínica enlazada para actualizar." };
+  }
+  if (hcEsFichaWeb_(docUrl)) {
+    return { success: true, message: "La ficha web lee siempre los datos actuales de la Base de Datos: no hay nada que actualizar." };
   }
 
   // Formatear fechas

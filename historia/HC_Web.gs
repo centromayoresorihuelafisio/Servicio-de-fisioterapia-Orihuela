@@ -18,8 +18,14 @@ const HC_WEB_ = {
   COL: { ID: 1, NOMBRE: 2, HISTORIA: 3, TRATAMIENTO: 4, MODIFICADO: 5, ORIGEN: 6, DOC: 7 }
 };
 
-/** true → la ficha muestra un aviso de "modo prueba" (los cambios no llegan al Doc). Pasar a false al cambiar de fase. */
-const HC_WEB_MODO_PRUEBA = true;
+/**
+ * true  → FASE PRUEBA: la ficha avisa de que lo editado no llega al Doc, y las HC nuevas / altas siguen yendo a Google Docs.
+ * false → DEFINITIVO: la historia vive en las hojas "Historias Clínicas" / "Episodios HC". Las HC nuevas se crean ahí,
+ *         el alta escribe en "Episodios HC" y el enlace de la Maestra apunta a la ficha web. Los Docs no se tocan más.
+ * Es el interruptor para deshacer: con true vuelve el comportamiento anterior (los enlaces ya cambiados se restauran
+ * con revertirEnlacesHCaDocs() de herramientas/Enlazar_HC_Web.gs).
+ */
+const HC_WEB_MODO_PRUEBA = false;
 
 // Misma clasificación que ESTILOS_ASISTENCIA de agenda/Web_Vista.html (sobre texto sin tildes y en minúsculas).
 const HC_ESTILOS_ASISTENCIA_ = [
@@ -34,6 +40,7 @@ function servirFichaHCWeb(parametros) {
   const t = HtmlService.createTemplateFromFile('historia/HC_Vista');
   t.nombre = (parametros && parametros.nombre) || '';
   t.fila = (parametros && parametros.fila) || '';
+  t.idHC = (parametros && parametros.id) || '';
   t.modoPrueba = HC_WEB_MODO_PRUEBA;
   t.baseUrl = ScriptApp.getService().getUrl();
   return t.evaluate().setTitle('Historia clínica').addMetaTag('viewport', 'width=device-width, initial-scale=1');
@@ -89,13 +96,14 @@ function hcLocalizarUsuario_(maestra, nombre, fila) {
  * Todo lo que necesita pintar la ficha, en una sola llamada.
  * @param {string} nombre Nombre del usuario (preferente) · @param {string|number} fila Fila de la Maestra (respaldo)
  */
-function obtenerHCWeb(nombre, fila) {
+function obtenerHCWeb(nombre, fila, idHC) {
   try {
+    idHC = String(idHC || '').replace(/[^\w-]/g, '');
     const h = hcHojas_(), tz = h.ss.getSpreadsheetTimeZone();
     const maestra = h.ss.getSheetByName(SHEETS.MAESTRA);
     if (!maestra) return { success: false, message: 'No se encontró la hoja "' + SHEETS.MAESTRA + '".' };
 
-    const filaM = hcLocalizarUsuario_(maestra, nombre, fila);
+    const filaM = idHC ? hcLocalizarUsuarioPorId_(h, maestra, idHC) : hcLocalizarUsuario_(maestra, nombre, fila);
     if (!filaM) return { success: false, message: 'No se encontró al usuario en la Base de Datos.' };
 
     // --- datos personales (una fila de la Maestra)
@@ -126,9 +134,11 @@ function obtenerHCWeb(nombre, fila) {
     const ultHC = h.hc.getLastRow();
     if (ultHC < 2) return { success: false, message: 'La hoja "' + HC_WEB_.HOJA_HC + '" está vacía.' };
     const ids = h.hc.getRange(2, 1, ultHC - 1, 7).getValues();
-    const docId = hcDocId_(docUrl);
+    const idLink = idHC || hcIdDeUrl_(docUrl);
+    const docId = idLink ? '' : hcDocId_(docUrl);
     let idx = -1;
-    if (docId) for (let i = 0; i < ids.length; i++) if (hcDocId_(ids[i][HC_WEB_.COL.DOC - 1]) === docId) { idx = i; break; }
+    if (idLink) for (let i = 0; i < ids.length; i++) if (String(ids[i][0]) === idLink) { idx = i; break; }
+    if (idx === -1 && docId) for (let i = 0; i < ids.length; i++) if (hcDocId_(ids[i][HC_WEB_.COL.DOC - 1]) === docId) { idx = i; break; }
     let porNombre = false;
     if (idx === -1) {
       const o = hcNorm_(usuario.nombre), c = [];
@@ -151,7 +161,7 @@ function obtenerHCWeb(nombre, fila) {
     episodios.sort(function (a, b) { return a.ingreso < b.ingreso ? -1 : a.ingreso > b.ingreso ? 1 : 0; });
 
     const resp = {
-      success: true, id: id, usuario: usuario, porNombre: porNombre, docOriginal: String(fila7[6] || docUrl || ''),
+      success: true, id: id, usuario: usuario, porNombre: porNombre, docOriginal: String(fila7[6] || (hcEsFichaWeb_(docUrl) ? '' : docUrl) || ''),
       historia: String(fila7[2] || ''), tratamiento: String(fila7[3] || ''), modificado: hcMs_(fila7[4]),
       episodios: episodios, modoPrueba: HC_WEB_MODO_PRUEBA
     };
@@ -323,4 +333,83 @@ function hcFilaPorId_(hojaHC, id) {
   const ids = hojaHC.getRange(2, 1, ult - 1, 1).getValues();
   for (let i = 0; i < ids.length; i++) if (String(ids[i][0]) === String(id)) return i + 2;
   return 0;
+}
+
+// ----------------------------------------------------------------------------- enlace de la Maestra → ficha web
+
+/** URL de la ficha web de una HC. Es lo que se guarda en la columna "Historia clínica" de la Maestra. */
+function hcUrlFicha_(id) { return ScriptApp.getService().getUrl() + '?page=hc&id=' + id; }
+function hcEsFichaWeb_(url) { return /[?&]page=hc&id=[\w-]+/.test(String(url || '')); }
+function hcIdDeUrl_(url) { const m = String(url || '').match(/[?&]page=hc&id=([\w-]+)/); return m ? m[1] : ''; }
+
+/** Fila de la Maestra cuyo enlace contiene ese ID; respaldo: el "Nombre (referencia)" de la HC si es único. */
+function hcLocalizarUsuarioPorId_(h, maestra, idHC) {
+  const ult = maestra.getLastRow();
+  if (ult < 2) return 0;
+  const iHC = obtenerIndiceColumnaPorNombre_(maestra, COLUMNAS.MAESTRA.HISTORIA_CLINICA);
+  if (iHC !== -1) {
+    const ricos = maestra.getRange(2, iHC + 1, ult - 1, 1).getRichTextValues();
+    for (let i = 0; i < ricos.length; i++) {
+      const u = ricos[i][0] && ricos[i][0].getLinkUrl();
+      if (u && hcIdDeUrl_(u) === idHC) return i + 2;
+    }
+  }
+  const filaHC = hcFilaPorId_(h.hc, idHC);
+  if (!filaHC) return 0;
+  return hcLocalizarUsuario_(maestra, String(h.hc.getRange(filaHC, HC_WEB_.COL.NOMBRE).getValue()), '');
+}
+
+/**
+ * Crea una HC nueva (sin Doc): una fila en "Historias Clínicas" y un episodio abierto.
+ * @param {string} nombre
+ * @param {string=} ingresoISO 'yyyy-MM-dd' (por defecto hoy)
+ * @return {{id:string, url:string}}
+ */
+function hcCrearHC_(nombre, ingresoISO) {
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(10000)) throw new Error('La hoja está ocupada. Inténtalo de nuevo.');
+  try {
+    const h = hcHojas_(), id = Utilities.getUuid();
+    const fila = Math.max(h.hc.getLastRow(), 1) + 1;
+    if (h.hc.getMaxRows() < fila) h.hc.insertRowsAfter(h.hc.getMaxRows(), fila - h.hc.getMaxRows());
+    h.hc.getRange(fila, 1, 1, 7).setNumberFormat('@').setValues([[id, String(nombre || '').trim(), '', '', new Date(), 'Web', '']]);
+    h.hc.getRange(fila, HC_WEB_.COL.MODIFICADO).setNumberFormat('dd/MM/yyyy HH:mm:ss');
+    const iso = /^\d{4}-\d{2}-\d{2}$/.test(ingresoISO || '') ? ingresoISO : Utilities.formatDate(new Date(), h.ss.getSpreadsheetTimeZone(), 'yyyy-MM-dd');
+    const fe = Math.max(h.epi.getLastRow(), 1) + 1;
+    if (h.epi.getMaxRows() < fe) h.epi.insertRowsAfter(h.epi.getMaxRows(), fe - h.epi.getMaxRows());
+    h.epi.getRange(fe, 1, 1, 4).setValues([[id, hcDeISO_(iso), '', '']]);
+    h.epi.getRange(fe, 2, 1, 2).setNumberFormat('dd/MM/yyyy');
+    SpreadsheetApp.flush();
+    return { id: id, url: hcUrlFicha_(id) };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/** Alta médica: escribe hoy como fecha de alta del episodio abierto (el último sin alta). Devuelve el mensaje para el usuario. */
+function hcAltaEnHoja_(url) {
+  const id = hcIdDeUrl_(url);
+  if (!id) return '⚠️ El enlace de la historia clínica no es válido.';
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(10000)) return '⚠️ La hoja de historias está ocupada: no se anotó la fecha de alta.';
+  try {
+    const h = hcHojas_(), tz = h.ss.getSpreadsheetTimeZone();
+    const ult = h.epi.getLastRow();
+    const filas = ult > 1 ? h.epi.getRange(2, 1, ult - 1, 3).getValues() : [];
+    let objetivo = 0, ingresoMax = '';
+    filas.forEach(function (r, i) {
+      if (String(r[0]) !== id || hcAISO_(r[2], tz)) return;       // otra HC, o ya tiene alta
+      const ing = hcAISO_(r[1], tz);
+      if (!objetivo || ing >= ingresoMax) { objetivo = i + 2; ingresoMax = ing; }
+    });
+    if (!objetivo) return '⚠️ No hay ningún ingreso abierto en la historia clínica: no se anotó la fecha de alta.';
+    const hoy = new Date();
+    h.epi.getRange(objetivo, 3).setNumberFormat('dd/MM/yyyy').setValue(hoy);
+    SpreadsheetApp.flush();
+    return '📅 Fecha de alta (' + Utilities.formatDate(hoy, tz, 'dd/MM/yyyy') + ').';
+  } catch (e) {
+    return '❌ No se pudo anotar el alta en la historia: ' + e.message;
+  } finally {
+    lock.releaseLock();
+  }
 }
