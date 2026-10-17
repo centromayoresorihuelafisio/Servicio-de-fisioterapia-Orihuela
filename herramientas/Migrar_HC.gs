@@ -29,7 +29,8 @@
  *   Para reintentar un Doc marcado "No migrada", borra su fila del log.
  *   `reiniciarMigracionHC` borra las tres hojas (pide escribir BORRAR).
  *
- * Depende de herramientas/Diagnostico_HC.gs (diagHC_*): deben estar los dos.
+ * Depende de herramientas/Diagnostico_HC.gs (diagHC_listarHistorias_, diagHC_analizarDoc_,
+ * DIAG_HC_ y DIAG_HC_CABECERAS_), que ya tienes: sirve la versión que ejecutaste.
  * Todos los nombres propios llevan el prefijo migHC_ / MIG_HC_.
  */
 
@@ -179,7 +180,7 @@ function migHC_procesarItem_(it) {
   try {
     const doc = DocumentApp.openById(it.docId);
     const diag = diagHC_analizarDoc_(doc, it);
-    const loc = diagHC_localizarTablas_(doc.getBody().getTables());
+    const loc = migHC_localizarTablas_(doc.getBody().getTables());
     if (!loc.hist) {
       return { it: it, resultado: 'No migrada', detalle: 'Sin tabla historia/tratamiento. ' + diag.obs.join(' · ') };
     }
@@ -199,6 +200,25 @@ function migHC_procesarItem_(it) {
   } catch (e) {
     return { it: it, resultado: 'Error', detalle: 'No se pudo migrar: ' + e.message };
   }
+}
+
+/**
+ * Localiza las tres tablas de la plantilla (asistencia, datos personales,
+ * historia/tratamiento). Misma regla que usa el diagnóstico; se repite aquí para
+ * que este archivo no dependa de una versión concreta de Diagnostico_HC.gs.
+ */
+function migHC_localizarTablas_(tablas) {
+  let asist = null, datos = null, hist = null;
+  tablas.forEach(function (t) {
+    let primera = '', texto = '', fila0 = '';
+    try { primera = normalizarTexto(t.getCell(0, 0).getText()); } catch (e) { /* tabla vacía */ }
+    try { texto = normalizarTexto(t.getText()); } catch (e) { /* ignorar */ }
+    try { fila0 = normalizarTexto(t.getRow(0).getText()); } catch (e) { /* ignorar */ }
+    if (!hist && fila0.indexOf('historia') !== -1 && fila0.indexOf('tratamiento') !== -1) hist = t;
+    else if (!datos && texto.indexOf('nombre') !== -1 && (texto.indexOf('dni') !== -1 || texto.indexOf('telefono') !== -1)) datos = t;
+    else if (!asist && (primera.indexOf('asistencia') !== -1 || primera.indexOf('ingreso') !== -1 || texto.indexOf('ingreso') !== -1)) asist = t;
+  });
+  return { asist: asist, datos: datos, hist: hist };
 }
 
 /** Extrae Historia, Tratamiento y episodios de las tablas ya localizadas. Lógica pura. */
