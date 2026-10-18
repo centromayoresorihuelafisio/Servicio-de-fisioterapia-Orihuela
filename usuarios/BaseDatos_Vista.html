@@ -525,15 +525,16 @@
     <aside class="ficha" id="ficha" aria-hidden="true"></aside>
     <?!= incluirEstados(); ?>
     <?!= include('ui/JS_Paneles_Diferidos'); ?>
+    <?!= incluirPanel('historia/Panel_HC', 'PanelHC'); ?>
     <?!= incluirPanel('valoraciones/Panel_Valoracion', 'PanelValoracion'); ?>
     <?!= incluirPanel('valoraciones/Panel_Valoraciones', 'PanelValoraciones'); ?>
     <?!= incluirPanel('usuarios/Panel_Editar', 'PanelEditar'); ?>
     <?!= incluirPanel('agenda/Panel_Cita', 'PanelCita'); ?>
     <?!= incluirPanel('usuarios/Panel_Nuevo', 'PanelNuevo'); ?>
     <?!= incluirPanel('historia/Panel_Huerfana', 'PanelHuerfana'); ?>
-    <?!= incluirPanel('historia/Panel_HC', 'PanelHC'); ?>
     <?!= include('ui/JS_Formato_Nombre'); ?>
     <?!= include('ui/JS_Valoraciones_Cache'); ?>
+    <?!= include('ui/JS_HC_Cache'); ?>
     <?!= include('ui/JS_Ficha'); ?>
     <?!= include('usuarios/Whatsapp_Dialogo'); ?>
     <div class="menu-flot" id="menuFlotante"></div>
@@ -1279,6 +1280,7 @@
           .withSuccessHandler(function(res) {
             if (!res || !res.success) { revertir((res && res.message) || 'No se pudo cambiar el estado.'); return; }
             mostrarAviso('Estado cambiado a ' + textoEstado(valor) + '.');
+            if (window.HCCache) HCCache.cambioDeUsuario();   // un usuario nuevo en Activo entra en la precarga de HC
           })
           .withFailureHandler(function(err) { revertir('Error al cambiar el estado: ' + err); })
           .cambiarEstadoPacienteWeb(fila, valor, p['Nombre']);
@@ -1547,6 +1549,7 @@
           .withSuccessHandler(function(res) {
             btn.innerHTML = textoOriginal;
             mostrarAviso(res.message);
+            if (window.HCCache) HCCache.cambioDeUsuario();   // el alta cambia el episodio de la HC
             quitarSeleccion();
             cargar();
           })

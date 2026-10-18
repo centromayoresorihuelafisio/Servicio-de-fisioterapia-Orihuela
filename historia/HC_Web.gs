@@ -180,31 +180,99 @@ function obtenerHCWeb(nombre, fila, idHC) {
 }
 
 /**
- * Valoraciones del usuario, de la más antigua a la más reciente. Si la fila trae DNI (columna 14, desde
- * 05/10/2026) y el usuario también, manda el DNI; si no, el nombre normalizado.
+ * Lee UNA vez la hoja Valoraciones y deja cada fila ya normalizada (nombre, DNI, escalas), para poder filtrarla
+ * por usuario sin volver a leer la hoja. Lo usan la ficha individual y la carga masiva de HC activas.
  */
-function hcLeerValoraciones_(ss, usuario, tz) {
+function hcLeerFilasValoraciones_(ss, tz) {
   const hoja = ss.getSheetByName(SHEETS.VALORACIONES);
   if (!hoja || hoja.getLastRow() < 2) return [];
   const C = COLUMNAS_NUM.VALORACIONES;
   const ncol = Math.min(hoja.getLastColumn(), C.DNI);
   const filas = hoja.getRange(2, 1, hoja.getLastRow() - 1, ncol).getValues();
-  const nom = hcNorm_(usuario.nombre), dni = String(usuario.dni || '').replace(/[^0-9A-Za-z]/g, '').toUpperCase();
   const num = function (v) { if (v === '' || v === null || v === undefined) return null; const n = parseFloat(String(v).replace(',', '.')); return isNaN(n) ? null : n; };
-  const out = [];
-  filas.forEach(function (r) {
-    const dniFila = String(r[C.DNI - 1] || '').replace(/[^0-9A-Za-z]/g, '').toUpperCase();
-    const coincide = (dniFila && dni) ? dniFila === dni : hcNorm_(r[C.NOMBRE - 1]) === nom;
-    if (!coincide) return;
+  return filas.map(function (r) {
     const peg = [num(r[C.PEG_DOLOR - 1]), num(r[C.PEG_ACTIVIDAD - 1]), num(r[C.PEG_VIDA - 1])].filter(function (x) { return x !== null; });
-    out.push({
+    return {
+      nom: hcNorm_(r[C.NOMBRE - 1]), dni: String(r[C.DNI - 1] || '').replace(/[^0-9A-Za-z]/g, '').toUpperCase(),
       fecha: hcAISO_(r[C.FECHA - 1], tz), tipo: String(r[C.TIPO - 1] || ''),
       dolor: peg.length ? Math.round(peg.reduce(function (a, b) { return a + b; }, 0) / peg.length * 10) / 10 : null,
       funcion: num(r[C.FUNCION_GLOBAL - 1]), analg: num(r[C.ANALGESICOS - 1])
-    });
+    };
+  });
+}
+
+/** Valoraciones de un usuario a partir de las filas ya leídas, de la más antigua a la más reciente. Si la fila trae DNI y el usuario también, manda el DNI; si no, el nombre. */
+function hcValoracionesDeUsuario_(filas, usuario) {
+  const nom = hcNorm_(usuario.nombre), dni = String(usuario.dni || '').replace(/[^0-9A-Za-z]/g, '').toUpperCase();
+  const out = [];
+  filas.forEach(function (r) {
+    const coincide = (r.dni && dni) ? r.dni === dni : r.nom === nom;
+    if (coincide) out.push({ fecha: r.fecha, tipo: r.tipo, dolor: r.dolor, funcion: r.funcion, analg: r.analg });
   });
   out.sort(function (a, b) { return a.fecha < b.fecha ? -1 : a.fecha > b.fecha ? 1 : 0; });
   return out;
+}
+
+/**
+ * Valoraciones del usuario, de la más antigua a la más reciente. Si la fila trae DNI (columna 14, desde
+ * 05/10/2026) y el usuario también, manda el DNI; si no, el nombre normalizado.
+ */
+function hcLeerValoraciones_(ss, usuario, tz) {
+  return hcValoracionesDeUsuario_(hcLeerFilasValoraciones_(ss, tz), usuario);
+}
+
+/**
+ * Lee UNA vez las hojas de Agenda necesarias y deja cada cita clasificada (nombre, fecha, teléfono, clase de asistencia),
+ * agrupada por nombre. `desdeISO` solo sirve para decidir si hace falta el curso anterior; si se omite (undefined),
+ * el curso anterior se lee siempre (carga masiva, cada usuario decide luego con su propio desde).
+ */
+function hcLeerDatosAgenda_(tz, desdeISO) {
+  const actual = obtenerHojaAgenda();
+  const datos = { hoy: Utilities.formatDate(new Date(), tz, 'yyyy-MM-dd'), actual: hcCitasPorNombre_(actual, tz), previo: null, limitePrevio: '' };
+  const m = actual.getName().match(/(\d{4})-(\d{4})/);
+  if (m) {
+    const prev = getSS().getSheetByName('Agenda ' + (+m[1] - 1) + '-' + (+m[2] - 1));
+    const limite = (+m[1]) + '-09-01';
+    if (prev && (desdeISO === undefined || !desdeISO || desdeISO < limite)) { datos.previo = hcCitasPorNombre_(prev, tz); datos.limitePrevio = limite; }
+  }
+  return datos;
+}
+
+function hcCitasPorNombre_(hoja, tz) {
+  const porNombre = {};
+  const ult = hoja.getLastRow(); if (ult < 2) return porNombre;
+  const cab = hoja.getRange(1, 1, 1, hoja.getLastColumn()).getValues()[0].map(function (x) { return String(x).trim(); });
+  const cF = cab.indexOf(COLUMNAS.AGENDA.FECHA), cU = cab.indexOf(COLUMNAS.AGENDA.USUARIO),
+        cT = cab.indexOf(COLUMNAS.AGENDA.TELEFONO), cA = cab.indexOf(COLUMNAS.AGENDA.ASISTENCIA);
+  if (cF === -1 || cU === -1 || cA === -1) return porNombre;
+  const filas = hoja.getRange(2, 1, ult - 1, Math.max(cF, cU, cT, cA) + 1).getValues();
+  filas.forEach(function (f) {
+    const nom = hcNorm_(f[cU]); if (!nom) return;
+    const fecha = hcAISO_(f[cF], tz); if (!fecha) return;
+    const v = hcNorm_(f[cA]).toLowerCase();
+    let clase = 'neutro';
+    if (v) for (let i = 0; i < HC_ESTILOS_ASISTENCIA_.length; i++) if (HC_ESTILOS_ASISTENCIA_[i].patron.test(v)) { clase = HC_ESTILOS_ASISTENCIA_[i].clase; break; }
+    (porNombre[nom] = porNombre[nom] || []).push({ fecha: fecha, tel: cT === -1 ? '' : hcDigitos_(f[cT]), clase: clase });
+  });
+  return porNombre;
+}
+
+/** Cuenta las citas de un usuario con los datos de Agenda ya leídos (misma lógica de siempre: nombre + teléfono, solo hasta hoy). */
+function hcContarAsistenciaDe_(datos, usuario, desdeISO) {
+  const nom = hcNorm_(usuario.nombre);
+  const tels = [hcDigitos_(usuario.telefono), hcDigitos_(usuario.telefono2)].filter(Boolean);
+  const r = { asistidas: 0, noAsistidas: 0, justificadas: 0, pendientes: 0, otras: 0, telefonoDistinto: 0 };
+  const fuentes = [datos.actual];
+  if (datos.previo && (!desdeISO || desdeISO < datos.limitePrevio)) fuentes.push(datos.previo);
+  fuentes.forEach(function (porNombre) {
+    (porNombre[nom] || []).forEach(function (c) {
+      if (desdeISO && c.fecha < desdeISO) return;
+      if (c.tel && tels.length && tels.indexOf(c.tel) === -1) { r.telefonoDistinto++; return; }  // mismo nombre, otro teléfono: no se cuenta
+      if (c.fecha > datos.hoy || c.clase === 'neutro') { r.pendientes++; return; }
+      if (c.clase === 'ok') r.asistidas++; else if (c.clase === 'mal') r.noAsistidas++; else if (c.clase === 'aviso') r.justificadas++; else r.otras++;
+    });
+  });
+  return r;
 }
 
 /**
@@ -212,39 +280,126 @@ function hcLeerValoraciones_(ss, usuario, tz) {
  * por nombre + teléfono. Cuenta solo hasta hoy; lo pendiente va aparte y no entra en el porcentaje.
  */
 function hcContarAsistencia_(usuario, desdeISO, tz) {
-  const actual = obtenerHojaAgenda();
-  const hojas = [actual];
-  const m = actual.getName().match(/(\d{4})-(\d{4})/);
-  if (m) {
-    const prev = getSS().getSheetByName('Agenda ' + (+m[1] - 1) + '-' + (+m[2] - 1));
-    if (prev && (!desdeISO || desdeISO < (+m[1]) + '-09-01')) hojas.push(prev);
-  }
-  const nom = hcNorm_(usuario.nombre);
-  const tels = [hcDigitos_(usuario.telefono), hcDigitos_(usuario.telefono2)].filter(Boolean);
-  const hoy = Utilities.formatDate(new Date(), tz, 'yyyy-MM-dd');
-  const r = { asistidas: 0, noAsistidas: 0, justificadas: 0, pendientes: 0, otras: 0, telefonoDistinto: 0 };
+  return hcContarAsistenciaDe_(hcLeerDatosAgenda_(tz, desdeISO || ''), usuario, desdeISO);
+}
 
-  hojas.forEach(function (hoja) {
-    const ult = hoja.getLastRow(); if (ult < 2) return;
-    const cab = hoja.getRange(1, 1, 1, hoja.getLastColumn()).getValues()[0].map(function (x) { return String(x).trim(); });
-    const cF = cab.indexOf(COLUMNAS.AGENDA.FECHA), cU = cab.indexOf(COLUMNAS.AGENDA.USUARIO),
-          cT = cab.indexOf(COLUMNAS.AGENDA.TELEFONO), cA = cab.indexOf(COLUMNAS.AGENDA.ASISTENCIA);
-    if (cF === -1 || cU === -1 || cA === -1) return;
-    const filas = hoja.getRange(2, 1, ult - 1, Math.max(cF, cU, cT, cA) + 1).getValues();
-    filas.forEach(function (f) {
-      if (hcNorm_(f[cU]) !== nom) return;
-      const fecha = hcAISO_(f[cF], tz);
-      if (!fecha || (desdeISO && fecha < desdeISO)) return;
-      const tAg = cT === -1 ? '' : hcDigitos_(f[cT]);
-      if (tAg && tels.length && tels.indexOf(tAg) === -1) { r.telefonoDistinto++; return; }  // mismo nombre, otro teléfono: no se cuenta
-      const v = hcNorm_(f[cA]).toLowerCase();
-      let clase = 'neutro';
-      if (v) for (let i = 0; i < HC_ESTILOS_ASISTENCIA_.length; i++) if (HC_ESTILOS_ASISTENCIA_[i].patron.test(v)) { clase = HC_ESTILOS_ASISTENCIA_[i].clase; break; }
-      if (fecha > hoy || clase === 'neutro') { r.pendientes++; return; }
-      if (clase === 'ok') r.asistidas++; else if (clase === 'mal') r.noAsistidas++; else if (clase === 'aviso') r.justificadas++; else r.otras++;
+// ----------------------------------------------------------------------------- carga masiva (precarga en el navegador)
+
+/**
+ * Las historias clínicas de TODOS los usuarios en estado Activo, en una sola llamada, con exactamente el mismo
+ * formato que devuelve obtenerHCWeb para cada una. La usa ui/JS_HC_Cache.html para precargarlas en segundo plano
+ * (Base de Datos y Agenda) y que la ficha se abra al instante.
+ *
+ * Cada hoja (Maestra, Historias Clínicas, Episodios HC, Valoraciones, Agenda) se lee UNA sola vez, en vez de una vez
+ * por usuario. Es SOLO LECTURA: no escribe nada. Si un usuario falla, se salta y el resto sigue.
+ * @return {{success:boolean, items?:Object[], generado?:number, message?:string}}
+ */
+function obtenerHCsActivasWeb() {
+  try {
+    const h = hcHojas_(), tz = h.ss.getSpreadsheetTimeZone();
+    const maestra = h.ss.getSheetByName(SHEETS.MAESTRA);
+    if (!maestra) return { success: false, message: 'No se encontró la hoja "' + SHEETS.MAESTRA + '".' };
+    const ultM = maestra.getLastRow(), nCol = maestra.getLastColumn();
+    const ultHC = h.hc.getLastRow();
+    if (ultM < 2 || nCol < 1 || ultHC < 2) return { success: true, items: [], generado: Date.now() };
+
+    // --- Maestra completa (una lectura) + columna del enlace a la historia (texto enriquecido y fórmulas)
+    const cab = maestra.getRange(1, 1, 1, nCol).getValues()[0].map(function (x) { return String(x).trim().toLowerCase(); });
+    const valores = maestra.getRange(2, 1, ultM - 1, nCol).getValues();
+    const col = function (nombre) { return cab.indexOf(String(nombre).trim().toLowerCase()); };
+    const iHC = col(COLUMNAS.MAESTRA.HISTORIA_CLINICA);
+    let ricos = null, formulas = null;
+    if (iHC !== -1) {
+      const rg = maestra.getRange(2, iHC + 1, ultM - 1, 1);
+      ricos = rg.getRichTextValues(); formulas = rg.getFormulas();
+    }
+    const iNombre = col(COLUMNAS.MAESTRA.NOMBRE), iEstado = col(COLUMNAS.MAESTRA.ESTADO);
+    if (iNombre === -1 || iEstado === -1) return { success: false, message: 'Faltan las columnas Nombre / Estado en la Maestra.' };
+
+    // --- Historias clínicas (una lectura) con índices por ID, por Doc original y por nombre de referencia
+    const filasHC = h.hc.getRange(2, 1, ultHC - 1, 7).getValues();
+    const porId = {}, porDoc = {}, porNombreRef = {};
+    filasHC.forEach(function (r, i) {
+      const id = String(r[0]);
+      if (id && porId[id] === undefined) porId[id] = i;
+      const d = hcDocId_(r[HC_WEB_.COL.DOC - 1]);
+      if (d && porDoc[d] === undefined) porDoc[d] = i;
+      const n = hcNorm_(r[1]);
+      (porNombreRef[n] = porNombreRef[n] || []).push(i);
     });
-  });
-  return r;
+
+    // --- Episodios (una lectura), agrupados por ID de HC
+    const epiPorId = {};
+    const ultE = h.epi.getLastRow();
+    if (ultE > 1) h.epi.getRange(2, 1, ultE - 1, 4).getValues().forEach(function (r) {
+      const id = String(r[0]); if (!id) return;
+      (epiPorId[id] = epiPorId[id] || []).push({ ingreso: hcAISO_(r[1], tz), alta: hcAISO_(r[2], tz), nota: String(r[3] || '') });
+    });
+    Object.keys(epiPorId).forEach(function (id) {
+      epiPorId[id].sort(function (a, b) { return a.ingreso < b.ingreso ? -1 : a.ingreso > b.ingreso ? 1 : 0; });
+    });
+
+    // --- Valoraciones y Agenda (una lectura cada una). Si alguna falla, la ficha sale igual, como en obtenerHCWeb.
+    let filasVal = null, avisoVal = '', agenda = null, avisoAg = '';
+    try { filasVal = hcLeerFilasValoraciones_(h.ss, tz); } catch (e1) { avisoVal = e1.message; }
+    try { agenda = hcLeerDatosAgenda_(tz); } catch (e2) { avisoAg = e2.message; }
+
+    const items = [];
+    valores.forEach(function (row, i) {
+      try {
+        if (!String(row[iNombre] || '').trim()) return;
+        if (hcNorm_(row[iEstado]).indexOf('ACTIV') === -1) return;          // solo usuarios Activos
+
+        const dato = function (nombreCol) {
+          const k = col(nombreCol); if (k === -1) return '';
+          let v = row[k];
+          if (Object.prototype.toString.call(v) === '[object Date]') v = Utilities.formatDate(v, tz, 'dd/MM/yyyy');
+          return v === null || v === undefined ? '' : String(v).trim();
+        };
+        let docUrl = '';
+        if (iHC !== -1) docUrl = extraerUrlHistoriaClinica(row[iHC], ricos[i][0], formulas[i][0]);
+        const usuario = {
+          nombre: dato(COLUMNAS.MAESTRA.NOMBRE), dni: dato(COLUMNAS.MAESTRA.DNI),
+          nacimiento: dato(COLUMNAS.MAESTRA.FECHA_NACIMIENTO), edad: dato(COLUMNAS.MAESTRA.EDAD),
+          telefono: dato(COLUMNAS.MAESTRA.TELEFONO_1), telefono2: dato(COLUMNAS.MAESTRA.TELEFONO_2),
+          inscripcion: dato(COLUMNAS.MAESTRA.FECHA_INSCRIPCION), estado: dato(COLUMNAS.MAESTRA.ESTADO),
+          fila: i + 2
+        };
+
+        // Misma búsqueda de la HC que obtenerHCWeb: por ID del enlace, por Doc original, o por nombre si es único.
+        const idLink = hcIdDeUrl_(docUrl);
+        const docId = idLink ? '' : hcDocId_(docUrl);
+        let idx = -1, porNombre = false;
+        if (idLink && porId[idLink] !== undefined) idx = porId[idLink];
+        if (idx === -1 && docId && porDoc[docId] !== undefined) idx = porDoc[docId];
+        if (idx === -1) {
+          const c = porNombreRef[hcNorm_(usuario.nombre)] || [];
+          if (c.length === 1) { idx = c[0]; porNombre = true; } else return;   // sin HC o ambigua: se abre por el camino normal
+        }
+        const f7 = filasHC[idx], id = String(f7[0]);
+        const episodios = (epiPorId[id] || []).map(function (e) { return { ingreso: e.ingreso, alta: e.alta, nota: e.nota }; });
+
+        const resp = {
+          success: true, id: id, usuario: usuario, porNombre: porNombre,
+          docOriginal: String(f7[6] || (hcEsFichaWeb_(docUrl) ? '' : docUrl) || ''),
+          historia: String(f7[2] || ''), tratamiento: String(f7[3] || ''), modificado: hcMs_(f7[4]),
+          episodios: episodios, modoPrueba: HC_WEB_MODO_PRUEBA
+        };
+        if (filasVal) resp.valoraciones = hcValoracionesDeUsuario_(filasVal, usuario); else { resp.valoraciones = []; resp.avisoValoraciones = avisoVal; }
+        if (agenda) {
+          const desde = episodios.length ? episodios[episodios.length - 1].ingreso : '';
+          resp.asistencia = hcContarAsistenciaDe_(agenda, usuario, desde);
+        } else { resp.asistencia = null; resp.avisoAsistencia = avisoAg; }
+        items.push(resp);
+      } catch (eU) {
+        Logger.log('obtenerHCsActivasWeb: se omite la fila ' + (i + 2) + ': ' + eU.message);
+      }
+    });
+    return { success: true, items: items, generado: Date.now() };
+  } catch (e) {
+    Logger.log('Error en obtenerHCsActivasWeb: ' + e.message);
+    return { success: false, message: e.message };
+  }
 }
 
 // ----------------------------------------------------------------------------- escritura

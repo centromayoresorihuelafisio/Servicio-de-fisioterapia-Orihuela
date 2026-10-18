@@ -1,0 +1,109 @@
+<!--
+  ui/JS_HC_Cache.html - PRECARGA de las historias clínicas (HC) de los usuarios en estado ACTIVO, compartida por la
+  Base de Datos (usuarios/BaseDatos_Vista) y la Agenda (agenda/Web_Vista). Con ella, al pulsar "Historia" la ficha
+  (historia/Panel_HC) se pinta al instante desde memoria, sin esperar al servidor.
+
+  Se incluye con include('ui/JS_HC_Cache') con "!" (fuera de cualquier bloque de script), DESPUÉS de ui/JS_Valoraciones_Cache.
+  Empieza a cargar sola unos segundos después de abrirse la página (obtenerHCsActivasWeb, historia/HC_Web.gs: una sola
+  llamada que lee cada hoja una vez), para no competir con la carga de la propia página.
+
+  Cómo se mantiene al día:
+    · Cada HC que se abre por el camino normal (usuario no activo, nuevo...) también se guarda aquí para la próxima vez.
+    · Lo que se edita en la ficha (historia, tratamiento, episodios) se actualiza aquí al guardarse.
+    · Si una entrada tiene más de FRESCO_MS, la ficha se abre igualmente al instante y se vuelve a pedir al servidor
+      EN SEGUNDO PLANO para refrescar asistencia, valoraciones o cambios hechos desde otro sitio (lo decide Panel_HC).
+    · Si guardas una valoración, las entradas se marcan como obsoletas (la asistencia/dolor se recalculan al abrir).
+    · Al volver a la pestaña tras varios minutos, o si otra ventana cambia un usuario, se recarga todo en segundo plano.
+
+  API:
+    HCCache.obtener(id, nombre)   copia de la HC { ...respuesta de obtenerHCWeb, _obsoleta } o null si no está.
+                                  Si hay `id` manda el id; si no, se busca por nombre (solo si es único).
+    HCCache.guardar(resp)         guarda/actualiza una HC (respuesta de obtenerHCWeb, ya con los cambios locales).
+    HCCache.invalidar(id)         borra una entrada (p. ej. si un guardado falló y ya no se sabe cómo está en la hoja).
+    HCCache.recargar()            vuelve a leer todas las activas en segundo plano.
+    HCCache.cambioDeUsuario()     avisar tras cambiar un estado o dar un alta: marca todo como obsoleto y recarga.
+    HCCache.estado()              { entradas, cargada, cargando } (para depurar desde la consola).
+-->
+<script>
+var HCCache = (function() {
+  var RETRASO_PRECARGA = 4000;     // ms tras cargar la página antes de pedir las HC (después de valoraciones)
+  var FRESCO_MS = 60000;           // una entrada más vieja se abre igual, pero se refresca detrás
+  var RECARGA_MS = 5 * 60000;      // al volver a la pestaña tras este tiempo se recarga todo
+  var porId = {};                  // id HC -> { r: respuesta, t: instante en que se recibió/guardó }
+  var idPorNombre = {};            // nombre normalizado -> id HC (null si hay dos con el mismo nombre)
+  var cargando = false, cargada = false, tUltimaCarga = 0, reintentado = false;
+
+  function norm(x) { return String(x === null || x === undefined ? '' : x).normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim().toUpperCase(); }
+  function clonar(x) { return JSON.parse(JSON.stringify(x)); }
+  function hayGoogle() { return typeof google !== 'undefined' && google.script && google.script.run; }
+
+  function indexar(r, t) {
+    if (!r || !r.success || !r.id) return;
+    porId[r.id] = { r: clonar(r), t: t };
+    var n = r.usuario && norm(r.usuario.nombre);
+    if (n) idPorNombre[n] = (idPorNombre[n] === undefined || idPorNombre[n] === r.id) ? r.id : null;
+  }
+
+  function obtener(id, nombre) {
+    var clave = id || null;
+    if (!clave) { var n = norm(nombre); clave = n ? idPorNombre[n] : null; }
+    var e = clave ? porId[clave] : null;
+    if (!e) return null;
+    var c = clonar(e.r);
+    c._obsoleta = (Date.now() - e.t) > FRESCO_MS;
+    return c;
+  }
+
+  function guardar(r) { indexar(r, Date.now()); }
+
+  function invalidar(id) { if (id) delete porId[id]; }
+
+  function marcarObsoleto() { Object.keys(porId).forEach(function(k) { porId[k].t = 0; }); }
+
+  function cargar() {
+    if (cargando || !hayGoogle()) return;
+    if (document.hidden) { setTimeout(cargar, 4000); return; }     // pestaña en segundo plano: se espera
+    cargando = true;
+    var inicio = Date.now();
+    google.script.run
+      .withSuccessHandler(function(res) {
+        cargando = false;
+        if (!res || !res.success || !res.items) return;
+        res.items.forEach(function(r) {
+          var e = porId[r.id];
+          if (e && e.t > inicio) return;      // la ficha guardó algo más nuevo mientras viajaba la respuesta: se respeta
+          indexar(r, Date.now());
+        });
+        cargada = true; tUltimaCarga = Date.now();
+      })
+      .withFailureHandler(function() {
+        cargando = false;
+        if (!reintentado) { reintentado = true; setTimeout(cargar, 20000); }   // un único reintento; si no, se abrirá por el camino normal
+      })
+      .obtenerHCsActivasWeb();
+  }
+
+  // Al volver a la pestaña después de un rato, se refresca todo.
+  document.addEventListener('visibilitychange', function() {
+    if (!document.hidden && cargada && Date.now() - tUltimaCarga > RECARGA_MS) cargar();
+  });
+  // Otra ventana ha cambiado un usuario (estado, datos) o guardado valoraciones.
+  window.addEventListener('storage', function(e) {
+    if (e.key === 'pacienteActualizado') cargar();
+    else if (e.key === 'valoracionesActualizadas') marcarObsoleto();
+  });
+  // Guardar o editar una valoración en esta ventana cambia los indicadores de la ficha.
+  if (typeof ValoracionesCache !== 'undefined' && ValoracionesCache.alCambiar) ValoracionesCache.alCambiar(marcarObsoleto);
+
+  // Se ha cambiado el estado de un usuario o dado un alta desde esta ventana: las HC se refrescan al abrirlas y se vuelve a leer la lista de activos.
+  function cambioDeUsuario() { marcarObsoleto(); reintentado = false; cargar(); }
+
+  function programar() { setTimeout(cargar, RETRASO_PRECARGA); }
+  if (document.readyState === 'complete') programar(); else window.addEventListener('load', programar);
+
+  return {
+    obtener: obtener, guardar: guardar, invalidar: invalidar, recargar: cargar, cambioDeUsuario: cambioDeUsuario,
+    estado: function() { return { entradas: Object.keys(porId).length, cargada: cargada, cargando: cargando }; }
+  };
+})();
+</script>

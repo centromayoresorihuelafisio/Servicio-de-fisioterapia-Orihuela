@@ -7,7 +7,9 @@
     · haCambiado() → true solo si hay texto que NO se pudo guardar (el resto se autoguarda).
     · alEscape()   → true si estaba en modo "ampliar" y lo cierra; si no, false (el anfitrión cierra el panel).
     · cerrar()     → vuelca al servidor lo que esté pendiente de guardar.
-  Servidor: historia/HC_Web.gs (obtenerHCWeb, guardarTextoHCWeb, guardarEpisodiosHCWeb). Usa los tokens --md-* de la página
+  Servidor: historia/HC_Web.gs (obtenerHCWeb, guardarTextoHCWeb, guardarEpisodiosHCWeb).
+  Si la página incluye ui/JS_HC_Cache (Base de Datos y Agenda), la ficha se pinta al instante desde la caché de HC activas
+  y, si la entrada tiene más de un minuto, se refresca detrás (revalidar). Sin la caché (HC_Vista) carga del servidor como siempre. Usa los tokens --md-* de la página
   anfitriona (incluido el tema oscuro) y container queries (@container hc) para adaptarse al ancho del panel. Todo el CSS va bajo .hc.
   Este archivo se GENERA a partir del diseño aprobado: si se retoca, hacerlo directamente aquí.
 -->
@@ -347,14 +349,15 @@ window.PanelHC = {
   function falloGuardado(msg) { errorGuardado = true; $('guardado').classList.remove('ocupado'); $('guardado').classList.add('error'); $('guardado').title = 'Clic para reintentar'; $('guardadoTxt').textContent = 'Sin guardar'; error(msg || 'No se pudo guardar. Tus cambios siguen en pantalla; copia el texto antes de recargar.'); }
 
   /* ---------- carga ---------- */
-  google.script.run.withSuccessHandler(pintar).withFailureHandler(function (e) { fallo(e && e.message); }).obtenerHCWeb(PARAMS.nombre, PARAMS.fila, PARAMS.id);
+  // La carga se lanza al final de abrir() (iniciarCarga): pintar() necesita que todo lo de abajo ya esté definido.
+  function alRecibir(r) { if (r && r.success && window.HCCache) HCCache.guardar(r); pintar(r); }
   function fallo(msg) {
     $('estadoCarga').innerHTML = '<div><p><b>No se pudo cargar la historia</b></p><p>' + esc(msg || '') + '</p></div>';
   }
 
   function pintar(r) {
     if (!r || !r.success) { fallo(r && r.message); return; }
-    D = r; episodios = r.episodios.slice(); valoraciones = r.valoraciones || []; asistencia = r.asistencia;
+    D = r; episodios = (r.episodios || []).map(function (e) { return { ingreso: e.ingreso, alta: e.alta, nota: e.nota }; }); valoraciones = r.valoraciones || []; asistencia = r.asistencia;
     $('contenido').innerHTML = root.querySelector('template.hc-tpl').innerHTML;
     $('estadoCarga').style.display = 'none'; $('contenido').style.display = 'block';
     if (PAGINA) document.title = 'HC · ' + r.usuario.nombre;
@@ -402,10 +405,10 @@ window.PanelHC = {
   /* ---------- episodios ---------- */
   var tmrEpi;
   function guardarEpisodios() {
-    clearTimeout(tmrEpi); guardando(true);
+    clearTimeout(tmrEpi); guardando(true); editado = true;
     tmrEpi = setTimeout(function () {
-      google.script.run.withSuccessHandler(function (r) { guardando(false); if (!r.success) falloGuardado(r.message); else error(''); })
-        .withFailureHandler(function (e) { guardando(false); falloGuardado(e && e.message); })
+      google.script.run.withSuccessHandler(function (r) { guardando(false); if (!r.success) { falloGuardado(r.message); if (window.HCCache) HCCache.invalidar(D.id); } else { error(''); sincronizarCache(); } })
+        .withFailureHandler(function (e) { guardando(false); falloGuardado(e && e.message); if (window.HCCache) HCCache.invalidar(D.id); })
         .guardarEpisodiosHCWeb(D.id, episodios);
     }, 500);
   }
@@ -501,18 +504,25 @@ window.PanelHC = {
     root.querySelectorAll('.editado').forEach(function (e) { e.textContent = txt; });
   }
   function ajustar(t) { t.style.height = 'auto'; t.style.height = Math.max(280, t.scrollHeight) + 'px'; }
-  var temporizadores = {}, sucio = {};
+  var temporizadores = {}, sucio = {}, editado = false;   // editado: se ha tocado algo en esta ficha desde que se abrió
+  // Deja en la caché de HC lo que hay ahora en pantalla (textos ya guardados + episodios), para que al reabrir salga al día.
+  function sincronizarCache() {
+    if (!window.HCCache || !D) return;
+    D.episodios = episodios.map(function (e) { return { ingreso: e.ingreso, alta: e.alta, nota: e.nota }; });
+    HCCache.guardar(D);
+  }
   // Un guardado a la vez: si hay uno en vuelo, el siguiente espera (evita falsos conflictos entre Historia y Tratamiento).
   var cola = Promise.resolve();
-  function programar(campo) { sucio[campo] = true; clearTimeout(temporizadores[campo]); temporizadores[campo] = setTimeout(function () { encolar(campo); }, 1000); }
+  function programar(campo) { sucio[campo] = true; editado = true; clearTimeout(temporizadores[campo]); temporizadores[campo] = setTimeout(function () { encolar(campo); }, 1000); }
   function encolar(campo) {
     cola = cola.then(function () { return new Promise(function (ok) {
       var t = $(campo); if (!t || !sucio[campo]) return ok();
       sucio[campo] = false; guardando(true);
+      var enviado = t.value;
       google.script.run.withSuccessHandler(function (r) {
         guardando(false);
-        if (r.success) { D.modificado = r.modificado; error(''); errorGuardado = false; pintarEditado(); }
-        else { sucio[campo] = true; falloGuardado(r.message); if (r.conflicto) { $('historia').disabled = true; $('tratamiento').disabled = true; } }
+        if (r.success) { D.modificado = r.modificado; D[campo] = enviado; error(''); errorGuardado = false; pintarEditado(); sincronizarCache(); }
+        else { sucio[campo] = true; falloGuardado(r.message); if (window.HCCache) HCCache.invalidar(D.id); if (r.conflicto) { $('historia').disabled = true; $('tratamiento').disabled = true; } }
         ok();
       }).withFailureHandler(function (e) { guardando(false); sucio[campo] = true; falloGuardado(e && e.message); ok(); })
         .guardarTextoHCWeb(D.id, campo, t.value, D.modificado);
@@ -576,6 +586,41 @@ window.PanelHC = {
     if (PAGINA) { $('fechaImpresion').textContent = fmt(new Date()); window.print(); }
     else if (opts.urlPagina) { volcarPendiente(); window.open(urlPagina() + '&imprimir=1', '_blank', 'noopener'); }
   });
+
+  /* ---------- arranque: desde la caché (instantáneo) o desde el servidor ---------- */
+  // Comprueba en segundo plano si lo mostrado desde la caché sigue vigente. Nunca pisa lo que se esté escribiendo.
+  function revalidar(f) {
+    if (!f || !f.success || !D || !root.isConnected || f.id !== D.id) return;
+    var tocado = editado || pendientes > 0 || sucio.historia || sucio.tratamiento || errorGuardado;
+    if (!tocado) { if (window.HCCache) HCCache.guardar(f); }
+    if (!tocado && f.modificado !== D.modificado) { pintar(f); return; }   // el texto cambió desde otro sitio y aquí no se ha tocado nada: se repinta
+    var cambioVal = JSON.stringify(f.valoraciones || []) !== JSON.stringify(valoraciones);
+    var cambioAs = JSON.stringify(f.asistencia || null) !== JSON.stringify(asistencia || null);
+    var cambioEpi = !tocado && JSON.stringify(f.episodios || []) !== JSON.stringify(episodios) && !$('episodios').contains(document.activeElement);
+    if (cambioVal) valoraciones = f.valoraciones || [];
+    if (cambioAs) asistencia = f.asistencia || null;
+    if (cambioEpi) { episodios = f.episodios.map(function (e) { return { ingreso: e.ingreso, alta: e.alta, nota: e.nota }; }); D.episodios = f.episodios; pintarEpisodios(); }
+    if (cambioVal || cambioAs || cambioEpi) pintarTiles();
+  }
+  function iniciarCarga() {
+    var pre = window.HCCache ? HCCache.obtener(PARAMS.id, PARAMS.nombre) : null;
+    if (pre) {
+      pintar(pre);                                   // al instante, sin esperar al servidor
+      if (pre._obsoleta) google.script.run.withSuccessHandler(revalidar).withFailureHandler(function () { /* sin red: se queda lo de la caché */ })
+        .obtenerHCWeb(PARAMS.nombre, PARAMS.fila, PARAMS.id);
+      return;
+    }
+    google.script.run.withSuccessHandler(alRecibir).withFailureHandler(function (e) { fallo(e && e.message); }).obtenerHCWeb(PARAMS.nombre, PARAMS.fila, PARAMS.id);
+  }
+  // Si el ancho del panel cambia (cajón que se abre, ventana redimensionada), las notas se reajustan de alto.
+  if (typeof ResizeObserver !== 'undefined') {
+    var anchoPrev = 0;
+    new ResizeObserver(function () {
+      var w = root.clientWidth; if (!w || w === anchoPrev) return; anchoPrev = w;
+      root.querySelectorAll('.nota textarea').forEach(ajustar);
+    }).observe(root);
+  }
+  iniciarCarga();
 
   var ctl = {
     haCambiado: function () { return errorGuardado && !!(sucio.historia || sucio.tratamiento); },   // solo si hay texto que NO llegó a guardarse
