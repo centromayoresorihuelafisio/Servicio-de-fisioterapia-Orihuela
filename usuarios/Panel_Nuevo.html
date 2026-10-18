@@ -688,34 +688,13 @@ window.PanelNuevo = {
             mostrarMsg(res.message || 'Usuario guardado correctamente.', 'success');
             btnGuardar.disabled = true; btnCancelar.disabled = true;
             btnGuardar.innerHTML = '<span class="ms">check_circle</span>Guardado';
-            var avisarGuardado = function (retraso) {
-              setTimeout(function () { if (!cerrado && opts.onGuardado) opts.onGuardado(res.message || 'Usuario guardado'); }, retraso);
-            };
             if (q('#nu-hc').checked) {
-              // La página recarga la lista al recibir onGuardado: hay que esperar a que la historia clínica esté creada
-              // y enlazada en la Maestra, o la lista se recarga sin el enlace y el usuario aparece sin historia.
-              guardando = true;
-              mostrarMsg((res.message || 'Usuario guardado correctamente.') + ' Creando la historia clínica…', 'success');
               google.script.run
-                .withSuccessHandler(function (r) {
-                  guardando = false;
-                  if (r && r.success) console.log('✅ Historia clínica:', r.url);
-                  else {
-                    console.error('❌', r && r.message);
-                    mostrarMsg('Usuario guardado, pero no se pudo crear la historia clínica: ' + ((r && r.message) || 'error desconocido') + ' Puedes crearla desde su ficha.', 'error');
-                  }
-                  avisarGuardado(r && r.success ? 300 : 3500);
-                })
-                .withFailureHandler(function (err) {
-                  guardando = false;
-                  console.error('❌', err);
-                  mostrarMsg('Usuario guardado, pero no se pudo crear la historia clínica: ' + (err && err.message ? err.message : err) + ' Puedes crearla desde su ficha.', 'error');
-                  avisarGuardado(3500);
-                })
+                .withSuccessHandler(function (r) { if (r && r.success) console.log('✅ Historia clínica:', r.url); else console.error('❌', r && r.message); })
+                .withFailureHandler(function (err) { console.error('❌', err); })
                 .generarHistoriaClinicaRegistroUsuario(datos);
-            } else {
-              avisarGuardado(900);
             }
+            setTimeout(function () { if (!cerrado && opts.onGuardado) opts.onGuardado(res.message || 'Usuario guardado'); }, 900);
           } else {
             ponerBotonGuardando(false);
             mostrarMsg((res && res.message) || 'No se pudo guardar el usuario.', 'error');
