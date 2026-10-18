@@ -684,11 +684,14 @@
       .ficha-form-cuerpo > * { flex: 1 1 auto; min-height: 0; }
       @media (min-width: 900px) {
         /* El panel se desliza con transform y el contenido se ajusta al instante (sin animar el margen). */
-        body.con-ficha nav.tabs-cambio, body.con-ficha header.top, body.con-ficha .tabla-wrap { margin-right: var(--ficha-w, 400px); }
+        body.con-ficha:not(.ficha-hc) nav.tabs-cambio, body.con-ficha:not(.ficha-hc) header.top, body.con-ficha:not(.ficha-hc) .tabla-wrap { margin-right: var(--ficha-w, 400px); }
       }
 
       /* ===== Panel lateral ancho («Dar cita») ===== */
       @media (min-width: 1200px) { body.ficha-ancha { --ficha-w: 520px; } }
+      /* Historia clínica: cajón muy ancho que se superpone a la agenda (no la desplaza) */
+      body.ficha-hc { --ficha-w: min(1120px, 96vw); }
+      body.ficha-hc .ficha { box-shadow: -10px 0 40px rgba(0,0,0,.18); }
 
       /* ===== Asistencia: siempre con botones (el activo queda resaltado) ===== */
       .asis-rapida { display: inline-flex; align-items: center; gap: .1rem; }
@@ -1255,6 +1258,7 @@
     <?!= incluirPanel('valoraciones/Panel_Valoracion', 'PanelValoracion'); ?>
     <?!= incluirPanel('valoraciones/Panel_Valoraciones', 'PanelValoraciones'); ?>
     <?!= incluirPanel('agenda/Panel_Cita', 'PanelCita'); ?>
+    <?!= incluirPanel('historia/Panel_HC', 'PanelHC'); ?>
 <?!= incluirPanel('agenda/Panel_Disponibilidad', 'PanelDisponibilidad'); ?>
     <?!= include('agenda/Panel_Recordatorios'); ?>
 
@@ -2323,13 +2327,15 @@
       async function descartarPanelSiProcede() {
         if (!panelHaCambiado()) return true;
         if (!(await mostrarConfirm('Hay cambios sin guardar en el formulario. ¿Quieres descartarlos?'))) return false;
+        try { if (controladorPanel && controladorPanel.cerrar) controladorPanel.cerrar(); } catch (e) { /* no crítico */ }
         panelAbierto = false; controladorPanel = null;
         return true;
       }
       function ocultarPanel() {
         var el = document.getElementById('ficha');
+        try { if (controladorPanel && controladorPanel.cerrar) controladorPanel.cerrar(); } catch (e) { /* no crítico */ }   // la historia clínica vuelca lo pendiente
         panelAbierto = false; panelClave = ''; controladorPanel = null;
-        document.body.classList.remove('con-ficha', 'ficha-ancha');
+        document.body.classList.remove('con-ficha', 'ficha-ancha', 'ficha-hc');
         el.classList.remove('abierta');
         el.setAttribute('aria-hidden', 'true');
         // El contenido se vacía cuando termina de deslizarse, para que no se vea un panel en blanco al salir.
@@ -2353,7 +2359,8 @@
         if (timerLimpiarPanel) { clearTimeout(timerLimpiarPanel); timerLimpiarPanel = null; }
         panelAbierto = true; panelClave = clave; controladorPanel = null;
         document.body.classList.add('con-ficha');
-        document.body.classList.toggle('ficha-ancha', !!ancho);
+        document.body.classList.toggle('ficha-ancha', ancho === true);
+        document.body.classList.toggle('ficha-hc', ancho === 'hc');
         el.classList.add('abierta');
         el.setAttribute('aria-hidden', 'false');
         var sinCabecera = !!(opciones && opciones.sinCabecera);
@@ -3046,8 +3053,13 @@
 
       function abrirHCFila(fila) {
         var c = citaPorFila(fila), url = c && COL_HISTORIA ? c[COL_HISTORIA] : '';
-        if (esUrl(url)) window.open(url.trim(), '_blank', 'noopener');
-        else mostrarAviso('Esta cita no tiene Historia Clínica enlazada.');
+        if (!c || !esUrl(url)) { mostrarAviso('Esta cita no tiene Historia Clínica enlazada.'); return; }
+        var nombre = String(c['Usuario'] || '').trim();
+        var m = /[?&]page=hc&id=([^&#]+)/.exec(url);                 // enlace a la ficha web: se abre como panel lateral
+        // Si la cita aún guarda el enlace al Doc antiguo, el servidor localiza la historia por el nombre del paciente.
+        abrirPanelLateral('hc:' + (m ? m[1] : nombre), 'Historia clínica · ' + nombre, 'hc', function(cont) {
+          return PanelHC.abrir(cont, { id: m ? decodeURIComponent(m[1]) : '', nombre: nombre, fila: '', urlPagina: <?!= JSON.stringify(baseUrl) ?> + '?page=hc' });
+        });
       }
 
       // ---------- Enlazar Historia Clínica ----------

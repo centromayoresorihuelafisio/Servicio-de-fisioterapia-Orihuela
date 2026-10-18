@@ -54,7 +54,8 @@ const PANELES_DIFERIDOS_ = [
   'agenda/Panel_Cita',
   'agenda/Panel_Disponibilidad',
   'usuarios/Panel_Nuevo',
-  'historia/Panel_Huerfana'
+  'historia/Panel_Huerfana',
+  'historia/Panel_HC'
 ];
 
 /**

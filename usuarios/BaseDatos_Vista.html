@@ -291,6 +291,9 @@
       .ficha.abierta { transform: none; visibility: visible; transition-delay: 0s; }
       /* Formularios que piden más sitio (Cita): el panel pasa de 400 a 520 px solo con pantalla ancha */
       @media (min-width: 1200px) { body.ficha-ancha { --ficha-w: 520px; } }
+      /* Historia clínica: cajón muy ancho que se superpone a la tabla (no la desplaza) */
+      body.ficha-hc { --ficha-w: min(1120px, 96vw); }
+      body.ficha-hc .ficha { box-shadow: -10px 0 40px rgba(0,0,0,.18); }
       /* Cabecera y cuerpo de un formulario abierto dentro de la ficha (Valoración, Editar, Cita) */
       .ficha-form-cab { flex: none; display: flex; align-items: center; gap: .5rem; padding: .7rem .8rem; border-bottom: 1px solid var(--md-outline); }
       .ficha-form-cab button { border: none; background: none; cursor: pointer; width: 34px; height: 34px; border-radius: 50%; color: var(--md-on-surface-med); display: inline-flex; align-items: center; justify-content: center; }
@@ -300,13 +303,13 @@
       .ficha-form-cuerpo > * { flex: 1 1 auto; min-height: 0; }
       @media (min-width: 900px) {
         /* Sin animar el margen (forzaba reflujo de la tabla en cada fotograma): el panel se desliza con transform y el contenido se ajusta al instante. */
-        body.con-ficha nav.tabs-cambio, body.con-ficha header.top, body.con-ficha .tabla-wrap { margin-right: var(--ficha-w, 400px); }
+        body.con-ficha:not(.ficha-hc) nav.tabs-cambio, body.con-ficha:not(.ficha-hc) header.top, body.con-ficha:not(.ficha-hc) .tabla-wrap { margin-right: var(--ficha-w, 400px); }
         /* Con la ficha abierta se ocultan Prioridad, Inscripción y las acciones de fila (la ficha ya tiene sus botones) para que la tabla quepa sin scroll horizontal. */
-        body.con-ficha .tabla-wrap { overflow-x: hidden; }
-        body.con-ficha table { min-width: 0; }
-        body.con-ficha thead th:nth-child(n+6), body.con-ficha tbody td:nth-child(n+6) { display: none; }
-        body.con-ficha thead th.col-usuario, body.con-ficha tbody td.col-usuario { width: 250px; min-width: 250px; max-width: 250px; }
-        body.con-ficha td.col-clinico { max-width: 240px; }
+        body.con-ficha:not(.ficha-hc) .tabla-wrap { overflow-x: hidden; }
+        body.con-ficha:not(.ficha-hc) table { min-width: 0; }
+        body.con-ficha:not(.ficha-hc) thead th:nth-child(n+6), body.con-ficha:not(.ficha-hc) tbody td:nth-child(n+6) { display: none; }
+        body.con-ficha:not(.ficha-hc) thead th.col-usuario, body.con-ficha:not(.ficha-hc) tbody td.col-usuario { width: 250px; min-width: 250px; max-width: 250px; }
+        body.con-ficha:not(.ficha-hc) td.col-clinico { max-width: 240px; }
       }
 
       .toasts { position: fixed; left: 50%; bottom: 78px; transform: translateX(-50%); display: flex; flex-direction: column; gap: .4rem; align-items: center; z-index: 1300; pointer-events: none; }
@@ -528,6 +531,7 @@
     <?!= incluirPanel('agenda/Panel_Cita', 'PanelCita'); ?>
     <?!= incluirPanel('usuarios/Panel_Nuevo', 'PanelNuevo'); ?>
     <?!= incluirPanel('historia/Panel_Huerfana', 'PanelHuerfana'); ?>
+    <?!= incluirPanel('historia/Panel_HC', 'PanelHC'); ?>
     <?!= include('ui/JS_Formato_Nombre'); ?>
     <?!= include('ui/JS_Valoraciones_Cache'); ?>
     <?!= include('ui/JS_Ficha'); ?>
@@ -1042,6 +1046,13 @@
             return PanelCita.abrir(cont, { paciente: p['Nombre'] || '', onGuardado: cb.guardado, onCancelar: cb.cancelar });
           }
         },
+        hc: {
+          titulo: 'Historia clínica', ancha: 'hc', sinAviso: true,
+          montar: function(cont, p, cb) {
+            return PanelHC.abrir(cont, { id: hcIdDeUrl(p[COL_HISTORIA]), nombre: p['Nombre'] || '', fila: p._fila,
+              urlPagina: <?!= JSON.stringify(baseUrl) ?> + '?page=hc' });
+          }
+        },
         huerfana: {
           titulo: 'Buscar historia clínica', aviso: 'Historia clínica vinculada',
           montar: function(cont, p, cb) {
@@ -1049,6 +1060,8 @@
           }
         }
       };
+      function cerrarControlador() { try { if (controladorForm && controladorForm.cerrar) controladorForm.cerrar(); } catch (e) { /* no crítico */ } }
+      function hcIdDeUrl(u) { var m = /[?&]id=([^&#]+)/.exec(String(u || '')); return m ? decodeURIComponent(m[1]) : ''; }
       function hayCambiosSinGuardar() {
         return !!(formularioActivo && controladorForm && controladorForm.haCambiado && controladorForm.haCambiado());
       }
@@ -1057,6 +1070,7 @@
       async function descartarFormularioSiProcede() {
         if (!hayCambiosSinGuardar()) return true;
         if (!(await mostrarConfirm('Hay cambios sin guardar en el formulario. ¿Quieres descartarlos?'))) return false;
+        cerrarControlador();
         formularioActivo = false; controladorForm = null;
         return true;
       }
@@ -1069,7 +1083,8 @@
         var fila = p._fila, el = document.getElementById('ficha');
         fichaAbierta = true; formularioActivo = true; formularioFila = fila; controladorForm = null;
         document.body.classList.add('con-ficha');
-        document.body.classList.toggle('ficha-ancha', !!def.ancha);
+        document.body.classList.toggle('ficha-ancha', def.ancha === true);
+        document.body.classList.toggle('ficha-hc', def.ancha === 'hc');
         el.classList.add('abierta');
         el.setAttribute('aria-hidden', 'false');
         el.innerHTML = '<div class="ficha-form-cab"><button type="button" data-ficha-volver title="Volver a la ficha"><span class="material-symbols-outlined">arrow_back</span></button><div class="ficha-form-tit"></div></div><div class="ficha-form-cuerpo"></div>';
@@ -1097,7 +1112,7 @@
         var el = document.getElementById('ficha');
         fichaAbierta = false; formularioActivo = true; formularioFila = FILA_NUEVO;
         document.body.classList.add('con-ficha');
-        document.body.classList.remove('ficha-ancha');
+        document.body.classList.remove('ficha-ancha', 'ficha-hc');
         el.classList.add('abierta');
         el.setAttribute('aria-hidden', 'false');
         el.innerHTML = '<div class="ficha-form-cab"><button type="button" data-ficha-volver title="Cerrar"><span class="material-symbols-outlined">arrow_back</span></button><div class="ficha-form-tit">Nuevo usuario</div></div><div class="ficha-form-cuerpo"></div>';
@@ -1124,6 +1139,7 @@
       }
       async function volverDeFormulario(forzar) {
         if (forzar !== true && !(await descartarFormularioSiProcede())) return;
+        cerrarControlador();
         formularioActivo = false; controladorForm = null;
         renderFicha();
       }
@@ -1151,6 +1167,12 @@
         }
         if (acc === 'hc') {
           var url = COL_HISTORIA ? p[COL_HISTORIA] : '';
+          if (esUrl(url) && /[?&]page=hc&id=/.test(url)) {          // historia en la ficha web: se abre como panel lateral
+            if (!(await descartarFormularioSiProcede())) return;
+            fichaAbierta = true; fijarSeleccion(p);
+            abrirFormularioPanel('hc');
+            return;
+          }
           if (esUrl(url)) { window.open(url.trim(), '_blank', 'noopener'); return; }
           if (!(await mostrarConfirm('¿Crear la Historia Clínica de ' + p['Nombre'] + '?'))) return;
           acc = 'crearhc';
@@ -1311,9 +1333,9 @@
         document.body.classList.toggle('con-ficha', abierta);
         el.classList.toggle('abierta', abierta);
         el.setAttribute('aria-hidden', abierta ? 'false' : 'true');
-        if (formularioActivo && (!abierta || p._fila !== formularioFila)) { formularioActivo = false; controladorForm = null; }
+        if (formularioActivo && (!abierta || p._fila !== formularioFila)) { cerrarControlador(); formularioActivo = false; controladorForm = null; }
         if (formularioActivo) return; // no pisar el formulario abierto en el panel
-        document.body.classList.remove('ficha-ancha');   // la ficha y el resto de formularios usan el ancho normal
+        document.body.classList.remove('ficha-ancha', 'ficha-hc');   // la ficha y el resto de formularios usan el ancho normal
         if (abierta) FichaUsuario.pintar(el, htmlFicha(p));
       }
 

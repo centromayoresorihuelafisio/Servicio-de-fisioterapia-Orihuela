@@ -42,6 +42,7 @@ function servirFichaHCWeb(parametros) {
   t.fila = (parametros && parametros.fila) || '';
   t.idHC = (parametros && parametros.id) || '';
   t.modoPrueba = HC_WEB_MODO_PRUEBA;
+  t.imprimir = !!(parametros && String(parametros.imprimir) === '1');
   t.baseUrl = ScriptApp.getService().getUrl();
   return t.evaluate().setTitle('Historia clínica').addMetaTag('viewport', 'width=device-width, initial-scale=1');
 }
