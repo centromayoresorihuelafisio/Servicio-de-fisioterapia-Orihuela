@@ -83,6 +83,10 @@
 .hc .fecha:focus{outline:2px solid var(--md-primary);outline-offset:-1px;border-color:transparent}
 .hc .flecha{color:var(--md-on-surface-low)}
 .hc .dur{font-size:12px;color:var(--md-on-surface-low)}
+.hc .ep-del{margin-left:auto;height:26px;padding:0 8px;border:0;border-radius:999px;background:transparent;color:var(--md-on-surface-low);font:inherit;font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:4px;cursor:pointer}
+.hc .ep-del:hover{background:var(--md-surface-variant);color:var(--md-error)}
+.hc .ep-del.seguro{background:var(--md-error);color:#fff}
+.hc .ep-del svg.i{width:15px;height:15px}
 .hc /* ---------- indicadores ---------- */
   .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:20px}
 .hc .tile{background:var(--md-surface);border:1px solid color-mix(in srgb,var(--md-outline) 75%,transparent);border-radius:18px;padding:13px 15px 12px;box-shadow:var(--e1);display:flex;flex-direction:column;gap:7px;min-width:0}
@@ -147,7 +151,7 @@
   .solo-papel{display:none}
 @media print{.hc @page{size:A4;margin:12mm}
 .hc{background:#fff;color:#000;font-size:11pt}
-.hc .top,.hc .btn,.hc .mini,.hc .acc,.hc .pie-lateral,.hc .nota-pie,.hc .cab-sec .btn,.hc .guardado,.hc .nota-cab .btn{display:none!important}
+.hc .top,.hc .btn,.hc .mini,.hc .acc,.hc .pie-lateral,.hc .nota-pie,.hc .cab-sec .btn,.hc .guardado,.hc .nota-cab .btn,.hc .ep-del{display:none!important}
 .hc .solo-papel{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid #1d3f52;padding-bottom:6px;margin-bottom:10px}
 .hc .solo-papel b{color:#1d3f52;font-size:13pt}
 .hc .solo-papel span{font-size:9pt;color:#555}
@@ -357,7 +361,7 @@ window.PanelHC = {
 
   function pintar(r) {
     if (!r || !r.success) { fallo(r && r.message); return; }
-    D = r; episodios = (r.episodios || []).map(function (e) { return { ingreso: e.ingreso, alta: e.alta, nota: e.nota }; }); valoraciones = r.valoraciones || []; asistencia = r.asistencia;
+    D = r; episodios = (r.episodios || []).map(function (e) { return { ingreso: e.ingreso, alta: e.alta, nota: e.nota }; }); baseEpi = firmaEpi(episodios); valoraciones = r.valoraciones || []; asistencia = r.asistencia;
     $('contenido').innerHTML = root.querySelector('template.hc-tpl').innerHTML;
     $('estadoCarga').style.display = 'none'; $('contenido').style.display = 'block';
     if (PAGINA) document.title = 'HC · ' + r.usuario.nombre;
@@ -403,14 +407,42 @@ window.PanelHC = {
   }
 
   /* ---------- episodios ---------- */
-  var tmrEpi;
+  var tmrEpi, tmrAviso, epiContando = false, epiArmado = false, epiEnVuelo = false, epiRepetir = false;
+  var baseEpi = '';   // firma de los episodios tal como están guardados en la hoja (según esta ficha); el servidor la compara antes de escribir
+  function firmaEpi(l) { return l.map(function (e) { return [e.ingreso || '', e.alta || '', e.nota || ''].join('|'); }).sort().join('\n'); }   // igual que hcFirmaEpisodios_ (historia/HC_Web.gs)
+  function copiaEpi(l) { return (l || []).map(function (e) { return { ingreso: e.ingreso, alta: e.alta, nota: e.nota }; }); }
+  // Aviso que se quita solo (los fallos de guardado, en cambio, se quedan hasta que se resuelven).
+  function avisoTemporal(msg) { error(msg); clearTimeout(tmrAviso); tmrAviso = setTimeout(function () { var e = $('avisoErr'); if (e && e.textContent === msg) error(''); }, 6000); }
+  // Un solo "Guardando…" por tanda de cambios, y un solo envío a la vez (si llega otro cambio mientras viaja uno, se envía justo después).
   function guardarEpisodios() {
-    clearTimeout(tmrEpi); guardando(true); editado = true;
-    tmrEpi = setTimeout(function () {
-      google.script.run.withSuccessHandler(function (r) { guardando(false); if (!r.success) { falloGuardado(r.message); if (window.HCCache) HCCache.invalidar(D.id); } else { error(''); sincronizarCache(); } })
-        .withFailureHandler(function (e) { guardando(false); falloGuardado(e && e.message); if (window.HCCache) HCCache.invalidar(D.id); })
-        .guardarEpisodiosHCWeb(D.id, episodios);
-    }, 500);
+    clearTimeout(tmrEpi); editado = true;
+    if (!epiContando) { epiContando = true; guardando(true); }
+    epiArmado = true; tmrEpi = setTimeout(enviarEpisodios, 500);
+  }
+  function terminarEpi() {
+    epiEnVuelo = false;
+    if (epiRepetir) { epiRepetir = false; enviarEpisodios(); return; }
+    if (epiArmado) return;                       // hay otro cambio esperando su turno: se sigue contando
+    epiContando = false; guardando(false);
+  }
+  function enviarEpisodios() {
+    epiArmado = false;
+    if (epiEnVuelo) { epiRepetir = true; return; }
+    epiEnVuelo = true;
+    var lista = copiaEpi(episodios), firma = firmaEpi(lista);
+    google.script.run.withSuccessHandler(function (r) {
+      if (r && r.success) { baseEpi = firma; error(''); sincronizarCache(); terminarEpi(); return; }
+      if (r && r.conflicto) {                     // otra ventana cambió los episodios: se muestran los actuales y no se pisa nada
+        clearTimeout(tmrEpi); epiArmado = false; epiRepetir = false;
+        episodios = copiaEpi(r.episodios); D.episodios = copiaEpi(r.episodios); baseEpi = firmaEpi(episodios);
+        pintarEpisodios(); pintarTiles(); sincronizarCache(); terminarEpi();
+        avisoTemporal('Los episodios se habían cambiado desde otra ventana. Se han cargado los datos actuales; repite el cambio si hace falta.');
+        return;
+      }
+      terminarEpi(); falloGuardado(r && r.message); if (window.HCCache) HCCache.invalidar(D.id);
+    }).withFailureHandler(function (e) {
+      terminarEpi(); falloGuardado(e && e.message); if (window.HCCache) HCCache.invalidar(D.id);
+    }).guardarEpisodiosHCWeb(D.id, lista, baseEpi);
   }
   function pintarEpisodios() {
     var c = $('episodios'); c.innerHTML = '';
@@ -419,20 +451,44 @@ window.PanelHC = {
       var i = episodios.length - 1 - ri, enCurso = !e.alta;
       var d = document.createElement('div'); d.className = 'ep' + (enCurso ? ' curso' : '');
       d.innerHTML = '<div class="t"><strong>Episodio ' + (i + 1) + '</strong><span class="chip ' + (enCurso ? 'ok dot' : '') + '" style="height:22px;font-size:12px">' + (enCurso ? 'En curso' : 'Alta') + '</span>' +
-        '<span class="dur">' + (e.ingreso ? dias(e.ingreso, e.alta) + ' días' : '') + '</span></div>' +
+        '<span class="dur">' + (e.ingreso ? dias(e.ingreso, e.alta) + ' días' : '') + '</span>' +
+        '<button type="button" class="ep-del" data-del="' + i + '" title="Eliminar este episodio" aria-label="Eliminar episodio ' + (i + 1) + '">' + svg('papelera') + '</button></div>' +
         '<div class="fechas"><input class="fecha" type="date" data-i="' + i + '" data-k="ingreso" value="' + esc(e.ingreso) + '" aria-label="Ingreso"><span class="flecha">→</span>' +
         '<input class="fecha" type="date" data-i="' + i + '" data-k="alta" value="' + esc(e.alta) + '" aria-label="Alta"></div>';
       c.appendChild(d);
     });
     c.querySelectorAll('input').forEach(function (inp) {
-      inp.addEventListener('change', function () { episodios[inp.dataset.i][inp.dataset.k] = inp.value; guardarEpisodios(); pintarEpisodios(); pintarTiles(); });
+      inp.addEventListener('change', function () {
+        var ep = episodios[inp.dataset.i], k = inp.dataset.k, nuevo = inp.value;
+        if (k === 'ingreso' && !nuevo) { inp.value = ep.ingreso; avisoTemporal('El ingreso no puede quedar vacío. Para quitar el episodio usa Eliminar.'); return; }
+        var ing = k === 'ingreso' ? nuevo : ep.ingreso, alt = k === 'alta' ? nuevo : ep.alta;
+        if (ing && alt && alt < ing) { inp.value = ep[k]; avisoTemporal('El alta no puede ser anterior al ingreso.'); return; }
+        ep[k] = nuevo; guardarEpisodios(); pintarEpisodios(); pintarTiles();
+      });
+    });
+    // Eliminar: la primera pulsación pide confirmación (3 s); la segunda borra el episodio.
+    c.querySelectorAll('[data-del]').forEach(function (b) {
+      var orig = b.innerHTML;
+      b.addEventListener('click', function () {
+        if (!b.classList.contains('seguro')) {
+          b.classList.add('seguro'); b.textContent = '¿Eliminar?';
+          clearTimeout(b._t); b._t = setTimeout(function () { b.classList.remove('seguro'); b.innerHTML = orig; }, 3000);
+          return;
+        }
+        clearTimeout(b._t);
+        episodios.splice(+b.dataset.del, 1); guardarEpisodios(); pintarEpisodios(); pintarTiles();
+      });
     });
     var ult = episodios[episodios.length - 1], activo = ult && !ult.alta;
     $('btnAlta').style.display = activo ? 'flex' : 'none';
     $('btnNuevo').style.display = (!episodios.length || ult.alta) ? 'inline-flex' : 'none';
   }
   function iniciarBotonesEpisodios() {
-    $('btnAlta').onclick = function () { episodios[episodios.length - 1].alta = hoyISO(); guardarEpisodios(); pintarEpisodios(); pintarTiles(); };
+    $('btnAlta').onclick = function () {
+      var ult = episodios[episodios.length - 1];
+      if (ult.ingreso && hoyISO() < ult.ingreso) { avisoTemporal('El ingreso es posterior a hoy: corrige la fecha de ingreso antes de dar el alta.'); return; }
+      ult.alta = hoyISO(); guardarEpisodios(); pintarEpisodios(); pintarTiles();
+    };
     $('btnNuevo').onclick = function () { episodios.push({ ingreso: hoyISO(), alta: '', nota: '' }); guardarEpisodios(); pintarEpisodios(); pintarTiles(); };
   }
 
@@ -441,7 +497,8 @@ window.PanelHC = {
     dolor: '<path d="M13 3L5 14h6l-1 7 8-11h-6z"/>',
     func: '<circle cx="12" cy="5" r="2"/><path d="M5 9l7 1 7-1M12 10v5l-3 6M12 15l3 6"/>',
     pill: '<path d="M10.5 20.5a4.95 4.95 0 01-7-7l10-10a4.95 4.95 0 017 7z"/><path d="M8.5 8.5l7 7"/>',
-    cal: '<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4M16 3v4M4 10h16M9 15l2 2 4-4"/>'
+    cal: '<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4M16 3v4M4 10h16M9 15l2 2 4-4"/>',
+    papelera: '<path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 002 2h6a2 2 0 002-2l1-12M9 7V4h6v3"/>'
   };
   function svg(k) { return '<svg class="i" viewBox="0 0 24 24">' + IC[k] + '</svg>'; }
   function spark(vals, max) {
@@ -599,7 +656,7 @@ window.PanelHC = {
     var cambioEpi = !tocado && JSON.stringify(f.episodios || []) !== JSON.stringify(episodios) && !$('episodios').contains(document.activeElement);
     if (cambioVal) valoraciones = f.valoraciones || [];
     if (cambioAs) asistencia = f.asistencia || null;
-    if (cambioEpi) { episodios = f.episodios.map(function (e) { return { ingreso: e.ingreso, alta: e.alta, nota: e.nota }; }); D.episodios = f.episodios; pintarEpisodios(); }
+    if (cambioEpi) { episodios = f.episodios.map(function (e) { return { ingreso: e.ingreso, alta: e.alta, nota: e.nota }; }); baseEpi = firmaEpi(episodios); D.episodios = f.episodios; pintarEpisodios(); }
     if (cambioVal || cambioAs || cambioEpi) pintarTiles();
   }
   function iniciarCarga() {

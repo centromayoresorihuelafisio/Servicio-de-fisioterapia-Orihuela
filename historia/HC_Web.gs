@@ -442,12 +442,24 @@ function guardarTextoHCWeb(id, campo, texto, modificadoBase) {
   }
 }
 
-/** Sustituye los episodios de una historia por la lista recibida [{ingreso:'yyyy-MM-dd', alta:'yyyy-MM-dd'|'', nota}]. */
-function guardarEpisodiosHCWeb(id, episodios) {
+/**
+ * Firma de una lista de episodios: texto que no depende del orden. Panel_HC calcula la misma (firmaEpi) con lo que
+ * cree que hay guardado; si no coincide con lo que hay ahora en la hoja, otra ventana ha cambiado los episodios.
+ */
+function hcFirmaEpisodios_(lista) {
+  return lista.map(function (e) { return [e.ingreso || '', e.alta || '', e.nota || ''].join('|'); }).sort().join('\n');
+}
+
+/**
+ * Sustituye los episodios de una historia por la lista recibida [{ingreso:'yyyy-MM-dd', alta:'yyyy-MM-dd'|'', nota}].
+ * `firmaBase` (opcional) es la firma de los episodios tal como la ficha los tenía al cargar o al guardar por última vez:
+ * si no coincide con lo que hay en la hoja, NO se escribe y se devuelve {conflicto:true, episodios:[...actuales]}.
+ */
+function guardarEpisodiosHCWeb(id, episodios, firmaBase) {
   const lock = LockService.getScriptLock();
   if (!lock.tryLock(10000)) return { success: false, message: 'La hoja está ocupada. Inténtalo de nuevo.' };
   try {
-    const h = hcHojas_();
+    const h = hcHojas_(), tz = h.ss.getSpreadsheetTimeZone();
     if (!hcFilaPorId_(h.hc, id)) return { success: false, message: 'No se encontró la historia (ID no válido).' };
     const lista = (episodios || []).map(function (e) {
       return { ingreso: /^\d{4}-\d{2}-\d{2}$/.test(e.ingreso) ? e.ingreso : '', alta: /^\d{4}-\d{2}-\d{2}$/.test(e.alta) ? e.alta : '', nota: String(e.nota || '') };
@@ -459,6 +471,19 @@ function guardarEpisodiosHCWeb(id, episodios) {
     const todas = ult > 1 ? h.epi.getRange(2, 1, ult - 1, 4).getValues() : [];
     const filasId = [];
     todas.forEach(function (r, i) { if (String(r[0]) === id) filasId.push(i + 2); });
+
+    // Control de conflicto: ¿siguen los episodios como la ficha cree que están?
+    if (typeof firmaBase === 'string') {
+      const actuales = filasId.map(function (f) {
+        const r = todas[f - 2];
+        return { ingreso: hcAISO_(r[1], tz), alta: hcAISO_(r[2], tz), nota: String(r[3] || '') };
+      });
+      if (hcFirmaEpisodios_(actuales) !== firmaBase) {
+        actuales.sort(function (a, b) { return a.ingreso < b.ingreso ? -1 : a.ingreso > b.ingreso ? 1 : 0; });
+        return { success: false, conflicto: true, episodios: actuales,
+          message: 'Los episodios se habían cambiado desde otra ventana.' };
+      }
+    }
 
     const nuevas = lista.map(function (e) { return [id, hcDeISO_(e.ingreso), hcDeISO_(e.alta), e.nota]; });
     // 1) se escriben en las filas que ya tenía (reutilizadas), 2) lo que sobre se añade al final, 3) las sobrantes se vacían.
