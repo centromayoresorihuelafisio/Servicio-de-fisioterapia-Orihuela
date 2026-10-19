@@ -1259,6 +1259,7 @@
     <?!= incluirPanel('historia/Panel_HC', 'PanelHC'); ?>
     <?!= incluirPanel('valoraciones/Panel_Valoracion', 'PanelValoracion'); ?>
     <?!= incluirPanel('valoraciones/Panel_Valoraciones', 'PanelValoraciones'); ?>
+    <?!= incluirPanel('usuarios/Panel_Editar', 'PanelEditar'); ?>
     <?!= incluirPanel('agenda/Panel_Cita', 'PanelCita'); ?>
 <?!= incluirPanel('agenda/Panel_Disponibilidad', 'PanelDisponibilidad'); ?>
     <?!= include('agenda/Panel_Recordatorios'); ?>
@@ -3059,7 +3060,12 @@
         var m = /[?&]page=hc&id=([^&#]+)/.exec(url);                 // enlace a la ficha web: se abre como panel lateral
         // Si la cita aún guarda el enlace al Doc antiguo, el servidor localiza la historia por el nombre del paciente.
         abrirPanelLateral('hc:' + (m ? m[1] : nombre), 'Historia clínica · ' + nombre, 'hc', function(cont) {
-          return PanelHC.abrir(cont, { id: m ? decodeURIComponent(m[1]) : '', nombre: nombre, fila: '', urlPagina: <?!= JSON.stringify(baseUrl) ?> + '?page=hc' });
+          return PanelHC.abrir(cont, { id: m ? decodeURIComponent(m[1]) : '', nombre: nombre, fila: '', urlPagina: <?!= JSON.stringify(baseUrl) ?> + '?page=hc',
+            // Cita o edición hechas desde la historia: se actualizan la agenda y las fichas (igual que al avisar otra ventana).
+            alCambiar: function(tipo) {
+              if (tipo === 'usuario') cargarFichas();
+              if ((tipo === 'cita' || tipo === 'usuario') && semanaActual && !document.querySelector('.editando')) cargar(semanaActual, true);
+            } });
         });
       }
 

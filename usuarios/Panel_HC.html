@@ -1,0 +1,824 @@
+<!--
+  historia/Panel_HC.html
+  Historia clínica web como módulo del panel lateral (Base de Datos y Agenda) y como página completa (historia/HC_Vista.html).
+  Se incluye con incluirPanel('historia/Panel_HC', 'PanelHC') (carga bajo demanda, ver ui/JS_Paneles_Diferidos).
+  API: PanelHC.abrir(contenedor, { id, nombre, fila, modo, urlPagina, volverUrl, alCargar, alCambiar, acciones })
+  Funciones de la app dentro de la historia (solo en el panel lateral): Valoración, Dar cita, Editar y WhatsApp. Reutilizan
+  PanelValoraciones / PanelCita / PanelEditar (se montan en una hoja que se superpone a la historia) y WhatsappDialogo; cada
+  botón aparece solo si la página anfitriona incluye ese módulo. La página anfitriona se entera de los cambios con alCambiar(tipo).
+  Devuelve { haCambiado(), alEscape(), cerrar() }:
+    · haCambiado() → true solo si hay texto que NO se pudo guardar (el resto se autoguarda).
+    · alEscape()   → true si estaba en modo "ampliar" y lo cierra; si no, false (el anfitrión cierra el panel).
+    · cerrar()     → vuelca al servidor lo que esté pendiente de guardar.
+  Servidor: historia/HC_Web.gs (obtenerHCWeb, guardarTextoHCWeb, guardarEpisodiosHCWeb).
+  Si la página incluye ui/JS_HC_Cache (Base de Datos y Agenda), la ficha se pinta al instante desde la caché de HC activas
+  y, si la entrada tiene más de un minuto, se refresca detrás (revalidar). Sin la caché (HC_Vista) carga del servidor como siempre. Usa los tokens --md-* de la página
+  anfitriona (incluido el tema oscuro) y container queries (@container hc) para adaptarse al ancho del panel. Todo el CSS va bajo .hc.
+  Este archivo se GENERA a partir del diseño aprobado: si se retoca, hacerlo directamente aquí.
+-->
+<style>
+.hc *{box-sizing:border-box}
+.hc{margin:0}
+.hc{font:14px/1.5 "DM Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--md-bg);color:var(--md-on-surface);font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased}
+.hc svg.i{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.hc /* ---------- barra superior ---------- */
+  .top{position:sticky;top:0;z-index:10;display:flex;align-items:center;gap:8px;padding:10px 24px;background:color-mix(in srgb,var(--md-bg) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid color-mix(in srgb,var(--md-outline) 70%,transparent)}
+.hc .top .crumb{color:var(--md-on-surface-med);font-size:13px}
+.hc .top .crumb b{color:var(--md-on-surface);font-weight:600}
+.hc .sp{flex:1}
+.hc .guardado{display:inline-flex;align-items:center;gap:7px;font-size:12px;color:var(--md-on-surface-med);padding:0 8px}
+.hc .guardado i{width:8px;height:8px;border-radius:50%;background:var(--md-success);transition:background .2s}
+.hc .guardado.ocupado i{background:var(--md-warning);animation:hc-pulso 1s infinite}
+@keyframes hc-pulso{50%{opacity:.35}}
+.hc /* ---------- botones (ripple) ---------- */
+  .btn{position:relative;overflow:hidden;display:inline-flex;align-items:center;gap:8px;height:38px;padding:0 16px;border-radius:999px;border:1px solid var(--md-outline);background:transparent;color:var(--md-primary);font:inherit;font-weight:600;cursor:pointer;transition:background .2s var(--ease),box-shadow .2s var(--ease)}
+.hc .btn:hover{background:color-mix(in srgb,var(--md-primary) 8%,transparent)}
+.hc .btn.fill{background:var(--md-primary);border-color:var(--md-primary);color:var(--md-on-primary)}
+.hc .btn.fill:hover{background:color-mix(in srgb,var(--md-primary) 88%,#000);box-shadow:var(--e1)}
+.hc .btn.tonal{background:var(--md-primary-container);border-color:transparent;color:var(--md-primary-dark)}
+.hc .btn.icon{width:38px;padding:0;justify-content:center;border-color:transparent;color:var(--md-on-surface-med)}
+.hc .btn.icon:hover{color:var(--md-primary)}
+.hc .ripple{position:absolute;border-radius:50%;transform:scale(0);background:currentColor;opacity:.16;animation:hc-rip .55s var(--ease) forwards;pointer-events:none}
+@keyframes hc-rip{to{transform:scale(2.6);opacity:0}}
+.hc /* ---------- layout ---------- */
+  .pagina{max-width:1240px;margin:0 auto;padding:22px 24px 70px}
+.hc .cabecera{display:flex;align-items:center;gap:18px;margin-bottom:20px;flex-wrap:wrap}
+.hc .avatar{width:64px;height:64px;border-radius:50%;background:var(--md-primary-container);color:var(--md-primary-dark);display:grid;place-items:center;font-size:23px;font-weight:700;letter-spacing:.02em}
+.hc .cabecera h1{margin:0;font-size:26px;line-height:1.15;font-weight:700;letter-spacing:.005em}
+.hc .meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;align-items:center}
+.hc .chip{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 11px;border-radius:999px;font-size:12.5px;font-weight:600;background:var(--md-surface-variant);color:var(--md-on-surface-med)}
+.hc .chip.dot::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.hc .chip.ok{background:var(--md-success-bg);color:var(--md-success)}
+.hc .chip.warn{background:var(--md-warning-bg);color:var(--md-warning)}
+.hc .chip.info{background:var(--md-primary-light);color:var(--md-primary)}
+.hc .chip.alta{background:var(--md-purple-bg);color:var(--md-purple)}
+.hc .rejilla{display:grid;grid-template-columns:330px 1fr;gap:20px;align-items:start}
+.hc .lateral{position:sticky;top:0;display:flex;flex-direction:column;gap:16px}
+@container hc (max-width:980px){.hc .rejilla{grid-template-columns:1fr}
+.hc .lateral{position:static}}
+.hc .card{background:var(--md-surface);border:1px solid color-mix(in srgb,var(--md-outline) 75%,transparent);border-radius:20px;padding:18px 18px 16px;box-shadow:var(--e1)}
+.hc .sec{display:inline-flex;align-items:center;gap:7px;height:26px;padding:0 12px;border-radius:999px;background:var(--md-primary-light);color:var(--md-primary);font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+.hc /* ---------- datos ---------- */
+  .campos{margin:14px 0 0;display:grid;gap:0}
+.hc .campo{display:grid;grid-template-columns:30px 1fr;align-items:center;gap:10px;padding:9px 0;border-top:1px solid color-mix(in srgb,var(--md-outline) 55%,transparent)}
+.hc .campo:first-child{border-top:0}
+.hc .campo dt{margin:0;width:30px;height:30px;border-radius:10px;display:grid;place-items:center;background:var(--md-primary-light);color:var(--md-primary)}
+.hc .campo dt svg.i{width:16px;height:16px}
+.hc .campo dd{margin:0;font-weight:500;display:flex;align-items:center;gap:8px;min-width:0}
+.hc .campo dd.nulo{color:var(--md-on-surface-low);font-weight:400}
+.hc .acc{margin-left:auto;display:flex;gap:2px}
+.hc .mini{width:30px;height:30px;border-radius:50%;border:0;background:transparent;color:var(--md-on-surface-low);display:grid;place-items:center;cursor:pointer;position:relative;overflow:hidden}
+.hc .mini:hover{background:var(--md-primary-light);color:var(--md-primary)}
+.hc .mini.wa:hover{background:var(--md-success-bg);color:var(--md-success)}
+.hc .pie-lateral{margin:10px 0 0;font-size:12px;color:var(--md-on-surface-low);display:flex;gap:6px;align-items:flex-start}
+.hc /* ---------- episodios ---------- */
+  .cab-sec{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.hc .episodios{margin:14px 0 6px;position:relative;display:grid;gap:12px}
+.hc .ep{position:relative;padding-left:26px}
+.hc .ep::before{content:"";position:absolute;left:6px;top:8px;width:11px;height:11px;border-radius:50%;background:var(--md-surface);border:2px solid var(--md-outline)}
+.hc .ep.curso::before{border-color:var(--md-success);background:var(--md-success)}
+.hc .ep::after{content:"";position:absolute;left:11px;top:22px;bottom:-14px;width:2px;background:var(--md-outline);opacity:.7}
+.hc .ep:last-child::after{display:none}
+.hc .ep .t{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.hc .ep .t strong{font-weight:600}
+.hc .ep .fechas{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:6px;margin-top:6px}
+.hc .fecha{height:34px;border:1px solid var(--md-outline);border-radius:10px;background:transparent;color:inherit;font:inherit;font-size:13px;padding:0 8px;width:100%;min-width:0}
+.hc .fecha:focus{outline:2px solid var(--md-primary);outline-offset:-1px;border-color:transparent}
+.hc .flecha{color:var(--md-on-surface-low)}
+.hc .dur{font-size:12px;color:var(--md-on-surface-low)}
+.hc .ep-del{margin-left:auto;height:26px;padding:0 8px;border:0;border-radius:999px;background:transparent;color:var(--md-on-surface-low);font:inherit;font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:4px;cursor:pointer}
+.hc .ep-del:hover{background:var(--md-surface-variant);color:var(--md-error)}
+.hc .ep-del.seguro{background:var(--md-error);color:#fff}
+.hc .ep-del svg.i{width:15px;height:15px}
+.hc{position:relative}
+.hc .hc-acciones{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.hc .hc-acciones .btn{height:36px;padding:0 14px;font-size:13px}
+.hc .hc-hoja{position:absolute;inset:0;z-index:30;display:flex;justify-content:flex-end}
+.hc .hc-hoja-vel{position:absolute;inset:0;background:rgba(32,33,36,.38)}
+.hc .hc-hoja-caja{position:relative;width:min(560px,100%);height:100%;display:flex;flex-direction:column;background:var(--md-surface);box-shadow:-10px 0 40px rgba(0,0,0,.18);animation:hc-hoja-entra .18s var(--ease)}
+@keyframes hc-hoja-entra{from{transform:translateX(28px);opacity:0}}
+.hc .hc-hoja-cab{flex:none;display:flex;align-items:center;gap:8px;padding:8px 8px 8px 18px;border-bottom:1px solid color-mix(in srgb,var(--md-outline) 70%,transparent)}
+.hc .hc-hoja-cab strong{font-size:15px;font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hc .hc-hoja-cuerpo{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
+.hc .hc-hoja-cuerpo>*{flex:1 1 auto;min-height:0}
+.hc /* ---------- indicadores ---------- */
+  .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:20px}
+.hc .tile{background:var(--md-surface);border:1px solid color-mix(in srgb,var(--md-outline) 75%,transparent);border-radius:18px;padding:13px 15px 12px;box-shadow:var(--e1);display:flex;flex-direction:column;gap:7px;min-width:0}
+.hc .th{display:flex;align-items:center;gap:9px}
+.hc .th .k{font-size:12.5px;font-weight:600;color:var(--md-on-surface-med);flex:1;min-width:0}
+.hc .ic{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;flex:none;background:var(--md-primary-light);color:var(--md-primary)}
+.hc .ic.sm{width:28px;height:28px;border-radius:9px}
+.hc .ic.sm svg.i{width:16px;height:16px}
+.hc .ic.err{background:var(--md-error-bg);color:var(--md-error)}
+.hc .ic.ok{background:var(--md-success-bg);color:var(--md-success)}
+.hc .ic.pur{background:var(--md-purple-bg);color:var(--md-purple)}
+.hc .tile .v{font-size:26px;line-height:1.1;font-weight:700;letter-spacing:.005em}
+.hc .tile .v.txt{font-size:20px}
+.hc .tile .v small{font-size:12.5px;font-weight:500;color:var(--md-on-surface-med);margin-left:4px}
+.hc .bar{height:6px;border-radius:99px;background:var(--md-surface-variant);overflow:hidden}
+.hc .bar i{display:block;height:100%;border-radius:99px;background:var(--md-primary);transition:width .5s var(--ease)}
+.hc .tr{display:flex;align-items:center;gap:7px;flex-wrap:wrap;font-size:12px;color:var(--md-on-surface-low)}
+.hc .chip.mal{background:var(--md-error-bg);color:var(--md-error)}
+.hc .chip.sm{height:22px;font-size:12px;padding:0 9px}
+.hc .spark{width:52px;height:24px;overflow:visible;flex:none}
+.hc .spark polyline{fill:none;stroke:var(--md-primary);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.hc .spark circle{fill:var(--md-primary)}
+.hc .vacio-tile{color:var(--md-on-surface-low);font-size:13px}
+.hc .asist-card{margin-bottom:20px}
+.hc .ac-cab{display:flex;align-items:center;gap:11px}
+.hc .ac-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:14px 0 12px}
+.hc .ac-n{border-radius:14px;padding:10px 14px;background:var(--bgc);color:var(--fgc)}
+.hc .ac-n b{display:block;font-size:28px;line-height:1.1;font-weight:700}
+.hc .ac-n span{display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;margin-top:2px}
+.hc .ac-n span::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.hc .ac-n.ok{--bgc:var(--md-success-bg);--fgc:var(--md-success)}
+.hc .ac-n.mal{--bgc:var(--md-error-bg);--fgc:var(--md-error)}
+.hc .ac-n.av{--bgc:var(--md-warning-bg);--fgc:var(--md-warning)}
+.hc .stack{display:flex;gap:2px;height:8px;border-radius:99px;overflow:hidden;background:var(--md-surface-variant)}
+.hc .stack i{display:block;height:100%}
+.hc .stack .s-ok{background:var(--md-success)}
+.hc .stack .s-mal{background:var(--md-error)}
+.hc .stack .s-av{background:#e8b95a}
+.hc .ac-pie{margin-top:8px;font-size:12px;color:var(--md-on-surface-low);display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+@container hc (max-width:520px){.hc .ac-grid{grid-template-columns:1fr}}
+.hc .demo{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--md-on-surface-low)}
+.hc .demo select{font:inherit;font-size:12px;border:1px solid var(--md-outline);border-radius:8px;background:var(--md-surface);color:inherit;padding:4px 6px}
+.hc /* cabeceras de tarjeta con icono tonal */
+  .ht{display:flex;flex-direction:column;line-height:1.25;min-width:0}
+.hc .ht h2{margin:0;font-size:15px;font-weight:700}
+.hc .ht span{font-size:12px;color:var(--md-on-surface-low)}
+.hc /* ---------- notas clínicas ---------- */
+  main{min-width:0}
+.hc .notas{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}
+.hc .notas.foco{grid-template-columns:1fr}
+.hc .notas.foco .nota:not(.activa){display:none}
+@container hc (max-width:760px){.hc .notas{grid-template-columns:1fr}}
+.hc .nota{display:flex;flex-direction:column;padding:0;overflow:clip}
+.hc .nota-cab{display:flex;align-items:center;gap:11px;padding:14px 14px 8px 16px}
+.hc .nota-cab .sp{flex:1}
+.hc .nota textarea{display:block;width:100%;min-height:280px;border:0;resize:none;background:transparent;color:inherit;font:inherit;font-size:14.5px;line-height:1.7;padding:6px 18px 18px;overflow:hidden}
+.hc .nota textarea:focus{outline:0}
+.hc .nota:focus-within{border-color:var(--md-primary);box-shadow:0 0 0 1px var(--md-primary),var(--e1)}
+.hc .nota-pie{display:flex;justify-content:space-between;padding:9px 18px;border-top:1px solid color-mix(in srgb,var(--md-outline) 55%,transparent);font-size:12px;color:var(--md-on-surface-low);background:var(--hc-s1)}
+.hc .impr{display:none}
+.hc /* ---------- cabecera de impresión (solo papel) ---------- */
+  .solo-papel{display:none}
+@media print{.hc @page{size:A4;margin:12mm}
+.hc{background:#fff;color:#000;font-size:11pt}
+.hc .top,.hc .btn,.hc .mini,.hc .acc,.hc .pie-lateral,.hc .nota-pie,.hc .cab-sec .btn,.hc .guardado,.hc .nota-cab .btn,.hc .ep-del,.hc .hc-acciones,.hc .hc-hoja{display:none!important}
+.hc .solo-papel{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid #1d3f52;padding-bottom:6px;margin-bottom:10px}
+.hc .solo-papel b{color:#1d3f52;font-size:13pt}
+.hc .solo-papel span{font-size:9pt;color:#555}
+.hc .pagina{padding:0;max-width:none}
+.hc .rejilla{grid-template-columns:62mm 1fr;gap:8mm}
+.hc .lateral{position:static}
+.hc .tiles{grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px}
+.hc .tile .v{font-size:14pt!important}
+.hc .tile .v.txt{font-size:11pt!important}
+.hc .ac-n b{font-size:16pt}
+.hc .ac-grid{margin:8px 0}
+.hc .asist-card{margin-bottom:8px}
+.hc .tile{padding:8px 10px;gap:4px;border-radius:8px}
+.hc .tile .v{font-size:16pt}
+.hc .spark{display:none}
+.hc .card,.hc .tile{box-shadow:none;border-radius:6px;break-inside:avoid;background:#fff}
+.hc .notas{grid-template-columns:minmax(0,1fr)}
+.hc .nota{overflow:visible}
+.hc .nota textarea{display:none}
+.hc .impr{display:block;white-space:pre-wrap;word-break:break-word;line-height:1.55;padding:2px 14px 14px}
+.hc .fecha::-webkit-calendar-picker-indicator{display:none}
+.hc .fecha{font-size:10pt}
+.hc .campo{grid-template-columns:22mm 1fr}
+.hc .campo dd{flex-wrap:wrap}
+.hc .ep .fechas{grid-template-columns:1fr}
+.hc .flecha{display:none}
+.hc .fecha{padding:0;height:20px;width:100%}
+.hc .fecha{border:0;padding:0;width:auto;background:none}
+.hc *{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+.hc .aviso-prueba{display:flex;gap:10px;align-items:flex-start;margin:0 0 16px;padding:10px 14px;border-radius:14px;background:var(--md-warning-bg);color:var(--md-warning);font-size:13px}
+.hc .aviso-prueba svg.i{margin-top:2px}
+.hc .aviso-err{display:none;margin:0 0 16px;padding:10px 14px;border-radius:14px;background:var(--md-error-bg);color:var(--md-error);font-size:13px}
+.hc .estado-carga{display:grid;place-items:center;min-height:50vh;color:var(--md-on-surface-low);text-align:center;gap:6px}
+.hc .esq{background:linear-gradient(90deg,var(--md-surface-variant),var(--hc-s1),var(--md-surface-variant));background-size:200% 100%;animation:hc-esq 1.2s linear infinite;border-radius:12px}
+@keyframes hc-esq{to{background-position:-200% 0}}
+.hc .nota textarea:disabled{opacity:.7}
+.hc .avatar{box-shadow:0 0 0 3px var(--md-bg),0 0 0 6px var(--aro,var(--md-outline));transition:box-shadow .3s}
+.hc .avatar.ok{--aro:var(--md-success)}
+.hc .avatar.alta{--aro:var(--md-purple)}
+.hc .avatar.warn{--aro:var(--md-warning)}
+.hc .cabecera{gap:22px}
+.hc .nota-cab{position:sticky;top:0;z-index:5;background:var(--md-surface);border-bottom:1px solid transparent;padding-bottom:10px}
+.hc .nota-cab.pegada{border-bottom-color:color-mix(in srgb,var(--md-outline) 70%,transparent)}
+@media print{.hc .nota-cab{position:static!important}
+.hc .avatar{box-shadow:none}}
+.hc .asist-filas{display:grid;gap:5px;margin:2px 0 1px}
+.hc .asist-fila{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--md-on-surface-med)}
+.hc .asist-fila i{width:8px;height:8px;border-radius:50%;flex:none;opacity:.7}
+.hc .asist-fila b{margin-left:auto;font-size:15px;color:var(--md-on-surface);font-weight:700}
+.hc .asist-fila.ok i,.hc .stack.suave .s-ok{background:#6fae85}
+.hc .asist-fila.mal i,.hc .stack.suave .s-mal{background:#c98a86}
+.hc .asist-fila.av i,.hc .stack.suave .s-av{background:#d9bd7c}
+.hc .stack.suave{height:6px}
+.hc .stack.suave i{opacity:.55}
+.hc .editado{white-space:nowrap}
+.hc .guardado{cursor:default}
+.hc .guardado.error{cursor:pointer;color:var(--md-error)}
+.hc .guardado.error i{background:var(--md-error)}
+.hc a.btn{text-decoration:none}
+.hc a.enlace{color:var(--md-primary);font-weight:600;text-decoration:none}
+.hc a.enlace:hover{text-decoration:underline}
+@media print{.hc .aviso-prueba,.hc .aviso-err{display:none!important}}
+
+.hc{--e1:0 1px 2px rgba(32,33,36,.08),0 1px 3px rgba(32,33,36,.06);--ease:cubic-bezier(.2,0,0,1);--hc-s1:color-mix(in srgb,var(--md-surface) 55%,var(--md-bg));
+  container-type:inline-size;container-name:hc;display:flex;flex-direction:column;height:100%;min-height:0;background:var(--md-bg);color:var(--md-on-surface);
+  font:14px/1.5 var(--font,"Google Sans","Segoe UI",system-ui,sans-serif);font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased}
+.hc .hc-barra{flex:none;display:flex;align-items:center;gap:6px;padding:8px 14px;background:var(--md-surface);border-bottom:1px solid color-mix(in srgb,var(--md-outline) 70%,transparent)}
+.hc .hc-scroll{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain}
+.hc .hc-barra .btn{height:34px;padding:0 13px;font-size:13px}.hc .hc-barra .btn.icon{width:34px;padding:0}
+.hc .guardado.ocupado i{animation:hc-pulso 1s infinite}
+.hc .nota textarea{font-family:inherit}
+.hc [hidden]{display:none!important}
+@container hc (max-width:640px){
+  .hc .hc-barra .btn:not(.icon){width:34px;padding:0;justify-content:center}.hc .hc-barra .btn .lbl{display:none}
+  .hc .pagina{padding:14px 12px 50px}.hc .cabecera h1{font-size:21px}.hc .avatar{width:54px;height:54px;font-size:19px}
+}
+@media print{.hc,.hc .hc-scroll{height:auto!important;overflow:visible!important;display:block}.hc .hc-barra{display:none!important}.hc{background:#fff}}
+
+</style>
+<template id="tplPanelHC">
+<div class="hc">
+  <div class="hc-barra">
+    <a class="btn icon hc-volver" id="hc-volver" hidden target="_top" aria-label="Volver" title="Volver"><svg class="i" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></a>
+    <span class="guardado" id="hc-guardado"><i></i><span id="hc-guardadoTxt">Guardado</span></span>
+    <span class="sp"></span>
+    <button type="button" class="btn" id="hc-btnPestana" hidden title="Abrir la historia en una pestaña nueva"><svg class="i" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 01-1 1H5a1 1 0 01-1-1V7a1 1 0 011-1h5"/></svg><span class="lbl">Abrir en pestaña</span></button>
+    <a class="btn" id="hc-btnDoc" href="#" target="_blank" rel="noopener" style="display:none" title="Abrir el Google Doc original (respaldo)"><svg class="i" viewBox="0 0 24 24"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5"/></svg><span class="lbl">Doc original</span></a>
+    <button type="button" class="btn" id="hc-btnImprimir" title="Imprimir"><svg class="i" viewBox="0 0 24 24"><path d="M6 9V3h12v6M6 18H4v-7h16v7h-2M7 14h10v7H7z"/></svg><span class="lbl">Imprimir</span></button>
+  </div>
+  <div class="hc-scroll">
+    <div class="pagina">
+      <div class="solo-papel"><div><b>Centro de Mayores Virgen de Monserrate</b><br><span>Servicio de fisioterapia · Historia clínica</span></div><span id="fechaImpresion"></span></div>
+      <div class="aviso-err" id="hc-avisoErr" role="alert"></div>
+      <div id="hc-estadoCarga" class="estado-carga"><div><div class="esq" style="width:260px;height:22px;margin:0 auto 10px"></div><div class="esq" style="width:180px;height:14px;margin:0 auto"></div><p>Cargando historia clínica…</p></div></div>
+      <div id="hc-contenido" style="display:none"></div>
+    </div>
+  </div>
+  <div class="hc-hoja" id="hc-hoja" hidden>
+    <div class="hc-hoja-vel"></div>
+    <section class="hc-hoja-caja" role="dialog" aria-modal="true" aria-labelledby="hc-hojaTit">
+      <div class="hc-hoja-cab"><strong id="hc-hojaTit"></strong><span class="sp"></span><button type="button" class="btn icon" id="hc-hojaX" aria-label="Cerrar" title="Cerrar (Esc)"><svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+      <div class="hc-hoja-cuerpo" id="hc-hojaCuerpo"></div>
+    </section>
+  </div>
+  <template class="hc-tpl">
+<header class="cabecera">
+    <div class="avatar" id="hc-avatar"></div>
+    <div>
+      <h1 id="hc-nombre"></h1>
+      <div class="meta" id="hc-meta"></div>
+    </div>
+    <div class="hc-acciones" id="hc-acciones" hidden>
+      <button type="button" class="btn tonal" data-acc="valoracion" hidden title="Valoraciones del usuario: evolución, historial y nueva valoración"><svg class="i" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><path d="M9 3h6v4H9zM9 14l2 2 4-4"/></svg>Valoración</button>
+      <button type="button" class="btn tonal" data-acc="cita" hidden title="Dar cita"><svg class="i" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4M16 3v4M4 10h16M12 13v4M10 15h4"/></svg>Dar cita</button>
+      <button type="button" class="btn tonal" data-acc="editar" hidden title="Editar los datos del usuario"><svg class="i" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg>Editar</button>
+      <button type="button" class="btn tonal" data-acc="whatsapp" hidden title="WhatsApp con la plantilla de mensaje"><svg class="i" viewBox="0 0 24 24"><path d="M3 21l1.6-4.7A8.5 8.5 0 1112 20.5a8.4 8.4 0 01-4-1z"/></svg>WhatsApp</button>
+    </div>
+  </header>
+
+  <div class="rejilla">
+    <!-- ================= columna lateral ================= -->
+    <aside class="lateral">
+      <section class="card">
+        <span class="sec">Datos personales</span>
+        <dl class="campos" id="hc-campos"></dl>
+        <p class="pie-lateral"><svg class="i" style="width:14px;height:14px;margin-top:2px" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v5h1"/></svg>Se leen de la Base de Datos. Para cambiarlos, edita al usuario.</p>
+      </section>
+
+      <section class="card">
+        <div class="cab-sec">
+          <span class="sec">Ingreso y alta</span>
+          <button class="btn tonal" id="hc-btnNuevo" style="height:32px;padding:0 12px"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Reingreso</button>
+        </div>
+        <div class="episodios" id="hc-episodios"></div>
+        <button class="btn fill" id="hc-btnAlta" style="width:100%;justify-content:center;margin-top:8px"><svg class="i" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>Dar de alta hoy</button>
+      </section>
+    </aside>
+
+    <!-- ================= zona principal ================= -->
+    <main>
+      <div class="tiles" id="hc-tiles"></div>
+
+      <div class="notas" id="hc-notas">
+        <section class="card nota activa" data-k="historia">
+          <div class="nota-cab">
+            <span class="ic"><svg class="i" viewBox="0 0 24 24"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5M10 13h6M10 17h6"/></svg></span><div class="ht"><h2>Historia</h2><span>Antecedentes y motivo de consulta</span></div><span class="sp"></span>
+            <button class="btn icon mini-btn" data-fecha="historia" title="Insertar fecha de hoy" style="height:32px;width:32px"><svg class="i" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4M16 3v4M4 10h16"/></svg></button>
+            <button class="btn icon" data-foco="historia" title="Ampliar" style="height:32px;width:32px"><svg class="i" viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+          </div>
+          <textarea id="hc-historia" placeholder="Antecedentes, motivo de consulta, valoración inicial…"></textarea>
+          <div class="impr"></div>
+          <div class="nota-pie"><span class="cuenta">0 caracteres</span><span>Texto plano</span></div>
+        </section>
+
+        <section class="card nota" data-k="tratamiento">
+          <div class="nota-cab">
+            <span class="ic ok"><svg class="i" viewBox="0 0 24 24"><path d="M3 12h4l2-6 4 12 2-6h6"/></svg></span><div class="ht"><h2>Tratamiento</h2><span>Pauta y evolución por fechas</span></div><span class="sp"></span>
+            <button class="btn icon" data-fecha="tratamiento" title="Insertar fecha de hoy" style="height:32px;width:32px"><svg class="i" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4M16 3v4M4 10h16"/></svg></button>
+            <button class="btn icon" data-foco="tratamiento" title="Ampliar" style="height:32px;width:32px"><svg class="i" viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+          </div>
+          <textarea id="hc-tratamiento" placeholder="Pauta, ejercicios, evolución…"></textarea>
+          <div class="impr"></div>
+          <div class="nota-pie"><span class="cuenta">0 caracteres</span><span>Texto plano</span></div>
+        </section>
+      </div>
+    </main>
+  </div>
+  </template>
+</div>
+</template>
+<script>
+window.PanelHC = {
+  _activo: null,
+  /**
+   * PanelHC.abrir(contenedor, { id, nombre, fila, modo, urlPagina, volverUrl, alCargar })
+   *   id         ID HC (el que lleva el enlace de la Maestra: ?page=hc&id=ID); si falta, se localiza por nombre/fila
+   *   modo       'pagina' → página completa (HC_Vista); otro valor → panel lateral
+   *   urlPagina  URL base de la página completa (…/exec?page=hc), para "Abrir en pestaña" e Imprimir
+   *   alCambiar  function(tipo): se llama al cerrar la hoja de Valoración/Cita/Editar si hubo cambios; tipo = 'valoracion' | 'cita' | 'usuario'
+   *   acciones   false → no muestra los botones de Valoración / Dar cita / Editar / WhatsApp (en modo página nunca se muestran)
+   * Devuelve { haCambiado(), alEscape(), cerrar() }
+   */
+  abrir: function (host, opts) {
+    opts = opts || {};
+    if (window.PanelHC._activo) { try { window.PanelHC._activo.cerrar(); } catch (e) { /* no crítico */ } }   // vuelca lo pendiente de la historia anterior
+    host.innerHTML = '';
+    host.appendChild(document.getElementById('tplPanelHC').content.cloneNode(true));
+    var root = host.querySelector('.hc');
+    var PARAMS = { nombre: opts.nombre || '', fila: opts.fila || '', id: opts.id || '' };
+    var PAGINA = opts.modo === 'pagina';
+    var $ = function (id) { return root.querySelector('#hc-' + id); };
+  var D = null;                 // datos de la ficha
+  var episodios = [], valoraciones = [], asistencia = null;
+  var ANALG = ['Ninguno','Ocasional (< 1 vez/semana)','Semanal (1–2 veces/semana)','Habitual (casi todos los días)','Diario (1 vez al día)','Varios al día'];
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+  function analgCorto(v) { return v < 0 ? '—' : ANALG[v].split('(')[0].trim(); }
+  function analgDetalle(v) { var m = v >= 0 && ANALG[v].match(/\((.*)\)/); return m ? m[1] : ''; }
+  function parseISO(s) { var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s || ''); return m ? new Date(+m[1], +m[2] - 1, +m[3]) : null; }
+  function fmt(d) { return d ? ('0' + d.getDate()).slice(-2) + '/' + ('0' + (d.getMonth() + 1)).slice(-2) + '/' + d.getFullYear() : ''; }
+  function fmtISO(s) { return fmt(parseISO(s)); }
+  function hoyISO() { var d = new Date(); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
+  function dias(a, b) { var x = parseISO(a), y = b ? parseISO(b) : new Date(); return x && y ? Math.max(0, Math.round((y - x) / 864e5)) : 0; }
+  function n1(x) { return (Math.round(x * 10) / 10).toLocaleString('es-ES'); }
+
+  /* ---------- estado de guardado ---------- */
+  var pendientes = 0, tmrG, errorGuardado = false;
+  function guardando(on) {
+    pendientes += on ? 1 : -1; if (pendientes < 0) pendientes = 0;
+    var g = $('guardado'); if (!g) return;
+    if (pendientes > 0) g.classList.remove('error');
+    g.classList.toggle('ocupado', pendientes > 0); $('guardadoTxt').textContent = pendientes > 0 ? 'Guardando…' : 'Guardado';
+  }
+  function error(msg) { var e = $('avisoErr'); e.textContent = msg; e.style.display = msg ? 'block' : 'none'; }
+  function falloGuardado(msg) { errorGuardado = true; $('guardado').classList.remove('ocupado'); $('guardado').classList.add('error'); $('guardado').title = 'Clic para reintentar'; $('guardadoTxt').textContent = 'Sin guardar'; error(msg || 'No se pudo guardar. Tus cambios siguen en pantalla; copia el texto antes de recargar.'); }
+
+  /* ---------- carga ---------- */
+  // La carga se lanza al final de abrir() (iniciarCarga): pintar() necesita que todo lo de abajo ya esté definido.
+  function alRecibir(r) { if (r && r.success && window.HCCache) HCCache.guardar(r); pintar(r); }
+  function fallo(msg) {
+    $('estadoCarga').innerHTML = '<div><p><b>No se pudo cargar la historia</b></p><p>' + esc(msg || '') + '</p></div>';
+  }
+
+  function pintar(r) {
+    if (!r || !r.success) { fallo(r && r.message); return; }
+    D = r; episodios = (r.episodios || []).map(function (e) { return { ingreso: e.ingreso, alta: e.alta, nota: e.nota }; }); baseEpi = firmaEpi(episodios); valoraciones = r.valoraciones || []; asistencia = r.asistencia;
+    $('contenido').innerHTML = root.querySelector('template.hc-tpl').innerHTML;
+    $('estadoCarga').style.display = 'none'; $('contenido').style.display = 'block';
+    if (PAGINA) document.title = 'HC · ' + r.usuario.nombre;
+    $('nombre').textContent = r.usuario.nombre;
+    $('avatar').textContent = r.usuario.nombre.split(/\s+/).filter(Boolean).slice(0, 2).map(function (w) { return w[0]; }).join('').toUpperCase();
+    if (r.docOriginal && /^http/.test(r.docOriginal)) { var b = $('btnDoc'); b.href = r.docOriginal; b.style.display = 'inline-flex'; }
+    var av = '';
+    if (r.modoPrueba) av += '<div class="aviso-prueba"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v5h1"/></svg><span><b>Modo prueba.</b> Lo que escribas aquí se guarda en la hoja “Historias Clínicas”, <b>no</b> en el Doc de Google, y el estado del usuario no cambia. Los Docs siguen siendo la historia en uso.</span></div>';
+    if (r.porNombre) av += '<div class="aviso-prueba"><span>Historia localizada por el nombre (el enlace de la Maestra no coincide con ningún Doc migrado). Revísala.</span></div>';
+    $('contenido').insertAdjacentHTML('afterbegin', av);
+    pintarMeta(); pintarCampos(); pintarEpisodios(); pintarTiles(); pintarNotas(); pintarAcciones();
+    if (opts.alCargar) { try { opts.alCargar(r); } catch (e) { /* no crítico */ } }
+  }
+
+  function pintarUsuario() {   // cabecera y datos personales (tras editar al usuario)
+    var u = D.usuario;
+    $('nombre').textContent = u.nombre;
+    $('avatar').textContent = u.nombre.split(/\s+/).filter(Boolean).slice(0, 2).map(function (w) { return w[0]; }).join('').toUpperCase();
+    pintarMeta(); pintarCampos(); pintarAcciones();
+  }
+  function pintarMeta() {
+    var est = D.usuario.estado, t = est.replace(/^[^\p{L}]+/u, '');
+    var cls = /alta/i.test(t) ? 'alta' : /activ/i.test(t) ? 'ok' : '';
+    $('avatar').className = 'avatar ' + (cls || '');
+    $('meta').innerHTML = t ? '<span class="chip dot ' + cls + '">' + esc(t) + '</span>' : '';
+  }
+  var ICD = {
+    dni: '<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="M6.5 16c.6-1.4 1.6-2 2.5-2s1.9.6 2.5 2M14 10h4M14 14h3"/>',
+    nac: '<path d="M4 20h16M6 20v-6h12v6M12 14V9M12 9c-1 0-1.5-.8-1.5-1.5 0-1 1.5-2.5 1.5-2.5s1.5 1.5 1.5 2.5C13.5 8.2 13 9 12 9z"/>',
+    tel: '<path d="M5 4h4l2 5-2.5 1.5a11 11 0 005 5L15 13l5 2v4a2 2 0 01-2 2A16 16 0 013 6a2 2 0 012-2z"/>',
+    ins: '<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4M16 3v4M4 10h16M12 13v4M10 15h4"/>'
+  };
+  function campo(ic, titulo, v, extra) {
+    if (!v) return '';
+    return '<div class="campo" title="' + titulo + '"><dt><svg class="i" viewBox="0 0 24 24">' + ICD[ic] + '</svg></dt><dd>' + esc(v) + (extra || '') + '</dd></div>';
+  }
+  function acciones(tel) {
+    var d = String(tel || '').replace(/\D/g, ''); if (!d) return '';
+    var wa = d.length === 9 ? '34' + d : d;
+    return '<span class="acc"><a class="mini" href="tel:' + d + '" aria-label="Llamar"><svg class="i" viewBox="0 0 24 24"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 005 5L15 13l5 2v4a2 2 0 01-2 2A16 16 0 013 6a2 2 0 012-2z"/></svg></a>' +
+      '<a class="mini wa" href="https://wa.me/' + wa + '" target="_blank" rel="noopener" aria-label="WhatsApp"><svg class="i" viewBox="0 0 24 24"><path d="M3 21l1.6-4.7A8.5 8.5 0 1112 20.5a8.4 8.4 0 01-4-1z"/></svg></a></span>';
+  }
+  function pintarCampos() {
+    var u = D.usuario, edad = u.edad ? ' <span class="chip" style="height:22px;font-size:12px">' + esc(u.edad) + (/^\d+$/.test(u.edad) ? ' años' : '') + '</span>' : '';
+    var h = campo('dni', 'DNI', u.dni) + campo('nac', 'Fecha de nacimiento', u.nacimiento, edad) +
+      campo('tel', 'Teléfono', u.telefono, acciones(u.telefono)) + campo('tel', 'Teléfono 2', u.telefono2, acciones(u.telefono2)) +
+      campo('ins', 'Fecha de inscripción', u.inscripcion);
+    $('campos').innerHTML = h || '<p class="vacio-tile">Sin datos personales.</p>';
+  }
+
+  /* ---------- episodios ---------- */
+  var tmrEpi, tmrAviso, epiContando = false, epiArmado = false, epiEnVuelo = false, epiRepetir = false;
+  var baseEpi = '';   // firma de los episodios tal como están guardados en la hoja (según esta ficha); el servidor la compara antes de escribir
+  function firmaEpi(l) { return l.map(function (e) { return [e.ingreso || '', e.alta || '', e.nota || ''].join('|'); }).sort().join('\n'); }   // igual que hcFirmaEpisodios_ (historia/HC_Web.gs)
+  function copiaEpi(l) { return (l || []).map(function (e) { return { ingreso: e.ingreso, alta: e.alta, nota: e.nota }; }); }
+  // Aviso que se quita solo (los fallos de guardado, en cambio, se quedan hasta que se resuelven).
+  function avisoTemporal(msg) { error(msg); clearTimeout(tmrAviso); tmrAviso = setTimeout(function () { var e = $('avisoErr'); if (e && e.textContent === msg) error(''); }, 6000); }
+  // Un solo "Guardando…" por tanda de cambios, y un solo envío a la vez (si llega otro cambio mientras viaja uno, se envía justo después).
+  function guardarEpisodios() {
+    clearTimeout(tmrEpi); editado = true;
+    if (!epiContando) { epiContando = true; guardando(true); }
+    epiArmado = true; tmrEpi = setTimeout(enviarEpisodios, 500);
+  }
+  function terminarEpi() {
+    epiEnVuelo = false;
+    if (epiRepetir) { epiRepetir = false; enviarEpisodios(); return; }
+    if (epiArmado) return;                       // hay otro cambio esperando su turno: se sigue contando
+    epiContando = false; guardando(false);
+  }
+  function enviarEpisodios() {
+    epiArmado = false;
+    if (epiEnVuelo) { epiRepetir = true; return; }
+    epiEnVuelo = true;
+    var lista = copiaEpi(episodios), firma = firmaEpi(lista);
+    google.script.run.withSuccessHandler(function (r) {
+      if (r && r.success) { baseEpi = firma; error(''); sincronizarCache(); terminarEpi(); return; }
+      if (r && r.conflicto) {                     // otra ventana cambió los episodios: se muestran los actuales y no se pisa nada
+        clearTimeout(tmrEpi); epiArmado = false; epiRepetir = false;
+        episodios = copiaEpi(r.episodios); D.episodios = copiaEpi(r.episodios); baseEpi = firmaEpi(episodios);
+        pintarEpisodios(); pintarTiles(); sincronizarCache(); terminarEpi();
+        avisoTemporal('Los episodios se habían cambiado desde otra ventana. Se han cargado los datos actuales; repite el cambio si hace falta.');
+        return;
+      }
+      terminarEpi(); falloGuardado(r && r.message); if (window.HCCache) HCCache.invalidar(D.id);
+    }).withFailureHandler(function (e) {
+      terminarEpi(); falloGuardado(e && e.message); if (window.HCCache) HCCache.invalidar(D.id);
+    }).guardarEpisodiosHCWeb(D.id, lista, baseEpi);
+  }
+  function pintarEpisodios() {
+    var c = $('episodios'); c.innerHTML = '';
+    if (!episodios.length) c.innerHTML = '<p class="vacio-tile">Sin episodios registrados.</p>';
+    episodios.slice().reverse().forEach(function (e, ri) {
+      var i = episodios.length - 1 - ri, enCurso = !e.alta;
+      var d = document.createElement('div'); d.className = 'ep' + (enCurso ? ' curso' : '');
+      d.innerHTML = '<div class="t"><strong>Episodio ' + (i + 1) + '</strong><span class="chip ' + (enCurso ? 'ok dot' : '') + '" style="height:22px;font-size:12px">' + (enCurso ? 'En curso' : 'Alta') + '</span>' +
+        '<span class="dur">' + (e.ingreso ? dias(e.ingreso, e.alta) + ' días' : '') + '</span>' +
+        '<button type="button" class="ep-del" data-del="' + i + '" title="Eliminar este episodio" aria-label="Eliminar episodio ' + (i + 1) + '">' + svg('papelera') + '</button></div>' +
+        '<div class="fechas"><input class="fecha" type="date" data-i="' + i + '" data-k="ingreso" value="' + esc(e.ingreso) + '" aria-label="Ingreso"><span class="flecha">→</span>' +
+        '<input class="fecha" type="date" data-i="' + i + '" data-k="alta" value="' + esc(e.alta) + '" aria-label="Alta"></div>';
+      c.appendChild(d);
+    });
+    c.querySelectorAll('input').forEach(function (inp) {
+      inp.addEventListener('change', function () {
+        var ep = episodios[inp.dataset.i], k = inp.dataset.k, nuevo = inp.value;
+        if (k === 'ingreso' && !nuevo) { inp.value = ep.ingreso; avisoTemporal('El ingreso no puede quedar vacío. Para quitar el episodio usa Eliminar.'); return; }
+        var ing = k === 'ingreso' ? nuevo : ep.ingreso, alt = k === 'alta' ? nuevo : ep.alta;
+        if (ing && alt && alt < ing) { inp.value = ep[k]; avisoTemporal('El alta no puede ser anterior al ingreso.'); return; }
+        ep[k] = nuevo; guardarEpisodios(); pintarEpisodios(); pintarTiles();
+      });
+    });
+    // Eliminar: la primera pulsación pide confirmación (3 s); la segunda borra el episodio.
+    c.querySelectorAll('[data-del]').forEach(function (b) {
+      var orig = b.innerHTML;
+      b.addEventListener('click', function () {
+        if (!b.classList.contains('seguro')) {
+          b.classList.add('seguro'); b.textContent = '¿Eliminar?';
+          clearTimeout(b._t); b._t = setTimeout(function () { b.classList.remove('seguro'); b.innerHTML = orig; }, 3000);
+          return;
+        }
+        clearTimeout(b._t);
+        episodios.splice(+b.dataset.del, 1); guardarEpisodios(); pintarEpisodios(); pintarTiles();
+      });
+    });
+    var ult = episodios[episodios.length - 1], activo = ult && !ult.alta;
+    $('btnAlta').style.display = activo ? 'flex' : 'none';
+    $('btnNuevo').style.display = (!episodios.length || ult.alta) ? 'inline-flex' : 'none';
+  }
+  function iniciarBotonesEpisodios() {
+    $('btnAlta').onclick = function () {
+      var ult = episodios[episodios.length - 1];
+      if (ult.ingreso && hoyISO() < ult.ingreso) { avisoTemporal('El ingreso es posterior a hoy: corrige la fecha de ingreso antes de dar el alta.'); return; }
+      ult.alta = hoyISO(); guardarEpisodios(); pintarEpisodios(); pintarTiles();
+    };
+    $('btnNuevo').onclick = function () { episodios.push({ ingreso: hoyISO(), alta: '', nota: '' }); guardarEpisodios(); pintarEpisodios(); pintarTiles(); };
+  }
+
+  /* ---------- indicadores ---------- */
+  var IC = {
+    dolor: '<path d="M13 3L5 14h6l-1 7 8-11h-6z"/>',
+    func: '<circle cx="12" cy="5" r="2"/><path d="M5 9l7 1 7-1M12 10v5l-3 6M12 15l3 6"/>',
+    pill: '<path d="M10.5 20.5a4.95 4.95 0 01-7-7l10-10a4.95 4.95 0 017 7z"/><path d="M8.5 8.5l7 7"/>',
+    cal: '<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4M16 3v4M4 10h16M9 15l2 2 4-4"/>',
+    papelera: '<path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 002 2h6a2 2 0 002-2l1-12M9 7V4h6v3"/>'
+  };
+  function svg(k) { return '<svg class="i" viewBox="0 0 24 24">' + IC[k] + '</svg>'; }
+  function spark(vals, max) {
+    if (vals.length < 2) return '';
+    var w = 52, h = 24, pad = 3, pts = vals.map(function (v, i) { return [pad + i * (w - 2 * pad) / (vals.length - 1), h - pad - (v / max) * (h - 2 * pad)]; });
+    var l = pts[pts.length - 1];
+    return '<svg class="spark" viewBox="0 0 ' + w + ' ' + h + '" aria-hidden="true"><polyline points="' + pts.map(function (q) { return q[0].toFixed(1) + ',' + q[1].toFixed(1); }).join(' ') + '"/><circle cx="' + l[0].toFixed(1) + '" cy="' + l[1].toFixed(1) + '" r="2.8"/></svg>';
+  }
+  function tendencia(a, b, mejorSiMenor, unidad) {
+    var d = b - a; if (Math.abs(d) < 0.05) return '<span class="chip sm">= sin cambio</span>';
+    var bien = mejorSiMenor ? d < 0 : d > 0;
+    return '<span class="chip sm ' + (bien ? 'ok' : 'mal') + '">' + (d < 0 ? '↓ ' : '↑ ') + n1(Math.abs(d)) + (unidad || '') + '</span>';
+  }
+  function tile(icono, cls, titulo, cuerpo) {
+    return '<div class="tile"><div class="th"><span class="ic sm ' + cls + '">' + svg(icono) + '</span><span class="k">' + titulo + '</span>' + (cuerpo.spark || '') + '</div>' + cuerpo.html + '</div>';
+  }
+  // Serie de una escala: solo las valoraciones donde se anotó (null = no anotada)
+  function serie(clave) { return valoraciones.filter(function (v) { return v[clave] != null; }); }
+  function pintarTiles() {
+    var vacio = '<div class="v">—</div><div class="tr"><span class="vacio-tile">Sin valoraciones</span></div>';
+    var out = '';
+    function pie(u) { return '<div class="tr"><span>' + fmtISO(u.fecha) + ' · ' + esc(u.tipo) + '</span></div>'; }
+    function cap(n) { return n > 1 ? '<span>vs. inicial</span>' : '<span>Primera valoración</span>'; }
+    var sd = serie('dolor'), sf = serie('funcion'), sa = serie('analg');
+    var u, p, n;
+    n = sd.length; u = sd[n - 1]; p = sd[0];
+    out += tile('dolor', 'err', 'Dolor (PEG)', n ? { spark: spark(sd.map(function (v) { return v.dolor; }), 10),
+      html: '<div class="v">' + n1(u.dolor) + '<small>/ 10</small></div><div class="bar"><i style="width:' + u.dolor * 10 + '%;background:' + (u.dolor >= 7 ? 'var(--md-error)' : u.dolor >= 4 ? 'var(--md-warning)' : 'var(--md-success)') + '"></i></div><div class="tr">' + (n > 1 ? tendencia(p.dolor, u.dolor, true, ' pts') : '') + cap(n) + '</div>' + pie(u) } : { html: vacio });
+    n = sf.length; u = sf[n - 1]; p = sf[0];
+    out += tile('func', '', 'Función global', n ? { spark: spark(sf.map(function (v) { return v.funcion; }), 10),
+      html: '<div class="v">' + n1(u.funcion) + '<small>/ 10</small></div><div class="bar"><i style="width:' + u.funcion * 10 + '%"></i></div><div class="tr">' + (n > 1 ? tendencia(p.funcion, u.funcion, false, ' pts') : '') + cap(n) + '</div>' + pie(u) } : { html: vacio });
+    n = sa.length; u = sa[n - 1]; p = sa[0];
+    var ucol = function (v) { return v >= 4 ? 'var(--md-error)' : v === 3 ? 'var(--md-warning)' : 'var(--md-success)'; };
+    out += tile('pill', 'pur', 'Analgésicos', n ? { html: '<div class="v txt">' + analgCorto(u.analg) + '<small>' + u.analg + ' / 5</small></div><div class="bar"><i style="width:' + u.analg * 20 + '%;background:' + ucol(u.analg) + '"></i></div><div class="tr">' +
+      (n > 1 ? (u.analg === p.analg ? '<span class="chip sm">= sin cambio</span>' : '<span class="chip sm ' + (u.analg < p.analg ? 'ok' : 'mal') + '">' + (u.analg < p.analg ? '↓ ' : '↑ ') + Math.abs(u.analg - p.analg) + (Math.abs(u.analg - p.analg) === 1 ? ' nivel' : ' niveles') + '</span>') : '') +
+      '<span>' + (analgDetalle(u.analg) || 'sin consumo') + '</span></div>' + pie(u) } : { html: vacio });
+    $('tiles').innerHTML = out + htmlAsistencia();
+  }
+  function htmlAsistencia() {
+    var a = asistencia, cab = function (extra) { return '<div class="th"><span class="ic sm ok">' + svg('cal') + '</span><span class="k">Asistencia a citas</span></div>'; };
+    if (!a) return '<div class="tile">' + cab() + '<div class="vacio-tile">No se pudo leer la Agenda.</div></div>';
+    var tot = a.asistidas + a.noAsistidas + a.justificadas, pct = tot ? Math.round(100 * a.asistidas / tot) : 0;
+    var ult = episodios[episodios.length - 1];
+    var nota = [];
+    if (a.telefonoDistinto) nota.push(a.telefonoDistinto + ' cita(s) con el mismo nombre y otro teléfono no se cuentan');
+    if (a.otras) nota.push(a.otras + ' con un valor de asistencia no clasificado');
+    var tit = 'Desde ' + (ult && ult.ingreso ? fmtISO(ult.ingreso) : 'el principio') + ', según la Agenda. Las citas pendientes no cuentan en el porcentaje.' + (nota.length ? ' · ' + nota.join(' · ') : '');
+    if (!tot) return '<div class="tile" title="' + esc(tit) + '">' + cab() + '<div class="v">—</div><div class="tr"><span class="vacio-tile">Sin citas pasadas</span></div></div>';
+    return '<div class="tile" title="' + esc(tit) + '">' + cab() +
+      '<div class="asist-filas"><div class="asist-fila ok"><i></i>Asistidas<b>' + a.asistidas + '</b></div><div class="asist-fila mal"><i></i>No asistidas<b>' + a.noAsistidas + '</b></div><div class="asist-fila av"><i></i>Justificadas<b>' + a.justificadas + '</b></div></div>' +
+      '<div class="stack suave" role="img" aria-label="Reparto de asistencias"><i class="s-ok" style="flex:' + a.asistidas + '"></i><i class="s-mal" style="flex:' + a.noAsistidas + '"></i><i class="s-av" style="flex:' + a.justificadas + '"></i></div>' +
+      '<div class="tr"><span>' + pct + ' % · ' + tot + ' citas' + (a.pendientes ? ' · ' + a.pendientes + ' pend.' : '') + '</span></div></div>';
+  }
+
+  /* ---------- notas clínicas: autoajuste, autoguardado ---------- */
+  function pintarEditado() {
+    if (!D || !D.modificado) return;
+    var d = new Date(D.modificado), p2 = function (n) { return ('0' + n).slice(-2); };
+    var txt = 'Editado ' + fmt(d) + ' ' + p2(d.getHours()) + ':' + p2(d.getMinutes());
+    root.querySelectorAll('.editado').forEach(function (e) { e.textContent = txt; });
+  }
+  function ajustar(t) { t.style.height = 'auto'; t.style.height = Math.max(280, t.scrollHeight) + 'px'; }
+  var temporizadores = {}, sucio = {}, editado = false;   // editado: se ha tocado algo en esta ficha desde que se abrió
+  // Deja en la caché de HC lo que hay ahora en pantalla (textos ya guardados + episodios), para que al reabrir salga al día.
+  function sincronizarCache() {
+    if (!window.HCCache || !D) return;
+    D.episodios = episodios.map(function (e) { return { ingreso: e.ingreso, alta: e.alta, nota: e.nota }; });
+    HCCache.guardar(D);
+  }
+  // Un guardado a la vez: si hay uno en vuelo, el siguiente espera (evita falsos conflictos entre Historia y Tratamiento).
+  var cola = Promise.resolve();
+  function programar(campo) { sucio[campo] = true; editado = true; clearTimeout(temporizadores[campo]); temporizadores[campo] = setTimeout(function () { encolar(campo); }, 1000); }
+  function encolar(campo) {
+    cola = cola.then(function () { return new Promise(function (ok) {
+      var t = $(campo); if (!t || !sucio[campo]) return ok();
+      sucio[campo] = false; guardando(true);
+      var enviado = t.value;
+      google.script.run.withSuccessHandler(function (r) {
+        guardando(false);
+        if (r.success) { D.modificado = r.modificado; D[campo] = enviado; error(''); errorGuardado = false; pintarEditado(); sincronizarCache(); }
+        else { sucio[campo] = true; falloGuardado(r.message); if (window.HCCache) HCCache.invalidar(D.id); if (r.conflicto) { $('historia').disabled = true; $('tratamiento').disabled = true; } }
+        ok();
+      }).withFailureHandler(function (e) { guardando(false); sucio[campo] = true; falloGuardado(e && e.message); ok(); })
+        .guardarTextoHCWeb(D.id, campo, t.value, D.modificado);
+    }); });
+  }
+  function pintarNotas() {
+    iniciarBotonesEpisodios();
+    pintarEpisodios(); pintarEditado();
+    ['historia', 'tratamiento'].forEach(function (k) {
+      var t = $(k); t.value = D[k];
+      var cuenta = t.closest('.nota').querySelector('.cuenta'), esp = t.parentNode.querySelector('.impr');
+      function act() { cuenta.textContent = t.value.length.toLocaleString('es-ES') + ' caracteres'; ajustar(t); esp.textContent = t.value; }
+      t.addEventListener('input', function () { act(); programar(k); }); act();
+    });
+    root.querySelectorAll('[data-fecha]').forEach(function (b) {
+      b.onclick = function () {
+        var t = $(b.dataset.fecha), pre = t.value && !/\n$/.test(t.value) ? '\n' : '';
+        t.value += pre + fmt(new Date()) + ' — '; t.focus(); t.setSelectionRange(t.value.length, t.value.length);
+        t.dispatchEvent(new Event('input'));
+      };
+    });
+    root.querySelectorAll('[data-foco]').forEach(function (b) {
+      b.onclick = function () {
+        var w = $('notas'), card = b.closest('.nota'), on = !w.classList.contains('foco');
+        w.classList.toggle('foco', on); root.querySelectorAll('.nota').forEach(function (n) { n.classList.toggle('activa', !on || n === card); });
+        if (!on) root.querySelector('[data-k=historia]').classList.add('activa');
+        root.querySelectorAll('.nota textarea').forEach(ajustar);
+      };
+    });
+  }
+  // Al salir o cambiar de pestaña, se manda lo pendiente ya.
+  function volcarPendiente() { ['historia', 'tratamiento'].forEach(function (k) { if (sucio[k]) { clearTimeout(temporizadores[k]); encolar(k); } }); }
+  $('guardado').addEventListener('click', function () { if (this.classList.contains('error')) { error(''); volcarPendiente(); } });
+  root.addEventListener('keydown', function (e) { if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S')) { e.preventDefault(); volcarPendiente(); } });
+  function alOcultar() { if (!root.isConnected) { document.removeEventListener('visibilitychange', alOcultar); window.removeEventListener('pagehide', alOcultar); return; } if (document.hidden || this === window) volcarPendiente(); }
+  document.addEventListener('visibilitychange', alOcultar);
+  window.addEventListener('pagehide', alOcultar);
+  if (PAGINA) window.addEventListener('beforeunload', function (e) { if (pendientes > 0 || sucio.historia || sucio.tratamiento) { volcarPendiente(); e.preventDefault(); e.returnValue = ''; } });
+  root.querySelector('.hc-scroll').addEventListener('scroll', function () {
+    var sc = this, tope = sc.getBoundingClientRect().top + 1;
+    root.querySelectorAll('.nota-cab').forEach(function (c) { c.classList.toggle('pegada', c.getBoundingClientRect().top <= tope && c.parentNode.getBoundingClientRect().bottom > tope + 60); });
+  }, { passive: true });
+  window.addEventListener('beforeprint', function () { var f = $('fechaImpresion'); if (f) f.textContent = fmt(new Date()); });
+
+  /* ---------- ripple ---------- */
+  root.addEventListener('pointerdown', function (e) {
+    var b = e.target.closest('.btn,.mini'); if (!b) return;
+    var r = b.getBoundingClientRect(), s = Math.max(r.width, r.height), el = document.createElement('span');
+    el.className = 'ripple'; el.style.cssText = 'width:' + s + 'px;height:' + s + 'px;left:' + (e.clientX - r.left - s / 2) + 'px;top:' + (e.clientY - r.top - s / 2) + 'px';
+    b.appendChild(el); setTimeout(function () { el.remove(); }, 600);
+  });
+
+  /* ---------- barra: volver / abrir en pestaña / imprimir ---------- */
+  function urlPagina() {
+    var u = opts.urlPagina || '', sep = u.indexOf('?') === -1 ? '?' : '&';
+    return u + (D && D.id ? sep + 'id=' + encodeURIComponent(D.id) : sep + 'nombre=' + encodeURIComponent(PARAMS.nombre));
+  }
+  if (PAGINA) { var v = $('volver'); v.hidden = false; if (opts.volverUrl) v.href = opts.volverUrl; }
+  else if (opts.urlPagina) { var bp = $('btnPestana'); bp.hidden = false; bp.addEventListener('click', function () { volcarPendiente(); window.open(urlPagina(), '_blank', 'noopener'); }); }
+  $('btnImprimir').addEventListener('click', function () {
+    if (PAGINA) { $('fechaImpresion').textContent = fmt(new Date()); window.print(); }
+    else if (opts.urlPagina) { volcarPendiente(); window.open(urlPagina() + '&imprimir=1', '_blank', 'noopener'); }
+  });
+
+  /* ---------- arranque: desde la caché (instantáneo) o desde el servidor ---------- */
+  // Comprueba en segundo plano si lo mostrado desde la caché sigue vigente. Nunca pisa lo que se esté escribiendo.
+  function revalidar(f) {
+    if (!f || !f.success || !D || !root.isConnected || f.id !== D.id) return;
+    var tocado = editado || pendientes > 0 || sucio.historia || sucio.tratamiento || errorGuardado;
+    if (!tocado) { if (window.HCCache) HCCache.guardar(f); }
+    if (!tocado && f.modificado !== D.modificado) { pintar(f); return; }   // el texto cambió desde otro sitio y aquí no se ha tocado nada: se repinta
+    if (f.usuario && JSON.stringify(f.usuario) !== JSON.stringify(D.usuario)) { D.usuario = f.usuario; pintarUsuario(); }   // p. ej. tras Editar
+    var cambioVal = JSON.stringify(f.valoraciones || []) !== JSON.stringify(valoraciones);
+    var cambioAs = JSON.stringify(f.asistencia || null) !== JSON.stringify(asistencia || null);
+    var cambioEpi = !tocado && JSON.stringify(f.episodios || []) !== JSON.stringify(episodios) && !$('episodios').contains(document.activeElement);
+    if (cambioVal) valoraciones = f.valoraciones || [];
+    if (cambioAs) asistencia = f.asistencia || null;
+    if (cambioEpi) { episodios = f.episodios.map(function (e) { return { ingreso: e.ingreso, alta: e.alta, nota: e.nota }; }); baseEpi = firmaEpi(episodios); D.episodios = f.episodios; pintarEpisodios(); }
+    if (cambioVal || cambioAs || cambioEpi) pintarTiles();
+  }
+  function iniciarCarga() {
+    var pre = window.HCCache ? HCCache.obtener(PARAMS.id, PARAMS.nombre) : null;
+    if (pre) {
+      pintar(pre);                                   // al instante, sin esperar al servidor
+      if (pre._obsoleta) google.script.run.withSuccessHandler(revalidar).withFailureHandler(function () { /* sin red: se queda lo de la caché */ })
+        .obtenerHCWeb(PARAMS.nombre, PARAMS.fila, PARAMS.id);
+      return;
+    }
+    google.script.run.withSuccessHandler(alRecibir).withFailureHandler(function (e) { fallo(e && e.message); }).obtenerHCWeb(PARAMS.nombre, PARAMS.fila, PARAMS.id);
+  }
+  /* ---------- funciones de la app dentro de la historia (hoja lateral) ---------- */
+  // Valoración, Dar cita y Editar reutilizan los paneles de la app (PanelValoraciones / PanelCita / PanelEditar): se montan en una
+  // hoja que se superpone a la historia, dentro de este mismo panel. WhatsApp abre el diálogo de la app (WhatsappDialogo).
+  // Solo en el panel lateral (Base de Datos y Agenda), no en la página completa; cada botón aparece solo si la página incluye ese módulo.
+  var ACCIONES = { valoracion: ['PanelValoraciones', 'Valoraciones'], cita: ['PanelCita', 'Dar cita'], editar: ['PanelEditar', 'Editar'], whatsapp: ['WhatsappDialogo', ''] };
+  var sub = null, subHost = null, subTipo = '', subCambio = false, subSeq = 0, waPrecargado = '';
+  function aviso(t) { if (typeof window.mostrarAviso === 'function') window.mostrarAviso(t); }
+  function confirmar(t) { return typeof window.mostrarConfirm === 'function' ? window.mostrarConfirm(t) : Promise.resolve(window.confirm(t)); }
+  function pintarAcciones() {
+    var cont = $('acciones'); if (!cont || !D) return;
+    var alguna = false;
+    cont.querySelectorAll('[data-acc]').forEach(function (b) {
+      var acc = b.dataset.acc, ok = !PAGINA && opts.acciones !== false && !!window[ACCIONES[acc][0]];
+      if ((acc === 'editar' || acc === 'whatsapp') && !D.usuario.fila) ok = false;
+      b.hidden = !ok; if (ok) alguna = true;
+    });
+    cont.hidden = !alguna;
+  }
+  function refrescar() {   // vuelve a pedir la historia (por ID) y deja que revalidar() actualice lo que haya cambiado
+    if (!D || !D.id) return;
+    google.script.run.withSuccessHandler(function (f) { if (f && f.success && root.isConnected) revalidar(f); })
+      .withFailureHandler(function () { /* se queda lo que hay en pantalla */ })
+      .obtenerHCWeb('', '', D.id);
+  }
+  function accion(tipo) {
+    if (!D || subHost) return;
+    if (tipo === 'whatsapp') {
+      try { window.WhatsappDialogo.abrir('datosWhatsappMaestraWeb', [D.usuario.fila], D.usuario.nombre); }
+      catch (e) { avisoTemporal('No se pudo abrir WhatsApp.'); }
+      return;
+    }
+    abrirHoja(tipo);
+  }
+  function abrirHoja(tipo) {
+    var u = D.usuario, seq = ++subSeq;
+    var activa = function () { return !!subHost && subSeq === seq; };   // la hoja sigue siendo esta (no se cerró mientras tanto)
+    subTipo = tipo; subCambio = false; sub = null;
+    subHost = document.createElement('div');                              // un contenedor nuevo cada vez: si se cierra mientras el panel carga, no se monta
+    var cuerpo = $('hojaCuerpo'); cuerpo.innerHTML = ''; cuerpo.appendChild(subHost);
+    $('hojaTit').textContent = ACCIONES[tipo][1] + ' · ' + u.nombre;
+    $('hoja').hidden = false;
+    var guardado = function (msj, porDefecto) { if (!activa()) return; aviso(typeof msj === 'string' && msj ? msj : porDefecto); subCambio = true; cerrarHoja(true); };
+    var cancelar = function () { if (activa()) cerrarHoja(); };
+    try {
+      if (tipo === 'valoracion') {
+        sub = window.PanelValoraciones.abrir(subHost, Object.assign(
+          { paciente: u.nombre, telefono: u.telefono || '', dni: u.dni || '',
+            onGuardado: function (m) { guardado(m, 'Valoración guardada'); }, onCancelar: cancelar,
+            onCambio: function () { if (activa()) subCambio = true; } },
+          window.ValoracionesCache ? window.ValoracionesCache.opcionesPanel(u.nombre, u.dni) : {}));   // valoraciones ya precargadas: se abre al instante
+      } else if (tipo === 'cita') {
+        sub = window.PanelCita.abrir(subHost, { paciente: u.nombre, onGuardado: function (m) { guardado(m, 'Cita registrada'); }, onCancelar: cancelar });
+      } else {
+        sub = window.PanelEditar.abrir(subHost, { fila: u.fila, nombre: u.nombre, onGuardado: function (m) { guardado(m, 'Cambios guardados'); }, onCancelar: cancelar });
+      }
+    } catch (e) {
+      sub = null; if (subHost) subHost.remove(); subHost = null; $('hoja').hidden = true;
+      avisoTemporal('No se pudo abrir el formulario: ' + (e && e.message ? e.message : e));
+    }
+  }
+  // Cierra la hoja. Si el formulario tiene cambios sin guardar pregunta antes (salvo forzar === true). Devuelve una promesa con true si se cerró.
+  function cerrarHoja(forzar) {
+    if (!subHost) return Promise.resolve(true);
+    var seq = subSeq;
+    var antes = (forzar !== true && sub && sub.haCambiado && sub.haCambiado())
+      ? confirmar('Hay cambios sin guardar en el formulario. ¿Quieres descartarlos?') : Promise.resolve(true);
+    return antes.then(function (ok) {
+      if (!ok) return false;
+      if (!subHost || subSeq !== seq) return true;                        // otro cierre se adelantó
+      var tipo = subTipo, cambio = subCambio;
+      try { if (sub && sub.cerrar) sub.cerrar(); } catch (e) { /* no crítico */ }
+      sub = null; subTipo = ''; subCambio = false;
+      subHost.remove(); subHost = null;                                   // fuera del documento: un panel que aún cargaba ya no se monta
+      $('hoja').hidden = true;
+      var b = root.querySelector('[data-acc="' + tipo + '"]'); if (b && !b.hidden) b.focus();
+      if (cambio) {
+        refrescar();
+        if (tipo === 'editar' && window.HCCache) window.HCCache.cambioDeUsuario();   // el estado u otros datos pueden haber cambiado
+        if (opts.alCambiar) { try { opts.alCambiar(tipo === 'editar' ? 'usuario' : tipo); } catch (e2) { /* no crítico */ } }
+      }
+      return true;
+    });
+  }
+  root.addEventListener('click', function (e) { var b = e.target.closest('[data-acc]'); if (b && !b.hidden) accion(b.dataset.acc); });
+  root.addEventListener('mouseover', function (e) {   // como en la Base de Datos: se calientan los datos de WhatsApp al pasar el ratón
+    var b = e.target.closest('[data-acc="whatsapp"]');
+    if (!b || !D || !D.usuario.fila || waPrecargado === String(D.usuario.fila) || !window.WhatsappDialogo || !window.WhatsappDialogo.precargar) return;
+    waPrecargado = String(D.usuario.fila);
+    try { window.WhatsappDialogo.precargar('datosWhatsappMaestraWeb', [D.usuario.fila]); } catch (err) { /* no crítico */ }
+  });
+  $('hojaX').addEventListener('click', function () { cerrarHoja(); });
+  root.querySelector('.hc-hoja-vel').addEventListener('click', function () { cerrarHoja(); });
+
+  // Si el ancho del panel cambia (cajón que se abre, ventana redimensionada), las notas se reajustan de alto.
+  if (typeof ResizeObserver !== 'undefined') {
+    var anchoPrev = 0;
+    new ResizeObserver(function () {
+      var w = root.clientWidth; if (!w || w === anchoPrev) return; anchoPrev = w;
+      root.querySelectorAll('.nota textarea').forEach(ajustar);
+    }).observe(root);
+  }
+  iniciarCarga();
+
+  var ctl = {
+    haCambiado: function () { return (errorGuardado && !!(sucio.historia || sucio.tratamiento)) || !!(subHost && sub && sub.haCambiado && sub.haCambiado()); },   // texto que NO llegó a guardarse, o un formulario de la hoja con cambios
+    alEscape: function () {
+      if (subHost) { if (sub && sub.alEscape && sub.alEscape()) return true; cerrarHoja(); return true; }   // primero se cierra la hoja
+      var w = $('notas'); if (!w || !w.classList.contains('foco')) return false;
+      var b = root.querySelector('.nota.activa [data-foco]'); if (b) b.click(); return true;   // primero se sale del modo ampliado
+    },
+    cerrar: function () { volcarPendiente(); try { if (subHost && sub && sub.cerrar) sub.cerrar(); } catch (e) { /* no crítico */ } if (window.PanelHC._activo === ctl) window.PanelHC._activo = null; }
+  };
+  window.PanelHC._activo = ctl;
+  return ctl;
+  }
+};
+</script>

@@ -1051,7 +1051,9 @@
           titulo: 'Historia clínica', ancha: 'hc', sinAviso: true,
           montar: function(cont, p, cb) {
             return PanelHC.abrir(cont, { id: hcIdDeUrl(p[COL_HISTORIA]), nombre: p['Nombre'] || '', fila: p._fila,
-              urlPagina: <?!= JSON.stringify(baseUrl) ?> + '?page=hc' });
+              urlPagina: <?!= JSON.stringify(baseUrl) ?> + '?page=hc',
+              // Editar al usuario desde la historia: la tabla se recarga como al guardar desde la ficha (la historia sigue abierta).
+              alCambiar: function(tipo) { if (tipo === 'usuario') cargar(); } });
           }
         },
         huerfana: {
