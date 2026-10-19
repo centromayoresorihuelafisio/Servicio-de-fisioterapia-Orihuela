@@ -2,7 +2,10 @@
   historia/Panel_HC.html
   Historia clínica web como módulo del panel lateral (Base de Datos y Agenda) y como página completa (historia/HC_Vista.html).
   Se incluye con incluirPanel('historia/Panel_HC', 'PanelHC') (carga bajo demanda, ver ui/JS_Paneles_Diferidos).
-  API: PanelHC.abrir(contenedor, { id, nombre, fila, modo, urlPagina, volverUrl, alCargar })
+  API: PanelHC.abrir(contenedor, { id, nombre, fila, modo, urlPagina, volverUrl, alCargar, alCambiar, acciones })
+  Funciones de la app dentro de la historia (solo en el panel lateral): Valoración, Dar cita, Editar y WhatsApp. Reutilizan
+  PanelValoraciones / PanelCita / PanelEditar (se montan en una hoja que se superpone a la historia) y WhatsappDialogo; cada
+  botón aparece solo si la página anfitriona incluye ese módulo. La página anfitriona se entera de los cambios con alCambiar(tipo).
   Devuelve { haCambiado(), alEscape(), cerrar() }:
     · haCambiado() → true solo si hay texto que NO se pudo guardar (el resto se autoguarda).
     · alEscape()   → true si estaba en modo "ampliar" y lo cierra; si no, false (el anfitrión cierra el panel).
@@ -87,6 +90,17 @@
 .hc .ep-del:hover{background:var(--md-surface-variant);color:var(--md-error)}
 .hc .ep-del.seguro{background:var(--md-error);color:#fff}
 .hc .ep-del svg.i{width:15px;height:15px}
+.hc{position:relative}
+.hc .hc-acciones{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.hc .hc-acciones .btn{height:36px;padding:0 14px;font-size:13px}
+.hc .hc-hoja{position:absolute;inset:0;z-index:30;display:flex;justify-content:flex-end}
+.hc .hc-hoja-vel{position:absolute;inset:0;background:rgba(32,33,36,.38)}
+.hc .hc-hoja-caja{position:relative;width:min(560px,100%);height:100%;display:flex;flex-direction:column;background:var(--md-surface);box-shadow:-10px 0 40px rgba(0,0,0,.18);animation:hc-hoja-entra .18s var(--ease)}
+@keyframes hc-hoja-entra{from{transform:translateX(28px);opacity:0}}
+.hc .hc-hoja-cab{flex:none;display:flex;align-items:center;gap:8px;padding:8px 8px 8px 18px;border-bottom:1px solid color-mix(in srgb,var(--md-outline) 70%,transparent)}
+.hc .hc-hoja-cab strong{font-size:15px;font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hc .hc-hoja-cuerpo{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
+.hc .hc-hoja-cuerpo>*{flex:1 1 auto;min-height:0}
 .hc /* ---------- indicadores ---------- */
   .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:20px}
 .hc .tile{background:var(--md-surface);border:1px solid color-mix(in srgb,var(--md-outline) 75%,transparent);border-radius:18px;padding:13px 15px 12px;box-shadow:var(--e1);display:flex;flex-direction:column;gap:7px;min-width:0}
@@ -151,7 +165,7 @@
   .solo-papel{display:none}
 @media print{.hc @page{size:A4;margin:12mm}
 .hc{background:#fff;color:#000;font-size:11pt}
-.hc .top,.hc .btn,.hc .mini,.hc .acc,.hc .pie-lateral,.hc .nota-pie,.hc .cab-sec .btn,.hc .guardado,.hc .nota-cab .btn,.hc .ep-del{display:none!important}
+.hc .top,.hc .btn,.hc .mini,.hc .acc,.hc .pie-lateral,.hc .nota-pie,.hc .cab-sec .btn,.hc .guardado,.hc .nota-cab .btn,.hc .ep-del,.hc .hc-acciones,.hc .hc-hoja{display:none!important}
 .hc .solo-papel{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid #1d3f52;padding-bottom:6px;margin-bottom:10px}
 .hc .solo-papel b{color:#1d3f52;font-size:13pt}
 .hc .solo-papel span{font-size:9pt;color:#555}
@@ -249,12 +263,25 @@
       <div id="hc-contenido" style="display:none"></div>
     </div>
   </div>
+  <div class="hc-hoja" id="hc-hoja" hidden>
+    <div class="hc-hoja-vel"></div>
+    <section class="hc-hoja-caja" role="dialog" aria-modal="true" aria-labelledby="hc-hojaTit">
+      <div class="hc-hoja-cab"><strong id="hc-hojaTit"></strong><span class="sp"></span><button type="button" class="btn icon" id="hc-hojaX" aria-label="Cerrar" title="Cerrar (Esc)"><svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+      <div class="hc-hoja-cuerpo" id="hc-hojaCuerpo"></div>
+    </section>
+  </div>
   <template class="hc-tpl">
 <header class="cabecera">
     <div class="avatar" id="hc-avatar"></div>
     <div>
       <h1 id="hc-nombre"></h1>
       <div class="meta" id="hc-meta"></div>
+    </div>
+    <div class="hc-acciones" id="hc-acciones" hidden>
+      <button type="button" class="btn tonal" data-acc="valoracion" hidden title="Valoraciones del usuario: evolución, historial y nueva valoración"><svg class="i" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><path d="M9 3h6v4H9zM9 14l2 2 4-4"/></svg>Valoración</button>
+      <button type="button" class="btn tonal" data-acc="cita" hidden title="Dar cita"><svg class="i" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4M16 3v4M4 10h16M12 13v4M10 15h4"/></svg>Dar cita</button>
+      <button type="button" class="btn tonal" data-acc="editar" hidden title="Editar los datos del usuario"><svg class="i" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg>Editar</button>
+      <button type="button" class="btn tonal" data-acc="whatsapp" hidden title="WhatsApp con la plantilla de mensaje"><svg class="i" viewBox="0 0 24 24"><path d="M3 21l1.6-4.7A8.5 8.5 0 1112 20.5a8.4 8.4 0 01-4-1z"/></svg>WhatsApp</button>
     </div>
   </header>
 
@@ -317,6 +344,8 @@ window.PanelHC = {
    *   id         ID HC (el que lleva el enlace de la Maestra: ?page=hc&id=ID); si falta, se localiza por nombre/fila
    *   modo       'pagina' → página completa (HC_Vista); otro valor → panel lateral
    *   urlPagina  URL base de la página completa (…/exec?page=hc), para "Abrir en pestaña" e Imprimir
+   *   alCambiar  function(tipo): se llama al cerrar la hoja de Valoración/Cita/Editar si hubo cambios; tipo = 'valoracion' | 'cita' | 'usuario'
+   *   acciones   false → no muestra los botones de Valoración / Dar cita / Editar / WhatsApp (en modo página nunca se muestran)
    * Devuelve { haCambiado(), alEscape(), cerrar() }
    */
   abrir: function (host, opts) {
@@ -372,10 +401,16 @@ window.PanelHC = {
     if (r.modoPrueba) av += '<div class="aviso-prueba"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v5h1"/></svg><span><b>Modo prueba.</b> Lo que escribas aquí se guarda en la hoja “Historias Clínicas”, <b>no</b> en el Doc de Google, y el estado del usuario no cambia. Los Docs siguen siendo la historia en uso.</span></div>';
     if (r.porNombre) av += '<div class="aviso-prueba"><span>Historia localizada por el nombre (el enlace de la Maestra no coincide con ningún Doc migrado). Revísala.</span></div>';
     $('contenido').insertAdjacentHTML('afterbegin', av);
-    pintarMeta(); pintarCampos(); pintarEpisodios(); pintarTiles(); pintarNotas();
+    pintarMeta(); pintarCampos(); pintarEpisodios(); pintarTiles(); pintarNotas(); pintarAcciones();
     if (opts.alCargar) { try { opts.alCargar(r); } catch (e) { /* no crítico */ } }
   }
 
+  function pintarUsuario() {   // cabecera y datos personales (tras editar al usuario)
+    var u = D.usuario;
+    $('nombre').textContent = u.nombre;
+    $('avatar').textContent = u.nombre.split(/\s+/).filter(Boolean).slice(0, 2).map(function (w) { return w[0]; }).join('').toUpperCase();
+    pintarMeta(); pintarCampos(); pintarAcciones();
+  }
   function pintarMeta() {
     var est = D.usuario.estado, t = est.replace(/^[^\p{L}]+/u, '');
     var cls = /alta/i.test(t) ? 'alta' : /activ/i.test(t) ? 'ok' : '';
@@ -651,6 +686,7 @@ window.PanelHC = {
     var tocado = editado || pendientes > 0 || sucio.historia || sucio.tratamiento || errorGuardado;
     if (!tocado) { if (window.HCCache) HCCache.guardar(f); }
     if (!tocado && f.modificado !== D.modificado) { pintar(f); return; }   // el texto cambió desde otro sitio y aquí no se ha tocado nada: se repinta
+    if (f.usuario && JSON.stringify(f.usuario) !== JSON.stringify(D.usuario)) { D.usuario = f.usuario; pintarUsuario(); }   // p. ej. tras Editar
     var cambioVal = JSON.stringify(f.valoraciones || []) !== JSON.stringify(valoraciones);
     var cambioAs = JSON.stringify(f.asistencia || null) !== JSON.stringify(asistencia || null);
     var cambioEpi = !tocado && JSON.stringify(f.episodios || []) !== JSON.stringify(episodios) && !$('episodios').contains(document.activeElement);
@@ -669,6 +705,99 @@ window.PanelHC = {
     }
     google.script.run.withSuccessHandler(alRecibir).withFailureHandler(function (e) { fallo(e && e.message); }).obtenerHCWeb(PARAMS.nombre, PARAMS.fila, PARAMS.id);
   }
+  /* ---------- funciones de la app dentro de la historia (hoja lateral) ---------- */
+  // Valoración, Dar cita y Editar reutilizan los paneles de la app (PanelValoraciones / PanelCita / PanelEditar): se montan en una
+  // hoja que se superpone a la historia, dentro de este mismo panel. WhatsApp abre el diálogo de la app (WhatsappDialogo).
+  // Solo en el panel lateral (Base de Datos y Agenda), no en la página completa; cada botón aparece solo si la página incluye ese módulo.
+  var ACCIONES = { valoracion: ['PanelValoraciones', 'Valoraciones'], cita: ['PanelCita', 'Dar cita'], editar: ['PanelEditar', 'Editar'], whatsapp: ['WhatsappDialogo', ''] };
+  var sub = null, subHost = null, subTipo = '', subCambio = false, subSeq = 0, waPrecargado = '';
+  function aviso(t) { if (typeof window.mostrarAviso === 'function') window.mostrarAviso(t); }
+  function confirmar(t) { return typeof window.mostrarConfirm === 'function' ? window.mostrarConfirm(t) : Promise.resolve(window.confirm(t)); }
+  function pintarAcciones() {
+    var cont = $('acciones'); if (!cont || !D) return;
+    var alguna = false;
+    cont.querySelectorAll('[data-acc]').forEach(function (b) {
+      var acc = b.dataset.acc, ok = !PAGINA && opts.acciones !== false && !!window[ACCIONES[acc][0]];
+      if ((acc === 'editar' || acc === 'whatsapp') && !D.usuario.fila) ok = false;
+      b.hidden = !ok; if (ok) alguna = true;
+    });
+    cont.hidden = !alguna;
+  }
+  function refrescar() {   // vuelve a pedir la historia (por ID) y deja que revalidar() actualice lo que haya cambiado
+    if (!D || !D.id) return;
+    google.script.run.withSuccessHandler(function (f) { if (f && f.success && root.isConnected) revalidar(f); })
+      .withFailureHandler(function () { /* se queda lo que hay en pantalla */ })
+      .obtenerHCWeb('', '', D.id);
+  }
+  function accion(tipo) {
+    if (!D || subHost) return;
+    if (tipo === 'whatsapp') {
+      try { window.WhatsappDialogo.abrir('datosWhatsappMaestraWeb', [D.usuario.fila], D.usuario.nombre); }
+      catch (e) { avisoTemporal('No se pudo abrir WhatsApp.'); }
+      return;
+    }
+    abrirHoja(tipo);
+  }
+  function abrirHoja(tipo) {
+    var u = D.usuario, seq = ++subSeq;
+    var activa = function () { return !!subHost && subSeq === seq; };   // la hoja sigue siendo esta (no se cerró mientras tanto)
+    subTipo = tipo; subCambio = false; sub = null;
+    subHost = document.createElement('div');                              // un contenedor nuevo cada vez: si se cierra mientras el panel carga, no se monta
+    var cuerpo = $('hojaCuerpo'); cuerpo.innerHTML = ''; cuerpo.appendChild(subHost);
+    $('hojaTit').textContent = ACCIONES[tipo][1] + ' · ' + u.nombre;
+    $('hoja').hidden = false;
+    var guardado = function (msj, porDefecto) { if (!activa()) return; aviso(typeof msj === 'string' && msj ? msj : porDefecto); subCambio = true; cerrarHoja(true); };
+    var cancelar = function () { if (activa()) cerrarHoja(); };
+    try {
+      if (tipo === 'valoracion') {
+        sub = window.PanelValoraciones.abrir(subHost, Object.assign(
+          { paciente: u.nombre, telefono: u.telefono || '', dni: u.dni || '',
+            onGuardado: function (m) { guardado(m, 'Valoración guardada'); }, onCancelar: cancelar,
+            onCambio: function () { if (activa()) subCambio = true; } },
+          window.ValoracionesCache ? window.ValoracionesCache.opcionesPanel(u.nombre, u.dni) : {}));   // valoraciones ya precargadas: se abre al instante
+      } else if (tipo === 'cita') {
+        sub = window.PanelCita.abrir(subHost, { paciente: u.nombre, onGuardado: function (m) { guardado(m, 'Cita registrada'); }, onCancelar: cancelar });
+      } else {
+        sub = window.PanelEditar.abrir(subHost, { fila: u.fila, nombre: u.nombre, onGuardado: function (m) { guardado(m, 'Cambios guardados'); }, onCancelar: cancelar });
+      }
+    } catch (e) {
+      sub = null; if (subHost) subHost.remove(); subHost = null; $('hoja').hidden = true;
+      avisoTemporal('No se pudo abrir el formulario: ' + (e && e.message ? e.message : e));
+    }
+  }
+  // Cierra la hoja. Si el formulario tiene cambios sin guardar pregunta antes (salvo forzar === true). Devuelve una promesa con true si se cerró.
+  function cerrarHoja(forzar) {
+    if (!subHost) return Promise.resolve(true);
+    var seq = subSeq;
+    var antes = (forzar !== true && sub && sub.haCambiado && sub.haCambiado())
+      ? confirmar('Hay cambios sin guardar en el formulario. ¿Quieres descartarlos?') : Promise.resolve(true);
+    return antes.then(function (ok) {
+      if (!ok) return false;
+      if (!subHost || subSeq !== seq) return true;                        // otro cierre se adelantó
+      var tipo = subTipo, cambio = subCambio;
+      try { if (sub && sub.cerrar) sub.cerrar(); } catch (e) { /* no crítico */ }
+      sub = null; subTipo = ''; subCambio = false;
+      subHost.remove(); subHost = null;                                   // fuera del documento: un panel que aún cargaba ya no se monta
+      $('hoja').hidden = true;
+      var b = root.querySelector('[data-acc="' + tipo + '"]'); if (b && !b.hidden) b.focus();
+      if (cambio) {
+        refrescar();
+        if (tipo === 'editar' && window.HCCache) window.HCCache.cambioDeUsuario();   // el estado u otros datos pueden haber cambiado
+        if (opts.alCambiar) { try { opts.alCambiar(tipo === 'editar' ? 'usuario' : tipo); } catch (e2) { /* no crítico */ } }
+      }
+      return true;
+    });
+  }
+  root.addEventListener('click', function (e) { var b = e.target.closest('[data-acc]'); if (b && !b.hidden) accion(b.dataset.acc); });
+  root.addEventListener('mouseover', function (e) {   // como en la Base de Datos: se calientan los datos de WhatsApp al pasar el ratón
+    var b = e.target.closest('[data-acc="whatsapp"]');
+    if (!b || !D || !D.usuario.fila || waPrecargado === String(D.usuario.fila) || !window.WhatsappDialogo || !window.WhatsappDialogo.precargar) return;
+    waPrecargado = String(D.usuario.fila);
+    try { window.WhatsappDialogo.precargar('datosWhatsappMaestraWeb', [D.usuario.fila]); } catch (err) { /* no crítico */ }
+  });
+  $('hojaX').addEventListener('click', function () { cerrarHoja(); });
+  root.querySelector('.hc-hoja-vel').addEventListener('click', function () { cerrarHoja(); });
+
   // Si el ancho del panel cambia (cajón que se abre, ventana redimensionada), las notas se reajustan de alto.
   if (typeof ResizeObserver !== 'undefined') {
     var anchoPrev = 0;
@@ -680,12 +809,13 @@ window.PanelHC = {
   iniciarCarga();
 
   var ctl = {
-    haCambiado: function () { return errorGuardado && !!(sucio.historia || sucio.tratamiento); },   // solo si hay texto que NO llegó a guardarse
+    haCambiado: function () { return (errorGuardado && !!(sucio.historia || sucio.tratamiento)) || !!(subHost && sub && sub.haCambiado && sub.haCambiado()); },   // texto que NO llegó a guardarse, o un formulario de la hoja con cambios
     alEscape: function () {
+      if (subHost) { if (sub && sub.alEscape && sub.alEscape()) return true; cerrarHoja(); return true; }   // primero se cierra la hoja
       var w = $('notas'); if (!w || !w.classList.contains('foco')) return false;
       var b = root.querySelector('.nota.activa [data-foco]'); if (b) b.click(); return true;   // primero se sale del modo ampliado
     },
-    cerrar: function () { volcarPendiente(); if (window.PanelHC._activo === ctl) window.PanelHC._activo = null; }
+    cerrar: function () { volcarPendiente(); try { if (subHost && sub && sub.cerrar) sub.cerrar(); } catch (e) { /* no crítico */ } if (window.PanelHC._activo === ctl) window.PanelHC._activo = null; }
   };
   window.PanelHC._activo = ctl;
   return ctl;
