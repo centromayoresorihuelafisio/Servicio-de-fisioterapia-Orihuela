@@ -39,6 +39,10 @@ const COLUMNAS = {
     ESTADO: "Estado",
     HISTORIA_CLINICA: "Historia clínica",
     FECHA_INSCRIPCION: "Fecha inscripción",
+    // ID estable del usuario (CONTEXTO.md, sección 11, paso 3). Columna al FINAL de la Maestra. Lo genera
+    // herramientas/Asignar_IDs_Paciente.gs para las filas existentes y guardarPaciente para las nuevas.
+    // Nunca se edita a mano: actualizarPaciente lo conserva siempre tal cual.
+    ID_PACIENTE: "ID paciente",
     TELEFONO: "Teléfono 1",     // Confirmado (17/09/2026): la columna real se llama "Teléfono 1"
     TELEFONO_1: "Teléfono 1",
     TELEFONO_2: "Teléfono 2",

@@ -82,9 +82,13 @@ function actualizarPaciente(updatedData, rowIdx) {
     ? sheet.getRange(rowIdx, idxHistoria + 1).getRichTextValue()
     : null;
 
+  // Columna "ID paciente" (ID estable, ver COLUMNAS.MAESTRA.ID_PACIENTE): este setValues reescribe la fila
+  // ENTERA, así que, si no se conserva aquí, cada edición dejaría el ID en blanco.
+  const idxIdPaciente = headers.findIndex(h => h.toString().trim() === COLUMNAS.MAESTRA.ID_PACIENTE);
+
   const newRowValues = headers.map((header, index) => {
-    // Mantener valor original para ID e Historia Clínica (seguridad extra)
-    if (index === 0 || header.toLowerCase().includes("historia")) {
+    // Mantener valor original para Nº, ID de paciente e Historia Clínica (seguridad extra)
+    if (index === 0 || index === idxIdPaciente || header.toLowerCase().includes("historia")) {
       return sheet.getRange(rowIdx, index + 1).getValue();
     }
     

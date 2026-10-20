@@ -320,7 +320,7 @@ window.PanelEditar = {
           var i = headerMap[h];
           var val = rowData[i] || "";
           var hl = h.toLowerCase();
-          var isReadOnly = (i === 0 || hl.indexOf("historia") !== -1);
+          var isReadOnly = (i === 0 || h === "ID paciente" || hl.indexOf("historia") !== -1);   // "ID paciente" = COLUMNAS.MAESTRA.ID_PACIENTE (core/Config.gs)
           var isDate = (hl.indexOf("fecha") !== -1 || hl.indexOf("visita") !== -1 || hl.indexOf("nacimiento") !== -1);
           var idSuffix = h.replace(/\s/g, "");
           var icon = iconFor(h);

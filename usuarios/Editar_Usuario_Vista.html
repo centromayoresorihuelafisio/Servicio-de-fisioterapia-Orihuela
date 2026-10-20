@@ -780,7 +780,7 @@
               fieldsToRender.forEach(function(h) {
                 var i          = headerMap[h];
                 var val        = rowData[i] || "";
-                var isReadOnly = (i === 0 || h.toLowerCase().indexOf("historia") !== -1);
+                var isReadOnly = (i === 0 || h === COLUMNAS.MAESTRA.ID_PACIENTE || h.toLowerCase().indexOf("historia") !== -1);
                 var isDate     = (h.toLowerCase().indexOf("fecha") !== -1 || h.toLowerCase().indexOf("visita") !== -1 || h.toLowerCase().indexOf("nacimiento") !== -1);
                 var isFullWidth= (h.toLowerCase().indexOf("observaciones") !== -1 || h.toLowerCase().indexOf("historia") !== -1);
                 var idSuffix   = h.replace(/\s/g,"");

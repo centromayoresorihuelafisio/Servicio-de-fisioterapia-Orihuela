@@ -209,6 +209,11 @@ function guardarPaciente(datos) {
     }
   }
 
+  // ID estable del usuario (CONTEXTO.md, sección 11): se genera aquí, una sola vez, y no lo pide el formulario.
+  // Si la columna aún no existe (antes de ejecutar herramientas/Asignar_IDs_Paciente.gs), no se hace nada.
+  const colIdPaciente = encabezados.findIndex(h => h.toString().trim() === COLUMNAS.MAESTRA.ID_PACIENTE);
+  if (colIdPaciente !== -1) nuevaFila[colIdPaciente] = Utilities.getUuid();
+
   // Formato unificado (core/Utils.gs): el formulario ya lo aplica al escribir; aquí se
   // garantiza también en el servidor por si el dato llega de otra vía.
   const colNombreFormato = encabezados.indexOf(COLUMNAS.MAESTRA.NOMBRE);
