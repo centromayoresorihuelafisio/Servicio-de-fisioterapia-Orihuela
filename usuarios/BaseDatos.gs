@@ -1,13 +1,13 @@
 // la base de datos sin abrir la hoja de cálculo. La edición de cada paciente
-// se hace desde ahí mismo, con un enlace a ?page=editarPaciente&fila=N que
-// reutiliza el mismo usuarios/Editar_Usuario_Vista.html que ya usa el menú 🧍 → Editar.
+// se hace desde ahí mismo, en el panel lateral (usuarios/Panel_Editar.html, por ID paciente). La ruta
+// ?page=editarPaciente&fila=N (usuarios/Editar_Usuario_Vista.html, la del menú 🧍 → Editar) es un vestigio.
 // ================================================================================
 
 /**
  * Devuelve todas las filas de la Maestra (todas las columnas, tal cual están
  * en la hoja) para renderizar la tabla completa en la Web App.
  * Cada paciente incluye `_fila`: el número de fila real en la hoja, necesario
- * para poder editarlo después con actualizarPaciente(datos, _fila).
+ * como referencia de la tabla (selección, orden). Para actuar sobre un usuario el cliente envía su "ID paciente", nunca `_fila`.
  */
 function obtenerBaseDatosCompletaWeb() {
   try {
@@ -279,7 +279,11 @@ function eliminarPacientesLoteWeb(idsPaciente) {
     if (!sheet) return { success: false, message: `No se encontró la hoja "${SHEETS.MAESTRA}".` };
 
     const mapa = mapaFilasMaestraPorId_(sheet);
-    const ids = Array.from(new Set(idsPaciente.map(id => String(id || '').trim()).filter(Boolean)));
+    // Un ID vacío (usuario sin ID paciente) no se puede localizar: se rechaza todo en vez de borrar solo a una parte.
+    if (idsPaciente.some(id => !String(id || '').trim())) {
+      return { success: false, message: 'Algún usuario seleccionado no tiene ID paciente. No se ha borrado nada.' };
+    }
+    const ids = Array.from(new Set(idsPaciente.map(id => String(id).trim())));
     const filas = ids.map(id => mapa[id]);
     if (!ids.length || filas.some(f => !f)) {
       return { success: false, message: 'La lista ha cambiado desde que se cargó. Recarga la página e inténtalo de nuevo.' };

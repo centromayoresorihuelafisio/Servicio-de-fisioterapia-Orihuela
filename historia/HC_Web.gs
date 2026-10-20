@@ -35,7 +35,7 @@ const HC_ESTILOS_ASISTENCIA_ = [
   { clase: 'ok',     patron: /asist|vino|presente|realiz|acudi|^si$|^ok$/ }
 ];
 
-/** Sirve la página de la ficha: ?page=hc&nombre=XXX  (o &fila=N de la Maestra). */
+/** Sirve la página de la ficha: ?page=hc&id=ID_HC  (o &idPaciente=ID_PACIENTE si no hay ID HC). */
 function servirFichaHCWeb(parametros) {
   const t = HtmlService.createTemplateFromFile('historia/HC_Vista');
   t.idHC = (parametros && parametros.id) || '';                       // ID HC (?page=hc&id=)

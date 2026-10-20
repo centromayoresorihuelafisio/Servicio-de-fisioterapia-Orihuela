@@ -13,9 +13,9 @@
  * pide todas; sigue sin leerse el rich text de Historia clínica: el enlace a la
  * historia se abre desde la fila de la Agenda, no desde estos datos.
  *
- * Cada ficha lleva `_fila` (fila de la Maestra) para poder cambiar el Estado desde
- * la ficha con cambiarEstadoPacienteWeb(fila, estado, nombre), que comprueba el nombre
- * antes de escribir por si las filas se han reordenado desde la carga.
+ * Cada ficha lleva siempre "ID paciente" (aunque `campos` no lo pida) para poder cambiar el Estado
+ * desde la ficha con cambiarEstadoPacienteWeb(idPaciente, estado): el servidor localiza la fila
+ * por ese ID, así que no importa que la hoja se haya reordenado desde la carga.
  */
 
 /**
@@ -83,7 +83,7 @@ function leerMaestraParaFicha_(campos) {
 
   const headersRaw = sheet.getRange(1, 1, 1, lastColRaw).getValues()[0];
   const pedidos = (campos && campos.length)
-    ? campos.concat([COLUMNAS.MAESTRA.NOMBRE]).map(normalizarNombreFicha_)
+    ? campos.concat([COLUMNAS.MAESTRA.NOMBRE, COLUMNAS.MAESTRA.ID_PACIENTE]).map(normalizarNombreFicha_)
     : null;
 
   // Columnas a conservar: (índice 0-based, cabecera). Se ignoran las columnas sin cabecera.

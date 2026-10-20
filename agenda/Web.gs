@@ -674,8 +674,8 @@ function datosWhatsappLoteAgendaWeb(filas) {
 
 /**
  * Da de alta al paciente de una cita de la Agenda: localiza su fila en la
- * Maestra por el nombre (igual que el botón de WhatsApp de la Agenda) y
- * reutiliza darDeAltaPacienteWeb(), el mismo proceso del botón Alta de la
+ * Maestra por el nombre (la Agenda aún no guarda ID: se cierra en el lote 3), lee su ID paciente y
+ * reutiliza darDeAltaPacienteWeb(idPaciente), el mismo proceso del botón Alta de la
  * Base de Datos Web (Estado, fechas y fecha de alta en la Historia Clínica).
  */
 function darDeAltaPacienteParaAgendaWeb(fila) {
@@ -711,7 +711,11 @@ function darDeAltaPacienteParaAgendaWeb(fila) {
       return { success: false, message: 'No se encontró a "' + buscado + '" en la Base de Datos Maestra.' };
     }
 
-    return darDeAltaPacienteWeb(filaMaestra);
+    // darDeAltaPacienteWeb recibe el ID paciente, no la fila (la fila solo se usa aquí para leer el ID).
+    const colId = obtenerIndiceColumnaPorNombre_(maestra, COLUMNAS.MAESTRA.ID_PACIENTE);
+    const idPaciente = colId === -1 ? '' : String(maestra.getRange(filaMaestra, colId + 1).getValue() || '').trim();
+    if (!idPaciente) return { success: false, message: 'Ese usuario no tiene ID paciente: ejecuta asignarIdsPaciente.' };
+    return darDeAltaPacienteWeb(idPaciente);
   } catch (e) {
     Logger.log('Error en darDeAltaPacienteParaAgendaWeb: ' + e.message);
     return { success: false, message: e.message };

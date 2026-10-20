@@ -2,7 +2,7 @@
   historia/Panel_HC.html
   Historia clínica web como módulo del panel lateral (Base de Datos y Agenda) y como página completa (historia/HC_Vista.html).
   Se incluye con incluirPanel('historia/Panel_HC', 'PanelHC') (carga bajo demanda, ver ui/JS_Paneles_Diferidos).
-  API: PanelHC.abrir(contenedor, { id, nombre, fila, modo, urlPagina, volverUrl, alCargar, alCambiar, acciones })
+  API: PanelHC.abrir(contenedor, { id, idPaciente, enlace, modo, urlPagina, volverUrl, alCargar, alCambiar, acciones })
   Funciones de la app dentro de la historia (solo en el panel lateral): Valoración, Dar cita, Editar y WhatsApp. Reutilizan
   PanelValoraciones / PanelCita / PanelEditar (se montan en una hoja que se superpone a la historia) y WhatsappDialogo; cada
   botón aparece solo si la página anfitriona incluye ese módulo. La página anfitriona se entera de los cambios con alCambiar(tipo).

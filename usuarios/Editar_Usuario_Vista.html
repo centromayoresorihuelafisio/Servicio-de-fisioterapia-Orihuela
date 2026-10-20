@@ -965,7 +965,8 @@
     <?!= include('ui/JS_Cierre_Formulario'); ?>
 
     <script>
-      var rowIdx = <?= rowIdx ?>;
+      var rowIdx = <?= rowIdx ?>;   // solo informativo: el servidor localiza al usuario por su ID paciente
+      var idPaciente = <?!= JSON.stringify(idPaciente) ?>;
       var esWebApp = <?= esWebApp ? 'true' : 'false' ?>;
       var enVentanaEmergente = <?= enVentanaEmergente ? 'true' : 'false' ?>;
 
@@ -1185,7 +1186,7 @@
             btn.innerHTML = '<span class="material-symbols-outlined text-[18px]">check_circle</span> Confirmar y Guardar';
             btn.disabled = false;
           })
-          .actualizarPaciente(data, rowIdx);
+          .actualizarPaciente(data, idPaciente);
       }
     </script>
   </body>
