@@ -553,7 +553,7 @@
       var ultimosFiltrados = [], filaActivaFila = null;
 
       // ---------- Carga de datos ----------
-      function cargar() {
+      function cargar(alReanclar) {
         google.script.run
           .withSuccessHandler(function(res) {
             if (res.error) { mostrarError(res.error); return; }
@@ -561,6 +561,7 @@
             TODOS = res.pacientes || [];
             COL_HISTORIA = HEADERS.find(function(h) { return h.toLowerCase().indexOf('historia') !== -1; });
             reanclarSeleccion();
+            if (typeof alReanclar === 'function') alReanclar();
             construirMenusFiltro();
             render();
             renderFicha();
@@ -1053,7 +1054,11 @@
             return PanelHC.abrir(cont, { id: hcIdDeUrl(p[COL_HISTORIA]), nombre: p['Nombre'] || '', fila: p._fila,
               urlPagina: <?!= JSON.stringify(baseUrl) ?> + '?page=hc',
               // Editar al usuario desde la historia: la tabla se recarga como al guardar desde la ficha (la historia sigue abierta).
-              alCambiar: function(tipo) { if (tipo === 'usuario') cargar(); } });
+              alCambiar: function(tipo) {
+                if (tipo === 'usuario') cargar();
+                // El alta reordena la Maestra: la fila del usuario cambia, así que se actualiza la fila del panel abierto para que no se cierre.
+                else if (tipo === 'alta') cargar(function() { if (formularioActivo && pacienteSeleccionado) formularioFila = pacienteSeleccionado._fila; });
+              } });
           }
         },
         huerfana: {
