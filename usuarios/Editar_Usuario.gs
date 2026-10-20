@@ -19,17 +19,15 @@ function prepararDatosFilaParaEdicion(sheet, rowIdx) {
 }
 
 /**
- * Lee una fila de la Maestra para el panel lateral de edición de la Base de Datos Web
- * (usuarios/Panel_Editar.html). Devuelve lo mismo que prepararDatosFilaParaEdicion().
- * El panel compara el nombre con el que tenía la tabla antes de mostrar el formulario,
- * así que si las filas se han reordenado entre tanto no se edita a otra persona.
+ * Lee la fila de un usuario de la Maestra para el panel lateral de edición de la Base de Datos Web
+ * (usuarios/Panel_Editar.html). Devuelve lo mismo que prepararDatosFilaParaEdicion(). El usuario se localiza por su
+ * ID paciente, así que no hay riesgo de editar a otra persona si la hoja se ha reordenado.
  */
-function obtenerDatosEdicionPaciente(rowIdx) {
-  const fila = parseInt(rowIdx, 10);
-  if (!fila || fila < 2) throw new Error('Fila de paciente no válida.');
+function obtenerDatosEdicionPaciente(idPaciente) {
   const sheet = getSS().getSheetByName(SHEETS.MAESTRA);
   if (!sheet) throw new Error('No se encontró la hoja "' + SHEETS.MAESTRA + '".');
-  if (fila > sheet.getLastRow()) throw new Error('Ese paciente ya no existe en esa fila. Recarga la Base de Datos.');
+  const fila = filaMaestraPorId_(sheet, idPaciente);
+  if (!fila) throw new Error('Ese usuario ya no está en la Base de Datos. Recarga la página.');
   return prepararDatosFilaParaEdicion(sheet, fila);
 }
 
@@ -53,6 +51,7 @@ function abrirModalEdicion() {
   template.headers = headers;
   template.rowData = rowData;
   template.rowIdx = rowIdx;
+  template.idPaciente = String(rowData[headers.indexOf(COLUMNAS.MAESTRA.ID_PACIENTE)] || '').trim();
   template.esWebApp = false;
   template.baseUrl = '';
   template.enVentanaEmergente = false;
@@ -68,9 +67,12 @@ function abrirModalEdicion() {
 /**
  * Procesa la actualización de los datos en la hoja de cálculo.
  */
-function actualizarPaciente(updatedData, rowIdx) {
+function actualizarPaciente(updatedData, idPaciente) {
   const ss = getSS();
   const sheet = ss.getSheetByName(SHEETS.MAESTRA);
+  // La fila se localiza por el ID paciente (no por un número de fila que pudo cambiar al reordenar).
+  const rowIdx = filaMaestraPorId_(sheet, idPaciente);
+  if (!rowIdx) throw new Error('Ese usuario ya no está en la Base de Datos. No se ha guardado nada: recarga la página.');
   const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
 
   // Capturamos el Rich Text (hipervínculo) de "Historia clínica" ANTES de

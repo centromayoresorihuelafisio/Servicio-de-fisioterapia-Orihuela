@@ -23,12 +23,12 @@ function generarHistoriaClinica() {
  * Versión web-safe: genera la historia clínica del paciente de `fila`,
  * para usar desde el botón "Historia Clínica" de la Base de Datos Web.
  */
-function generarHistoriaClinicaWeb(fila) {
-  const rowIndex = parseInt(fila, 10);
+function generarHistoriaClinicaWeb(idPaciente) {
   const ss = getSS();
   const sheet = ss.getSheetByName(SHEETS.MAESTRA);
   if (!sheet) return { success: false, message: "Error: La hoja 'Base de Datos Maestra' no existe." };
-  if (!rowIndex || rowIndex < 2) return { success: false, message: "Fila de paciente no válida." };
+  const rowIndex = filaMaestraPorId_(sheet, idPaciente);   // por ID paciente: el número de fila cambia al reordenar
+  if (!rowIndex) return { success: false, message: "Ese usuario ya no está en la Base de Datos. Recarga la página." };
 
   return _generarHistoriaClinicaEnFila(sheet, rowIndex);
 }
@@ -151,12 +151,12 @@ function _generarHistoriaClinicaEnFila(sheet, rowIndex) {
  * Busca la tabla de datos personales y sobrescribe las celdas adyacentes a las etiquetas.
  * Además, renombra el archivo para reflejar el DNI si ha sido añadido.
  */
-function actualizarDatosHistoriaClinicaWeb(fila) {
-  const rowIndex = parseInt(fila, 10);
+function actualizarDatosHistoriaClinicaWeb(idPaciente) {
   const ss = getSS();
   const sheet = ss.getSheetByName(SHEETS.MAESTRA);
   if (!sheet) return { success: false, message: "No se encontró la hoja 'Base de Datos Maestra'." };
-  if (!rowIndex || rowIndex < 2) return { success: false, message: "Fila no válida." };
+  const rowIndex = filaMaestraPorId_(sheet, idPaciente);
+  if (!rowIndex) return { success: false, message: "Ese usuario ya no está en la Base de Datos. Recarga la página." };
 
   const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0].map(h => h.toString().trim());
   const data = sheet.getRange(rowIndex, 1, 1, headers.length).getValues()[0];

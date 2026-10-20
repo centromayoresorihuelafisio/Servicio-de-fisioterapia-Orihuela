@@ -46,8 +46,7 @@
     var imprimir = <?!= JSON.stringify(imprimir) ?>;
     PanelHC.abrir(document.getElementById('host'), {
       modo: 'pagina',
-      nombre: <?!= JSON.stringify(nombre) ?>,
-      fila: <?!= JSON.stringify(fila) ?>,
+      idPaciente: <?!= JSON.stringify(idPaciente) ?>,
       id: <?!= JSON.stringify(idHC) ?>,
       urlPagina: <?!= JSON.stringify(baseUrl) ?> + '?page=hc',
       volverUrl: <?!= JSON.stringify(baseUrl) ?> + '?page=baseDatos',

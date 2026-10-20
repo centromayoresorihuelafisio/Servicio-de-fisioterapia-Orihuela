@@ -135,7 +135,7 @@ function doGet(e) {
     return servirFormularioEdicionWeb(e.parameter.fila, e.parameter.embed === '1');
   }
 
-  // Caso especial: ficha de historia clínica en HTML (?page=hc&nombre=XXX o &fila=N de la Maestra).
+  // Caso especial: ficha de historia clínica en HTML (?page=hc&id=ID_HC o &idPaciente=ID_PACIENTE).
   if (page === 'hc') {
     return servirFichaHCWeb(e.parameter);
   }
@@ -218,6 +218,7 @@ function servirFormularioEdicionWeb(filaParam, enVentanaEmergente) {
   template.headers = headers;
   template.rowData = rowData;
   template.rowIdx = rowIdx;
+  template.idPaciente = String(rowData[headers.indexOf(COLUMNAS.MAESTRA.ID_PACIENTE)] || '').trim();
   template.esWebApp = true;
   template.enVentanaEmergente = !!enVentanaEmergente;
   template.baseUrl = ScriptApp.getService().getUrl();

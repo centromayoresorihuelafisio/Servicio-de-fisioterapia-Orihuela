@@ -21,17 +21,13 @@ function abrirChatWhatsapp() {
  * URL en vez de abrir un diálogo modal (SpreadsheetApp.getUi() no existe en
  * la Web App); el cliente hace window.open con esa URL.
  */
-function generarUrlWhatsappWeb(fila) {
-  const rowIdx = parseInt(fila, 10);
-  const ss = getSS();
-  const hoja = ss.getSheetByName(SHEETS.MAESTRA);
-  if (!hoja) return { success: false, message: "No se encontró la hoja 'Base de Datos Maestra'." };
-  if (!rowIdx || rowIdx < 2) return { success: false, message: "Paciente no válido." };
-
-  const nombreCompleto = hoja.getRange(rowIdx, COLUMNAS_NUM.MAESTRA.NOMBRE).getValue();
-  if (!nombreCompleto) return { success: false, message: "Esa fila no tiene nombre de paciente." };
-
-  return _generarUrlWhatsappParaNombre(hoja, nombreCompleto);
+function generarUrlWhatsappWeb(idPaciente) {
+  const d = datosWhatsappMaestraWeb([idPaciente]);
+  if (!d.success) return { success: false, message: d.message };
+  const it = d.items[0];
+  if (!it || it.error) return { success: false, message: (it && it.error) || 'Usuario no encontrado.' };
+  const msj = d.plantilla.replace(/{{nombre}}/g, it.primerNombre);
+  return { success: true, url: "https://web.whatsapp.com/send?phone=" + it.telefono + "&text=" + encodeURIComponent(msj) };
 }
 
 /**
@@ -126,48 +122,43 @@ function _generarUrlWhatsappParaNombre(hoja, nombreCompleto) {
 }
 
 /**
- * Datos para el asistente de WhatsApp desde la Base de Datos Web. Recibe filas de
- * la Maestra y devuelve lo mismo que datosWhatsappLoteAgendaWeb (Web.gs): la
- * plantilla cruda con {{nombre}} y, por paciente, nombre, primer nombre y
- * teléfono ya con prefijo (o el error que impide escribirle).
+ * Datos para el asistente de WhatsApp desde la Base de Datos Web. Recibe IDs de paciente (no filas ni nombres: con
+ * homónimos, buscar el teléfono por nombre escribiría a otra persona) y devuelve lo mismo que datosWhatsappLoteAgendaWeb
+ * (Web.gs): la plantilla cruda con {{nombre}} y, por usuario, nombre, primer nombre y teléfono ya con prefijo (o el
+ * error que impide escribirle). `fila` va solo como información (etiqueta si no hubiera nombre).
  */
-function datosWhatsappMaestraWeb(filas) {
+function datosWhatsappMaestraWeb(idsPaciente) {
   try {
     const hoja = getSS().getSheetByName(SHEETS.MAESTRA);
     if (!hoja) return { success: false, message: "No se encontró la hoja 'Base de Datos Maestra'." };
 
-    const lastRow = hoja.getLastRow();
-    const vistos = Object.create(null);
-    const entradas = [];
-    let duplicados = 0;
-    (filas || []).forEach(function(f) {
-      const rowIdx = parseInt(f, 10);
-      if (!rowIdx || rowIdx < 2 || rowIdx > lastRow) {
-        entradas.push({ fila: f, nombre: '', error: 'Paciente no válido.' });
-        return;
-      }
-      const nombre = String(hoja.getRange(rowIdx, COLUMNAS_NUM.MAESTRA.NOMBRE).getValue() || '').trim();
-      if (!nombre) {
-        entradas.push({ fila: rowIdx, nombre: '', error: 'Esa fila no tiene nombre de paciente.' });
-        return;
-      }
-      if (vistos[nombre]) { duplicados++; return; }
-      vistos[nombre] = true;
-      entradas.push({ fila: rowIdx, nombre: nombre });
-    });
-
-    const porNombre = Object.create(null);
-    const nombres = entradas.filter(e => !e.error).map(e => e.nombre);
-    if (nombres.length) {
-      const datos = _datosWhatsappParaNombres_(hoja, nombres);
-      if (!datos.success) return { success: false, message: datos.message };
-      datos.items.forEach(it => { porNombre[it.nombre] = it; });
+    const idxNombre = obtenerIndiceColumnaPorNombre_(hoja, COLUMNAS.MAESTRA.NOMBRE);
+    const idxTelefono = resolverColumnaTelefono_(hoja);
+    if (idxNombre === -1 || idxTelefono === -1) {
+      return { success: false, message: "No se encontraron las columnas de Nombre o Teléfono en la Maestra." };
     }
 
-    const items = entradas.map(function(e) {
-      if (e.error) return { fila: e.fila, nombre: e.nombre, primerNombre: '', telefono: '', error: e.error };
-      const it = porNombre[e.nombre];
-      return { fila: e.fila, nombre: e.nombre, primerNombre: it.primerNombre, telefono: it.telefono, error: it.error };
+    const mapa = mapaFilasMaestraPorId_(hoja);
+    const lastRow = hoja.getLastRow();
+    const nombres = lastRow >= 2 ? hoja.getRange(2, idxNombre + 1, lastRow - 1, 1).getValues() : [];
+    const telefonos = lastRow >= 2 ? hoja.getRange(2, idxTelefono + 1, lastRow - 1, 1).getValues() : [];
+
+    const vistos = Object.create(null);
+    const items = [];
+    let duplicados = 0;
+    (idsPaciente || []).forEach(function(idRaw) {
+      const id = String(idRaw || '').trim();
+      const fila = id ? mapa[id] : 0;
+      if (!fila) { items.push({ idPaciente: id, fila: '', nombre: '', primerNombre: '', telefono: '', error: 'Usuario no encontrado.' }); return; }
+      if (vistos[id]) { duplicados++; return; }
+      vistos[id] = true;
+      const nombre = String(nombres[fila - 2][0] || '').trim();
+      const telefono = telefonos[fila - 2][0];
+      if (!nombre) { items.push({ idPaciente: id, fila: fila, nombre: '', primerNombre: '', telefono: '', error: 'Ese usuario no tiene nombre.' }); return; }
+      if (!telefono) { items.push({ idPaciente: id, fila: fila, nombre: nombre, primerNombre: '', telefono: '', error: 'No hay teléfono para ' + nombre }); return; }
+      const numLimpio = telefono.toString().replace(/\D/g, '');
+      const numFinal = numLimpio.startsWith("34") ? numLimpio : "34" + numLimpio;
+      items.push({ idPaciente: id, fila: fila, nombre: nombre, primerNombre: _primerNombreWhatsapp_(nombre), telefono: numFinal, error: null });
     });
     return { success: true, plantilla: _plantillaWhatsapp_(), items: items, duplicados: duplicados };
   } catch (e) {

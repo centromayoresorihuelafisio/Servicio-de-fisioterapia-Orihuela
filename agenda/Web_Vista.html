@@ -3059,9 +3059,9 @@
         if (!c || !esUrl(url)) { mostrarAviso('Esta cita no tiene Historia Clínica enlazada.'); return; }
         var nombre = String(c['Usuario'] || '').trim();
         var m = /[?&]page=hc&id=([^&#]+)/.exec(url);                 // enlace a la ficha web: se abre como panel lateral
-        // Si la cita aún guarda el enlace al Doc antiguo, el servidor localiza la historia por el nombre del paciente.
+        // Si la cita aún guarda el enlace al Doc antiguo, el servidor localiza la historia por el ID de ese Doc (nunca por el nombre).
         abrirPanelLateral('hc:' + (m ? m[1] : nombre), 'Historia clínica · ' + nombre, 'hc', function(cont) {
-          return PanelHC.abrir(cont, { id: m ? decodeURIComponent(m[1]) : '', nombre: nombre, fila: '', urlPagina: <?!= JSON.stringify(baseUrl) ?> + '?page=hc',
+          return PanelHC.abrir(cont, { id: m ? decodeURIComponent(m[1]) : '', enlace: m ? '' : url, urlPagina: <?!= JSON.stringify(baseUrl) ?> + '?page=hc',
             // Cita o edición hechas desde la historia: se actualizan la agenda y las fichas (igual que al avisar otra ventana).
             alCambiar: function(tipo) {
               if (tipo === 'usuario') cargarFichas();
@@ -3326,7 +3326,7 @@
         var p = res.paciente, hEst = FichaUsuario.cabecera(res.headers, 'Estado') || 'Estado', antes = p[hEst];
         if (FichaUsuario.norm(antes) === FichaUsuario.norm(valor)) return;
         if (FichaUsuario.claseEstado(valor) === 'alta') { altaDesdeFicha(fichaAbierta.nombre); return; }   // el alta tiene su propio flujo (fechas e HC)
-        if (!p._fila) { mostrarAviso('No se pudo cambiar el estado: vuelve a abrir la ficha e inténtalo de nuevo.'); cargarFichas(); return; }
+        if (!p['ID paciente']) { mostrarAviso('No se pudo cambiar el estado: vuelve a abrir la ficha e inténtalo de nuevo.'); cargarFichas(); return; }
         p[hEst] = valor;
         repintarFichaAbierta();
         function revertir(msg) { p[hEst] = antes; repintarFichaAbierta(); mostrarAviso(msg); }
@@ -3339,7 +3339,7 @@
             if (window.HCCache) HCCache.cambioDeUsuario();   // un usuario nuevo en Activo entra en la precarga de HC
           })
           .withFailureHandler(function(err) { revertir('Error al cambiar el estado: ' + err); })
-          .cambiarEstadoPacienteWeb(p._fila, valor, p['Nombre']);
+          .cambiarEstadoPacienteWeb(p['ID paciente'], valor);
       }
       // Alta desde la ficha: usa la cita del usuario en la semana mostrada (mismo proceso que el botón Alta de la fila).
       function altaDesdeFicha(nombre) {

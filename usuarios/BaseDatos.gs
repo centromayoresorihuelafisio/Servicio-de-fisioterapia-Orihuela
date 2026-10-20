@@ -89,44 +89,21 @@ function indiceColumnaNombreMaestra_(sheet) {
 }
 
 /**
- * Comprueba que la fila `fila` de la Maestra sigue siendo la del paciente que
- * el cliente cargó (mismo criterio que cambiarEstadoPacienteWeb): si la hoja
- * se ha ordenado o editado mientras la web estaba abierta, el número de fila
- * ya no apunta a la misma persona. Si el cliente no envía nombre, no se puede
- * comprobar y se da por buena.
+ * Borra por completo la fila de un usuario en la Maestra (borrado real de la fila, no solo de su contenido). Se localiza
+ * por su ID paciente: no depende del número de fila (la hoja se reordena) ni del nombre. Es una acción irreversible: no
+ * toca las hojas de Agenda ni Valoraciones, así que si ese usuario tenía citas o valoraciones seguirán apareciendo ahí
+ * con su nombre.
  */
-function filaMaestraEsElPaciente_(sheet, fila, nombreEsperado) {
-  const esperado = (nombreEsperado === undefined || nombreEsperado === null) ? '' : String(nombreEsperado).trim();
-  if (!esperado) return true;
-  const actual = sheet.getRange(fila, indiceColumnaNombreMaestra_(sheet) + 1).getValue().toString().trim();
-  return actual === esperado;
-}
-
-/**
- * Borra por completo la fila de un paciente en la Maestra (borrado real de
- * la fila, no solo de su contenido). Es una acción irreversible: no toca las
- * hojas de Agenda ni Valoraciones, así que si ese paciente tenía citas o
- * valoraciones seguirán apareciendo ahí con su nombre.
- *
- * `nombreEsperado` protege frente a filas que hayan cambiado de número (p. ej.
- * tras ordenar): si el nombre de esa fila ya no coincide, no se borra nada.
- */
-function eliminarPacienteWeb(fila, nombreEsperado) {
+function eliminarPacienteWeb(idPaciente) {
   try {
     const ss = getSS();
     const sheet = ss.getSheetByName(SHEETS.MAESTRA);
     if (!sheet) return { success: false, message: `No se encontró la hoja "${SHEETS.MAESTRA}".` };
 
-    const filaNum = parseInt(fila, 10);
-    if (!filaNum || filaNum < 2 || filaNum > sheet.getLastRow()) {
-      return { success: false, message: 'Fila no válida.' };
-    }
+    const fila = filaMaestraPorId_(sheet, idPaciente);
+    if (!fila) return { success: false, message: 'Ese usuario ya no está en la Base de Datos. Recarga la página.' };
 
-    if (!filaMaestraEsElPaciente_(sheet, filaNum, nombreEsperado)) {
-      return { success: false, message: 'La lista ha cambiado desde que se cargó. Recarga la página e inténtalo de nuevo.' };
-    }
-
-    sheet.deleteRow(filaNum);
+    sheet.deleteRow(fila);
     return { success: true, message: 'Usuario eliminado correctamente.' };
   } catch (e) {
     Logger.log('Error en eliminarPacienteWeb: ' + e.message);
@@ -160,6 +137,11 @@ function restaurarPacienteWeb(datosPaciente) {
 
     if (!datosPaciente || !datosPaciente[COLUMNAS.MAESTRA.NOMBRE]) {
       return { success: false, message: 'No hay datos que restaurar.' };
+    }
+
+    // Idempotente: si ese ID paciente ya está en la Maestra (p. ej. se pulsó Deshacer dos veces), no se duplica la fila.
+    if (filaMaestraPorId_(sheet, datosPaciente[COLUMNAS.MAESTRA.ID_PACIENTE])) {
+      return { success: true, message: 'Ese usuario ya estaba en la Base de Datos.' };
     }
 
     const lastCol = sheet.getLastColumn();
@@ -202,9 +184,9 @@ function fechaTextoADate_(valor) {
  * Cambia solo el Estado de un usuario (menú de estado en línea de la Base de Datos Web).
  * "Alta" se rechaza aquí a propósito: tiene su propio flujo (darDeAltaPacienteWeb) que
  * actualiza también fechas, tipo de ingreso y la Historia Clínica.
- * `nombreEsperado` protege frente a filas que hayan cambiado de número (p. ej. tras ordenar).
+ * El usuario se localiza por su ID paciente: no depende del número de fila (que cambia al ordenar) ni del nombre.
  */
-function cambiarEstadoPacienteWeb(fila, nuevoEstado, nombreEsperado) {
+function cambiarEstadoPacienteWeb(idPaciente, nuevoEstado) {
   const lock = LockService.getScriptLock();
   try {
     lock.waitLock(10000);
@@ -212,9 +194,9 @@ function cambiarEstadoPacienteWeb(fila, nuevoEstado, nombreEsperado) {
     const sheet = getSS().getSheetByName(SHEETS.MAESTRA);
     if (!sheet) return { success: false, message: `No se encontró la hoja "${SHEETS.MAESTRA}".` };
 
-    const rowIdx = parseInt(fila, 10);
+    const rowIdx = filaMaestraPorId_(sheet, idPaciente);
     const estado = (nuevoEstado === null || nuevoEstado === undefined) ? '' : String(nuevoEstado).trim();
-    if (!rowIdx || rowIdx < 2 || rowIdx > sheet.getLastRow()) return { success: false, message: 'Fila no válida.' };
+    if (!rowIdx) return { success: false, message: 'Ese usuario ya no está en la Base de Datos. Recarga la página.' };
     if (!estado || estado.length > 60) return { success: false, message: 'Estado no válido.' };
     if (/(^|[^a-záéíóúñ])alta([^a-záéíóúñ]|$)/i.test(estado)) {
       return { success: false, message: 'Para dar de alta usa el botón "Alta": actualiza también fechas e Historia Clínica.' };
@@ -224,14 +206,6 @@ function cambiarEstadoPacienteWeb(fila, nuevoEstado, nombreEsperado) {
     const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(h => h.toString().trim());
     let colEstado = headers.indexOf(COLUMNAS.MAESTRA.ESTADO);
     if (colEstado === -1) colEstado = COLUMNAS_NUM.MAESTRA.ESTADO - 1;
-
-    const colNombre = headers.indexOf(COLUMNAS.MAESTRA.NOMBRE);
-    if (nombreEsperado && colNombre !== -1) {
-      const actual = sheet.getRange(rowIdx, colNombre + 1).getValue().toString().trim();
-      if (actual !== String(nombreEsperado).trim()) {
-        return { success: false, message: 'La lista ha cambiado desde que se cargó. Recarga la página e inténtalo de nuevo.' };
-      }
-    }
 
     sheet.getRange(rowIdx, colEstado + 1).setValue(estado);
     SpreadsheetApp.flush();
@@ -249,13 +223,13 @@ function cambiarEstadoPacienteWeb(fila, nuevoEstado, nombreEsperado) {
  * la Base de Datos Web). "Alta" se rechaza aquí: el cliente ya evita
  * enviarla, pero se comprueba también en el servidor por si acaso.
  */
-function cambiarEstadoLoteWeb(filas, nuevoEstado) {
+function cambiarEstadoLoteWeb(idsPaciente, nuevoEstado) {
   const estado = (nuevoEstado === null || nuevoEstado === undefined) ? '' : String(nuevoEstado).trim();
   if (!estado || estado.length > 60) return { success: false, message: 'Estado no válido.' };
   if (/(^|[^a-záéíóúñ])alta([^a-záéíóúñ]|$)/i.test(estado)) {
     return { success: false, message: 'Para dar de alta hazlo usuario por usuario: actualiza también fechas e Historia Clínica.' };
   }
-  if (!Array.isArray(filas) || filas.length === 0) return { success: false, message: 'No hay usuarios seleccionados.' };
+  if (!Array.isArray(idsPaciente) || idsPaciente.length === 0) return { success: false, message: 'No hay usuarios seleccionados.' };
 
   const lock = LockService.getScriptLock();
   try {
@@ -263,19 +237,22 @@ function cambiarEstadoLoteWeb(filas, nuevoEstado) {
     const sheet = getSS().getSheetByName(SHEETS.MAESTRA);
     if (!sheet) return { success: false, message: `No se encontró la hoja "${SHEETS.MAESTRA}".` };
 
-    const lastCol = sheet.getLastColumn(), lastRow = sheet.getLastRow();
+    const lastCol = sheet.getLastColumn();
     const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(h => h.toString().trim());
     let colEstado = headers.indexOf(COLUMNAS.MAESTRA.ESTADO);
     if (colEstado === -1) colEstado = COLUMNAS_NUM.MAESTRA.ESTADO - 1;
 
-    const filasValidas = filas.map(f => parseInt(f, 10)).filter(f => f >= 2 && f <= lastRow);
-    if (!filasValidas.length) return { success: false, message: 'Filas no válidas.' };
+    const mapa = mapaFilasMaestraPorId_(sheet);
+    const ids = Array.from(new Set(idsPaciente.map(id => String(id || '').trim()).filter(Boolean)));
+    const filasValidas = ids.map(id => mapa[id]).filter(Boolean);
+    if (!filasValidas.length) return { success: false, message: 'Esos usuarios ya no están en la Base de Datos. Recarga la página.' };
 
     const rangos = filasValidas.map(f => sheet.getRange(f, colEstado + 1).getA1Notation());
     sheet.getRangeList(rangos).setValue(estado);
 
     SpreadsheetApp.flush();
-    return { success: true, message: 'Estado actualizado en ' + filasValidas.length + (filasValidas.length === 1 ? ' usuario.' : ' usuarios.') };
+    const faltan = ids.length - filasValidas.length;
+    return { success: true, message: 'Estado actualizado en ' + filasValidas.length + (filasValidas.length === 1 ? ' usuario.' : ' usuarios.') + (faltan ? ' (' + faltan + ' ya no estaba' + (faltan === 1 ? '' : 'n') + ' en la Base de Datos.)' : '') };
   } catch (e) {
     Logger.log('Error en cambiarEstadoLoteWeb: ' + e.message);
     return { success: false, message: e.message };
@@ -285,17 +262,15 @@ function cambiarEstadoLoteWeb(filas, nuevoEstado) {
 }
 
 /**
- * Elimina varias filas de la Maestra a la vez (borrado real de fila, no solo
- * de contenido). Borra de abajo hacia arriba para que borrar una fila no
- * desplace el número de las que aún faltan por borrar.
+ * Elimina varios usuarios de la Maestra a la vez (borrado real de fila, no solo de contenido), localizados por su ID
+ * paciente. Borra de abajo hacia arriba para que borrar una fila no desplace el número de las que faltan.
  * Igual que eliminarPacienteWeb: no toca Agenda ni Valoraciones.
  *
- * `nombresEsperados` es un objeto { fila: nombre } con lo que el cliente cargó.
- * La comprobación es de todo o nada: si CUALQUIER fila ya no corresponde a su
- * nombre (o ya no existe), no se borra ninguna.
+ * Todo o nada: si CUALQUIER ID ya no está en la Maestra no se borra ninguno (el cliente guarda una copia de cada ficha
+ * para poder deshacer, y no debe restaurar a alguien que ya no estaba).
  */
-function eliminarPacientesLoteWeb(filas, nombresEsperados) {
-  if (!Array.isArray(filas) || filas.length === 0) return { success: false, message: 'No hay usuarios seleccionados.' };
+function eliminarPacientesLoteWeb(idsPaciente) {
+  if (!Array.isArray(idsPaciente) || idsPaciente.length === 0) return { success: false, message: 'No hay usuarios seleccionados.' };
 
   const lock = LockService.getScriptLock();
   try {
@@ -303,28 +278,16 @@ function eliminarPacientesLoteWeb(filas, nombresEsperados) {
     const sheet = getSS().getSheetByName(SHEETS.MAESTRA);
     if (!sheet) return { success: false, message: `No se encontró la hoja "${SHEETS.MAESTRA}".` };
 
-    const lastRow = sheet.getLastRow();
-    const filasValidas = Array.from(new Set(filas.map(f => parseInt(f, 10)).filter(f => f >= 2 && f <= lastRow)));
-    if (!filasValidas.length) return { success: false, message: 'Filas no válidas.' };
-
-    if (nombresEsperados && typeof nombresEsperados === 'object') {
-      const pedidas = new Set(filas.map(f => parseInt(f, 10)));
-      if (filasValidas.length !== pedidas.size) {
-        return { success: false, message: 'La lista ha cambiado desde que se cargó. Recarga la página e inténtalo de nuevo.' };
-      }
-      const colNombre = indiceColumnaNombreMaestra_(sheet);
-      const nombresHoja = sheet.getRange(2, colNombre + 1, lastRow - 1, 1).getValues();
-      const cambiada = filasValidas.some(f => {
-        const esperado = nombresEsperados[f];
-        if (esperado === undefined || esperado === null) return true;
-        return nombresHoja[f - 2][0].toString().trim() !== String(esperado).trim();
-      });
-      if (cambiada) return { success: false, message: 'La lista ha cambiado desde que se cargó. Recarga la página e inténtalo de nuevo.' };
+    const mapa = mapaFilasMaestraPorId_(sheet);
+    const ids = Array.from(new Set(idsPaciente.map(id => String(id || '').trim()).filter(Boolean)));
+    const filas = ids.map(id => mapa[id]);
+    if (!ids.length || filas.some(f => !f)) {
+      return { success: false, message: 'La lista ha cambiado desde que se cargó. Recarga la página e inténtalo de nuevo.' };
     }
 
-    filasValidas.sort((a, b) => b - a).forEach(f => sheet.deleteRow(f));
+    filas.sort((a, b) => b - a).forEach(f => sheet.deleteRow(f));
 
-    return { success: true, message: filasValidas.length + (filasValidas.length === 1 ? ' usuario eliminado.' : ' usuarios eliminados.') };
+    return { success: true, message: filas.length + (filas.length === 1 ? ' usuario eliminado.' : ' usuarios eliminados.') };
   } catch (e) {
     Logger.log('Error en eliminarPacientesLoteWeb: ' + e.message);
     return { success: false, message: e.message };

@@ -212,6 +212,31 @@ function obtenerIndiceColumnaPorNombre_(hoja, nombreColumna) {
 }
 
 /**
+ * Mapa { idPaciente: fila } de TODA la Maestra (una sola lectura de la columna "ID paciente"). Es la única forma de
+ * localizar a un usuario en la Maestra: el nombre, el DNI y el número de fila que tenía el cliente al cargar no sirven
+ * (la hoja se reordena y puede haber homónimos).
+ */
+function mapaFilasMaestraPorId_(sheet) {
+  const mapa = Object.create(null);
+  const ult = sheet.getLastRow();
+  if (ult < 2) return mapa;
+  const c = obtenerIndiceColumnaPorNombre_(sheet, COLUMNAS.MAESTRA.ID_PACIENTE);
+  if (c === -1) return mapa;
+  const ids = sheet.getRange(2, c + 1, ult - 1, 1).getValues();
+  for (let i = 0; i < ids.length; i++) {
+    const id = String(ids[i][0] || '').trim();
+    if (id && !(id in mapa)) mapa[id] = i + 2;
+  }
+  return mapa;
+}
+
+/** Fila de la Maestra del usuario con ese ID paciente; 0 si no existe (o si el ID viene vacío). */
+function filaMaestraPorId_(sheet, idPaciente) {
+  const id = String(idPaciente || '').trim();
+  return id ? (mapaFilasMaestraPorId_(sheet)[id] || 0) : 0;
+}
+
+/**
  * Localiza la columna de teléfono principal de la Maestra, intentando las
  * cabeceras conocidas en orden y cayendo a una búsqueda difusa ("tel"/"mov")
  * como último recurso. Devuelve el índice 0-based o -1.

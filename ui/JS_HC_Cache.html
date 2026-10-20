@@ -16,8 +16,8 @@
     · Al volver a la pestaña tras varios minutos, o si otra ventana cambia un usuario, se recarga todo en segundo plano.
 
   API:
-    HCCache.obtener(id, nombre)   copia de la HC { ...respuesta de obtenerHCWeb, _obsoleta } o null si no está.
-                                  Si hay `id` manda el id; si no, se busca por nombre (solo si es único).
+    HCCache.obtener(id, idPaciente)   copia de la HC { ...respuesta de obtenerHCWeb, _obsoleta } o null si no está.
+                                  Si hay `id` (ID HC) manda el id; si no, se busca por ID paciente.
     HCCache.guardar(resp)         guarda/actualiza una HC (respuesta de obtenerHCWeb, ya con los cambios locales).
     HCCache.invalidar(id)         borra una entrada (p. ej. si un guardado falló y ya no se sabe cómo está en la hoja).
     HCCache.recargar()            vuelve a leer todas las activas en segundo plano.
@@ -30,7 +30,7 @@ var HCCache = (function() {
   var FRESCO_MS = 60000;           // una entrada más vieja se abre igual, pero se refresca detrás
   var RECARGA_MS = 5 * 60000;      // al volver a la pestaña tras este tiempo se recarga todo
   var porId = {};                  // id HC -> { r: respuesta, t: instante en que se recibió/guardó }
-  var idPorNombre = {};            // nombre normalizado -> id HC (null si hay dos con el mismo nombre)
+  var idPorPaciente = {};          // ID paciente -> id HC (null si hubiera dos historias con el mismo ID paciente)
   var cargando = false, cargada = false, tUltimaCarga = 0, reintentado = false;
 
   function norm(x) { return String(x === null || x === undefined ? '' : x).normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim().toUpperCase(); }
@@ -40,13 +40,13 @@ var HCCache = (function() {
   function indexar(r, t) {
     if (!r || !r.success || !r.id) return;
     porId[r.id] = { r: clonar(r), t: t };
-    var n = r.usuario && norm(r.usuario.nombre);
-    if (n) idPorNombre[n] = (idPorNombre[n] === undefined || idPorNombre[n] === r.id) ? r.id : null;
+    var p = r.usuario && r.usuario.idPaciente;
+    if (p) idPorPaciente[p] = (idPorPaciente[p] === undefined || idPorPaciente[p] === r.id) ? r.id : null;
   }
 
-  function obtener(id, nombre) {
+  function obtener(id, idPaciente) {
     var clave = id || null;
-    if (!clave) { var n = norm(nombre); clave = n ? idPorNombre[n] : null; }
+    if (!clave) clave = idPaciente ? idPorPaciente[idPaciente] : null;
     var e = clave ? porId[clave] : null;
     if (!e) return null;
     var c = clonar(e.r);

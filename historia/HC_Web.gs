@@ -38,9 +38,8 @@ const HC_ESTILOS_ASISTENCIA_ = [
 /** Sirve la página de la ficha: ?page=hc&nombre=XXX  (o &fila=N de la Maestra). */
 function servirFichaHCWeb(parametros) {
   const t = HtmlService.createTemplateFromFile('historia/HC_Vista');
-  t.nombre = (parametros && parametros.nombre) || '';
-  t.fila = (parametros && parametros.fila) || '';
-  t.idHC = (parametros && parametros.id) || '';
+  t.idHC = (parametros && parametros.id) || '';                       // ID HC (?page=hc&id=)
+  t.idPaciente = (parametros && parametros.idPaciente) || '';         // ID paciente (?page=hc&idPaciente=), si no hay ID HC
   t.modoPrueba = HC_WEB_MODO_PRUEBA;
   t.imprimir = !!(parametros && String(parametros.imprimir) === '1');
   t.baseUrl = ScriptApp.getService().getUrl();
@@ -84,34 +83,49 @@ function hcHojas_() {
   return { ss: ss, hc: hc, epi: epi };
 }
 
-/** Localiza la fila del usuario en la Maestra: por nombre si lo hay (las filas se reordenan), si no por fila. */
-function hcLocalizarUsuario_(maestra, nombre, fila) {
-  const colN = COLUMNAS_NUM.MAESTRA.NOMBRE, ult = maestra.getLastRow();
-  if (ult < 2) return 0;
-  const nombres = maestra.getRange(2, colN, ult - 1, 1).getValues();
-  const objetivo = hcNorm_(nombre);
-  if (objetivo) {
-    for (let i = 0; i < nombres.length; i++) if (hcNorm_(nombres[i][0]) === objetivo) return i + 2;
-    return 0;
-  }
-  const f = parseInt(fila, 10);
-  return f >= 2 && f <= ult && nombres[f - 2][0] ? f : 0;
-}
+/** Fila de la Maestra del usuario con ese ID paciente (columna "ID paciente"); 0 si no existe. Es la ÚNICA forma de localizar a un usuario desde la HC. */
+function hcFilaMaestraPorIdPaciente_(maestra, idPaciente) { return filaMaestraPorId_(maestra, idPaciente); }
 
 // ----------------------------------------------------------------------------- lectura
 
 /**
- * Todo lo que necesita pintar la ficha, en una sola llamada.
- * @param {string} nombre Nombre del usuario (preferente) · @param {string|number} fila Fila de la Maestra (respaldo)
+ * Todo lo que necesita pintar la ficha, en una sola llamada. La historia y el usuario se localizan SOLO por ID, nunca por
+ * nombre ni por número de fila.
+ * @param {string} idHC ID de la historia (col. 1 de "Historias Clínicas"; el que lleva el enlace ?page=hc&id=).
+ * @param {string=} idPaciente ID paciente (Maestra). Se usa si no hay ID HC: la historia es la que lleva ese ID en su col. 8.
+ * @param {string=} enlaceAntiguo URL de un Doc antiguo (solo para enlaces de la Agenda aún sin convertir): se resuelve por el
+ *   ID del Doc guardado en la historia (col. 7).
  */
-function obtenerHCWeb(nombre, fila, idHC) {
+function obtenerHCWeb(idHC, idPaciente, enlaceAntiguo) {
   try {
     idHC = String(idHC || '').replace(/[^\w-]/g, '');
+    idPaciente = String(idPaciente || '').trim();
     const h = hcHojas_(), tz = h.ss.getSpreadsheetTimeZone();
     const maestra = h.ss.getSheetByName(SHEETS.MAESTRA);
     if (!maestra) return { success: false, message: 'No se encontró la hoja "' + SHEETS.MAESTRA + '".' };
 
-    const filaM = idHC ? hcLocalizarUsuarioPorId_(h, maestra, idHC) : hcLocalizarUsuario_(maestra, nombre, fila);
+    // --- 1) la historia, por ID HC; si no, por ID paciente (col. 8); si no, por el ID del Doc de un enlace antiguo
+    const ultHC = h.hc.getLastRow();
+    if (ultHC < 2) return { success: false, message: 'La hoja "' + HC_WEB_.HOJA_HC + '" está vacía.' };
+    const iIdP = HC_WEB_.COL.ID_PACIENTE - 1, iDoc = HC_WEB_.COL.DOC - 1;
+    const filasHC = h.hc.getRange(2, 1, ultHC - 1, HC_WEB_.COL.ID_PACIENTE).getValues();
+    let idx = -1;
+    if (idHC) {
+      for (let i = 0; i < filasHC.length; i++) if (String(filasHC[i][0]) === idHC) { idx = i; break; }
+    } else if (idPaciente) {
+      const c = [];
+      filasHC.forEach(function (r, i) { if (String(r[iIdP] || '').trim() === idPaciente) c.push(i); });
+      if (c.length > 1) return { success: false, message: 'Hay ' + c.length + ' historias con el mismo ID paciente: hay que revisarlo.' };
+      if (c.length === 1) idx = c[0];
+    } else if (enlaceAntiguo) {
+      const d = hcDocId_(enlaceAntiguo);
+      if (d) for (let i = 0; i < filasHC.length; i++) if (hcDocId_(filasHC[i][iDoc]) === d) { idx = i; break; }
+    }
+
+    // --- 2) el usuario: por el ID paciente de la historia (o el recibido). Respaldo, también por ID: el enlace de la Maestra a ese ID HC.
+    const idPUsuario = idx !== -1 ? String(filasHC[idx][iIdP] || '').trim() : idPaciente;
+    let filaM = hcFilaMaestraPorIdPaciente_(maestra, idPUsuario);
+    if (!filaM && idHC) filaM = hcLocalizarUsuarioPorId_(h, maestra, idHC);
     if (!filaM) return { success: false, message: 'No se encontró al usuario en la Base de Datos.' };
 
     // --- datos personales (una fila de la Maestra)
@@ -131,6 +145,7 @@ function obtenerHCWeb(nombre, fila, idHC) {
       docUrl = extraerUrlHistoriaClinica(valores[iHC], c.getRichTextValue(), c.getFormula());
     }
     const usuario = {
+      idPaciente: dato(COLUMNAS.MAESTRA.ID_PACIENTE),
       nombre: dato(COLUMNAS.MAESTRA.NOMBRE), dni: dato(COLUMNAS.MAESTRA.DNI),
       nacimiento: dato(COLUMNAS.MAESTRA.FECHA_NACIMIENTO), edad: dato(COLUMNAS.MAESTRA.EDAD),
       telefono: dato(COLUMNAS.MAESTRA.TELEFONO_1), telefono2: dato(COLUMNAS.MAESTRA.TELEFONO_2),
@@ -138,26 +153,15 @@ function obtenerHCWeb(nombre, fila, idHC) {
       fila: filaM
     };
 
-    // --- historia (por Doc original; respaldo: nombre de referencia, solo si es único)
-    const ultHC = h.hc.getLastRow();
-    if (ultHC < 2) return { success: false, message: 'La hoja "' + HC_WEB_.HOJA_HC + '" está vacía.' };
-    const ids = h.hc.getRange(2, 1, ultHC - 1, 7).getValues();
-    const idLink = idHC || hcIdDeUrl_(docUrl);
-    const docId = idLink ? '' : hcDocId_(docUrl);
-    let idx = -1;
-    if (idLink) for (let i = 0; i < ids.length; i++) if (String(ids[i][0]) === idLink) { idx = i; break; }
-    if (idx === -1 && docId) for (let i = 0; i < ids.length; i++) if (hcDocId_(ids[i][HC_WEB_.COL.DOC - 1]) === docId) { idx = i; break; }
-    let porNombre = false;
-    if (idx === -1) {
-      const o = hcNorm_(usuario.nombre), c = [];
-      ids.forEach(function (r, i) { if (hcNorm_(r[1]) === o) c.push(i); });
-      if (c.length === 1) { idx = c[0]; porNombre = true; }
-      else return { success: false, usuario: usuario, message: c.length
-        ? 'Hay ' + c.length + ' historias con ese nombre y el enlace de la Maestra no coincide con ninguna: hay que revisarlo.'
-        : 'Este usuario no tiene historia migrada.' };
+    // --- 3) si con los datos recibidos no apareció la historia, se prueba con la que enlaza la Maestra a ese usuario (ID HC o Doc original)
+    if (idx === -1 && !idHC) {
+      const idLink = hcIdDeUrl_(docUrl), docId = idLink ? '' : hcDocId_(docUrl);
+      if (idLink) for (let i = 0; i < filasHC.length; i++) if (String(filasHC[i][0]) === idLink) { idx = i; break; }
+      if (idx === -1 && docId) for (let i = 0; i < filasHC.length; i++) if (hcDocId_(filasHC[i][iDoc]) === docId) { idx = i; break; }
     }
+    if (idx === -1) return { success: false, usuario: usuario, message: 'Este usuario no tiene historia migrada.' };
     const filaHC = idx + 2;
-    const fila7 = h.hc.getRange(filaHC, 1, 1, 7).getValues()[0];
+    const fila7 = filasHC[idx];
     const id = String(fila7[0]);
 
     // --- episodios
@@ -169,7 +173,7 @@ function obtenerHCWeb(nombre, fila, idHC) {
     episodios.sort(hcCmpEpisodios_);
 
     const resp = {
-      success: true, id: id, usuario: usuario, porNombre: porNombre, docOriginal: String(fila7[6] || (hcEsFichaWeb_(docUrl) ? '' : docUrl) || ''),
+      success: true, id: id, usuario: usuario, docOriginal: String(fila7[6] || (hcEsFichaWeb_(docUrl) ? '' : docUrl) || ''),
       historia: String(fila7[2] || ''), tratamiento: String(fila7[3] || ''), modificado: hcMs_(fila7[4]),
       episodios: episodios, modoPrueba: HC_WEB_MODO_PRUEBA
     };
@@ -323,16 +327,16 @@ function obtenerHCsActivasWeb() {
     const iNombre = col(COLUMNAS.MAESTRA.NOMBRE), iEstado = col(COLUMNAS.MAESTRA.ESTADO);
     if (iNombre === -1 || iEstado === -1) return { success: false, message: 'Faltan las columnas Nombre / Estado en la Maestra.' };
 
-    // --- Historias clínicas (una lectura) con índices por ID, por Doc original y por nombre de referencia
-    const filasHC = h.hc.getRange(2, 1, ultHC - 1, 7).getValues();
-    const porId = {}, porDoc = {}, porNombreRef = {};
+    // --- Historias clínicas (una lectura) con índices por ID HC, por ID paciente y por Doc original (nunca por nombre)
+    const filasHC = h.hc.getRange(2, 1, ultHC - 1, HC_WEB_.COL.ID_PACIENTE).getValues();
+    const porId = {}, porDoc = {}, porIdPaciente = {};
     filasHC.forEach(function (r, i) {
       const id = String(r[0]);
       if (id && porId[id] === undefined) porId[id] = i;
       const d = hcDocId_(r[HC_WEB_.COL.DOC - 1]);
       if (d && porDoc[d] === undefined) porDoc[d] = i;
-      const n = hcNorm_(r[1]);
-      (porNombreRef[n] = porNombreRef[n] || []).push(i);
+      const p = String(r[HC_WEB_.COL.ID_PACIENTE - 1] || '').trim();
+      if (p) (porIdPaciente[p] = porIdPaciente[p] || []).push(i);
     });
 
     // --- Episodios (una lectura), agrupados por ID de HC
@@ -366,6 +370,7 @@ function obtenerHCsActivasWeb() {
         let docUrl = '';
         if (iHC !== -1) docUrl = extraerUrlHistoriaClinica(row[iHC], ricos[i][0], formulas[i][0]);
         const usuario = {
+          idPaciente: dato(COLUMNAS.MAESTRA.ID_PACIENTE),
           nombre: dato(COLUMNAS.MAESTRA.NOMBRE), dni: dato(COLUMNAS.MAESTRA.DNI),
           nacimiento: dato(COLUMNAS.MAESTRA.FECHA_NACIMIENTO), edad: dato(COLUMNAS.MAESTRA.EDAD),
           telefono: dato(COLUMNAS.MAESTRA.TELEFONO_1), telefono2: dato(COLUMNAS.MAESTRA.TELEFONO_2),
@@ -373,21 +378,23 @@ function obtenerHCsActivasWeb() {
           fila: i + 2
         };
 
-        // Misma búsqueda de la HC que obtenerHCWeb: por ID del enlace, por Doc original, o por nombre si es único.
+        // Misma búsqueda de la HC que obtenerHCWeb: por ID paciente (col. 8 de la historia); si ninguna lo lleva, por el ID HC
+        // del enlace de la Maestra o por el Doc original. Nunca por nombre. Sin historia o ambigua: se abre por el camino normal.
+        const candidatas = usuario.idPaciente ? (porIdPaciente[usuario.idPaciente] || []) : [];
         const idLink = hcIdDeUrl_(docUrl);
         const docId = idLink ? '' : hcDocId_(docUrl);
-        let idx = -1, porNombre = false;
-        if (idLink && porId[idLink] !== undefined) idx = porId[idLink];
-        if (idx === -1 && docId && porDoc[docId] !== undefined) idx = porDoc[docId];
-        if (idx === -1) {
-          const c = porNombreRef[hcNorm_(usuario.nombre)] || [];
-          if (c.length === 1) { idx = c[0]; porNombre = true; } else return;   // sin HC o ambigua: se abre por el camino normal
+        let idx = -1;
+        if (candidatas.length === 1) idx = candidatas[0];
+        else if (candidatas.length === 0) {
+          if (idLink && porId[idLink] !== undefined) idx = porId[idLink];
+          else if (docId && porDoc[docId] !== undefined) idx = porDoc[docId];
         }
+        if (idx === -1) return;
         const f7 = filasHC[idx], id = String(f7[0]);
         const episodios = (epiPorId[id] || []).map(function (e) { return { ingreso: e.ingreso, alta: e.alta, nota: e.nota }; });
 
         const resp = {
-          success: true, id: id, usuario: usuario, porNombre: porNombre,
+          success: true, id: id, usuario: usuario,
           docOriginal: String(f7[6] || (hcEsFichaWeb_(docUrl) ? '' : docUrl) || ''),
           historia: String(f7[2] || ''), tratamiento: String(f7[3] || ''), modificado: hcMs_(f7[4]),
           episodios: episodios, modoPrueba: HC_WEB_MODO_PRUEBA
@@ -530,8 +537,16 @@ function hcUrlFicha_(id) { return ScriptApp.getService().getUrl() + '?page=hc&id
 function hcEsFichaWeb_(url) { return /[?&]page=hc&id=[\w-]+/.test(String(url || '')); }
 function hcIdDeUrl_(url) { const m = String(url || '').match(/[?&]page=hc&id=([\w-]+)/); return m ? m[1] : ''; }
 
-/** Fila de la Maestra cuyo enlace contiene ese ID; respaldo: el "Nombre (referencia)" de la HC si es único. */
+/**
+ * Fila de la Maestra del usuario dueño de una historia, a partir del ID HC: el "ID paciente" que lleva la historia (col. 8)
+ * apunta a la Maestra. Respaldo, también por ID: la fila cuyo enlace de Historia clínica contiene ese ID HC. Nunca por nombre.
+ */
 function hcLocalizarUsuarioPorId_(h, maestra, idHC) {
+  const filaHC = hcFilaPorId_(h.hc, idHC);
+  if (filaHC) {
+    const f = hcFilaMaestraPorIdPaciente_(maestra, h.hc.getRange(filaHC, HC_WEB_.COL.ID_PACIENTE).getValue());
+    if (f) return f;
+  }
   const ult = maestra.getLastRow();
   if (ult < 2) return 0;
   const iHC = obtenerIndiceColumnaPorNombre_(maestra, COLUMNAS.MAESTRA.HISTORIA_CLINICA);
@@ -542,9 +557,7 @@ function hcLocalizarUsuarioPorId_(h, maestra, idHC) {
       if (u && hcIdDeUrl_(u) === idHC) return i + 2;
     }
   }
-  const filaHC = hcFilaPorId_(h.hc, idHC);
-  if (!filaHC) return 0;
-  return hcLocalizarUsuario_(maestra, String(h.hc.getRange(filaHC, HC_WEB_.COL.NOMBRE).getValue()), '');
+  return 0;
 }
 
 /**

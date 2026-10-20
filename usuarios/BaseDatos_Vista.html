@@ -953,7 +953,7 @@
             mostrarAviso('Estado cambiado a ' + textoEstado(valor) + ' en ' + filas.length + (filas.length === 1 ? ' usuario.' : ' usuarios.'));
           })
           .withFailureHandler(function(err) { cargar(); mostrarAviso('Error al cambiar el estado: ' + err); })
-          .cambiarEstadoLoteWeb(filas, valor);
+          .cambiarEstadoLoteWeb(filas.map(idDeFila), valor);
       }
 
       document.getElementById('bloteEliminar').addEventListener('click', async function() {
@@ -965,9 +965,6 @@
         var copias = filas.map(function(f) { return TODOS.find(function(x) { return x._fila === f; }); })
           .filter(Boolean).map(function(p) { return Object.assign({}, p); })
           .sort(function(a, b) { return a._fila - b._fila; });
-        // Nombre que tenía cada fila al cargar: el servidor lo comprueba antes de borrar.
-        var nombresEsperados = {};
-        copias.forEach(function(p) { nombresEsperados[p._fila] = p['Nombre']; });
         google.script.run
           .withSuccessHandler(function(res) {
             seleccionMultiple.clear();
@@ -977,7 +974,7 @@
             else mostrarAviso((res && res.message) || (res && res.success ? 'Usuarios eliminados.' : 'No se pudo eliminar.'));
           })
           .withFailureHandler(function(err) { cargar(); mostrarAviso('Error al eliminar: ' + err); })
-          .eliminarPacientesLoteWeb(filas, nombresEsperados);
+          .eliminarPacientesLoteWeb(copias.map(idPaciente));
       });
 
       // ---------- Navegación por teclado ----------
@@ -1039,7 +1036,7 @@
         editar: {
           titulo: 'Editar', aviso: 'Cambios guardados',
           montar: function(cont, p, cb) {
-            return PanelEditar.abrir(cont, { fila: p._fila, nombre: p['Nombre'] || '', onGuardado: cb.guardado, onCancelar: cb.cancelar });
+            return PanelEditar.abrir(cont, { idPaciente: idPaciente(p), onGuardado: cb.guardado, onCancelar: cb.cancelar });
           }
         },
         cita: {
@@ -1051,7 +1048,7 @@
         hc: {
           titulo: 'Historia clínica', ancha: 'hc', sinAviso: true,
           montar: function(cont, p, cb) {
-            return PanelHC.abrir(cont, { id: hcIdDeUrl(p[COL_HISTORIA]), nombre: p['Nombre'] || '', fila: p._fila,
+            return PanelHC.abrir(cont, { id: hcIdDeUrl(p[COL_HISTORIA]), idPaciente: p['ID paciente'] || '',
               urlPagina: <?!= JSON.stringify(baseUrl) ?> + '?page=hc',
               // Editar al usuario desde la historia: la tabla se recarga como al guardar desde la ficha (la historia sigue abierta).
               alCambiar: function(tipo) {
@@ -1069,6 +1066,9 @@
         }
       };
       function cerrarControlador() { try { if (controladorForm && controladorForm.cerrar) controladorForm.cerrar(); } catch (e) { /* no crítico */ } }
+      // ID paciente del usuario (columna "ID paciente"): es lo que se envía al servidor, nunca el número de fila ni el nombre.
+      function idPaciente(p) { return (p && p['ID paciente']) ? String(p['ID paciente']).trim() : ''; }
+      function idDeFila(f) { return idPaciente(TODOS.find(function(x) { return x._fila === f; })); }
       function hcIdDeUrl(u) { var m = /[?&]id=([^&#]+)/.exec(String(u || '')); return m ? decodeURIComponent(m[1]) : ''; }
       function hayCambiosSinGuardar() {
         return !!(formularioActivo && controladorForm && controladorForm.haCambiado && controladorForm.haCambiado());
@@ -1170,7 +1170,8 @@
         var p = TODOS.find(function(x) { return x._fila === fila; });
         if (!p) return;
         if (acc === 'fichahc') {
-          window.open(<?!= JSON.stringify(baseUrl) ?> + '?page=hc&nombre=' + encodeURIComponent(p['Nombre']), '_blank', 'noopener');
+          var idHCficha = hcIdDeUrl(COL_HISTORIA ? p[COL_HISTORIA] : '');
+          window.open(<?!= JSON.stringify(baseUrl) ?> + '?page=hc&' + (idHCficha ? 'id=' + encodeURIComponent(idHCficha) : 'idPaciente=' + encodeURIComponent(p['ID paciente'] || '')), '_blank', 'noopener');
           return;
         }
         if (acc === 'hc') {
@@ -1290,7 +1291,7 @@
             if (window.HCCache) HCCache.cambioDeUsuario();   // un usuario nuevo en Activo entra en la precarga de HC
           })
           .withFailureHandler(function(err) { revertir('Error al cambiar el estado: ' + err); })
-          .cambiarEstadoPacienteWeb(fila, valor, p['Nombre']);
+          .cambiarEstadoPacienteWeb(idPaciente(p), valor);
       }
 
       // ---------- Copiar al portapapeles ----------
@@ -1496,7 +1497,7 @@
             btn.disabled = !pacienteSeleccionado;
             mostrarAviso('Error al eliminar: ' + err);
           })
-          .eliminarPacienteWeb(snapshot._fila, snapshot['Nombre']);
+          .eliminarPacienteWeb(idPaciente(snapshot));
       });
 
       function ejecutarDeshacer() {
@@ -1565,7 +1566,7 @@
             btn.innerHTML = textoOriginal;
             mostrarAviso('Error al dar de alta: ' + err);
           })
-          .darDeAltaPacienteWeb(pacienteSeleccionado._fila);
+          .darDeAltaPacienteWeb(idPaciente(pacienteSeleccionado));
       });
 
       // ---------- Generar Historia Clínica ----------
@@ -1589,7 +1590,7 @@
             btn.disabled = !pacienteSeleccionado;
             mostrarAviso('Error al generar la historia clínica: ' + err);
           })
-          .generarHistoriaClinicaWeb(pacienteSeleccionado._fila);
+          .generarHistoriaClinicaWeb(idPaciente(pacienteSeleccionado));
       });
 
       // ---------- Buscar Historia Clínica Huérfana ----------
@@ -1621,19 +1622,20 @@
             btn.disabled = !pacienteSeleccionado;
             mostrarAviso('Error al actualizar la historia clínica: ' + err);
           })
-          .actualizarDatosHistoriaClinicaWeb(pacienteSeleccionado._fila);
+          .actualizarDatosHistoriaClinicaWeb(idPaciente(pacienteSeleccionado));
       });
 
       // ---------- WhatsApp ----------
       // Un solo usuario: ventana con el mensaje predefinido para revisarlo y elegir WhatsApp Web o la app de escritorio.
       document.getElementById('btnWhatsapp').addEventListener('click', function() {
         if (!pacienteSeleccionado) return;
-        WhatsappDialogo.abrir('datosWhatsappMaestraWeb', [pacienteSeleccionado._fila], pacienteSeleccionado['Nombre']);
+        WhatsappDialogo.abrir('datosWhatsappMaestraWeb', [idPaciente(pacienteSeleccionado)], pacienteSeleccionado['Nombre']);
       });
       // Al pasar el ratón por el botón de WhatsApp de una fila se piden ya los datos: al hacer clic el diálogo sale con el mensaje listo.
       document.addEventListener('pointerover', function(e) {
         var btn = e.target.closest ? e.target.closest('.btn-whatsapp') : null;
-        if (btn && btn.dataset.fila) WhatsappDialogo.precargar('datosWhatsappMaestraWeb', [Number(btn.dataset.fila)]);
+        var idWa = btn && btn.dataset.fila ? idDeFila(Number(btn.dataset.fila)) : '';
+        if (idWa) WhatsappDialogo.precargar('datosWhatsappMaestraWeb', [idWa]);
       });
 
       // ---------- Editar, Cita y Valoración: formularios en el panel lateral ----------
