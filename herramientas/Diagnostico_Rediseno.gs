@@ -9,7 +9,7 @@
  * Qué mide:
  *   1. Maestra: total de usuarios, sin DNI, sin teléfono, DNI repetidos y pares sospechosos
  *      de duplicado (mismo DNI, mismo teléfono o nombres casi iguales).
- *   2. Agenda (cada hoja "Agenda AAAA-AAAA" por separado y en total): cuántas citas con usuario
+ *   2. Agenda (solo la hoja del curso actual, la que devuelve obtenerHojaAgenda): cuántas citas con usuario
  *      enlazan con un usuario de la Maestra, clasificadas en seguro / probable / ambiguo / sin enlace.
  *   3. Episodios HC: de los de Origen "Web" y de los de origen migrado, por separado, cuántos
  *      tienen el Ingreso idéntico a la "Fecha inscripción" del usuario en la Maestra.
@@ -21,7 +21,7 @@
  *
  * Reutiliza SIN modificar: hcCitasPorNombre_, hcNorm_, hcDigitos_, hcAISO_, hcIdDeUrl_ (historia/HC_Web.gs),
  * normalizarTelefono (usuarios/Contactos_Google.gs), normalizarDniUsuario, resolverColumnaTelefono_ y
- * extraerUrlHistoriaClinica (core/Utils.gs), _palabrasNombre_ y _nombresParecidos_ (usuarios/Anadir_Usuario.gs,
+ * extraerUrlHistoriaClinica y obtenerHojaAgenda (core/Utils.gs), _palabrasNombre_ y _nombresParecidos_ (usuarios/Anadir_Usuario.gs,
  * la misma lógica de nombres de buscarPosiblesDuplicadosWeb), getSS, SHEETS, COLUMNAS y HC_WEB_.
  *
  * Archivo nuevo en herramientas/. Todos los nombres llevan el prefijo diagRed_ / DIAG_RED_ para no
@@ -245,9 +245,11 @@ function diagRed_analizarAgenda_(ss, tz, us) {
     u.digs.forEach(function (t) { (porTel[t] = porTel[t] || []).push(u); });
   });
 
-  const hojas = ss.getSheets().filter(function (s) { return /^Agenda \d{4}-\d{4}$/.test(s.getName()); })
-    .sort(function (a, b) { return diagRed_cmp_(a.getName(), b.getName()); });
-  if (!hojas.length) res.avisos.push('No se ha encontrado ninguna hoja "Agenda AAAA-AAAA".');
+  // Solo el curso actual (el anterior se descarta a propósito).
+  let hojaCurso = null;
+  try { hojaCurso = obtenerHojaAgenda(); } catch (e) { hojaCurso = null; }
+  const hojas = hojaCurso ? [hojaCurso] : [];
+  if (!hojas.length) res.avisos.push('No se ha encontrado la hoja de Agenda del curso actual.');
 
   const combos = {}; // 'clase|nombre|tel' -> fila de lista (agrupa todas las hojas)
 
