@@ -517,7 +517,7 @@ window.PanelHC = {
     c.querySelectorAll('input').forEach(function (inp) {
       inp.addEventListener('change', function () {
         var ep = episodios[inp.dataset.i], k = inp.dataset.k, nuevo = inp.value;
-        if (k === 'ingreso' && !nuevo) { inp.value = ep.ingreso; avisoTemporal('El ingreso no puede quedar vacío. Para quitar el episodio usa Eliminar.'); return; }
+        if (k === 'ingreso' && !nuevo && ep.alta) { inp.value = ep.ingreso; avisoTemporal('Un episodio con alta necesita fecha de ingreso. Para quitar el episodio usa Eliminar.'); return; }
         var ing = k === 'ingreso' ? nuevo : ep.ingreso, alt = k === 'alta' ? nuevo : ep.alta;
         if (ing && alt && alt < ing) { inp.value = ep[k]; avisoTemporal('El alta no puede ser anterior al ingreso.'); return; }
         ep[k] = nuevo; guardarEpisodios(); pintarEpisodios(); pintarTiles();

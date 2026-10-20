@@ -66,6 +66,13 @@ function hcDeISO_(iso) {
   const m = String(iso || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
   return m ? new Date(+m[1], +m[2] - 1, +m[3], 12, 0, 0) : '';
 }
+/** Orden de episodios por Ingreso; los que aún no tienen ingreso (episodio sin empezar) van al final, como el más reciente. */
+function hcCmpEpisodios_(a, b) {
+  if (a.ingreso === b.ingreso) return 0;
+  if (!a.ingreso) return 1;
+  if (!b.ingreso) return -1;
+  return a.ingreso < b.ingreso ? -1 : 1;
+}
 function hcMs_(v) {
   return Object.prototype.toString.call(v) === '[object Date]' && !isNaN(v) ? v.getTime() : 0;
 }
@@ -159,7 +166,7 @@ function obtenerHCWeb(nombre, fila, idHC) {
     if (ultE > 1) h.epi.getRange(2, 1, ultE - 1, 4).getValues().forEach(function (r) {
       if (String(r[0]) === id) episodios.push({ ingreso: hcAISO_(r[1], tz), alta: hcAISO_(r[2], tz), nota: String(r[3] || '') });
     });
-    episodios.sort(function (a, b) { return a.ingreso < b.ingreso ? -1 : a.ingreso > b.ingreso ? 1 : 0; });
+    episodios.sort(hcCmpEpisodios_);
 
     const resp = {
       success: true, id: id, usuario: usuario, porNombre: porNombre, docOriginal: String(fila7[6] || (hcEsFichaWeb_(docUrl) ? '' : docUrl) || ''),
@@ -336,7 +343,7 @@ function obtenerHCsActivasWeb() {
       (epiPorId[id] = epiPorId[id] || []).push({ ingreso: hcAISO_(r[1], tz), alta: hcAISO_(r[2], tz), nota: String(r[3] || '') });
     });
     Object.keys(epiPorId).forEach(function (id) {
-      epiPorId[id].sort(function (a, b) { return a.ingreso < b.ingreso ? -1 : a.ingreso > b.ingreso ? 1 : 0; });
+      epiPorId[id].sort(hcCmpEpisodios_);
     });
 
     // --- Valoraciones y Agenda (una lectura cada una). Si alguna falla, la ficha sale igual, como en obtenerHCWeb.
@@ -479,7 +486,7 @@ function guardarEpisodiosHCWeb(id, episodios, firmaBase) {
         return { ingreso: hcAISO_(r[1], tz), alta: hcAISO_(r[2], tz), nota: String(r[3] || '') };
       });
       if (hcFirmaEpisodios_(actuales) !== firmaBase) {
-        actuales.sort(function (a, b) { return a.ingreso < b.ingreso ? -1 : a.ingreso > b.ingreso ? 1 : 0; });
+        actuales.sort(hcCmpEpisodios_);
         return { success: false, conflicto: true, episodios: actuales,
           message: 'Los episodios se habían cambiado desde otra ventana.' };
       }
@@ -541,9 +548,12 @@ function hcLocalizarUsuarioPorId_(h, maestra, idHC) {
 }
 
 /**
- * Crea una HC nueva (sin Doc): una fila en "Historias Clínicas" y un episodio abierto.
+ * Crea una HC nueva (sin Doc): una fila en "Historias Clínicas" y un episodio abierto SIN fecha de ingreso.
+ * Fechas por episodio: inscripción (se añade al usuario a la base de datos, vive en la Maestra) ≠ ingreso (el
+ * paciente recibe su primera cita) ≠ alta. El ingreso nace vacío y lo rellena hcRegistrarPrimeraCita_ con la
+ * fecha de la primera cita; NUNCA se copia de la inscripción.
  * @param {string} nombre
- * @param {string=} ingresoISO 'yyyy-MM-dd' (por defecto hoy)
+ * @param {string=} ingresoISO 'yyyy-MM-dd'. Normalmente se omite (ingreso vacío); solo para altas con ingreso ya conocido.
  * @return {{id:string, url:string}}
  */
 function hcCrearHC_(nombre, ingresoISO) {
@@ -555,7 +565,7 @@ function hcCrearHC_(nombre, ingresoISO) {
     if (h.hc.getMaxRows() < fila) h.hc.insertRowsAfter(h.hc.getMaxRows(), fila - h.hc.getMaxRows());
     h.hc.getRange(fila, 1, 1, 7).setNumberFormat('@').setValues([[id, String(nombre || '').trim(), '', '', new Date(), 'Web', '']]);
     h.hc.getRange(fila, HC_WEB_.COL.MODIFICADO).setNumberFormat('dd/MM/yyyy HH:mm:ss');
-    const iso = /^\d{4}-\d{2}-\d{2}$/.test(ingresoISO || '') ? ingresoISO : Utilities.formatDate(new Date(), h.ss.getSpreadsheetTimeZone(), 'yyyy-MM-dd');
+    const iso = /^\d{4}-\d{2}-\d{2}$/.test(ingresoISO || '') ? ingresoISO : '';   // vacío = sin empezar
     const fe = Math.max(h.epi.getLastRow(), 1) + 1;
     if (h.epi.getMaxRows() < fe) h.epi.insertRowsAfter(h.epi.getMaxRows(), fe - h.epi.getMaxRows());
     h.epi.getRange(fe, 1, 1, 4).setValues([[id, hcDeISO_(iso), '', '']]);
@@ -564,6 +574,43 @@ function hcCrearHC_(nombre, ingresoISO) {
     return { id: id, url: hcUrlFicha_(id) };
   } finally {
     lock.releaseLock();
+  }
+}
+
+/**
+ * Primera cita de un paciente: si su episodio abierto (sin alta) tiene el Ingreso vacío, lo rellena con la fecha
+ * de esa cita. Si el episodio ya empezó (tiene ingreso), o no hay episodio abierto (p. ej. todos con alta), no hace
+ * nada. Es "de mejor esfuerzo": nunca lanza error ni impide guardar la cita.
+ * @param {string} url Enlace de la Historia clínica del usuario (el de la Maestra / la Agenda)
+ * @param {string} fechaISO Fecha de la cita, 'yyyy-MM-dd' (si son varias citas, la primera)
+ * @return {boolean} true si escribió el ingreso
+ */
+function hcRegistrarPrimeraCita_(url, fechaISO) {
+  try {
+    const id = hcIdDeUrl_(url);
+    if (!id || !/^\d{4}-\d{2}-\d{2}$/.test(fechaISO || '')) return false;
+    const lock = LockService.getScriptLock();
+    if (!lock.tryLock(5000)) return false;
+    try {
+      const h = hcHojas_(), tz = h.ss.getSpreadsheetTimeZone();
+      const ult = h.epi.getLastRow();
+      if (ult < 2) return false;
+      const filas = h.epi.getRange(2, 1, ult - 1, 3).getValues();
+      let objetivo = 0, yaEmpezado = false;
+      filas.forEach(function (r, i) {
+        if (String(r[0]) !== id || hcAISO_(r[2], tz)) return;      // otra HC, o episodio ya cerrado
+        if (hcAISO_(r[1], tz)) yaEmpezado = true; else if (!objetivo) objetivo = i + 2;
+      });
+      if (yaEmpezado || !objetivo) return false;
+      h.epi.getRange(objetivo, 2).setNumberFormat('dd/MM/yyyy').setValue(hcDeISO_(fechaISO));
+      SpreadsheetApp.flush();
+      return true;
+    } finally {
+      lock.releaseLock();
+    }
+  } catch (e) {
+    Logger.log('Error en hcRegistrarPrimeraCita_: ' + e.message);
+    return false;
   }
 }
 

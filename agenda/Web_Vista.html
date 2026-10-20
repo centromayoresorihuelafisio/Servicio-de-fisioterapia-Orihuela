@@ -2035,6 +2035,7 @@
               if (COL_HISTORIA) cita[COL_HISTORIA] = res.historiaClinica;
               cita._hueco = false;
             }
+            if (res.ingresoRegistrado && window.HCCache) HCCache.cambioDeUsuario();   // la HC cambió (ingreso = primera cita)
             render();
           })
           .withFailureHandler(function(err) {

@@ -445,9 +445,10 @@ function generarHistoriaClinicaRegistroUsuario(patientData) {
       }
     }
 
-    // HC definitiva (sin Doc): fila nueva en "Historias Clínicas" + episodio abierto desde la fecha de inscripción.
+    // HC definitiva (sin Doc): fila nueva en "Historias Clínicas" + episodio abierto SIN ingreso (lo rellena la primera cita;
+    // la fecha de inscripción es otra cosa y vive solo en la Maestra).
     if (!HC_WEB_MODO_PRUEBA) {
-      const nueva = hcCrearHC_(nombre, patientData['Fecha inscripción'] || '');
+      const nueva = hcCrearHC_(nombre);
       if (histColIndex !== -1 && targetRow !== -1) {
         sheet.getRange(targetRow, histColIndex + 1).setRichTextValue(
           SpreadsheetApp.newRichTextValue().setText("Ver Historia Clínica").setLinkUrl(nueva.url).build());

@@ -278,6 +278,8 @@ function guardarCitasMultiples(formData) {
 
   let successCount = 0;
   let failureMessages = [];
+  let primeraFechaISO = ''; // fecha de la primera cita guardada: será el Ingreso del episodio si aún no lo tiene
+  const tzCita = ss.getSpreadsheetTimeZone();
   let huecosObjs = huecosJson.map(jsonStr => JSON.parse(jsonStr));
   huecosObjs.sort((a, b) => a.row - b.row);
 
@@ -311,6 +313,14 @@ function guardarCitasMultiples(formData) {
         sheet.getRange(targetRow, COLUMNAS_NUM.AGENDA.HISTORIA_CLINICA).setRichTextValue(richTextValue);
       }
       
+      try {
+        const fechaCita = sheet.getRange(targetRow, COLUMNAS_NUM.AGENDA.FECHA).getValue();
+        if (fechaCita instanceof Date) {
+          const iso = Utilities.formatDate(fechaCita, tzCita, 'yyyy-MM-dd');
+          if (!primeraFechaISO || iso < primeraFechaISO) primeraFechaISO = iso;
+        }
+      } catch (eFecha) { /* no crítico: solo afecta al ingreso automático */ }
+
       successCount++;
     } catch (e) {
       failureMessages.push(`Error fila ${hueco.row}: ${e.message}`);
@@ -320,12 +330,16 @@ function guardarCitasMultiples(formData) {
   if (successCount > 0) {
     actualizarEstadoPaciente(nombreUsuario, ESTADOS_PACIENTE.ACTIVO);
 
+    // Primera cita = ingreso del episodio (solo si aún no tiene; ver hcRegistrarPrimeraCita_ en historia/HC_Web.gs).
+    const enlaceHC = mapaHistorias ? mapaHistorias[nombreUsuario.toLowerCase()] : null;
+    const ingresoRegistrado = !!(enlaceHC && primeraFechaISO && hcRegistrarPrimeraCita_(enlaceHC.url, primeraFechaISO));
+
     ordenarPacientes();
     invalidarCacheAgenda_(sheet); // sin esto, agenda/Web.gs sirve la semana cacheada (hasta 90s) aunque el sondeo del cliente pregunte al instante
 
     let message = `Registro exitoso de **${successCount}** cita(s).`;
     message += `<br>Estado de **${nombreUsuario}** actualizado a **${ESTADOS_PACIENTE.ACTIVO}** e Historia Clínica vinculada.`;
-    return { success: true, message: message };
+    return { success: true, message: message, ingresoRegistrado: ingresoRegistrado };
   } else {
     return { success: false, message: "No se pudo guardar ninguna cita: " + failureMessages.join('; ') };
   }

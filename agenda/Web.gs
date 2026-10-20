@@ -557,8 +557,18 @@ function asignarPacienteHuecoWeb(fila, nombrePaciente) {
       sheet.getRange(rowIdx, colHC + 1).setRichTextValue(richText);
     }
 
+    // Primera cita = ingreso del episodio (solo si aún no lo tiene; ver hcRegistrarPrimeraCita_ en historia/HC_Web.gs).
+    let ingresoRegistrado = false;
+    try {
+      const colFecha = headers.indexOf(COLUMNAS.AGENDA.FECHA);
+      const fechaCita = colFecha === -1 ? null : sheet.getRange(rowIdx, colFecha + 1).getValue();
+      if (historiaClinicaUrl && fechaCita instanceof Date) {
+        ingresoRegistrado = hcRegistrarPrimeraCita_(historiaClinicaUrl, Utilities.formatDate(fechaCita, getSS().getSpreadsheetTimeZone(), 'yyyy-MM-dd'));
+      }
+    } catch (eIng) { Logger.log('asignarPacienteHuecoWeb: ingreso automático: ' + eIng.message); }
+
     invalidarCacheAgenda_(sheet);
-    return { success: true, usuario: nombre, telefono: telefono, historiaClinica: historiaClinicaUrl };
+    return { success: true, usuario: nombre, telefono: telefono, historiaClinica: historiaClinicaUrl, ingresoRegistrado: ingresoRegistrado };
   } catch (e) {
     Logger.log('Error en asignarPacienteHuecoWeb: ' + e.message);
     return { success: false, message: e.message };
