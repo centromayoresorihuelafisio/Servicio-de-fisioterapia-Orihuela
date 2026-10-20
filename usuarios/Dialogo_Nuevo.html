@@ -551,7 +551,7 @@ window.DialogoNuevo = {
               google.script.run
                 .withSuccessHandler(function (r) { if (r && r.success) console.log('✅ Historia clínica:', r.url); else console.error('❌', r && r.message); })
                 .withFailureHandler(function (err) { console.error('❌', err); })
-                .generarHistoriaClinicaRegistroUsuario(datos);
+                .generarHistoriaClinicaRegistroUsuario(Object.assign({}, datos, { idPaciente: res.idPaciente }));
             }
             setTimeout(function () { cerrar(); if (opts.onGuardado) opts.onGuardado(res); }, 900);
           } else {

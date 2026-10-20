@@ -712,7 +712,7 @@ window.PanelNuevo = {
                   mostrarMsg('Usuario guardado, pero no se pudo crear la historia clínica: ' + (err && err.message ? err.message : err) + ' Puedes crearla desde su ficha.', 'error');
                   avisarGuardado(3500);
                 })
-                .generarHistoriaClinicaRegistroUsuario(datos);
+                .generarHistoriaClinicaRegistroUsuario(Object.assign({}, datos, { idPaciente: res.idPaciente }));
             } else {
               avisarGuardado(900);
             }

@@ -212,7 +212,8 @@ function guardarPaciente(datos) {
   // ID estable del usuario (CONTEXTO.md, sección 11): se genera aquí, una sola vez, y no lo pide el formulario.
   // Si la columna aún no existe (antes de ejecutar herramientas/Asignar_IDs_Paciente.gs), no se hace nada.
   const colIdPaciente = encabezados.findIndex(h => h.toString().trim() === COLUMNAS.MAESTRA.ID_PACIENTE);
-  if (colIdPaciente !== -1) nuevaFila[colIdPaciente] = Utilities.getUuid();
+  let idPacienteNuevo = '';
+  if (colIdPaciente !== -1) { idPacienteNuevo = Utilities.getUuid(); nuevaFila[colIdPaciente] = idPacienteNuevo; }
 
   // Formato unificado (core/Utils.gs): el formulario ya lo aplica al escribir; aquí se
   // garantiza también en el servidor por si el dato llega de otra vía.
@@ -291,7 +292,7 @@ function guardarPaciente(datos) {
     }
 
     Logger.log('Fila añadida correctamente a la hoja en la fila ' + filaVacia);
-    return { success: true, message: "Paciente guardado correctamente." + avisoContacto }; // Devuelve un objeto de éxito
+    return { success: true, message: "Paciente guardado correctamente." + avisoContacto, idPaciente: idPacienteNuevo }; // Devuelve un objeto de éxito
   } catch (e) {
     Logger.log('ERROR al añadir la fila: ' + e.message);
     return { success: false, message: 'Error al guardar el paciente: ' + e.message }; // Devuelve un objeto de error
@@ -402,58 +403,47 @@ function generarHistoriaClinicaRegistroUsuario(patientData) {
     const fechaInscripcion = formatHtmlDate(patientData['Fecha inscripción']);
     const fechaNacimiento = formatHtmlDate(patientData['Fecha nacimiento']);
 
-    // --- VALIDACIÓN ANTI-DUPLICADOS ---
-    // Localizamos la fila del paciente ANTES de crear nada en Drive: si ya
-    // tiene una Historia Clínica enlazada (p. ej. el formulario se reenvía por
-    // error, o se marca el toggle sobre un usuario que ya la tenía), salimos
-    // sin generar un documento nuevo. Antes esta función creaba siempre el
-    // documento primero y buscaba la fila después, así que un reenvío dejaba
-    // un duplicado huérfano en Drive y machacaba el enlace anterior.
     const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0].map(h => h.toString().trim().toLowerCase());
-    const dniColIndex = headers.indexOf(COLUMNAS.MAESTRA.DNI.toLowerCase());
-    const nombreColIndex = headers.indexOf(COLUMNAS.MAESTRA.NOMBRE.toLowerCase());
     const histColIndex = headers.indexOf(COLUMNAS.MAESTRA.HISTORIA_CLINICA.toLowerCase());
+    const colIdMaestra = headers.indexOf(COLUMNAS.MAESTRA.ID_PACIENTE.toLowerCase());
 
+    // El usuario se identifica SOLO por su ID paciente (lo devuelve guardarPaciente; el número de fila no sirve
+    // porque guardarPaciente reordena la hoja, y el DNI/nombre pueden repetirse o faltar).
+    const idPaciente = String(patientData.idPaciente || '').trim();
+    if (!idPaciente || colIdMaestra === -1) {
+      return { success: false, message: 'No se pudo identificar al usuario (falta su ID paciente). Crea la historia clínica desde su ficha.' };
+    }
     let targetRow = -1;
-    if (histColIndex !== -1) {
-      const dataValues = sheet.getDataRange().getValues();
-
-      // Escaneo inverso para obtener el último registro de ese paciente
-      for (let i = dataValues.length - 1; i > 0; i--) {
-        const rowDni = dataValues[i][dniColIndex] ? dataValues[i][dniColIndex].toString().trim() : '';
-        const rowNombre = dataValues[i][nombreColIndex] ? dataValues[i][nombreColIndex].toString().trim().toUpperCase() : '';
-
-        // Criterio de búsqueda: Primero por DNI idéntico, y si no tiene DNI por Nombre coincidente
-        if (dni && rowDni.toUpperCase() === dni.trim().toUpperCase()) {
-          targetRow = i + 1;
-          break;
-        } else if (!dni && rowNombre === nombre.trim().toUpperCase()) {
-          targetRow = i + 1;
-          break;
-        }
+    const ultimaFila = sheet.getLastRow();
+    if (ultimaFila >= 2) {
+      const ids = sheet.getRange(2, colIdMaestra + 1, ultimaFila - 1, 1).getValues();
+      for (let i = 0; i < ids.length; i++) {
+        if (String(ids[i][0] || '').trim() === idPaciente) { targetRow = i + 2; break; }
       }
+    }
+    if (targetRow === -1) {
+      return { success: false, message: 'No se encontró al usuario en la Maestra con ese ID paciente.' };
+    }
 
-      if (targetRow !== -1) {
-        const celdaHC = sheet.getRange(targetRow, histColIndex + 1);
-        const urlExistente = extraerUrlHistoriaClinica(
-          celdaHC.getValue(),
-          celdaHC.getRichTextValue(),
-          celdaHC.getFormula()
-        );
-        if (urlExistente) {
-          return {
-            success: false,
-            message: `${nombre} ya tiene una Historia Clínica enlazada; no se ha creado otra.`,
-            url: urlExistente
-          };
-        }
+    // --- VALIDACIÓN ANTI-DUPLICADOS ---
+    // Antes de crear nada: si el usuario ya tiene una Historia Clínica enlazada (reenvío del formulario, toggle
+    // sobre un usuario que ya la tenía), se sale sin crear otra.
+    if (histColIndex !== -1) {
+      const celdaHC = sheet.getRange(targetRow, histColIndex + 1);
+      const urlExistente = extraerUrlHistoriaClinica(celdaHC.getValue(), celdaHC.getRichTextValue(), celdaHC.getFormula());
+      if (urlExistente) {
+        return {
+          success: false,
+          message: `${nombre} ya tiene una Historia Clínica enlazada; no se ha creado otra.`,
+          url: urlExistente
+        };
       }
     }
 
     // HC definitiva (sin Doc): fila nueva en "Historias Clínicas" + episodio abierto SIN ingreso (lo rellena la primera cita;
     // la fecha de inscripción es otra cosa y vive solo en la Maestra).
     if (!HC_WEB_MODO_PRUEBA) {
-      const nueva = hcCrearHC_(nombre);
+      const nueva = hcCrearHC_(nombre, '', idPaciente);
       if (histColIndex !== -1 && targetRow !== -1) {
         sheet.getRange(targetRow, histColIndex + 1).setRichTextValue(
           SpreadsheetApp.newRichTextValue().setText("Ver Historia Clínica").setLinkUrl(nueva.url).build());

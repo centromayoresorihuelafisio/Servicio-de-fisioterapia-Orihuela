@@ -1855,7 +1855,7 @@
             msg.className = res.success ? 'success' : 'error';
             msg.style.display = 'block';
             if (res.success) {
-              if (document.getElementById('generarHistoria').checked) generarHistoriaClinicaRegistroUsuario(datos);
+              if (document.getElementById('generarHistoria').checked) generarHistoriaClinicaRegistroUsuario(Object.assign({}, datos, { idPaciente: res.idPaciente }));
               form.reset();
               fi.value = new Date().toISOString().slice(0,10);
               syncDateLabel(fi);
