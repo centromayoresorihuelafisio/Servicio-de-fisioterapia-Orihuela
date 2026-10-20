@@ -104,7 +104,8 @@ function _generarHistoriaClinicaEnFila(sheet, rowIndex) {
   // HC definitiva (sin Doc): se crea la fila en "Historias Clínicas" con un episodio abierto y el enlace apunta a la ficha web.
   if (!HC_WEB_MODO_PRUEBA) {
     try {
-      const nueva = hcCrearHC_(nombre);   // episodio sin ingreso: lo rellena la primera cita (no se copia la inscripción)
+      // episodio sin ingreso: lo rellena la primera cita (no se copia la inscripción); la historia guarda el ID paciente del usuario
+      const nueva = hcCrearHC_(nombre, '', patientData[COLUMNAS.MAESTRA.ID_PACIENTE.toLowerCase()] || '');
       if (colIndex !== -1) {
         sheet.getRange(rowIndex, colIndex + 1).setRichTextValue(
           SpreadsheetApp.newRichTextValue().setText("Ver Historia Clínica").setLinkUrl(nueva.url).build());

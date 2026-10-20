@@ -15,7 +15,7 @@ const HC_WEB_ = {
   HOJA_HC: 'Historias Clínicas',
   HOJA_EPI: 'Episodios HC',
   MAX_CARACTERES: 45000,         // límite de una celda de Sheets: 50.000
-  COL: { ID: 1, NOMBRE: 2, HISTORIA: 3, TRATAMIENTO: 4, MODIFICADO: 5, ORIGEN: 6, DOC: 7 }
+  COL: { ID: 1, NOMBRE: 2, HISTORIA: 3, TRATAMIENTO: 4, MODIFICADO: 5, ORIGEN: 6, DOC: 7, ID_PACIENTE: 8 }  // 8 = "ID paciente" (paso 3b, CONTEXTO.md sección 11): a qué usuario de la Maestra pertenece la historia
 };
 
 /**
@@ -554,16 +554,18 @@ function hcLocalizarUsuarioPorId_(h, maestra, idHC) {
  * fecha de la primera cita; NUNCA se copia de la inscripción.
  * @param {string} nombre
  * @param {string=} ingresoISO 'yyyy-MM-dd'. Normalmente se omite (ingreso vacío); solo para altas con ingreso ya conocido.
+ * @param {string=} idPaciente ID paciente del usuario en la Maestra (columna "ID paciente"): se guarda en la historia para que sepa de quién es.
  * @return {{id:string, url:string}}
  */
-function hcCrearHC_(nombre, ingresoISO) {
+function hcCrearHC_(nombre, ingresoISO, idPaciente) {
   const lock = LockService.getScriptLock();
   if (!lock.tryLock(10000)) throw new Error('La hoja está ocupada. Inténtalo de nuevo.');
   try {
     const h = hcHojas_(), id = Utilities.getUuid();
     const fila = Math.max(h.hc.getLastRow(), 1) + 1;
     if (h.hc.getMaxRows() < fila) h.hc.insertRowsAfter(h.hc.getMaxRows(), fila - h.hc.getMaxRows());
-    h.hc.getRange(fila, 1, 1, 7).setNumberFormat('@').setValues([[id, String(nombre || '').trim(), '', '', new Date(), 'Web', '']]);
+    if (h.hc.getMaxColumns() < HC_WEB_.COL.ID_PACIENTE) h.hc.insertColumnsAfter(h.hc.getMaxColumns(), HC_WEB_.COL.ID_PACIENTE - h.hc.getMaxColumns());
+    h.hc.getRange(fila, 1, 1, HC_WEB_.COL.ID_PACIENTE).setNumberFormat('@').setValues([[id, String(nombre || '').trim(), '', '', new Date(), 'Web', '', String(idPaciente || '').trim()]]);
     h.hc.getRange(fila, HC_WEB_.COL.MODIFICADO).setNumberFormat('dd/MM/yyyy HH:mm:ss');
     const iso = /^\d{4}-\d{2}-\d{2}$/.test(ingresoISO || '') ? ingresoISO : '';   // vacío = sin empezar
     const fe = Math.max(h.epi.getLastRow(), 1) + 1;
