@@ -2737,6 +2737,12 @@
 
       function citaPorFila(f) { return CITAS.find(function(c) { return c._fila == f; }); }
 
+      // La clave de una fila es un número (hoja Agenda vieja) o un texto (tabla nueva: ID de cita o "hueco AAAA-MM-DD HH:mm"):
+      // nunca se fuerza a número con Number(), que con un ID daría NaN.
+      function filaDeElemento(el) { var f = el.dataset.fila; return /^\d+$/.test(f) ? Number(f) : f; }
+      // ¿La semana cargada viene de la tabla nueva "Citas"? (solo ella añade `_id` a cada fila)
+      function modoCitasNuevo() { return CITAS.length > 0 && CITAS[0]._id !== undefined; }
+
       function camposMovibles() {
         var k = ['Usuario', 'Teléfono', 'Sesión', 'Asistencia', 'ID Evento Calendar', 'Notas'];
         if (COL_HISTORIA) k.push(COL_HISTORIA);
@@ -2762,7 +2768,7 @@
         if (!asa && (e.pointerType !== 'mouse' || t.closest('button, a, input, select, .editable, .chk'))) return;
         var el = t.closest('tr.fila-cita, .tarjeta:not(.hueco), .cal-cita');
         if (!el) return;
-        candidatoArrastre = { fila: Number(el.dataset.fila), id: e.pointerId, x: e.clientX, y: e.clientY };
+        candidatoArrastre = { fila: filaDeElemento(el), id: e.pointerId, x: e.clientX, y: e.clientY };
       });
 
       window.addEventListener('pointermove', function(e) {
@@ -2838,7 +2844,7 @@
       function marcarDestino() {
         var el = document.elementFromPoint(arrastre.x, arrastre.y);
         var obj = el && el.closest ? el.closest('tr.fila-hueco, tr.fila-cita, .tarjeta, .cal-cita, .cal-hueco') : null;
-        var fila = obj ? Number(obj.dataset.fila) : null;
+        var fila = obj ? filaDeElemento(obj) : null;
         if (fila === arrastre.fila) { obj = null; fila = null; }
         if (fila === arrastre.destino) return;
         var prev = document.querySelector('.destino-drop');
@@ -2891,6 +2897,7 @@
       // Mover a un hueco libre, o intercambiar si el destino está ocupado.
       // Actualiza la pantalla al instante y confirma con el servidor; si falla, revierte.
       function moverCitaUI(filaO, filaD, esDeshacer) {
+        if (modoCitasNuevo()) { moverCitaUINuevo(filaO, filaD, esDeshacer); return; }
         var d = citaPorFila(filaD), intercambio = !!(d && !d._hueco);
         function pos(f, haciaFila) { var e = elFila(f); if (!e) return null; var r = e.getBoundingClientRect(); return { fila: haciaFila, x: r.left, y: r.top }; }
         var flips = [pos(filaO, filaD)];
@@ -2916,6 +2923,40 @@
           })
           .withFailureHandler(function(err) { revertir('Error al mover la cita: ' + err); });
         if (intercambio) runner.intercambiarCitasWeb(filaO, filaD); else runner.moverCitaWeb(filaO, filaD);
+      }
+
+      // Tabla nueva: sin cambio local en memoria (cada cita lleva su ID y los huecos se calculan en el servidor).
+      // Se confirma con el servidor y se recarga la semana. `filaO` es el ID de la cita; `filaD`, el ID de otra cita
+      // (intercambio) o la clave "hueco AAAA-MM-DD HH:mm" (mover). Deshacer: mover de vuelta al hueco de origen
+      // (su clave se calcula con la fecha y la hora que tenía) o repetir el intercambio, que es simétrico.
+      function moverCitaUINuevo(filaO, filaD, esDeshacer) {
+        var o = citaPorFila(filaO), d = citaPorFila(filaD);
+        render();                       // quita los huecos que se enseñaban mientras se arrastraba
+        actualizarBotonesSeleccion();
+        if (!o || o._hueco || String(filaO) === String(filaD)) return;
+        var intercambio = !!(d && !d._hueco);
+        if (!intercambio && String(filaD).indexOf('hueco ') !== 0) return;
+        var texto = intercambio ? 'Citas intercambiadas.' :
+          'Cita movida' + (d ? ' a ' + (d['Día'] ? d['Día'] + ' ' : '') + d['Hora'] : '') + '.';
+        var deshacer = { desde: intercambio ? filaD : 'hueco ' + o._fechaISO + ' ' + o._horaOrden, hacia: filaO };
+
+        var runner = google.script.run
+          .withSuccessHandler(function(res) {
+            if (!res || !res.success) { mostrarAviso((res && res.message) || 'No se pudo mover la cita.'); cargar(semanaActual, true); return; }
+            cargar(semanaActual, true);
+            if (esDeshacer) ocultarToastMover(); else mostrarToastMoverTexto(texto, deshacer);
+          })
+          .withFailureHandler(function(err) { mostrarAviso('Error al mover la cita: ' + err); cargar(semanaActual, true); });
+        if (intercambio) runner.intercambiarCitasWeb(filaO, filaD); else runner.moverCitaWeb(filaO, filaD);
+      }
+
+      function mostrarToastMoverTexto(texto, movimiento) {
+        ultimoMovimiento = movimiento;
+        document.getElementById('toastMoverTexto').textContent = texto;
+        var toast = document.getElementById('toastMover');
+        toast.classList.add('visible');
+        if (timeoutToastMover) clearTimeout(timeoutToastMover);
+        timeoutToastMover = setTimeout(function() { toast.classList.remove('visible'); }, 6000);
       }
 
       function mostrarToastMover(filaO, filaD, intercambio) {

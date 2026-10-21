@@ -1095,6 +1095,8 @@ function insertarEnlaceHistoriaClinicaWeb(filas) {
  * Protegida con LockService para que dos movimientos simultáneos no se pisen.
  */
 function moverCitaWeb(filaOrigen, filaDestino) {
+  // 3c tanda 2: ANTES del bloqueo de abajo (la capa nueva toma el suyo). `filaOrigen` es el ID de la cita; `filaDestino`, "hueco AAAA-MM-DD HH:mm".
+  if (citasModoNuevo_()) return moverDesdeCitasWeb_(filaOrigen, filaDestino);
   const lock = LockService.getScriptLock();
   try {
     lock.waitLock(10000);
@@ -1173,6 +1175,8 @@ function moverCitaWeb(filaOrigen, filaDestino) {
  * Fecha, Día y Hora no se tocan; el "ID Evento Calendar" viaja con cada cita.
  */
 function intercambiarCitasWeb(filaA, filaB) {
+  // 3c tanda 2: ANTES del bloqueo de abajo. `filaA` y `filaB` son IDs de cita.
+  if (citasModoNuevo_()) return intercambiarDesdeCitasWeb_(filaA, filaB);
   const lock = LockService.getScriptLock();
   try {
     lock.waitLock(10000);

@@ -1,6 +1,6 @@
 /**
  * Agenda web — escrituras sobre la tabla "Citas" (fase 3c, tanda 1: editar campos, eliminar, deshacer,
- * dar de alta y WhatsApp).
+ * dar de alta y WhatsApp; tanda 2: mover e intercambiar).
  *
  * Cada función de agenda/Web.gs que antes tocaba la hoja Agenda por número de fila empieza ahora con una línea:
  *     if (citasModoNuevo_()) return xxxDesdeCitasWeb_(...);
@@ -96,4 +96,24 @@ function generarUrlWhatsappDesdeCitasWeb_(idCita) {
   if (!cita) return { success: false, message: 'La cita ya no existe.' };
   if (!cita.idPaciente) return { success: false, message: 'Esa cita no tiene un paciente enlazado.' };
   return generarUrlWhatsappWeb(cita.idPaciente);
+}
+
+// ============================================================================= Tanda 2: mover e intercambiar
+
+/**
+ * Mueve una cita a un hueco libre. `claveDestino` es la clave del hueco que da la lectura nueva
+ * ("hueco AAAA-MM-DD HH:mm", agenda/Web_Semana_Citas.gs); la capa valida la parrilla, Disponibilidad y que esté libre.
+ * La cita conserva su ID, su paciente, su Sesión, sus Notas y su ID Evento Calendar (solo cambian fecha y hora).
+ */
+function moverDesdeCitasWeb_(idCita, claveDestino) {
+  const clave = String(claveDestino === null || claveDestino === undefined ? '' : claveDestino).trim();
+  const m = /^hueco (\d{4}-\d{2}-\d{2}) (\d{2}:\d{2})$/.exec(clave);
+  if (!m) return { success: false, message: 'El destino no es un hueco horario válido.' };
+  return citasMover_(String(idCita === null || idCita === undefined ? '' : idCita).trim(), m[1], m[2]);
+}
+
+/** Intercambia la fecha y la hora de dos citas ocupadas (cada una conserva su ID y sus datos). */
+function intercambiarDesdeCitasWeb_(idA, idB) {
+  const t = function(x) { return String(x === null || x === undefined ? '' : x).trim(); };
+  return citasIntercambiar_(t(idA), t(idB));
 }
