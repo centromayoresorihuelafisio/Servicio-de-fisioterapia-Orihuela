@@ -317,6 +317,7 @@ function camposEditablesAgenda_() {
  */
 function actualizarCampoAgendaWeb(fila, campo, valor) {
   try {
+    if (citasModoNuevo_()) return actualizarCampoDesdeCitasWeb_(fila, campo, valor);   // 3c: `fila` es el ID de la cita
     if (camposEditablesAgenda_().indexOf(campo) === -1) {
       return { success: false, message: 'Ese campo no se puede editar desde aquí.' };
     }
@@ -366,6 +367,7 @@ function camposABorrarAgenda_() {
  */
 function eliminarDatosFilaAgendaWeb(fila) {
   try {
+    if (citasModoNuevo_()) return eliminarDesdeCitasWeb_([fila]);   // 3c: `fila` es el ID de la cita
     const sheet = obtenerHojaAgenda();
     const rowIdx = parseInt(fila, 10);
     if (!rowIdx || rowIdx < 2 || rowIdx > sheet.getLastRow()) {
@@ -395,6 +397,7 @@ function eliminarDatosFilaAgendaWeb(fila) {
  */
 function eliminarVariasCitasWeb(filas) {
   try {
+    if (citasModoNuevo_()) return eliminarDesdeCitasWeb_(filas);   // 3c: `filas` son IDs de cita
     if (!filas || filas.length === 0) {
       return { success: false, message: 'No hay ninguna cita que eliminar.' };
     }
@@ -445,6 +448,7 @@ function eliminarVariasCitasWeb(filas) {
  */
 function restaurarCitasWeb(snapshots) {
   try {
+    if (citasModoNuevo_()) return restaurarDesdeCitasWeb_(snapshots);   // 3c: `snapshots` son los que devolvió la eliminación nueva
     if (!snapshots || snapshots.length === 0) {
       return { success: false, message: 'No hay nada que deshacer.' };
     }
@@ -588,6 +592,7 @@ function asignarPacienteHuecoWeb(fila, nombrePaciente) {
  */
 function generarUrlWhatsappParaAgendaWeb(fila) {
   try {
+    if (citasModoNuevo_()) return generarUrlWhatsappDesdeCitasWeb_(fila);   // 3c: `fila` es el ID de la cita
     const sheet = obtenerHojaAgenda();
     const rowIdx = parseInt(fila, 10);
     if (!rowIdx || rowIdx < 2 || rowIdx > sheet.getLastRow()) {
@@ -625,6 +630,7 @@ function generarUrlWhatsappParaAgendaWeb(fila) {
  */
 function datosWhatsappLoteAgendaWeb(filas) {
   try {
+    if (citasModoNuevo_()) return datosWhatsappLoteDesdeCitasWeb_(filas);   // 3c: `filas` son IDs de cita
     const sheet = obtenerHojaAgenda();
     const lastRowAgenda = sheet.getLastRow();
     const lastCol = sheet.getLastColumn();
@@ -683,6 +689,7 @@ function datosWhatsappLoteAgendaWeb(filas) {
  */
 function darDeAltaPacienteParaAgendaWeb(fila) {
   try {
+    if (citasModoNuevo_()) return darDeAltaDesdeCitasWeb_(fila);   // 3c: `fila` es el ID de la cita
     const sheet = obtenerHojaAgenda();
     const rowIdx = parseInt(fila, 10);
     if (!rowIdx || rowIdx < 2 || rowIdx > sheet.getLastRow()) {
@@ -949,6 +956,8 @@ function copiarVariasCitasWeb(items, forzar) {
 function obtenerEnlacesJornadaWeb() {
   const turno = new Date().getHours() < 14 ? 'mañana' : 'tarde';
   try {
+    // La Jornada es legado y se retira en el corte (decidido 21-oct-2026): con la tabla nueva no se migra.
+    if (citasModoNuevo_()) return { urls: [], turno: turno, error: 'La Jornada (abrir las historias del turno) está retirada. Abre cada historia desde su cita.' };
     const sheet = obtenerHojaAgenda();
     const tz = Session.getScriptTimeZone();
     const now = new Date();

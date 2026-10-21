@@ -1532,7 +1532,11 @@
         render();
         function revertir(msg) { cita['Asistencia'] = previo; render(); mostrarAviso(msg); }
         google.script.run
-          .withSuccessHandler(function(res) { if (!res || !res.success) revertir((res && res.message) || 'No se pudo guardar el cambio.'); })
+          .withSuccessHandler(function(res) {
+            if (!res || !res.success) { revertir((res && res.message) || 'No se pudo guardar el cambio.'); return; }
+            // Tabla nueva: "quitar" = Pendiente y Pendiente se muestra vacío, igual que al recargar la semana.
+            if (res.asistencia !== undefined && res.asistencia !== cita['Asistencia']) { cita['Asistencia'] = res.asistencia; render(); }
+          })
           .withFailureHandler(function(err) { revertir('Error al guardar: ' + err); })
           .actualizarCampoAgendaWeb(fila, 'Asistencia', valor);
       }
@@ -2056,6 +2060,12 @@
         google.script.run
           .withSuccessHandler(function(res) {
             if (!res.success) { mostrarAviso(res.message || 'No se pudo liberar el hueco.'); render(); return; }
+            if (res.snapshots) {   // tabla nueva: se borra la fila; se recarga la semana y Deshacer usa las fotos del servidor (con ID)
+              cargar(semanaActual, true);
+              actualizarBotonesSeleccion();
+              if (res.snapshots.length) mostrarDeshacer(res.snapshots, 'Cita eliminada.');
+              return;
+            }
             var cita = CITAS.find(function(c) { return c._fila == fila; });
             if (cita) {
               cita['Usuario'] = '';
@@ -2096,7 +2106,8 @@
             mostrarAviso(res.message);
             quitarSeleccion();
             cargar(semanaActual, true);
-            mostrarDeshacer(snapshot, snapshot.length === 1 ? 'Cita eliminada.' : snapshot.length + ' citas eliminadas.');
+            var fotos = res.snapshots || snapshot;   // tabla nueva: fotos del servidor (con ID); hoja vieja: las del cliente
+            mostrarDeshacer(fotos, fotos.length === 1 ? 'Cita eliminada.' : fotos.length + ' citas eliminadas.');
           })
           .withFailureHandler(function(err) { mostrarAviso('Error: ' + err); })
           .eliminarVariasCitasWeb(filas);
@@ -2493,7 +2504,7 @@
       document.addEventListener('pointerover', function(e) {
         var b = e.target.closest ? e.target.closest('.btn-whatsapp, #btnWhatsapp') : null;
         if (!b || b.disabled) return;
-        var filas = (b.id === 'btnWhatsapp') ? filasWhatsappSeleccion() : [Number(b.dataset.fila)];
+        var filas = (b.id === 'btnWhatsapp') ? filasWhatsappSeleccion() : [/^\d+$/.test(b.dataset.fila) ? Number(b.dataset.fila) : b.dataset.fila];   // hoja vieja: número; tabla nueva: ID de cita
         WhatsappDialogo.precargar('datosWhatsappLoteAgendaWeb', filas);
       });
 
