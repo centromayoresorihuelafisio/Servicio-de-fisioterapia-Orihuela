@@ -35,6 +35,8 @@ function formatearRangoSemanaEs_(lunes, viernes) {
  * semana). Sin fecha, usa la semana actual.
  */
 function obtenerAgendaSemanaWeb(fechaISO) {
+  // Tabla plana "Citas" (CONTEXTO.md, sección 11, paso 6, fase 3b): solo con el interruptor CITAS_MODO_NUEVO activo (agenda/Web_Semana_Citas.gs).
+  if (citasModoNuevo_()) return obtenerAgendaSemanaDesdeCitasWeb_(fechaISO);
   try {
     const sheet = obtenerHojaAgenda();
     const tz = Session.getScriptTimeZone();
@@ -259,6 +261,7 @@ function invalidarCacheAgenda_(sheet) {
  * comprobación, el cliente no pide los datos completos de la semana.
  */
 function obtenerVersionAgendaWeb() {
+  if (citasModoNuevo_()) return { sheetId: 'citas', version: citasVersion_() };   // fase 3b: la versión es la de la tabla "Citas"
   try {
     const sheet = obtenerHojaAgenda();
     return { sheetId: sheet.getSheetId(), version: obtenerVersionCacheAgenda_(sheet) };
