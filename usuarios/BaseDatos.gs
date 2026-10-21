@@ -207,7 +207,11 @@ function cambiarEstadoPacienteWeb(idPaciente, nuevoEstado) {
     let colEstado = headers.indexOf(COLUMNAS.MAESTRA.ESTADO);
     if (colEstado === -1) colEstado = COLUMNAS_NUM.MAESTRA.ESTADO - 1;
 
-    sheet.getRange(rowIdx, colEstado + 1).setValue(estado);
+    const celdaEstado = sheet.getRange(rowIdx, colEstado + 1);
+    const estadoAntes = celdaEstado.getValue();
+    celdaEstado.setValue(estado);
+    // Historial (CONTEXTO.md, sección 11, paso 4): todo cambio de Estado pasa por historialRegistrar_.
+    historialRegistrar_([{ id: idPaciente, campo: COLUMNAS.MAESTRA.ESTADO, antes: estadoAntes, despues: estado }], 'Cambio de estado');
     SpreadsheetApp.flush();
     return { success: true, message: 'Estado actualizado.' };
   } catch (e) {
@@ -247,8 +251,13 @@ function cambiarEstadoLoteWeb(idsPaciente, nuevoEstado) {
     const filasValidas = ids.map(id => mapa[id]).filter(Boolean);
     if (!filasValidas.length) return { success: false, message: 'Esos usuarios ya no están en la Base de Datos. Recarga la página.' };
 
+    // Estado anterior de cada usuario (una sola lectura de la columna), para el historial.
+    const estadosAntes = sheet.getRange(1, colEstado + 1, sheet.getLastRow(), 1).getValues();   // índice = nº de fila - 1
+    const cambios = ids.filter(id => mapa[id]).map(id => ({ id: id, campo: COLUMNAS.MAESTRA.ESTADO, antes: estadosAntes[mapa[id] - 1][0], despues: estado }));
+
     const rangos = filasValidas.map(f => sheet.getRange(f, colEstado + 1).getA1Notation());
     sheet.getRangeList(rangos).setValue(estado);
+    historialRegistrar_(cambios, 'Cambio de estado (lote)');
 
     SpreadsheetApp.flush();
     const faltan = ids.length - filasValidas.length;

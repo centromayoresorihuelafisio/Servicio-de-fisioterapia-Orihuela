@@ -181,6 +181,7 @@ function _ejecutarAltaEnFila(sheet, activeRow) {
   const tipoIngresoRange = sheet.getRange(activeRow, tipoIngresoCol + 1);
 
   const estadoActual = estadoRange.getValue();
+  const tipoIngresoAntes = tipoIngresoRange.getValue();   // para el historial (CONTEXTO.md, sección 11, paso 4)
   if (estadoActual === ESTADOS_PACIENTE.ALTA) {
     return { success: false, message: "El usuario ya está dado de alta." };
   }
@@ -189,6 +190,14 @@ function _ejecutarAltaEnFila(sheet, activeRow) {
 
   estadoRange.setValue(ESTADOS_PACIENTE.ALTA);
   tipoIngresoRange.setValue("");
+
+  // Historial: el alta cambia el Estado y vacía el Tipo de Ingreso (los dos influyen en la prioridad).
+  const idCol = cleanHeaders.findIndex(h => h === clean(COLUMNAS.MAESTRA.ID_PACIENTE));
+  const idPaciente = idCol === -1 ? '' : sheet.getRange(activeRow, idCol + 1).getValue();
+  historialRegistrar_([
+    { id: idPaciente, campo: COLUMNAS.MAESTRA.ESTADO, antes: estadoActual, despues: ESTADOS_PACIENTE.ALTA },
+    { id: idPaciente, campo: COLUMNAS.MAESTRA.TIPO_INGRESO, antes: tipoIngresoAntes, despues: '' }
+  ], 'Alta');
   // La Fecha de inscripción NO se toca: se conserva al dar el alta.
 
   let ultimaVisitaMsg = "";

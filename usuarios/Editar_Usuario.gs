@@ -132,12 +132,17 @@ function actualizarPaciente(updatedData, idPaciente) {
     newRowValues[colEdadIdx] = calcularEdadDesdeFecha_(newRowValues[colNacimientoIdx]);
   }
 
+  // Valores de la fila ANTES de reescribirla, para el historial de Estado/Tipo de Ingreso/Gravedad (sección 11, paso 4).
+  const filaAntesHistorial = sheet.getRange(rowIdx, 1, 1, headers.length).getValues()[0];
+
   sheet.getRange(rowIdx, 1, 1, newRowValues.length).setValues([newRowValues]);
 
   // Restauramos el hipervínculo que el setValues() de arriba acaba de aplanar.
   if (richTextHistoria) {
     sheet.getRange(rowIdx, idxHistoria + 1).setRichTextValue(richTextHistoria);
   }
+
+  historialRegistrar_(historialCambiosEnFila_(headers, filaAntesHistorial, newRowValues), 'Editar usuario');
 
   ss.toast("Datos actualizados y guardados en la hoja.", "Éxito ✅", 4);
   return true;

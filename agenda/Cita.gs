@@ -245,7 +245,14 @@ function actualizarEstadoPaciente(userName, newStatus) {
         }
 
         if (targetRow > 0) {
-            sheet.getRange(targetRow, COLUMNAS_NUM.MAESTRA.ESTADO).setValue(newStatus);
+            const celdaEstado = sheet.getRange(targetRow, COLUMNAS_NUM.MAESTRA.ESTADO);
+            const estadoAntes = celdaEstado.getValue();
+            celdaEstado.setValue(newStatus);
+            // Historial (sección 11, paso 4). La fila aún se localiza por nombre (la Agenda no tiene ID: lote 3); el ID se lee de esa fila.
+            const colId = obtenerIndiceColumnaPorNombre_(sheet, COLUMNAS.MAESTRA.ID_PACIENTE);
+            if (colId !== -1) {
+                historialRegistrar_([{ id: sheet.getRange(targetRow, colId + 1).getValue(), campo: COLUMNAS.MAESTRA.ESTADO, antes: estadoAntes, despues: newStatus }], 'Dar cita');
+            }
             return true;
         }
         return false;

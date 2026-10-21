@@ -8,7 +8,9 @@ const SHEETS = {
   MAESTRA: "Base de Datos Maestra",
   VALORACIONES: "Valoraciones",
   EVENTOS: "Eventos",
-  RECORDATORIOS: "Recordatorios"
+  RECORDATORIOS: "Recordatorios",
+  HISTORIAL: "Historial Estado",  // cambios de Estado / Tipo de Ingreso / Gravedad (usuarios/Historial_Estado.gs, CONTEXTO.md sección 11, paso 4)
+  CITAS: "Citas"                  // tabla plana de citas (agenda/Citas_Datos.gs, CONTEXTO.md sección 11, paso 6). Hasta el corte es una COPIA de la Agenda
 };
 
 /**
@@ -37,6 +39,8 @@ const COLUMNAS = {
     FECHA_NACIMIENTO: "Fecha nacimiento",
     EDAD: "Edad",
     ESTADO: "Estado",
+    TIPO_INGRESO: "Tipo de Ingreso",
+    GRAVEDAD: "Gravedad",
     HISTORIA_CLINICA: "Historia clínica",
     FECHA_INSCRIPCION: "Fecha inscripción",
     // ID estable del usuario (CONTEXTO.md, sección 11, paso 3). Columna al FINAL de la Maestra. Lo genera
@@ -61,8 +65,38 @@ const COLUMNAS = {
     ID_EVENTO_CALENDAR: "ID Evento Calendar",
     NOTAS: "Notas",
     HISTORIA_CLINICA: "Historia clínica"
+  },
+  // Hoja "Citas" (una fila por cita real, sin huecos libres). Teléfono y enlace a la HC no se guardan: se consultan por ID paciente.
+  CITAS: {
+    ID: "ID cita",
+    FECHA: "Fecha",
+    HORA: "Hora",
+    ID_PACIENTE: "ID paciente",
+    NOMBRE: "Nombre",            // referencia: el nombre tal como estaba en la Agenda (no localiza a nadie; localiza el ID paciente)
+    SESION: "Sesión",
+    ASISTENCIA: "Asistencia",
+    NOTAS: "Notas",
+    ID_EVENTO_CALENDAR: "ID Evento Calendar",
+    CREADA: "Creada el"          // vacío en las citas migradas (no se puede reconstruir); lo rellenará la capa de escritura
   }
 };
+
+/**
+ * Categorías de Asistencia de una cita (decisión del dueño, 20-oct-2026: se mantienen estas 4; CONTEXTO.md sección 11, paso 5).
+ * Es la fuente única: el valor que se guarda en la hoja "Citas" es exactamente uno de estos textos.
+ */
+const ASISTENCIA_CITA = {
+  PENDIENTE: "Pendiente",
+  ASISTIDO: "Asistido",
+  NO_ASISTIDO: "No asistido",
+  JUSTIFICADA: "Justificada"
+};
+
+/**
+ * Campos de la Maestra cuyos cambios se guardan en el historial (usuarios/Historial_Estado.gs). Estado + Tipo de Ingreso +
+ * Gravedad son lo que decide la "Prioridad" (la puntuación de usuarios/Ordenar.gs); la puntuación en sí no se guarda.
+ */
+const HISTORIAL_CAMPOS = [COLUMNAS.MAESTRA.ESTADO, COLUMNAS.MAESTRA.TIPO_INGRESO, COLUMNAS.MAESTRA.GRAVEDAD];
 
 /**
  * Posición numérica (1 = columna A) de las mismas columnas de arriba, para el

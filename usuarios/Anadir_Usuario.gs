@@ -259,6 +259,9 @@ function guardarPaciente(datos) {
     // Insertar la nueva fila en la fila vacía encontrada
     hoja.getRange(filaVacia, 1, 1, nuevaFila.length).setValues([nuevaFila]);
 
+    // Historial (sección 11, paso 4): estado inicial del usuario nuevo (Estado, Tipo de Ingreso, Gravedad).
+    if (idPacienteNuevo) historialRegistrar_(historialCambiosEnFila_(encabezados, null, nuevaFila), 'Nuevo usuario');
+
     // --- NUEVA LÓGICA: ORDENACIÓN AUTOMÁTICA ---
     // Llamamos a la función de ordenación para que el nuevo paciente 
     // se posicione inmediatamente según su prioridad (puntuación en columna A)
