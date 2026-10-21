@@ -122,6 +122,7 @@ function getTodayKey(timeZone) {
  */
 function obtenerSemanasYHuecos() {
   try {
+    if (citasModoNuevo_()) return obtenerSemanasYHuecosDesdeCitasWeb_();   // 3c: huecos calculados desde la tabla "Citas"
     const ss = getSS();
     // Usamos la constante o el nombre directo
     const sheet = obtenerHojaAgenda();
@@ -266,6 +267,7 @@ function actualizarEstadoPaciente(userName, newStatus) {
  * Guarda múltiples citas e inserta automáticamente el enlace de la Historia Clínica.
  */
 function guardarCitasMultiples(formData) {
+  if (citasModoNuevo_()) return guardarCitasMultiplesDesdeCitasWeb_(formData);   // 3c: crea las citas en la tabla "Citas"
   const { nombreUsuario, telefonoUsuario, huecosJson, numSesion, notas } = formData;
   
   if (!huecosJson || huecosJson.length === 0) {

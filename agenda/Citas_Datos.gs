@@ -8,7 +8,7 @@
  * y teléfono y enlace a la HC no se copian: se consultan por ID paciente. Cabeceras en COLUMNAS.CITAS (core/Config.gs).
  *
  * LECTURA (fase 1): `citasLeer_`, `citasDeSemana_`, `citasDePaciente_`, `citasCategoriaAsistencia_`, `citasSesionPropuesta_`.
- * ESCRITURA (fase 2): `citasCrear_`, `citasMover_`, `citasIntercambiar_`, `citasCambiarCampo_`, `citasEliminar_`,
+ * ESCRITURA (fase 2): `citasCrear_`, `citasCrearVarias_` (3c, tanda 3), `citasMover_`, `citasIntercambiar_`, `citasCambiarCampo_`, `citasEliminar_`,
  *   `citasRestaurar_`, `citasGuardarIdEvento_`. Son las ÚNICAS funciones que deben escribir en "Citas" (y las que rellenan
  *   "Creada el"). Devuelven { success, message, ... } como el resto de la API web.
  *
@@ -343,6 +343,83 @@ function citasCrear_(datos) {
     };
     citasEscribirFilas_(ctx, [cita]);
     return { success: true, cita: cita };
+  });
+}
+
+/**
+ * Crea VARIAS citas de una vez (3c, tanda 3: copiar citas o semana, y el formulario de varias horas): una sola lectura de la
+ * tabla, un solo bloqueo y una sola escritura, en vez de un `citasCrear_` por cita. Cada elemento se valida con las mismas reglas
+ * que `citasCrear_` (parrilla, Disponibilidad, hueco libre, usuario existente en la Maestra); el que no pasa NO impide crear los demás
+ * y sale en `errores` con su posición en la lista. Dos elementos para el mismo hueco: solo entra el primero.
+ *
+ * @param {Array<{fechaISO:string, hora:string, idPaciente:string, sesion?:*, notas?:string, asistencia?:string}>} lista
+ * @param {{sustituir?:boolean}=} opciones `sustituir` = true: si el hueco ya tiene una cita, esa cita se BORRA y se crea la nueva
+ *   (es lo que hace "Sobrescribir" al copiar; las citas sustituidas vuelven en `sustituidas` por si se quisiera avisar o deshacer).
+ *   false (por defecto): un hueco ocupado es un error de ese elemento.
+ * @return {{success:boolean, message?:string, creadas?:Object[], sustituidas?:Object[], errores?:Array<{indice:number, message:string}>}}
+ *   `success` = se creó al menos una; `creadas` con la forma de citasLeer_ (incluye `id` y `creada`).
+ */
+function citasCrearVarias_(lista, opciones) {
+  return citasOperar_('citasCrearVarias_', function (ctx, tz) {
+    if (!lista || !lista.length) return citasError_('No hay ninguna cita que crear.');
+    const sustituir = !!(opciones && opciones.sustituir);
+    const maestra = getSS().getSheetByName(SHEETS.MAESTRA);
+    const mapaMaestra = maestra ? mapaFilasMaestraPorId_(maestra) : {};
+    const nombres = {};   // ID paciente -> nombre actual de la Maestra (una lectura por usuario distinto)
+
+    // Hueco (fecha|hora) -> posición (0-based en ctx.filas) de la cita que lo ocupa.
+    const ocupadas = {};
+    ctx.filas.forEach(function (f, i) {
+      if (!citasTexto_(f[ctx.idx.ID])) return;
+      const clave = hcAISO_(f[ctx.idx.FECHA], tz) + '|' + citasHoraTexto_(f[ctx.idx.HORA], tz);
+      if (!(clave in ocupadas)) ocupadas[clave] = i;
+    });
+
+    const ahora = Utilities.formatDate(new Date(), tz, 'yyyy-MM-dd HH:mm:ss');
+    const creadas = [], errores = [], reservadas = {}, filasABorrar = {}, sustituidas = [];
+
+    lista.forEach(function (d, indice) {
+      d = d || {};
+      const fechaISO = citasTexto_(d.fechaISO);
+      const v = citasHuecoValido_(fechaISO, d.hora);
+      if (!v.ok) { errores.push({ indice: indice, message: v.motivo }); return; }
+      const idPaciente = citasTexto_(d.idPaciente);
+      if (!idPaciente) { errores.push({ indice: indice, message: 'Falta el ID del paciente.' }); return; }
+      const fila = mapaMaestra[idPaciente];
+      if (!fila) { errores.push({ indice: indice, message: 'No existe ningún usuario con ese ID paciente.' }); return; }
+      let asistencia = ASISTENCIA_CITA.PENDIENTE;
+      if (citasTexto_(d.asistencia)) {
+        const cat = citasCategoriaAsistencia_(d.asistencia);
+        if (!cat.estandar) { errores.push({ indice: indice, message: 'La asistencia debe ser una de: ' + Object.keys(ASISTENCIA_CITA).map(k => ASISTENCIA_CITA[k]).join(', ') + '.' }); return; }
+        asistencia = cat.categoria;
+      }
+      const clave = fechaISO + '|' + v.hora;
+      if (reservadas[clave]) { errores.push({ indice: indice, message: 'Ese hueco ya está ocupado.' }); return; }   // otra cita de esta misma tanda
+      if (clave in ocupadas) {
+        if (!sustituir) { errores.push({ indice: indice, message: 'Ese hueco ya está ocupado.' }); return; }
+        const pos = ocupadas[clave];
+        if (!filasABorrar[pos]) {
+          filasABorrar[pos] = true;
+          const previa = citasObjetoDeFila_(ctx.filas[pos], ctx.idx, tz);
+          if (previa) sustituidas.push(previa);
+        }
+      }
+      if (!(idPaciente in nombres)) nombres[idPaciente] = citasTexto_(maestra.getRange(fila, COLUMNAS_NUM.MAESTRA.NOMBRE).getValue());
+      reservadas[clave] = true;
+      creadas.push({
+        id: Utilities.getUuid(), fecha: fechaISO, hora: v.hora, idPaciente: idPaciente, nombre: nombres[idPaciente],
+        sesion: d.sesion === null || d.sesion === undefined ? '' : d.sesion, asistencia: asistencia,
+        notas: d.notas ? String(d.notas) : '', idEvento: '', creada: ahora
+      });
+    });
+
+    if (!creadas.length) return { success: false, message: errores.map(e => e.message).join('\n') || 'No se creó ninguna cita.', creadas: [], sustituidas: [], errores: errores };
+
+    // Primero se añaden las nuevas y después se borran las sustituidas (por número de fila, de abajo arriba): si algo fallara a medias,
+    // nunca se pierde una cita sin haber escrito la que la reemplaza.
+    citasEscribirFilas_(ctx, creadas);
+    Object.keys(filasABorrar).map(Number).sort((a, b) => b - a).forEach(pos => ctx.hoja.deleteRow(pos + 2));
+    return { success: true, message: creadas.length === 1 ? 'Cita creada.' : creadas.length + ' citas creadas.', creadas: creadas, sustituidas: sustituidas, errores: errores };
   });
 }
 

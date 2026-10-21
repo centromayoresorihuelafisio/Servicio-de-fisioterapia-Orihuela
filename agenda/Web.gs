@@ -496,6 +496,7 @@ function restaurarCitasWeb(snapshots) {
  */
 function asignarPacienteHuecoWeb(fila, nombrePaciente) {
   try {
+    if (citasModoNuevo_()) return asignarPacienteDesdeCitasWeb_(fila, nombrePaciente);   // 3c: `fila` es la clave del hueco ("hueco AAAA-MM-DD HH:mm")
     const sheet = obtenerHojaAgenda();
     const rowIdx = parseInt(fila, 10);
     if (!rowIdx || rowIdx < 2 || rowIdx > sheet.getLastRow()) {
@@ -884,6 +885,7 @@ function _escribirCopiaCita(sheet, prep) {
  */
 function copiarVariasCitasWeb(items, forzar) {
   try {
+    if (citasModoNuevo_()) return copiarVariasDesdeCitasWeb_(items, forzar);   // 3c: cada `fila` es el ID de la cita
     if (!items || items.length === 0) {
       return { success: false, message: 'No hay ninguna cita que copiar.' };
     }
@@ -1035,6 +1037,7 @@ function obtenerEnlacesJornadaWeb() {
  */
 function insertarEnlaceHistoriaClinicaWeb(filas) {
   try {
+    if (citasModoNuevo_()) return enlazarHCDesdeCitasWeb_();   // 3c: el enlace sale siempre de la Maestra; no hay nada que enlazar
     if (!filas || filas.length === 0) {
       return { success: false, message: 'No hay ninguna cita seleccionada.' };
     }

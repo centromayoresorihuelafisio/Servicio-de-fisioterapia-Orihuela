@@ -2031,7 +2031,12 @@
       function asignarPaciente(fila, nombre) {
         google.script.run
           .withSuccessHandler(function(res) {
-            if (!res.success) { mostrarAviso(res.message || 'No se pudo asignar el usuario.'); render(); return; }
+            if (!res.success) { mostrarAviso(res.message || 'No se pudo asignar el usuario.'); if (modoCitasNuevo()) cargar(semanaActual, true); else render(); return; }
+            if (modoCitasNuevo()) {   // tabla nueva: la cita acaba de crearse con un ID nuevo; se recarga la semana en vez de parchear la fila local
+              if (res.ingresoRegistrado && window.HCCache) HCCache.cambioDeUsuario();
+              cargar(semanaActual, true);
+              return;
+            }
             var cita = CITAS.find(function(c) { return c._fila == fila; });
             if (cita) {
               cita['Usuario'] = res.usuario;
