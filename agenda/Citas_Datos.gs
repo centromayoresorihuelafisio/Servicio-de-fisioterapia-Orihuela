@@ -83,6 +83,15 @@ function citasCategoriaAsistencia_(texto) {
   return { categoria: categoria || A.PENDIENTE, estandar: false, vacio: false, desconocido: !categoria };
 }
 
+/**
+ * Los 4 textos de Asistencia que acepta la capa de escritura, en orden de uso. El cliente (desplegable, chips) debe tomarlos de aquí
+ * y NO del desplegable de la hoja Agenda (que lleva emojis y la capa rechaza); el color y el icono los pone la interfaz.
+ */
+function citasOpcionesAsistencia_() {
+  const A = ASISTENCIA_CITA;
+  return [A.PENDIENTE, A.ASISTIDO, A.NO_ASISTIDO, A.JUSTIFICADA];
+}
+
 /** Fila de la hoja (valores) → objeto cita; null si la fila no tiene ID o no tiene fecha legible. */
 function citasObjetoDeFila_(f, idx, tz) {
   const celda = k => idx[k] === -1 ? '' : f[idx[k]];

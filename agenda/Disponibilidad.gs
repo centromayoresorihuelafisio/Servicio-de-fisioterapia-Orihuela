@@ -138,6 +138,7 @@ function aplicarDisponibilidadWeb(datos) {
     _escribirDisponibilidad_(hoja, mapa);
     _cacheDisponibilidad_ = null;
     invalidarCacheAgenda_(obtenerHojaAgenda()); // la Agenda web (y las demás pestañas abiertas) deben recalcular la semana
+    citasInvalidarCache_();                     // y lo mismo con la versión de la tabla plana "Citas" (cuando la web lea de ella)
 
     const afectadas = cerradas.length ? _contarCitasEnHorasCerradas_(mapa, fechas) : 0;
     let mensaje = cerradas.length

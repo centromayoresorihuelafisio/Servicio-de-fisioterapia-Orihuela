@@ -76,6 +76,7 @@ function leerRecordatorios_(sheet) {
  */
 function avisarCambioRecordatorios_() {
   try { invalidarCacheAgenda_(obtenerHojaAgenda()); } catch (e) { /* no crítico */ }
+  try { citasInvalidarCache_(); } catch (e) { /* no crítico */ }   // versión de la tabla plana "Citas"
 }
 
 function buscarFilaRecordatorio_(sheet, id) {

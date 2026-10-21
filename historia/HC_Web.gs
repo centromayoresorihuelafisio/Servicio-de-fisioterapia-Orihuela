@@ -233,22 +233,15 @@ function hcLeerValoraciones_(ss, usuario, tz) {
 }
 
 /**
- * Lee UNA vez las hojas de Agenda necesarias y deja cada cita clasificada (nombre, fecha, teléfono, clase de asistencia),
- * agrupada por nombre. `desdeISO` solo sirve para decidir si hace falta el curso anterior; si se omite (undefined),
- * el curso anterior se lee siempre (carga masiva, cada usuario decide luego con su propio desde).
+ * Lee UNA vez la Agenda del curso activo y deja cada cita clasificada (nombre, fecha, teléfono, clase de asistencia),
+ * agrupada por nombre. Solo cuenta el curso actual: los cursos anteriores no se tienen en cuenta (decisión del dueño, 21-oct-2026).
+ * `desdeISO` se mantiene por compatibilidad con los llamadores y no cambia qué hojas se leen.
  */
 function hcLeerDatosAgenda_(tz, desdeISO) {
   // Tabla plana "Citas" (CONTEXTO.md, sección 11, paso 6): citas por ID paciente, sin nombre ni teléfono. Solo con el interruptor CITAS_MODO_NUEVO activo.
   if (citasModoNuevo_()) return { hoy: Utilities.formatDate(new Date(), tz, 'yyyy-MM-dd'), nuevo: true, porId: citasPorPaciente_() };
   const actual = obtenerHojaAgenda();
-  const datos = { hoy: Utilities.formatDate(new Date(), tz, 'yyyy-MM-dd'), actual: hcCitasPorNombre_(actual, tz), previo: null, limitePrevio: '' };
-  const m = actual.getName().match(/(\d{4})-(\d{4})/);
-  if (m) {
-    const prev = getSS().getSheetByName('Agenda ' + (+m[1] - 1) + '-' + (+m[2] - 1));
-    const limite = (+m[1]) + '-09-01';
-    if (prev && (desdeISO === undefined || !desdeISO || desdeISO < limite)) { datos.previo = hcCitasPorNombre_(prev, tz); datos.limitePrevio = limite; }
-  }
-  return datos;
+  return { hoy: Utilities.formatDate(new Date(), tz, 'yyyy-MM-dd'), actual: hcCitasPorNombre_(actual, tz) };
 }
 
 function hcCitasPorNombre_(hoja, tz) {
@@ -286,9 +279,7 @@ function hcContarAsistenciaDe_(datos, usuario, desdeISO) {
     });
     return r;
   }
-  const fuentes = [datos.actual];
-  if (datos.previo && (!desdeISO || desdeISO < datos.limitePrevio)) fuentes.push(datos.previo);
-  fuentes.forEach(function (porNombre) {
+  [datos.actual].forEach(function (porNombre) {
     (porNombre[nom] || []).forEach(function (c) {
       if (desdeISO && c.fecha < desdeISO) return;
       if (c.tel && tels.length && tels.indexOf(c.tel) === -1) { r.telefonoDistinto++; return; }  // mismo nombre, otro teléfono: no se cuenta
@@ -300,8 +291,7 @@ function hcContarAsistenciaDe_(datos, usuario, desdeISO) {
 }
 
 /**
- * Cuenta las citas del usuario en la Agenda del curso activo (y la del curso anterior si el episodio empezó antes),
- * por nombre + teléfono. Cuenta solo hasta hoy; lo pendiente va aparte y no entra en el porcentaje.
+ * Cuenta las citas del usuario en la Agenda del curso activo (los cursos anteriores no se cuentan), por nombre + teléfono. Cuenta solo hasta hoy; lo pendiente va aparte y no entra en el porcentaje.
  */
 function hcContarAsistencia_(usuario, desdeISO, tz) {
   return hcContarAsistenciaDe_(hcLeerDatosAgenda_(tz, desdeISO || ''), usuario, desdeISO);
