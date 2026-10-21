@@ -31,8 +31,8 @@
  * Prefijo citas para no chocar en el ámbito global.
  */
 
-/** Interruptor de la escritura en "Citas". false hasta el corte (CONTEXTO.md, sección 11, paso 6, fase 4). */
-const CITAS_MODO_NUEVO = false;
+/** Interruptor de la escritura en "Citas". true desde el corte (21-oct-2026, CONTEXTO.md, sección 11, paso 6, fase 4). Para volver atrás, false + clasp push + nueva versión de la Web App (la Agenda vieja queda intacta, pero no recibirá lo hecho después del corte). */
+const CITAS_MODO_NUEVO = true;
 function citasModoNuevo_() { return CITAS_MODO_NUEVO === true; }
 
 function citasCabeceras_() {
