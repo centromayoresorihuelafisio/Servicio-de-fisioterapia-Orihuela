@@ -151,7 +151,8 @@ function pacientePorNombreDesdeCitasWeb_(nombreBruto) {
   return { ok: true, idPaciente: c.id, nombre: u.nombre || c.nombre, telefono: u.telefono || '', hc: u.hc || '' };
 }
 
-/** Pone el Estado de un usuario (por ID paciente, no por nombre) y lo anota en el historial. Equivale a actualizarEstadoPaciente de Cita.gs. */
+/** Pone el Estado de un usuario (por ID paciente, no por nombre) y lo anota en el historial. Equivale a actualizarEstadoPaciente de Cita.gs.
+ * Devuelve false si falla, 'igual' si ya tenía ese Estado (no escribe) y 'cambiado' si lo ha cambiado. */
 function actualizarEstadoPorIdDesdeCitasWeb_(idPaciente, nuevoEstado, origen) {
   try {
     const hoja = getSS().getSheetByName(SHEETS.MAESTRA);
@@ -160,9 +161,10 @@ function actualizarEstadoPorIdDesdeCitasWeb_(idPaciente, nuevoEstado, origen) {
     if (!fila) return false;
     const celda = hoja.getRange(fila, COLUMNAS_NUM.MAESTRA.ESTADO);
     const antes = celda.getValue();
+    if (String(antes).trim() === String(nuevoEstado).trim()) return 'igual';   // ya tenía ese Estado: no se escribe nada
     celda.setValue(nuevoEstado);
     historialRegistrar_([{ id: idPaciente, campo: COLUMNAS.MAESTRA.ESTADO, antes: antes, despues: nuevoEstado }], origen);
-    return true;
+    return 'cambiado';
   } catch (e) {
     Logger.log('actualizarEstadoPorIdDesdeCitasWeb_: ' + e.message);
     return false;
@@ -172,7 +174,8 @@ function actualizarEstadoPorIdDesdeCitasWeb_(idPaciente, nuevoEstado, origen) {
 /**
  * Asigna un paciente a un hueco libre de la Agenda. `claveHueco` es la clave que da la lectura nueva ("hueco AAAA-MM-DD HH:mm"; si
  * llega el ID de una cita, el hueco ya no está libre). Crea la cita con Sesión vacía (como antes: la Sesión se escribe a mano) y registra
- * el ingreso del episodio si es la primera cita. NO cambia el Estado del usuario (la asignación vieja tampoco lo hacía).
+ * el ingreso del episodio si es la primera cita. Pone el Estado del usuario en Activo (con historial, origen "Asignar hueco") y, si cambió,
+ * reordena la Maestra, como hace el formulario de Cita (decisión del dueño, 21-oct-2026; la asignación vieja no lo hacía).
  * Devuelve la misma forma que la vieja ({success, usuario, telefono, historiaClinica, ingresoRegistrado}) más `id` (de la cita nueva).
  */
 function asignarPacienteDesdeCitasWeb_(claveHueco, nombrePaciente) {
@@ -184,8 +187,10 @@ function asignarPacienteDesdeCitasWeb_(claveHueco, nombrePaciente) {
     if (!p.ok) return { success: false, message: p.message };
     const r = citasCrear_({ fechaISO: m[1], hora: m[2], idPaciente: p.idPaciente });
     if (!r.success) return r;
+    const cambioEstado = actualizarEstadoPorIdDesdeCitasWeb_(p.idPaciente, ESTADOS_PACIENTE.ACTIVO, 'Asignar hueco');
     let ingresoRegistrado = false;
     try { if (p.hc) ingresoRegistrado = hcRegistrarPrimeraCita_(p.hc, m[1]); } catch (eIng) { Logger.log('asignarPacienteDesdeCitasWeb_: ingreso automático: ' + eIng.message); }
+    if (cambioEstado === 'cambiado') { try { ordenarPacientes(); } catch (eOrd) { Logger.log('asignarPacienteDesdeCitasWeb_: ordenar: ' + eOrd.message); } }
     return { success: true, usuario: p.nombre, telefono: p.telefono, historiaClinica: p.hc, ingresoRegistrado: ingresoRegistrado, id: r.cita.id };
   } catch (e) {
     Logger.log('Error en asignarPacienteDesdeCitasWeb_: ' + e.message);
