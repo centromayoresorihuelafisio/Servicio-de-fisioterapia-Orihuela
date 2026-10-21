@@ -165,6 +165,11 @@ function _escribirDisponibilidad_(hoja, mapa) {
 
 /** Cuántas citas YA puestas caen en horas cerradas de esas fechas (se mantienen; solo se avisa). */
 function _contarCitasEnHorasCerradas_(mapa, fechas) {
+  if (citasModoNuevo_()) {   // tabla plana "Citas" (CONTEXTO.md, sección 11, paso 6)
+    const enRangoNuevo = {};
+    fechas.forEach(f => { enRangoNuevo[f] = true; });
+    return citasLeer_().filter(c => enRangoNuevo[c.fecha] && c.hora && disponibilidadCerrada_(mapa, c.fecha, c.hora)).length;
+  }
   const sheet = obtenerHojaAgenda();
   const lastRow = sheet.getLastRow();
   if (lastRow < 2) return 0;

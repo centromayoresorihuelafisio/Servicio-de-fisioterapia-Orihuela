@@ -133,6 +133,13 @@ function citasLeer_(filtro) {
   return salida;
 }
 
+/** Todas las citas agrupadas por ID paciente (UNA sola lectura de la tabla). Las que no tienen ID paciente no entran. */
+function citasPorPaciente_() {
+  const mapa = {};
+  citasLeer_().forEach(c => { if (c.idPaciente) (mapa[c.idPaciente] = mapa[c.idPaciente] || []).push(c); });
+  return mapa;
+}
+
 /** Citas entre dos fechas 'yyyy-MM-dd' (inclusivas): "dame las citas de esta semana". */
 function citasDeSemana_(lunesISO, viernesISO) { return citasLeer_({ desdeISO: lunesISO, hastaISO: viernesISO }); }
 

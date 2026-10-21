@@ -238,6 +238,8 @@ function hcLeerValoraciones_(ss, usuario, tz) {
  * el curso anterior se lee siempre (carga masiva, cada usuario decide luego con su propio desde).
  */
 function hcLeerDatosAgenda_(tz, desdeISO) {
+  // Tabla plana "Citas" (CONTEXTO.md, sección 11, paso 6): citas por ID paciente, sin nombre ni teléfono. Solo con el interruptor CITAS_MODO_NUEVO activo.
+  if (citasModoNuevo_()) return { hoy: Utilities.formatDate(new Date(), tz, 'yyyy-MM-dd'), nuevo: true, porId: citasPorPaciente_() };
   const actual = obtenerHojaAgenda();
   const datos = { hoy: Utilities.formatDate(new Date(), tz, 'yyyy-MM-dd'), actual: hcCitasPorNombre_(actual, tz), previo: null, limitePrevio: '' };
   const m = actual.getName().match(/(\d{4})-(\d{4})/);
@@ -273,6 +275,17 @@ function hcContarAsistenciaDe_(datos, usuario, desdeISO) {
   const nom = hcNorm_(usuario.nombre);
   const tels = [hcDigitos_(usuario.telefono), hcDigitos_(usuario.telefono2)].filter(Boolean);
   const r = { asistidas: 0, noAsistidas: 0, justificadas: 0, pendientes: 0, otras: 0, telefonoDistinto: 0 };
+  if (datos.nuevo) {   // por ID paciente: no hay homónimos ni teléfonos que comparar (otras y telefonoDistinto quedan en 0)
+    (datos.porId[usuario.idPaciente] || []).forEach(function (c) {
+      if (desdeISO && c.fecha < desdeISO) return;
+      if (c.fecha > datos.hoy || c.asistencia === ASISTENCIA_CITA.PENDIENTE) r.pendientes++;
+      else if (c.asistencia === ASISTENCIA_CITA.ASISTIDO) r.asistidas++;
+      else if (c.asistencia === ASISTENCIA_CITA.NO_ASISTIDO) r.noAsistidas++;
+      else if (c.asistencia === ASISTENCIA_CITA.JUSTIFICADA) r.justificadas++;
+      else r.otras++;
+    });
+    return r;
+  }
   const fuentes = [datos.actual];
   if (datos.previo && (!desdeISO || desdeISO < datos.limitePrevio)) fuentes.push(datos.previo);
   fuentes.forEach(function (porNombre) {
