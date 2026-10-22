@@ -1,6 +1,5 @@
 // la base de datos sin abrir la hoja de cálculo. La edición de cada paciente
-// se hace desde ahí mismo, en el panel lateral (usuarios/Panel_Editar.html, por ID paciente). La ruta
-// ?page=editarPaciente&fila=N (usuarios/Editar_Usuario_Vista.html) es un vestigio: nadie enlaza a ella.
+// se hace desde ahí mismo, en el panel lateral (usuarios/Panel_Editar.html, por ID paciente).
 // ================================================================================
 
 /**
@@ -35,6 +34,9 @@ function obtenerBaseDatosCompletaWeb() {
     const rango = sheet.getRange(2, 1, lastRow - 1, lastCol);
     const data = rango.getValues();
     const colHC = headers.indexOf(COLUMNAS.MAESTRA.HISTORIA_CLINICA);
+    // La edad no se guarda: se calcula con la fecha de nacimiento tal como está en la celda (Date), antes de que
+    // se convierta a texto dd/MM/yyyy. Si la hoja aún conserva una columna "Edad", su valor viejo se ignora.
+    const colNacimiento = headers.indexOf(COLUMNAS.MAESTRA.FECHA_NACIMIENTO);
 
     // OPTIMIZACIÓN DE RENDIMIENTO: antes se pedía getRichTextValues() de TODO
     // el rango (todas las columnas, todos los pacientes) solo para leer el
@@ -65,27 +67,19 @@ function obtenerBaseDatosCompletaWeb() {
 
           paciente[h] = value;
         });
+        if (colNacimiento !== -1) paciente[COLUMNAS.MAESTRA.EDAD] = calcularEdadDesdeFecha_(row[colNacimiento]);
         return paciente;
       })
       // Ignorar filas completamente vacías (huecos en la hoja)
       .filter(p => p[COLUMNAS.MAESTRA.NOMBRE] && p[COLUMNAS.MAESTRA.NOMBRE].toString().trim() !== '');
 
+    // "Edad" viaja siempre como una columna más, haya o no columna "Edad" en la hoja.
+    if (colNacimiento !== -1 && headers.indexOf(COLUMNAS.MAESTRA.EDAD) === -1) headers.push(COLUMNAS.MAESTRA.EDAD);
     return { headers: headers, pacientes: pacientes };
   } catch (e) {
     Logger.log("Error en obtenerBaseDatosCompletaWeb: " + e.message);
     return { headers: [], pacientes: [], error: e.message };
   }
-}
-
-/**
- * Posición (0-based) de la columna Nombre en la Maestra, buscada por cabecera
- * y, si no aparece, por la posición fija de core/Config.gs.
- */
-function indiceColumnaNombreMaestra_(sheet) {
-  const lastCol = sheet.getLastColumn();
-  const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(h => h.toString().trim());
-  const idx = headers.indexOf(COLUMNAS.MAESTRA.NOMBRE);
-  return idx !== -1 ? idx : COLUMNAS_NUM.MAESTRA.NOMBRE - 1;
 }
 
 /**

@@ -34,8 +34,6 @@ function hcNorm_(s) {
   return String(s === null || s === undefined ? '' : s).normalize('NFD').replace(/[̀-ͯ]/g, '')
     .replace(/\s+/g, ' ').trim().toUpperCase();
 }
-function hcDigitos_(s) { return String(s || '').replace(/\D/g, '').slice(-9); }
-function hcDocId_(txt) { const m = String(txt || '').match(/[-\w]{25,}/); return m ? m[0] : ''; }
 function hcAISO_(v, tz) {
   if (Object.prototype.toString.call(v) === '[object Date]') return isNaN(v) ? '' : Utilities.formatDate(v, tz, 'yyyy-MM-dd');
   const s = String(v || '').trim();
@@ -75,10 +73,8 @@ function hcFilaMaestraPorIdPaciente_(maestra, idPaciente) { return filaMaestraPo
  * nombre ni por número de fila.
  * @param {string} idHC ID de la historia (col. 1 de "Historias Clínicas"; el que lleva el enlace ?page=hc&id=).
  * @param {string=} idPaciente ID paciente (Maestra). Se usa si no hay ID HC: la historia es la que lleva ese ID en su col. 8.
- * @param {string=} enlaceAntiguo URL de un Doc antiguo (solo para enlaces de la Agenda aún sin convertir): se resuelve por el
- *   ID del Doc guardado en la historia (col. 7).
  */
-function obtenerHCWeb(idHC, idPaciente, enlaceAntiguo) {
+function obtenerHCWeb(idHC, idPaciente) {
   try {
     idHC = String(idHC || '').replace(/[^\w-]/g, '');
     idPaciente = String(idPaciente || '').trim();
@@ -86,10 +82,10 @@ function obtenerHCWeb(idHC, idPaciente, enlaceAntiguo) {
     const maestra = h.ss.getSheetByName(SHEETS.MAESTRA);
     if (!maestra) return { success: false, message: 'No se encontró la hoja "' + SHEETS.MAESTRA + '".' };
 
-    // --- 1) la historia, por ID HC; si no, por ID paciente (col. 8); si no, por el ID del Doc de un enlace antiguo
+    // --- 1) la historia, por ID HC; si no, por ID paciente (col. 8)
     const ultHC = h.hc.getLastRow();
     if (ultHC < 2) return { success: false, message: 'La hoja "' + HC_WEB_.HOJA_HC + '" está vacía.' };
-    const iIdP = HC_WEB_.COL.ID_PACIENTE - 1, iDoc = HC_WEB_.COL.DOC - 1;
+    const iIdP = HC_WEB_.COL.ID_PACIENTE - 1;
     const filasHC = h.hc.getRange(2, 1, ultHC - 1, HC_WEB_.COL.ID_PACIENTE).getValues();
     let idx = -1;
     if (idHC) {
@@ -99,9 +95,6 @@ function obtenerHCWeb(idHC, idPaciente, enlaceAntiguo) {
       filasHC.forEach(function (r, i) { if (String(r[iIdP] || '').trim() === idPaciente) c.push(i); });
       if (c.length > 1) return { success: false, message: 'Hay ' + c.length + ' historias con el mismo ID paciente: hay que revisarlo.' };
       if (c.length === 1) idx = c[0];
-    } else if (enlaceAntiguo) {
-      const d = hcDocId_(enlaceAntiguo);
-      if (d) for (let i = 0; i < filasHC.length; i++) if (hcDocId_(filasHC[i][iDoc]) === d) { idx = i; break; }
     }
 
     // --- 2) el usuario: por el ID paciente de la historia (o el recibido). Respaldo, también por ID: el enlace de la Maestra a ese ID HC.
@@ -120,6 +113,9 @@ function obtenerHCWeb(idHC, idPaciente, enlaceAntiguo) {
       if (Object.prototype.toString.call(v) === '[object Date]') v = Utilities.formatDate(v, tz, 'dd/MM/yyyy');
       return v === null || v === undefined ? '' : String(v).trim();
     };
+    // La edad no se guarda: se calcula con la fecha de nacimiento tal como está en la celda (Date), no con el texto dd/MM/yyyy.
+    const iNac = cab.indexOf(String(COLUMNAS.MAESTRA.FECHA_NACIMIENTO).trim().toLowerCase());
+    const edad = iNac !== -1 ? String(calcularEdadDesdeFecha_(valores[iNac])) : '';
     const iHC = cab.indexOf(COLUMNAS.MAESTRA.HISTORIA_CLINICA.toLowerCase());
     let docUrl = '';
     if (iHC !== -1) {
@@ -129,17 +125,16 @@ function obtenerHCWeb(idHC, idPaciente, enlaceAntiguo) {
     const usuario = {
       idPaciente: dato(COLUMNAS.MAESTRA.ID_PACIENTE),
       nombre: dato(COLUMNAS.MAESTRA.NOMBRE), dni: dato(COLUMNAS.MAESTRA.DNI),
-      nacimiento: dato(COLUMNAS.MAESTRA.FECHA_NACIMIENTO), edad: dato(COLUMNAS.MAESTRA.EDAD),
+      nacimiento: dato(COLUMNAS.MAESTRA.FECHA_NACIMIENTO), edad: edad,
       telefono: dato(COLUMNAS.MAESTRA.TELEFONO_1), telefono2: dato(COLUMNAS.MAESTRA.TELEFONO_2),
       inscripcion: dato(COLUMNAS.MAESTRA.FECHA_INSCRIPCION), estado: dato(COLUMNAS.MAESTRA.ESTADO),
       fila: filaM
     };
 
-    // --- 3) si con los datos recibidos no apareció la historia, se prueba con la que enlaza la Maestra a ese usuario (ID HC o Doc original)
+    // --- 3) si con los datos recibidos no apareció la historia, se prueba con la que enlaza la Maestra a ese usuario (ID HC del enlace)
     if (idx === -1 && !idHC) {
-      const idLink = hcIdDeUrl_(docUrl), docId = idLink ? '' : hcDocId_(docUrl);
+      const idLink = hcIdDeUrl_(docUrl);
       if (idLink) for (let i = 0; i < filasHC.length; i++) if (String(filasHC[i][0]) === idLink) { idx = i; break; }
-      if (idx === -1 && docId) for (let i = 0; i < filasHC.length; i++) if (hcDocId_(filasHC[i][iDoc]) === docId) { idx = i; break; }
     }
     if (idx === -1) return { success: false, usuario: usuario, message: 'Este usuario no tiene historia migrada.' };
     const filaHC = idx + 2;
@@ -278,14 +273,12 @@ function obtenerHCsActivasWeb() {
     const iNombre = col(COLUMNAS.MAESTRA.NOMBRE), iEstado = col(COLUMNAS.MAESTRA.ESTADO);
     if (iNombre === -1 || iEstado === -1) return { success: false, message: 'Faltan las columnas Nombre / Estado en la Maestra.' };
 
-    // --- Historias clínicas (una lectura) con índices por ID HC, por ID paciente y por Doc original (nunca por nombre)
+    // --- Historias clínicas (una lectura) con índices por ID HC y por ID paciente (nunca por nombre)
     const filasHC = h.hc.getRange(2, 1, ultHC - 1, HC_WEB_.COL.ID_PACIENTE).getValues();
-    const porId = {}, porDoc = {}, porIdPaciente = {};
+    const porId = {}, porIdPaciente = {};
     filasHC.forEach(function (r, i) {
       const id = String(r[0]);
       if (id && porId[id] === undefined) porId[id] = i;
-      const d = hcDocId_(r[HC_WEB_.COL.DOC - 1]);
-      if (d && porDoc[d] === undefined) porDoc[d] = i;
       const p = String(r[HC_WEB_.COL.ID_PACIENTE - 1] || '').trim();
       if (p) (porIdPaciente[p] = porIdPaciente[p] || []).push(i);
     });
@@ -318,27 +311,28 @@ function obtenerHCsActivasWeb() {
           if (Object.prototype.toString.call(v) === '[object Date]') v = Utilities.formatDate(v, tz, 'dd/MM/yyyy');
           return v === null || v === undefined ? '' : String(v).trim();
         };
+        // La edad no se guarda: se calcula con la fecha de nacimiento tal como está en la celda (Date).
+        const kNac = col(COLUMNAS.MAESTRA.FECHA_NACIMIENTO);
+        const edad = kNac !== -1 ? String(calcularEdadDesdeFecha_(row[kNac])) : '';
         let docUrl = '';
         if (iHC !== -1) docUrl = extraerUrlHistoriaClinica(row[iHC], ricos[i][0], formulas[i][0]);
         const usuario = {
           idPaciente: dato(COLUMNAS.MAESTRA.ID_PACIENTE),
           nombre: dato(COLUMNAS.MAESTRA.NOMBRE), dni: dato(COLUMNAS.MAESTRA.DNI),
-          nacimiento: dato(COLUMNAS.MAESTRA.FECHA_NACIMIENTO), edad: dato(COLUMNAS.MAESTRA.EDAD),
+          nacimiento: dato(COLUMNAS.MAESTRA.FECHA_NACIMIENTO), edad: edad,
           telefono: dato(COLUMNAS.MAESTRA.TELEFONO_1), telefono2: dato(COLUMNAS.MAESTRA.TELEFONO_2),
           inscripcion: dato(COLUMNAS.MAESTRA.FECHA_INSCRIPCION), estado: dato(COLUMNAS.MAESTRA.ESTADO),
           fila: i + 2
         };
 
         // Misma búsqueda de la HC que obtenerHCWeb: por ID paciente (col. 8 de la historia); si ninguna lo lleva, por el ID HC
-        // del enlace de la Maestra o por el Doc original. Nunca por nombre. Sin historia o ambigua: se abre por el camino normal.
+        // del enlace de la Maestra. Nunca por nombre. Sin historia o ambigua: se abre por el camino normal.
         const candidatas = usuario.idPaciente ? (porIdPaciente[usuario.idPaciente] || []) : [];
         const idLink = hcIdDeUrl_(docUrl);
-        const docId = idLink ? '' : hcDocId_(docUrl);
         let idx = -1;
         if (candidatas.length === 1) idx = candidatas[0];
         else if (candidatas.length === 0) {
           if (idLink && porId[idLink] !== undefined) idx = porId[idLink];
-          else if (docId && porDoc[docId] !== undefined) idx = porDoc[docId];
         }
         if (idx === -1) return;
         const f7 = filasHC[idx], id = String(f7[0]);

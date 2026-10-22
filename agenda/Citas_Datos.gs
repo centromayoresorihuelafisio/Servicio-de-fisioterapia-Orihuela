@@ -13,7 +13,7 @@
  *   "Creada el"). Devuelven { success, message, ... } como el resto de la API web.
  *
  * INTERRUPTOR: CITAS_MODO_NUEVO (más abajo) está en true desde el corte (21-oct-2026): la Agenda web lee y escribe solo en "Citas" y la
- * hoja `Agenda AAAA-AAAA` quedó congelada como archivo (`congelarAgendaAnterior`). Con false, NINGUNA función de escritura toca la hoja
+ * hoja `Agenda AAAA-AAAA` quedó congelada como archivo. Con false, NINGUNA función de escritura toca la hoja
  * (devuelven success:false con un aviso). La migración inicial (`migrarCitas`) ya se ejecutó y se retiró del proyecto.
  *
  * Reglas de la capa nueva (sustituyen a lo que antes eran "huecos" con fila fija):

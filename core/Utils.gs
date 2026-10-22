@@ -123,55 +123,6 @@ function normalizarDniUsuario(texto) {
 // function normalizarTelefono(telefono) { ... } // -> ya vive solo en usuarios/Contactos_Google.gs
 
 /**
- * Devuelve la hoja de Agenda del curso académico ACTUAL (no la primera que contenga "Agenda").
- * El curso va de Septiembre a Agosto: sep-dic -> año actual/año+1; ene-jul -> año-1/año actual.
- *
- * (Desde el corte del 21-oct-2026 la hoja Agenda es solo archivo: solo la usa `congelarAgendaAnterior` (herramientas/Congelar_Agenda.gs).)
- */
-function obtenerHojaAgenda() {
-  const ss = getSS();
-  const today = new Date();
-  const month = today.getMonth() + 1; // 1-12
-
-  let cursoInicio, cursoFin;
-
-  if (month >= 9) { // Septiembre - Diciembre
-    cursoInicio = today.getFullYear();
-    cursoFin = cursoInicio + 1;
-  } else { // Enero - Julio
-    cursoFin = today.getFullYear();
-    cursoInicio = cursoFin - 1;
-  }
-
-  // OPTIMIZACIÓN DE RENDIMIENTO: esta función se llama en CADA carga de la
-  // Agenda Web, cada cambio de semana y cada edición de un dato (Asistencia,
-  // Notas, Sesión, asignar paciente...). Antes, cada una de esas llamadas
-  // hacía ss.getSheets(), que recorre y crea un objeto Sheet para TODAS las
-  // pestañas del libro (Base de Datos Maestra, cada Agenda de cada curso,
-  // etc.) solo para tirar casi todas y quedarnos con una. Con muchas
-  // pestañas eso se nota en cada clic. Ahora se pide directamente la hoja
-  // por su nombre exacto (getSheetByName), que es una búsqueda directa sin
-  // tener que instanciar el resto de pestañas.
-  const nombreEsperado = `Agenda ${cursoInicio}-${cursoFin}`;
-  const hojaDirecta = ss.getSheetByName(nombreEsperado);
-  if (hojaDirecta) return hojaDirecta;
-
-  // Respaldo: si el nombre real tiene espacios distintos a uno solo (p.ej.
-  // "Agenda  2025-2026" con doble espacio), la búsqueda exacta de arriba no
-  // la encuentra. Solo en ese caso recurrimos al escaneo completo de antes.
-  const regex = new RegExp(`^Agenda\\s+${cursoInicio}-${cursoFin}$`);
-  const sheets = ss.getSheets();
-
-  for (let i = 0; i < sheets.length; i++) {
-    if (regex.test(sheets[i].getName())) {
-      return sheets[i];
-    }
-  }
-
-  throw new Error(`No se encontró una hoja de Agenda para el curso ${cursoInicio}-${cursoFin}.`);
-}
-
-/**
  * Extrae la URL de un enlace de Historia Clínica de una celda, sin importar
  * cómo se guardó: como Rich Text (formato usado por la creación de la HC,
  * guardarCitasMultiples), como fórmula
@@ -265,24 +216,23 @@ function resolverColumnaTelefono_(hoja, encabezados) {
 
 /**
  * Calcula la edad (años cumplidos) a partir de una fecha de nacimiento.
- * Misma lógica que ya usa recalcularEdades() (herramientas/Edad_Manual.gs) y
- * Anadir_Usuario.gs / Editar_Usuario.gs — centralizada aquí para no
- * tenerla repetida.
+ * La edad NO se guarda en la hoja: la calculan al leer los lectores de la Maestra
+ * (obtenerBaseDatosCompletaWeb, leerMaestraParaFicha_, obtenerHCWeb y obtenerHCsActivasWeb).
  *
- * Acepta tanto un objeto Date (como el que devuelve una celda de Sheets) como
- * un texto "aaaa-mm-dd" (como el que manda el <input type="date"> del
- * formulario web: FormData siempre lo envía como texto, nunca como Date).
+ * Lo preferible es pasarle el valor crudo de la celda (un Date), antes de convertirlo a texto.
+ * También acepta un texto "aaaa-mm-dd" o "dd/mm/aaaa" y un número de serie de Sheets
+ * (estos dos últimos, a través de parseFecha).
  * Devuelve "" si no se puede interpretar como una fecha válida.
  */
 function calcularEdadDesdeFecha_(fechaNacimiento) {
   var fecha = fechaNacimiento;
 
   if (Object.prototype.toString.call(fecha) !== "[object Date]") {
-    if (typeof fecha === 'string' && fecha.trim() !== '') {
-      var partes = fecha.split('-'); // "aaaa-mm-dd"
-      if (partes.length === 3) {
-        fecha = new Date(Number(partes[0]), Number(partes[1]) - 1, Number(partes[2]));
-      }
+    if (typeof fecha === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(fecha.trim())) {
+      var partes = fecha.trim().split('-'); // "aaaa-mm-dd"
+      fecha = new Date(Number(partes[0]), Number(partes[1]) - 1, Number(partes[2]));
+    } else {
+      fecha = parseFecha(fecha); // "dd/mm/aaaa", número de serie, o null
     }
   }
 

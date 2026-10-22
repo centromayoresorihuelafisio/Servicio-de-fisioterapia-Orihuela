@@ -3068,9 +3068,8 @@
         if (!c || !esUrl(url)) { mostrarAviso('Esta cita no tiene Historia Clínica enlazada.'); return; }
         var nombre = String(c['Usuario'] || '').trim();
         var m = /[?&]page=hc&id=([^&#]+)/.exec(url);                 // enlace a la ficha web: se abre como panel lateral
-        // Si la cita aún guarda el enlace al Doc antiguo, el servidor localiza la historia por el ID de ese Doc (nunca por el nombre).
         abrirPanelLateral('hc:' + (m ? m[1] : nombre), 'Historia clínica · ' + nombre, 'hc', function(cont) {
-          return PanelHC.abrir(cont, { id: m ? decodeURIComponent(m[1]) : '', enlace: m ? '' : url, urlPagina: <?!= JSON.stringify(baseUrl) ?> + '?page=hc',
+          return PanelHC.abrir(cont, { id: m ? decodeURIComponent(m[1]) : '', urlPagina: <?!= JSON.stringify(baseUrl) ?> + '?page=hc',
             // Cita o edición hechas desde la historia: se actualizan la agenda y las fichas (igual que al avisar otra ventana).
             alCambiar: function(tipo) {
               if (tipo === 'usuario') cargarFichas();

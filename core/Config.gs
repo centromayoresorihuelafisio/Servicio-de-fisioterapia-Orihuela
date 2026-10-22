@@ -20,7 +20,6 @@ const SHEETS = {
  * rompería la lectura sin ningún aviso. Ahora hay una única fuente por clave.
  */
 const PROP_KEYS = {
-  DRIVE_FOLDER_ID: "DRIVE_FOLDER_ID",
   WHATSAPP_MESSAGE: "WHATSAPP_MESSAGE"
 };
 
@@ -35,6 +34,8 @@ const COLUMNAS = {
     NOMBRE: "Nombre",
     DNI: "DNI",
     FECHA_NACIMIENTO: "Fecha nacimiento",
+    // Nombre del campo "Edad" que calculan al leer los lectores de la Maestra. La edad NO se guarda en la hoja
+    // (CONTEXTO.md, sección 11, decisión 6).
     EDAD: "Edad",
     ESTADO: "Estado",
     TIPO_INGRESO: "Tipo de Ingreso",
@@ -52,7 +53,9 @@ const COLUMNAS = {
     // como primer intento antes de caer al buscador difuso de variantes.
     TELEFONO_FORM: "telefono1"
   },
-  AGENDA: {
+  // Cabeceras de la tabla de la semana que la Agenda web recibe del servidor (agenda/Web_Semana_Citas.gs); el cliente las usa como
+  // claves. NO son columnas de la hoja "Citas" (Citas_Datos.gs recorre COLUMNAS.CITAS y espera que existan en la hoja).
+  SEMANA_WEB: {
     FECHA: "Fecha",
     DIA: "Día",
     HORA: "Hora",
@@ -125,7 +128,10 @@ const COLUMNAS_NUM = {
     FUNCION_GLOBAL: 11,
     ANALGESICOS: 12,
     NOTAS: 13,
-    DNI: 14   // Añadida al final (05/10/2026) para no mover ninguna columna existente
+    DNI: 14,  // Añadida al final (05/10/2026) para no mover ninguna columna existente
+    // ID estable del usuario (CONTEXTO.md, sección 11, paso 8). Añadida al final (22-oct-2026). La rellena
+    // herramientas/Asignar_ID_Paciente_en_Valoraciones.gs en las filas existentes. Nunca se edita a mano.
+    ID_PACIENTE: 15
   }
 };
 

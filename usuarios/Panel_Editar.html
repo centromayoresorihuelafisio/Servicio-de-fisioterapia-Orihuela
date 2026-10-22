@@ -6,11 +6,10 @@
   Devuelve { haCambiado(), alEscape() }:
     · haCambiado() → true si hay cambios sin guardar (la Base de Datos pregunta antes de descartar).
     · alEscape()   → cierra primero un desplegable abierto; devuelve true si lo ha gestionado.
-  Origen: usuarios/Editar_Usuario_Vista.html (la ruta ?page=editarPaciente).
-  Diferencias: el formulario se construye en el navegador con los datos de obtenerDatosEdicionPaciente()
-  (en vez de scriptlets), el CSS va acotado a .pe y usa los tokens de la página (--md-*, así que
-  respeta el tema oscuro), y la revisión de cambios es una capa dentro del propio panel.
-  Guarda con actualizarPaciente(data, idPaciente) (usuarios/Editar_Usuario.gs), igual que el formulario original.
+  El formulario se construye en el navegador con los datos de obtenerDatosEdicionPaciente(), el CSS va acotado
+  a .pe y usa los tokens de la página (--md-*, así que respeta el tema oscuro), y la revisión de cambios es una
+  capa dentro del propio panel.
+  Guarda con actualizarPaciente(data, idPaciente) (usuarios/Editar_Usuario.gs).
   Identidad: el servidor localiza al usuario por su ID paciente (no por número de fila ni nombre), así que aunque la hoja
   se reordene mientras el panel está abierto se edita siempre a la misma persona; si ya no existe, no se guarda nada.
   Requiere ui/JS_Formato_Nombre en la página (enlazarFormatoNombre / enlazarFormatoDni / validarDni).

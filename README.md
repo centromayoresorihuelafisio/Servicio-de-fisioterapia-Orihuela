@@ -14,7 +14,7 @@ Se usa como **Web App** (`doGet`): Agenda, Base de Datos y Valoraciones como pes
 | `valoraciones/` | Formulario de valoración y vista web de evolución |
 | `historia/` | Historia clínica como ficha web (`HC_Web.gs`, `Panel_HC.html`, `HC_Vista.html`) y creación de HC (`Generar.gs`) |
 | `ui/` | Piezas compartidas de interfaz: CSS global, ficha lateral de usuario, selector de fecha, cierre de formularios y modal de deshacer |
-| `herramientas/` | Utilidades esporádicas o de un solo uso (asignar IDs, migrar/diagnosticar HC, congelar la Agenda antigua, normalizar celdas, backup…) |
+| `herramientas/` | Utilidades esporádicas o de un solo uso (asignar IDs, backup…) |
 
 Convención de archivos: `X.gs` es la lógica del servidor y `X_Vista.html` (o `Panel_*.html`, `Dialogo_*.html`) su interfaz. Los `.html` que empiezan por `JS_` o `CSS_` se incluyen en otras vistas con `include()`.
 
@@ -30,7 +30,6 @@ El router está en `core/WebApp.gs` y sirve cada página según `?page=`. Sin pa
 | `citas` | Formulario de citas |
 | `nuevoPaciente` | Añadir usuario |
 | `valoracion` | Formulario de valoración |
-| `editarPaciente&fila=N` | Edición de un usuario |
 | `hc&id=ID_HC` | Historia clínica (ficha web) |
 
 Con `&embed=1` la página se abre como ventana emergente. Los formularios se cierran según el contexto en que estén abiertos (ventana emergente o pestaña); ver `ui/JS_Cierre_Formulario.html`.

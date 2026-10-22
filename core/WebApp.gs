@@ -91,7 +91,7 @@ function obtenerPanelWeb(archivo) {
  */
 function prepararContexto_(template, contexto) {
   template.contexto = contexto;
-  template.baseUrl = (contexto === 'dialogo') ? '' : ScriptApp.getService().getUrl();
+  template.baseUrl = ScriptApp.getService().getUrl();
   return template;
 }
 
@@ -123,13 +123,6 @@ function doGet(e) {
   const page = (e && e.parameter && e.parameter.page) || 'baseDatos';
   // Ventana emergente (window.open desde la Web App) o pestaña independiente.
   const contexto = (e && e.parameter && e.parameter.embed === '1') ? 'popup' : 'pestana';
-
-  // Caso especial: edición de un paciente concreto, identificado por su fila
-  // real en la Maestra (?page=editarPaciente&fila=N). No es un archivo estático
-  // de PAGINAS_WEB porque necesita datos server-side antes de servirse.
-  if (page === 'editarPaciente') {
-    return servirFormularioEdicionWeb(e.parameter.fila, e.parameter.embed === '1');
-  }
 
   // Caso especial: ficha de historia clínica en HTML (?page=hc&id=ID_HC o &idPaciente=ID_PACIENTE).
   if (page === 'hc') {
@@ -175,43 +168,6 @@ function doGet(e) {
 
   return HtmlService.createHtmlOutputFromFile(config.archivo)
     .setTitle(config.titulo)
-    .addMetaTag('viewport', 'width=device-width, initial-scale=1');
-}
-
-/**
- * Sirve usuarios/Editar_Usuario_Vista.html precargado con los datos de la fila indicada,
- * para poder editar un paciente desde la tabla de la Web App sin pasar por
- * el editor de la hoja. Usa el mismo guardado (actualizarPaciente) que el panel de edición.
- */
-function servirFormularioEdicionWeb(filaParam, enVentanaEmergente) {
-  const rowIdx = parseInt(filaParam, 10);
-
-  if (!rowIdx || rowIdx < 2) {
-    return HtmlService.createHtmlOutput('Falta indicar un paciente válido (parámetro "fila"). Vuelve a la <a href="' + ScriptApp.getService().getUrl() + '?page=baseDatos">Base de Datos</a>.');
-  }
-
-  const ss = getSS();
-  const sheet = ss.getSheetByName(SHEETS.MAESTRA);
-  if (!sheet) {
-    return HtmlService.createHtmlOutput(`Error: no se encontró la hoja "${SHEETS.MAESTRA}".`);
-  }
-  if (rowIdx > sheet.getLastRow()) {
-    return HtmlService.createHtmlOutput('Ese paciente ya no existe en esa fila. Vuelve a la <a href="' + ScriptApp.getService().getUrl() + '?page=baseDatos">Base de Datos</a> y prueba de nuevo.');
-  }
-
-  const { headers, rowData } = prepararDatosFilaParaEdicion(sheet, rowIdx);
-
-  const template = HtmlService.createTemplateFromFile('usuarios/Editar_Usuario_Vista');
-  template.headers = headers;
-  template.rowData = rowData;
-  template.rowIdx = rowIdx;
-  template.idPaciente = String(rowData[headers.indexOf(COLUMNAS.MAESTRA.ID_PACIENTE)] || '').trim();
-  template.esWebApp = true;
-  template.enVentanaEmergente = !!enVentanaEmergente;
-  template.baseUrl = ScriptApp.getService().getUrl();
-
-  return template.evaluate()
-    .setTitle('Editar Usuario')
     .addMetaTag('viewport', 'width=device-width, initial-scale=1');
 }
 

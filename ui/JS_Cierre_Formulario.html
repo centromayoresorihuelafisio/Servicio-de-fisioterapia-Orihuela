@@ -4,8 +4,8 @@
   (fuera de cualquier <script>), en páginas servidas con createTemplateFromFile().
 
   Cada página puede definir antes:
-    window.CONTEXTO_FORM = 'dialogo' | 'popup' | 'pestana'   (por defecto 'dialogo')
-    window.BASE_URL_FORM = URL de despliegue de la Web App   (solo para 'pestana')
+    window.CONTEXTO_FORM = 'popup' | 'pestana'   (por defecto 'pestana')
+    window.BASE_URL_FORM = URL de despliegue de la Web App   (para volver a la Base de Datos en 'pestana')
 -->
 <script>
   var CIERRE_DEMORA_MS = 1500; // Lo subimos a 1.5 segundos por defecto para que se lea bien el mensaje
@@ -28,16 +28,14 @@
     opciones = opciones || {};
     var guardado = !!opciones.guardado;
     var demora = (opciones.demora !== undefined) ? opciones.demora : CIERRE_DEMORA_MS;
-    var contexto = window.CONTEXTO_FORM || 'dialogo';
+    var contexto = window.CONTEXTO_FORM || 'pestana';
 
     // EL TRUCO: Metemos el aviso al padre DENTRO del temporizador.
     // Así el formulario tiene tiempo de enseñar el "✓ Guardado" antes de que el padre lo cierre.
     setTimeout(function () {
       
-      // Avisamos a la pestaña principal (si no estamos en un modal gris de Sheets)
-      if (contexto !== 'dialogo') {
-        notificarGuardado('cerrarEdicionPaciente', guardado);
-      }
+      // Avisamos a la pestaña principal
+      notificarGuardado('cerrarEdicionPaciente', guardado);
 
       if (contexto === 'popup') {
         // Intento de cierre por si el navegador lo permite
@@ -46,10 +44,8 @@
         // La red de seguridad por si falla el cierre automático desde la pestaña principal
         setTimeout(function () { if (guardado) _avisoCerrarManual(); }, 300);
         
-      } else if (contexto === 'pestana') {
-        window.top.location.href = (window.BASE_URL_FORM || '') + '?page=baseDatos';
       } else {
-        google.script.host.close();
+        window.top.location.href = (window.BASE_URL_FORM || '') + '?page=baseDatos';
       }
       
     }, demora);

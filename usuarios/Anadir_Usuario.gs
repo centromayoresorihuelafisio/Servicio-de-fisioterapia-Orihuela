@@ -158,7 +158,6 @@ function guardarPaciente(datos) {
   // Columnas que NO deben ser rellenadas por el formulario (se manejan automáticamente o manualmente)
   const columnasNoFormulario = [
     'Nº',
-    'Edad',
     'Última visita',
     'Merged Doc URL - Historias Clínicas'
   ];
@@ -209,17 +208,6 @@ function guardarPaciente(datos) {
   const colDniFormato = encabezados.indexOf(COLUMNAS.MAESTRA.DNI);
   if (colNombreFormato !== -1) nuevaFila[colNombreFormato] = normalizarNombreUsuario(nuevaFila[colNombreFormato]);
   if (colDniFormato !== -1) nuevaFila[colDniFormato] = normalizarDniUsuario(nuevaFila[colDniFormato]);
-
-  // --- NUEVA LÓGICA: CÁLCULO AUTOMÁTICO DE LA EDAD ---
-  // "Edad" está en columnasNoFormulario (el formulario nunca la rellena), así
-  // que se calcula aquí a partir de "Fecha nacimiento" con la misma lógica
-  // que recalcularEdades() (herramientas/Edad_Manual.gs): un guardado desde la Web App
-  // no la calcula por sí solo.
-  const colNacimientoIdx = encabezados.indexOf(COLUMNAS.MAESTRA.FECHA_NACIMIENTO);
-  const colEdadIdx = encabezados.indexOf(COLUMNAS.MAESTRA.EDAD);
-  if (colNacimientoIdx !== -1 && colEdadIdx !== -1) {
-    nuevaFila[colEdadIdx] = calcularEdadDesdeFecha_(nuevaFila[colNacimientoIdx]);
-  }
 
   Logger.log('Fila preparada para insertar (nuevaFila): ' + JSON.stringify(nuevaFila));
 

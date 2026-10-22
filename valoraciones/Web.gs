@@ -247,9 +247,9 @@ function actualizarValoracionWeb(datos) {
 
     // Escribimos cada campo por su columna exacta (en vez de la fila entera
     // de un tirón) para no pisar la columna Nombre, que no viaja en filaDatos.
-    // El DNI tampoco se toca al corregir una valoración (identifica a la persona, como el nombre).
+    // El DNI y el ID paciente tampoco se tocan al corregir una valoración (identifican a la persona, como el nombre).
     Object.keys(C).forEach(clave => {
-      if (clave === 'NOMBRE' || clave === 'DNI') return;
+      if (clave === 'NOMBRE' || clave === 'DNI' || clave === 'ID_PACIENTE') return;
       sheet.getRange(fila, C[clave]).setValue(filaDatos[C[clave] - 1]);
     });
 

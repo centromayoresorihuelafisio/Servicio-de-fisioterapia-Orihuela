@@ -1,8 +1,7 @@
 /**
  * Lee una fila de la Maestra y la deja lista para el formulario de edición
  * (cabeceras + valores, con las fechas convertidas a "yyyy-MM-dd" para que
- * los <input type="date"> las reconozcan). La usan el panel de edición
- * (obtenerDatosEdicionPaciente) y el router de la Web App (?page=editarPaciente).
+ * los <input type="date"> las reconozcan). La usa obtenerDatosEdicionPaciente (panel de edición).
  */
 function prepararDatosFilaParaEdicion(sheet, rowIdx) {
   const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
@@ -91,12 +90,6 @@ function actualizarPaciente(updatedData, idPaciente) {
       }
     }
     if (colDniIdx !== -1) newRowValues[colDniIdx] = normalizarDniUsuario(newRowValues[colDniIdx]);
-  }
-
-  const colNacimientoIdx = headers.indexOf(COLUMNAS.MAESTRA.FECHA_NACIMIENTO);
-  const colEdadIdx = headers.indexOf(COLUMNAS.MAESTRA.EDAD);
-  if (colNacimientoIdx !== -1 && colEdadIdx !== -1) {
-    newRowValues[colEdadIdx] = calcularEdadDesdeFecha_(newRowValues[colNacimientoIdx]);
   }
 
   // Valores de la fila ANTES de reescribirla, para el historial de Estado/Tipo de Ingreso/Gravedad (sección 11, paso 4).

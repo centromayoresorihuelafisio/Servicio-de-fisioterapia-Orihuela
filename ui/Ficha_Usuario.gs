@@ -71,7 +71,8 @@ function obtenerFichaUsuarioWeb(nombre, campos) {
 /**
  * Lee la Maestra una sola vez y devuelve { headers, pacientes } con SOLO las
  * columnas pedidas (más Nombre, que siempre hace falta para identificar la fila).
- * Las fechas se formatean dd/MM/yyyy, como en obtenerBaseDatosCompletaWeb.
+ * Las fechas se formatean dd/MM/yyyy, como en obtenerBaseDatosCompletaWeb. La "Edad" no se lee de la hoja: se calcula
+ * con la fecha de nacimiento (valor crudo de la celda) y se añade si el cliente la pide o no filtra columnas.
  */
 function leerMaestraParaFicha_(campos) {
   const sheet = getSS().getSheetByName(SHEETS.MAESTRA);
@@ -94,8 +95,16 @@ function leerMaestraParaFicha_(campos) {
   });
   if (!cols.length) return { headers: [], pacientes: [] };
 
+  // Edad calculada (no se guarda). La columna de nacimiento se lee aunque el cliente no la pida.
+  const claveEdad = normalizarNombreFicha_(COLUMNAS.MAESTRA.EDAD);
+  const claveNacimiento = normalizarNombreFicha_(COLUMNAS.MAESTRA.FECHA_NACIMIENTO);
+  const idxNacimiento = headersRaw.findIndex(function(h) { return normalizarNombreFicha_(h) === claveNacimiento; });
+  const calcularEdad = idxNacimiento !== -1 && (!pedidos || pedidos.indexOf(claveEdad) !== -1);
+  const colEdadHoja = cols.filter(function(c) { return normalizarNombreFicha_(c.h) === claveEdad; })[0];
+  const nombreEdad = colEdadHoja ? colEdadHoja.h : COLUMNAS.MAESTRA.EDAD;
+
   // Una única lectura, hasta la última columna necesaria (no hasta el final de la hoja).
-  const ultimaCol = cols[cols.length - 1].idx + 1;
+  const ultimaCol = Math.max(cols[cols.length - 1].idx + 1, calcularEdad ? idxNacimiento + 1 : 0);
   const datos = sheet.getRange(2, 1, lastRow - 1, ultimaCol).getValues();
   const tz = Session.getScriptTimeZone();
   const colNombre = COLUMNAS.MAESTRA.NOMBRE;
@@ -108,11 +117,14 @@ function leerMaestraParaFicha_(campos) {
       if (Object.prototype.toString.call(v) === '[object Date]') v = Utilities.formatDate(v, tz, 'dd/MM/yyyy');
       p[c.h] = v;
     });
+    if (calcularEdad) p[nombreEdad] = calcularEdadDesdeFecha_(row[idxNacimiento]);
     // Ignorar filas vacías (huecos en la hoja)
     if (p[colNombre] && String(p[colNombre]).trim() !== '') pacientes.push(p);
   });
 
-  return { headers: cols.map(function(c) { return c.h; }), pacientes: pacientes };
+  const headersSalida = cols.map(function(c) { return c.h; });
+  if (calcularEdad && !colEdadHoja) headersSalida.push(nombreEdad);
+  return { headers: headersSalida, pacientes: pacientes };
 }
 
 function normalizarNombreFicha_(texto) {

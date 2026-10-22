@@ -2,7 +2,7 @@
   historia/Panel_HC.html
   Historia clínica web como módulo del panel lateral (Base de Datos y Agenda) y como página completa (historia/HC_Vista.html).
   Se incluye con incluirPanel('historia/Panel_HC', 'PanelHC') (carga bajo demanda, ver ui/JS_Paneles_Diferidos).
-  API: PanelHC.abrir(contenedor, { id, idPaciente, enlace, modo, urlPagina, volverUrl, alCargar, alCambiar, acciones })
+  API: PanelHC.abrir(contenedor, { id, idPaciente, modo, urlPagina, volverUrl, alCargar, alCambiar, acciones })
   Funciones de la app dentro de la historia (solo en el panel lateral): Valoración, Dar cita, Editar y WhatsApp. Reutilizan
   PanelValoraciones / PanelCita / PanelEditar (se montan en una hoja que se superpone a la historia) y WhatsappDialogo; cada
   botón aparece solo si la página anfitriona incluye ese módulo. La página anfitriona se entera de los cambios con alCambiar(tipo).
@@ -352,10 +352,9 @@
 window.PanelHC = {
   _activo: null,
   /**
-   * PanelHC.abrir(contenedor, { id, idPaciente, enlace, modo, urlPagina, volverUrl, alCargar })
+   * PanelHC.abrir(contenedor, { id, idPaciente, modo, urlPagina, volverUrl, alCargar })
    *   id         ID HC (el que lleva el enlace de la Maestra: ?page=hc&id=ID)
    *   idPaciente ID paciente (Maestra); se usa si no hay ID HC (la historia es la que lleva ese ID paciente)
-   *   enlace     URL de un Doc antiguo (solo Agenda con enlaces sin convertir); se resuelve por el ID del Doc
    *   modo       'pagina' → página completa (HC_Vista); otro valor → panel lateral
    *   urlPagina  URL base de la página completa (…/exec?page=hc), para "Abrir en pestaña" e Imprimir
    *   alCambiar  function(tipo): se llama al cerrar la hoja de Valoración/Cita/Editar si hubo cambios; tipo = 'valoracion' | 'cita' | 'usuario'
@@ -368,7 +367,7 @@ window.PanelHC = {
     host.innerHTML = '';
     host.appendChild(document.getElementById('tplPanelHC').content.cloneNode(true));
     var root = host.querySelector('.hc');
-    var PARAMS = { id: opts.id || '', idPaciente: opts.idPaciente || '', enlace: opts.enlace || '' };
+    var PARAMS = { id: opts.id || '', idPaciente: opts.idPaciente || '' };
     var PAGINA = opts.modo === 'pagina';
     var $ = function (id) { return root.querySelector('#hc-' + id); };
   var D = null;                 // datos de la ficha
@@ -738,10 +737,10 @@ window.PanelHC = {
     if (pre) {
       pintar(pre);                                   // al instante, sin esperar al servidor
       if (pre._obsoleta) google.script.run.withSuccessHandler(revalidar).withFailureHandler(function () { /* sin red: se queda lo de la caché */ })
-        .obtenerHCWeb(PARAMS.id, PARAMS.idPaciente, PARAMS.enlace);
+        .obtenerHCWeb(PARAMS.id, PARAMS.idPaciente);
       return;
     }
-    google.script.run.withSuccessHandler(alRecibir).withFailureHandler(function (e) { fallo(e && e.message); }).obtenerHCWeb(PARAMS.id, PARAMS.idPaciente, PARAMS.enlace);
+    google.script.run.withSuccessHandler(alRecibir).withFailureHandler(function (e) { fallo(e && e.message); }).obtenerHCWeb(PARAMS.id, PARAMS.idPaciente);
   }
   /* ---------- funciones de la app dentro de la historia (hoja lateral) ---------- */
   // Valoración, Dar cita y Editar reutilizan los paneles de la app (PanelValoraciones / PanelCita / PanelEditar): se montan en una
@@ -766,7 +765,7 @@ window.PanelHC = {
     if (!D || !D.id) return;
     google.script.run.withSuccessHandler(function (f) { if (f && f.success && root.isConnected) { forzarEpi = !!forzarEpisodios; try { revalidar(f); } finally { forzarEpi = false; } } })
       .withFailureHandler(function () { /* se queda lo que hay en pantalla */ })
-      .obtenerHCWeb(D.id, '', '');
+      .obtenerHCWeb(D.id, '');
   }
   function accion(tipo) {
     if (!D || subHost) return;

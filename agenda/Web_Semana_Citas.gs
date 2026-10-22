@@ -25,9 +25,9 @@
 
 const AGENDA_SEMANA_DIAS_ = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
 
-/** Cabeceras de la semana, en el mismo orden que las columnas de la hoja vieja (sin la de Calendar, ya retirada). */
+/** Cabeceras de la semana, con el orden que espera el cliente de la Agenda. */
 function agendaSemanaCabeceras_() {
-  const a = COLUMNAS.AGENDA;
+  const a = COLUMNAS.SEMANA_WEB;
   return [a.FECHA, a.DIA, a.HORA, a.USUARIO, a.TELEFONO, a.SESION, a.ASISTENCIA, a.HISTORIA_CLINICA, a.NOTAS];
 }
 
@@ -91,7 +91,7 @@ function agendaSemanaUsuariosPorId_(ids) {
  * @param {function(string,string):boolean} cerrada ¿Hora cerrada en Disponibilidad? (fechaISO, 'HH:mm')
  */
 function agendaSemanaConstruir_(citas, usuarios, fechas, horasDelDia, cerrada) {
-  const a = COLUMNAS.AGENDA, filas = [];
+  const a = COLUMNAS.SEMANA_WEB, filas = [];
   const base = function (iso, hora, hueco) {
     const f = { _fila: '', _id: '', _idPaciente: '', _fechaISO: iso, _horaOrden: hora, _hueco: hueco };
     f[a.FECHA] = agendaSemanaFechaCorta_(iso);
