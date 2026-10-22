@@ -1,36 +1,4 @@
 /**
- * Versión de menú: da de alta al paciente de la fila seleccionada
- * en la hoja maestra.
- */
-function darDeAltaPaciente() {
-  const ui = SpreadsheetApp.getUi();
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName(SHEETS.MAESTRA);
-
-  if (!sheet) {
-    ui.alert("No se encontró la hoja maestra de pacientes.");
-    return;
-  }
-
-  // La selección activa pertenece a la hoja que está abierta: si no es la
-  // maestra, la fila seleccionada no corresponde a ningún paciente.
-  if (ss.getActiveSheet().getName() !== sheet.getName()) {
-    ui.alert("Ve a la hoja '" + sheet.getName() + "' y selecciona la fila del paciente.");
-    return;
-  }
-
-  const activeRow = sheet.getActiveRange().getRow();
-  if (activeRow === 1) {
-    ui.alert("Por favor, selecciona una fila de paciente para dar de alta.");
-    return;
-  }
-
-  const resultado = _ejecutarAltaEnFila(sheet, activeRow);
-  ui.alert(resultado.message);
-  if (resultado.success) ordenarPacientes();
-}
-
-/**
  * Versión web-safe: da de alta al paciente de `fila`, para usar desde el
  * botón "Dar de Alta" de la Base de Datos Web.
  */

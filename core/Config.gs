@@ -14,9 +14,9 @@ const SHEETS = {
 
 /**
  * Claves de PropertiesService (Script Properties) usadas para la configuración
- * ajustable desde el menú ⚙️ (ver core/PanelAdmin.gs). Antes cada clave estaba escrita
+ * ajustable desde el editor (ver core/PanelAdmin.gs). Antes cada clave estaba escrita
  * como texto literal por separado en core/PanelAdmin.gs y en el archivo que la
- * consume (historia/Generar.gs / usuarios/Whatsapp.gs); un typo en una de las dos copias
+ * consume (usuarios/Whatsapp.gs); un typo en una de las dos copias
  * rompería la lectura sin ningún aviso. Ahora hay una única fuente por clave.
  */
 const PROP_KEYS = {

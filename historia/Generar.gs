@@ -1,25 +1,4 @@
 /**
- * Generar historia clínica para el paciente de la fila activa (menú de Sheets).
- */
-function generarHistoriaClinica() {
-  const ui = SpreadsheetApp.getUi();
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName(SHEETS.MAESTRA);
-  if (!sheet) { ui.alert("Error: La hoja 'Base de Datos Maestra' no existe."); return; }
-
-  const activeRange = sheet.getActiveRange();
-  const rowIndex = activeRange.getRow();
-  if (rowIndex === 1) { ui.alert("Selecciona una fila que contenga los datos de un paciente."); return; }
-
-  const resultado = _generarHistoriaClinicaEnFila(sheet, rowIndex);
-  if (!resultado.success) {
-    ui.alert(resultado.message);
-    return;
-  }
-  ss.toast(resultado.message, '✅ Completado', 6);
-}
-
-/**
  * Versión web-safe: genera la historia clínica del paciente de `fila`,
  * para usar desde el botón "Historia Clínica" de la Base de Datos Web.
  */

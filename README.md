@@ -2,13 +2,13 @@
 
 Gestión del servicio de fisioterapia con **Google Sheets + Google Apps Script**: base de datos de usuarios, agenda de citas (hoja plana "Citas"), valoraciones e historias clínicas (fichas web en hojas, sin Docs). Este repositorio es la copia de seguridad del código.
 
-Se usa como **Web App** (`doGet`): Agenda, Base de Datos y Valoraciones como pestañas de una aplicación web, de uso personal. Quedan además unos pocos menús y diálogos dentro de la hoja (restos que se retirarán; ver `CONTEXTO.md`, sección 11).
+Se usa como **Web App** (`doGet`): Agenda, Base de Datos y Valoraciones como pestañas de una aplicación web, de uso personal. La hoja es solo la base de datos: no tiene menús ni diálogos.
 
 ## Estructura del proyecto
 
 | Carpeta | Contenido |
 |---|---|
-| `core/` | Base común: `Config.gs` (nombres de hojas, columnas, claves de propiedades e interruptor de paneles), `Utils.gs` (funciones compartidas), `Menu.gs`, `OnEdit.gs`, `PanelAdmin.gs` y `WebApp.gs` (router de la Web App) |
+| `core/` | Base común: `Config.gs` (nombres de hojas, columnas, claves de propiedades e interruptor de paneles), `Utils.gs` (funciones compartidas), `PanelAdmin.gs` y `WebApp.gs` (router de la Web App) |
 | `usuarios/` | Alta, edición, búsqueda y ordenación de usuarios; Base de Datos web; WhatsApp; sincronización con Contactos de Google |
 | `agenda/` | Capa de datos de la hoja "Citas" (`Citas_Datos.gs`), vista web de la Agenda, formulario de cita, disponibilidad y recordatorios |
 | `valoraciones/` | Formulario de valoración y vista web de evolución |
@@ -33,7 +33,7 @@ El router está en `core/WebApp.gs` y sirve cada página según `?page=`. Sin pa
 | `editarPaciente&fila=N` | Edición de un usuario |
 | `hc&id=ID_HC` | Historia clínica (ficha web) |
 
-Con `&embed=1` la página se abre como ventana emergente. Los formularios se cierran según el contexto en que estén abiertos (diálogo de Sheets, ventana emergente o pestaña); ver `ui/JS_Cierre_Formulario.html`.
+Con `&embed=1` la página se abre como ventana emergente. Los formularios se cierran según el contexto en que estén abiertos (ventana emergente o pestaña); ver `ui/JS_Cierre_Formulario.html`.
 
 ## Paneles de formulario bajo demanda
 
@@ -48,7 +48,7 @@ Los formularios del panel lateral (`Panel_Valoracion`, `Panel_Editar`, `Panel_Ci
 ## Configuración
 
 - **Hojas y columnas**: todos los nombres están en `core/Config.gs`. Si renombras una pestaña o una cabecera en Sheets, solo hay que cambiarlo ahí.
-- **Propiedades del script** (menú ⚙️): mensaje de WhatsApp (menú ⚙️).
+- **Propiedades del script**: mensaje de WhatsApp (se cambia ejecutando `configurarMensajeWhatsapp` desde el editor).
 - **Servicios avanzados**: People API (contactos), activada en `appsscript.json`.
 - **Zona horaria**: `Europe/Madrid`.
 

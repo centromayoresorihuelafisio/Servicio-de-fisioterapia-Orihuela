@@ -173,7 +173,7 @@ function obtenerHojaAgenda() {
 
 /**
  * Extrae la URL de un enlace de Historia Clínica de una celda, sin importar
- * cómo se guardó: como Rich Text (formato usado por generarHistoriaClinica,
+ * cómo se guardó: como Rich Text (formato usado por la creación de la HC,
  * guardarCitasMultiples), como fórmula
  * =HIPERVINCULO()/=HYPERLINK() (por si alguna celda antigua la tuviera así),
  * o como texto plano con una URL. Devuelve '' si no hay ningún enlace válido.
@@ -239,7 +239,7 @@ function filaMaestraPorId_(sheet, idPaciente) {
  *
  * Unifica el acceso al teléfono en un solo sitio: antes cada consumidor lo
  * buscaba a su manera (getRange("B:D") fijo en usuarios/Whatsapp.gs, fallback a la
- * columna D en onEdit...), y cualquier cambio de cabecera rompía solo una
+ * columna D en otro sitio...), y cualquier cambio de cabecera rompía solo una
  * parte de la app. Aquí se resuelve una vez.
  */
 function resolverColumnaTelefono_(hoja, encabezados) {
@@ -265,9 +265,9 @@ function resolverColumnaTelefono_(hoja, encabezados) {
 
 /**
  * Calcula la edad (años cumplidos) a partir de una fecha de nacimiento.
- * Misma lógica que ya usa recalcularEdades() (herramientas/Edad_Manual.gs) y el
- * disparador onEdit (core/OnEdit.gs) — centralizada aquí para no
- * tenerla triplicada en tres archivos.
+ * Misma lógica que ya usa recalcularEdades() (herramientas/Edad_Manual.gs) y
+ * Anadir_Usuario.gs / Editar_Usuario.gs — centralizada aquí para no
+ * tenerla repetida.
  *
  * Acepta tanto un objeto Date (como el que devuelve una celda de Sheets) como
  * un texto "aaaa-mm-dd" (como el que manda el <input type="date"> del

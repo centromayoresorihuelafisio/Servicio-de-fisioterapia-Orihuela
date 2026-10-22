@@ -1,25 +1,7 @@
-function abrirChatWhatsapp() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const hoja = ss.getSheetByName(SHEETS.MAESTRA);
-  if (!hoja) { SpreadsheetApp.getUi().alert("Error: No se encontró la hoja 'Base de Datos Maestra'"); return; }
-
-  const nombreCompleto = ss.getActiveCell().getValue();
-  if (!nombreCompleto) { SpreadsheetApp.getUi().alert("Selecciona primero el nombre en la columna B"); return; }
-
-  const resultado = _generarUrlWhatsappParaNombre(hoja, nombreCompleto);
-  if (!resultado.success) { SpreadsheetApp.getUi().alert(resultado.message); return; }
-
-  const plantilla = HtmlService.createTemplateFromFile('usuarios/Whatsapp_Vista');
-  plantilla.linkFinal = resultado.url;
-  const interfaz = plantilla.evaluate().setWidth(350).setHeight(180);
-  SpreadsheetApp.getUi().showModalDialog(interfaz, "Abriendo WhatsApp...");
-}
-
 /**
  * Versión web-safe: genera la URL de WhatsApp para el paciente de `fila`,
  * para usar desde el botón "WhatsApp" de la Base de Datos Web. Devuelve la
- * URL en vez de abrir un diálogo modal (SpreadsheetApp.getUi() no existe en
- * la Web App); el cliente hace window.open con esa URL.
+ * URL y el cliente hace window.open con ella.
  */
 function generarUrlWhatsappWeb(idPaciente) {
   const d = datosWhatsappMaestraWeb([idPaciente]);
@@ -59,66 +41,6 @@ function _primerNombreWhatsapp_(nombreCompleto) {
     }
   }
   return primerNombre;
-}
-
-/**
- * Lee la Maestra UNA sola vez y devuelve, para cada nombre de `nombres`:
- *   { nombre, primerNombre, telefono (solo dígitos, con prefijo 34), error }
- * Igual que antes, si un nombre aparece varias veces en la Maestra se usa la
- * primera fila que coincide. Si falla algo global devuelve { success:false, message }.
- */
-function _datosWhatsappParaNombres_(hoja, nombres) {
-  const idxNombre = obtenerIndiceColumnaPorNombre_(hoja, COLUMNAS.MAESTRA.NOMBRE);
-  const idxTelefono = resolverColumnaTelefono_(hoja);
-  if (idxNombre === -1 || idxTelefono === -1) {
-    return { success: false, message: "No se encontraron las columnas de Nombre o Teléfono en la Maestra." };
-  }
-
-  const lastRow = hoja.getLastRow();
-  if (lastRow < 2) {
-    return { success: false, message: "No hay pacientes registrados en la Maestra." };
-  }
-
-  const numColumnas = Math.abs(idxTelefono - idxNombre) + 1;
-  const primerCol = Math.min(idxNombre, idxTelefono) + 1;
-  const offsetTelefono = idxTelefono - Math.min(idxNombre, idxTelefono);
-  const offsetNombre = idxNombre - Math.min(idxNombre, idxTelefono);
-
-  const datos = hoja.getRange(2, primerCol, lastRow - 1, numColumnas).getValues();
-  const telPorNombre = Object.create(null);
-  for (let i = 0; i < datos.length; i++) {
-    const clave = String(datos[i][offsetNombre]).trim();
-    if (!(clave in telPorNombre)) telPorNombre[clave] = datos[i][offsetTelefono];
-  }
-
-  const items = nombres.map(function(nombre) {
-    const telefono = telPorNombre[String(nombre).trim()];
-    if (!telefono) {
-      return { nombre: nombre, primerNombre: "", telefono: "", error: "No hay teléfono para " + nombre };
-    }
-    const numLimpio = telefono.toString().replace(/\D/g, '');
-    const numFinal = numLimpio.startsWith("34") ? numLimpio : "34" + numLimpio;
-    return { nombre: nombre, primerNombre: _primerNombreWhatsapp_(nombre), telefono: numFinal, error: null };
-  });
-  return { success: true, items: items };
-}
-
-/**
- * Lógica compartida (antes dentro de abrirChatWhatsapp): busca el teléfono
- * en la Maestra, arma el primer nombre para el saludo y construye la URL de
- * WhatsApp Web con la plantilla de mensaje configurada.
- * Devuelve lo mismo que siempre: { success, url } o { success:false, message }.
- */
-function _generarUrlWhatsappParaNombre(hoja, nombreCompleto) {
-  const datos = _datosWhatsappParaNombres_(hoja, [nombreCompleto]);
-  if (!datos.success) return { success: false, message: datos.message };
-
-  const it = datos.items[0];
-  if (it.error) return { success: false, message: it.error };
-
-  const msjFinal = _plantillaWhatsapp_().replace(/{{nombre}}/g, it.primerNombre);
-  const urlGenerada = "https://web.whatsapp.com/send?phone=" + it.telefono + "&text=" + encodeURIComponent(msjFinal);
-  return { success: true, url: urlGenerada };
 }
 
 /**

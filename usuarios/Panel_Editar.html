@@ -6,7 +6,7 @@
   Devuelve { haCambiado(), alEscape() }:
     · haCambiado() → true si hay cambios sin guardar (la Base de Datos pregunta antes de descartar).
     · alEscape()   → cierra primero un desplegable abierto; devuelve true si lo ha gestionado.
-  Origen: usuarios/Editar_Usuario_Vista.html (que se mantiene tal cual para el menú de Sheets).
+  Origen: usuarios/Editar_Usuario_Vista.html (la ruta ?page=editarPaciente).
   Diferencias: el formulario se construye en el navegador con los datos de obtenerDatosEdicionPaciente()
   (en vez de scriptlets), el CSS va acotado a .pe y usa los tokens de la página (--md-*, así que
   respeta el tema oscuro), y la revisión de cambios es una capa dentro del propio panel.

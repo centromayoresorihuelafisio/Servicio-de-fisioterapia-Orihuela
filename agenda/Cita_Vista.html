@@ -675,7 +675,7 @@
     const telefonoUsuarioInput = document.getElementById('telefonoUsuario');
 
     // Paciente ya elegido desde la Base de Datos Web (viene de ?paciente=...).
-    // Vacío cuando se abre desde el menú de Sheets o el índice de la Web App.
+    // Vacío cuando se abre desde el índice de la Web App.
     var PACIENTE_PRESELECCIONADO = <?!= JSON.stringify(pacientePreseleccionado || '') ?>;
     // ── Datos de Estado ──
     let semanasData      = [];
@@ -929,7 +929,7 @@
           nombreUsuarioInput.disabled = false;
           mostrarFeedback('Error al cargar pacientes: ' + err, false);
         })
-        .obtenerNombreDeFilaActiva();
+        .obtenerListaPacientesWeb();
     }
 
     function loadInitialData() {

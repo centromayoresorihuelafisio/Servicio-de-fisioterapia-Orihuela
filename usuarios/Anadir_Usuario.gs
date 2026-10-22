@@ -1,16 +1,4 @@
 /**
- * Abre el diálogo modal con el formulario HTML.
- */
-function abrirFormularioPaciente() {
-  const tmpl = HtmlService.createTemplateFromFile('usuarios/Anadir_Usuario_Vista');
-  prepararContexto_(tmpl, 'dialogo');
-  const html = tmpl.evaluate()
-    .setWidth(700)
-    .setHeight(650);
-  SpreadsheetApp.getUi().showModalDialog(html, ' ');
-}
-
-/**
  * Comprueba si ya existe un usuario con ese DNI en la Base de Datos Maestra.
  * La usa el formulario de Nuevo Usuario para avisar de una posible alta
  * duplicada ANTES de guardar — no bloquea nada por sí sola, solo informa;
@@ -199,7 +187,7 @@ function guardarPaciente(datos) {
       // Si es una fecha (YYYY-MM-DD), convertir a objeto fecha para Sheets — mismo
       // patrón que actualizarPaciente (usuarios/Editar_Usuario.gs). El <input type="date">
       // del formulario manda el valor como texto, y sin esto se guardaría como texto
-      // en la hoja (parseFecha y el onEdit no lo reconocen como fecha real).
+      // en la hoja (parseFecha no lo reconoce como fecha real).
       if (typeof valor === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(valor)) {
         const partes = valor.split('-');
         valor = new Date(Number(partes[0]), Number(partes[1]) - 1, Number(partes[2]));
@@ -225,9 +213,8 @@ function guardarPaciente(datos) {
   // --- NUEVA LÓGICA: CÁLCULO AUTOMÁTICO DE LA EDAD ---
   // "Edad" está en columnasNoFormulario (el formulario nunca la rellena), así
   // que se calcula aquí a partir de "Fecha nacimiento" con la misma lógica
-  // que recalcularEdades() (herramientas/Edad_Manual.gs) y el disparador onEdit — antes se
-  // quedaba en blanco hasta la próxima vez que alguien ejecutara esa función
-  // a mano, porque un guardado desde la Web App no dispara onEdit.
+  // que recalcularEdades() (herramientas/Edad_Manual.gs): un guardado desde la Web App
+  // no la calcula por sí solo.
   const colNacimientoIdx = encabezados.indexOf(COLUMNAS.MAESTRA.FECHA_NACIMIENTO);
   const colEdadIdx = encabezados.indexOf(COLUMNAS.MAESTRA.EDAD);
   if (colNacimientoIdx !== -1 && colEdadIdx !== -1) {

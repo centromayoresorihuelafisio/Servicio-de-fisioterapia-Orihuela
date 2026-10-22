@@ -12,10 +12,10 @@ const SPREADSHEET_ID = "1D99N_jIQkZwZJ7IM2elk1nLxrIaUJIaSvldUX9yzQ2A";
 /**
  * Devuelve la hoja de cálculo con la que trabaja el script.
  * Úsalo en lugar de SpreadsheetApp.getActiveSpreadsheet() en cualquier función
- * que deba poder ejecutarse tanto desde el menú como desde la Web App.
+ * que deba poder ejecutarse tanto desde la Web App como desde el editor.
  *
  * Primero intenta la hoja a la que está vinculado el script, de modo que en una
- * COPIA de la hoja la Web App y los menús trabajen siempre con la copia (antes la
+ * COPIA de la hoja la Web App trabaje siempre con la copia (antes la
  * Web App abría por ID la hoja ORIGINAL aunque estuvieras en una copia). Si en ese
  * contexto no hay hoja vinculada, abre la del ID de respaldo, como hacía antes.
  */
@@ -86,7 +86,6 @@ function obtenerPanelWeb(archivo) {
 /**
  * Pasa a una plantilla las dos variables que necesita JS_Cierre_Formulario
  * para cerrar el formulario según dónde esté abierto:
- *   'dialogo' → modal de Sheets (showModalDialog)
  *   'popup'   → ventana emergente (window.open) de la Web App (?embed=1)
  *   'pestana' → Web App como página independiente
  */
@@ -127,9 +126,7 @@ function doGet(e) {
 
   // Caso especial: edición de un paciente concreto, identificado por su fila
   // real en la Maestra (?page=editarPaciente&fila=N). No es un archivo estático
-  // de PAGINAS_WEB porque necesita datos server-side antes de servirse, igual
-  // que abrirModalEdicion() desde el menú, pero por número de fila en vez de
-  // celda activa (que no existe fuera del editor de la hoja).
+  // de PAGINAS_WEB porque necesita datos server-side antes de servirse.
   if (page === 'editarPaciente') {
     return servirFormularioEdicionWeb(e.parameter.fila, e.parameter.embed === '1');
   }
@@ -157,8 +154,7 @@ function doGet(e) {
   }
 
   // 'citas' y 'valoracion' aceptan un paciente ya elegido desde la tabla de
-  // la Base de Datos (?paciente=NOMBRE), para no tener que volver a buscarlo
-  // como haría el menú con la fila activa (que no existe en la Web App).
+  // la Base de Datos (?paciente=NOMBRE), para no tener que volver a buscarlo.
   if (page === 'citas' || page === 'valoracion') {
     const template = HtmlService.createTemplateFromFile(config.archivo);
     template.pacientePreseleccionado = e.parameter.paciente || '';
@@ -185,8 +181,7 @@ function doGet(e) {
 /**
  * Sirve usuarios/Editar_Usuario_Vista.html precargado con los datos de la fila indicada,
  * para poder editar un paciente desde la tabla de la Web App sin pasar por
- * el editor de la hoja. Reutiliza exactamente el mismo formulario/lógica de
- * guardado que ya usa el menú 🧍 → Editar.
+ * el editor de la hoja. Usa el mismo guardado (actualizarPaciente) que el panel de edición.
  */
 function servirFormularioEdicionWeb(filaParam, enVentanaEmergente) {
   const rowIdx = parseInt(filaParam, 10);
@@ -269,9 +264,8 @@ function construirIndiceWeb() {
 }
 
 /**
- * Versión "web-safe" de obtenerNombreDeFilaActiva: devuelve solo la lista de
- * pacientes (nombre -> teléfono) para el autocompletado, sin intentar leer
- * ninguna fila/celda "activa" (eso no existe fuera del editor de la hoja).
+ * Lista de pacientes (nombre -> teléfono) para el autocompletado de los formularios de Cita
+ * y de la Agenda.
  */
 function obtenerListaPacientesWeb() {
   const HOJA_MAESTRA = SHEETS.MAESTRA;

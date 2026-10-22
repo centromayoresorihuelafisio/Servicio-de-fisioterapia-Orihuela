@@ -1,8 +1,8 @@
 /**
  * Lee una fila de la Maestra y la deja lista para el formulario de edición
  * (cabeceras + valores, con las fechas convertidas a "yyyy-MM-dd" para que
- * los <input type="date"> las reconozcan). La usan tanto abrirModalEdicion()
- * (desde el menú) como el router de la Web App (desde la tabla de pacientes).
+ * los <input type="date"> las reconozcan). La usan el panel de edición
+ * (obtenerDatosEdicionPaciente) y el router de la Web App (?page=editarPaciente).
  */
 function prepararDatosFilaParaEdicion(sheet, rowIdx) {
   const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
@@ -29,39 +29,6 @@ function obtenerDatosEdicionPaciente(idPaciente) {
   const fila = filaMaestraPorId_(sheet, idPaciente);
   if (!fila) throw new Error('Ese usuario ya no está en la Base de Datos. Recarga la página.');
   return prepararDatosFilaParaEdicion(sheet, fila);
-}
-
-/**
- * Abre el diálogo modal para editar el paciente de la fila activa.
- */
-function abrirModalEdicion() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName(SHEETS.MAESTRA);
-  const cell = sheet.getActiveCell();
-  const rowIdx = cell.getRow();
-  
-  if (rowIdx < 2) {
-    SpreadsheetApp.getUi().alert("Por favor, selecciona una fila con datos de paciente.");
-    return;
-  }
-
-  const { headers, rowData } = prepararDatosFilaParaEdicion(sheet, rowIdx);
-
-  const template = HtmlService.createTemplateFromFile('usuarios/Editar_Usuario_Vista');
-  template.headers = headers;
-  template.rowData = rowData;
-  template.rowIdx = rowIdx;
-  template.idPaciente = String(rowData[headers.indexOf(COLUMNAS.MAESTRA.ID_PACIENTE)] || '').trim();
-  template.esWebApp = false;
-  template.baseUrl = '';
-  template.enVentanaEmergente = false;
-
-  const html = template.evaluate()
-    .setWidth(550)
-    .setHeight(750)
-    .setTitle('Editar Registro de Paciente');
-  
-  SpreadsheetApp.getUi().showModalDialog(html, ' ');
 }
 
 /**

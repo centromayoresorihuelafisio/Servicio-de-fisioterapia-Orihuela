@@ -1,20 +1,4 @@
 /**
- * Abre la interfaz de usuario para el formulario de valoración.
- */
-function abrirFormularioValoracion() {
-  const ui = SpreadsheetApp.getUi();
-  const tmpl = HtmlService.createTemplateFromFile('valoraciones/Guardar_Vista');
-  tmpl.pacientePreseleccionado = ''; // desde el menú de Sheets no aplica
-  prepararContexto_(tmpl, 'dialogo');
-  
-  const html = tmpl.evaluate()
-      .setWidth(800)
-      .setHeight(850);
-      
-  ui.showModalDialog(html, ' ');
-}
-
-/**
  * Lee la Base de Datos Maestra y devuelve un array [{ nombre, telefono, dni }], uno por
  * fila con nombre. El DNI se localiza por su cabecera (COLUMNAS.MAESTRA.DNI); si la hoja
  * no tiene esa columna, todos salen con dni vacío. Nombre y teléfono siguen leyéndose por
@@ -59,27 +43,15 @@ function leerPacientesMaestra_() {
  */
 function obtenerPacientesParaAutocompletar() {
   try {
-    // Valor de la celda activa: SOLO existe con sesión de usuario real (menú)
-    let activeCellValue = "";
-    try {
-      const activeSS = SpreadsheetApp.getActiveSpreadsheet();
-      const activeCell = activeSS.getActiveCell();
-      if (activeCell) {
-        activeCellValue = activeCell.getValue().toString().trim().toUpperCase();
-      }
-    } catch(e) {
-      // Sin sesión activa (Web App) → seguimos sin celda precargada, sin problema
-    }
-
     const pacientes = leerPacientesMaestra_();
     const allPatientsData = {};
     pacientes.forEach(p => { allPatientsData[p.nombre] = p.telefono; });
 
-    return { allPatientsData: allPatientsData, pacientes: pacientes, activeCellValue: activeCellValue };
+    return { allPatientsData: allPatientsData, pacientes: pacientes };
 
   } catch (e) {
     Logger.log("Error en autocompletado: " + e.message);
-    return { allPatientsData: {}, pacientes: [], activeCellValue: "", error: e.message };
+    return { allPatientsData: {}, pacientes: [], error: e.message };
   }
 }
 

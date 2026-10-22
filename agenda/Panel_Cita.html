@@ -7,8 +7,8 @@
     · haCambiado() → true si hay horas elegidas, notas/sesión escritas o se ha cambiado el paciente.
     · alEscape()   → cierra la lista de autocompletado o, si no, limpia las horas seleccionadas (como el Esc del
                      formulario original); devuelve true si lo ha gestionado.
-  Origen: agenda/Cita_Vista.html (que se mantiene tal cual para el menú de Sheets).
-  Usa las mismas funciones de servidor: obtenerNombreDeFilaActiva, obtenerSemanasYHuecos y guardarCitasMultiples
+  Origen: agenda/Cita_Vista.html (la página completa `citas`).
+  Usa las mismas funciones de servidor: obtenerListaPacientesWeb, obtenerSemanasYHuecos y guardarCitasMultiples
   (agenda/Cita.gs). CSS acotado a .pc y basado en los tokens de la página (--md-*, respeta el tema oscuro).
   Requiere ui/JS_Formato_Nombre en la página (sanitizeName).
   A menos de 480 px de ancho los días se abrevian (LUN, MAR…) para que quepan las cinco columnas; con el panel
@@ -477,7 +477,7 @@ window.PanelCita = {
           nombreUsuarioInput.disabled = false;
           mostrarFeedback('Error al cargar pacientes: ' + (err && err.message ? err.message : err), false);
         })
-        .obtenerNombreDeFilaActiva();
+        .obtenerListaPacientesWeb();
     }
     function loadInitialData() {
       loadPatientData();

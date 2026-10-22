@@ -1,6 +1,6 @@
 // la base de datos sin abrir la hoja de cálculo. La edición de cada paciente
 // se hace desde ahí mismo, en el panel lateral (usuarios/Panel_Editar.html, por ID paciente). La ruta
-// ?page=editarPaciente&fila=N (usuarios/Editar_Usuario_Vista.html, la del menú 🧍 → Editar) es un vestigio.
+// ?page=editarPaciente&fila=N (usuarios/Editar_Usuario_Vista.html) es un vestigio: nadie enlaza a ella.
 // ================================================================================
 
 /**
