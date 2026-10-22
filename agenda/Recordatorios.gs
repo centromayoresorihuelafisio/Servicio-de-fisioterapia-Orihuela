@@ -2,7 +2,7 @@
 // agenda/Recordatorios.gs
 // Recordatorios genéricos de la Agenda Web: llamar a un usuario, una reunión, un
 // evento, una nota suelta, un festivo… Viven en su propia hoja "Recordatorios" (se crea sola
-// al guardar el primero), así que no tocan ni la hoja de Agenda ni la de Eventos.
+// al guardar el primero), así que no tocan la hoja de citas.
 //
 // Columnas: ID | Fecha | Hora | Tipo | Texto | Hecho
 //   · Fecha y Hora son opcionales (un recordatorio sin fecha es una tarea suelta).

@@ -23,7 +23,7 @@
  *   - Un hueco admite UNA sola cita (misma fecha y hora = ocupado).
  *   - Se crea siempre con ID paciente de un usuario que existe en la Maestra; el nombre se toma de ahí.
  *   - Cada escritura va bajo bloqueo (LockService) y NO debe llamarse desde código que ya tenga el bloqueo del script.
- *   - Cada escritura sube `citasVersion_()`: es la versión de caché que, en la fase 3, sustituirá a `obtenerVersionCacheAgenda_`.
+ *   - Cada escritura sube `citasVersion_()`: es la versión de caché que usa la Agenda web (`obtenerVersionAgendaWeb`) para saber si hay cambios.
  *
  * Reutiliza SIN modificar: getSS (core/WebApp.gs), SHEETS, COLUMNAS, COLUMNAS_NUM, ASISTENCIA_CITA (core/Config.gs), hcAISO_ y hcNorm_
  * (historia/HC_Web.gs), mapaFilasMaestraPorId_ (core/Utils.gs), leerDisponibilidad_ y disponibilidadCerrada_ (agenda/Disponibilidad.gs).
@@ -168,7 +168,7 @@ function citasSesionPropuesta_(idPaciente) {
 
 // ============================================================================= ESCRITURA (fase 2)
 
-/** Versión de caché de las citas (sube con cada escritura); sustituirá a obtenerVersionCacheAgenda_ cuando la web lea de "Citas". */
+/** Versión de caché de las citas (sube con cada escritura); la usa `obtenerVersionAgendaWeb` para detectar cambios. */
 function citasVersion_() {
   const v = CacheService.getScriptCache().get('citasVersion');
   return v ? parseInt(v, 10) : 0;

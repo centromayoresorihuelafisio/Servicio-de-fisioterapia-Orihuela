@@ -126,7 +126,7 @@ function normalizarDniUsuario(texto) {
  * Devuelve la hoja de Agenda del curso académico ACTUAL (no la primera que contenga "Agenda").
  * El curso va de Septiembre a Agosto: sep-dic -> año actual/año+1; ene-jul -> año-1/año actual.
  *
- * (Desde el corte del 21-oct-2026 la hoja Agenda es solo archivo: la usan únicamente las herramientas de migración/diagnóstico y la HC.)
+ * (Desde el corte del 21-oct-2026 la hoja Agenda es solo archivo: solo la usa `congelarAgendaAnterior` (herramientas/Congelar_Agenda.gs).)
  */
 function obtenerHojaAgenda() {
   const ss = getSS();

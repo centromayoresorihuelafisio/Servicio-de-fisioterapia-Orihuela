@@ -148,7 +148,7 @@ function pacientePorNombreDesdeCitasWeb_(nombreBruto) {
   return { ok: true, idPaciente: c.id, nombre: u.nombre || c.nombre, telefono: u.telefono || '', hc: u.hc || '' };
 }
 
-/** Pone el Estado de un usuario (por ID paciente, no por nombre) y lo anota en el historial. Equivale a actualizarEstadoPaciente de Cita.gs.
+/** Pone el Estado de un usuario (por ID paciente, no por nombre) y lo anota en el historial.
  * Devuelve false si falla, 'igual' si ya tenía ese Estado (no escribe) y 'cambiado' si lo ha cambiado. */
 function actualizarEstadoPorIdDesdeCitasWeb_(idPaciente, nuevoEstado, origen) {
   try {

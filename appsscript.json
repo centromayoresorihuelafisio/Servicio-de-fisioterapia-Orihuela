@@ -11,14 +11,6 @@
   },
   "exceptionLogging": "STACKDRIVER",
   "runtimeVersion": "V8",
-  "sheets": {
-    "macros": [
-      {
-        "menuName": "Copiar a Agenda",
-        "functionName": "CopiaraAgenda"
-      }
-    ]
-  },
   "oauthScopes": [
     "https://www.googleapis.com/auth/script.external_request",
     "https://www.googleapis.com/auth/drive",

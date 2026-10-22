@@ -1,11 +1,8 @@
 # Servicio de Fisioterapia · Orihuela
 
-Gestión del servicio de fisioterapia con **Google Sheets + Google Apps Script**: base de datos de usuarios, agenda de citas, valoraciones e historias clínicas (Google Docs). Este repositorio es la copia de seguridad del código.
+Gestión del servicio de fisioterapia con **Google Sheets + Google Apps Script**: base de datos de usuarios, agenda de citas (hoja plana "Citas"), valoraciones e historias clínicas (fichas web en hojas, sin Docs). Este repositorio es la copia de seguridad del código.
 
-Funciona de dos formas a la vez:
-
-- **Dentro de la hoja de cálculo**: menús personalizados (📅 Agenda, 🧍 Pacientes, ⚙️ Configuración) y diálogos modales.
-- **Como Web App** (`doGet`): Agenda, Base de Datos y Valoraciones como pestañas de una aplicación web, de uso personal.
+Se usa como **Web App** (`doGet`): Agenda, Base de Datos y Valoraciones como pestañas de una aplicación web, de uso personal. Quedan además unos pocos menús y diálogos dentro de la hoja (restos que se retirarán; ver `CONTEXTO.md`, sección 11).
 
 ## Estructura del proyecto
 
@@ -13,11 +10,11 @@ Funciona de dos formas a la vez:
 |---|---|
 | `core/` | Base común: `Config.gs` (nombres de hojas, columnas, claves de propiedades e interruptor de paneles), `Utils.gs` (funciones compartidas), `Menu.gs`, `OnEdit.gs`, `PanelAdmin.gs` y `WebApp.gs` (router de la Web App) |
 | `usuarios/` | Alta, edición, búsqueda y ordenación de usuarios; Base de Datos web; WhatsApp; sincronización con Contactos de Google |
-| `agenda/` | Citas, vista web de la Agenda, agenda semanal, eventos, recordatorios, copiar a la siguiente cita/semana y exportación a Google Calendar |
+| `agenda/` | Capa de datos de la hoja "Citas" (`Citas_Datos.gs`), vista web de la Agenda, formulario de cita, disponibilidad y recordatorios |
 | `valoraciones/` | Formulario de valoración y vista web de evolución |
-| `historia/` | Generación de historias clínicas desde plantilla, apertura de HCs y buscador de historias huérfanas |
+| `historia/` | Historia clínica como ficha web (`HC_Web.gs`, `Panel_HC.html`, `HC_Vista.html`) y creación de HC (`Generar.gs`) |
 | `ui/` | Piezas compartidas de interfaz: CSS global, ficha lateral de usuario, selector de fecha, cierre de formularios y modal de deshacer |
-| `herramientas/` | Utilidades esporádicas o de un solo uso (aplanar agenda, generar curso, normalizar celdas/Drive, backup…) |
+| `herramientas/` | Utilidades esporádicas o de un solo uso (asignar IDs, migrar/diagnosticar HC, congelar la Agenda antigua, normalizar celdas, backup…) |
 
 Convención de archivos: `X.gs` es la lógica del servidor y `X_Vista.html` (o `Panel_*.html`, `Dialogo_*.html`) su interfaz. Los `.html` que empiezan por `JS_` o `CSS_` se incluyen en otras vistas con `include()`.
 
@@ -34,13 +31,13 @@ El router está en `core/WebApp.gs` y sirve cada página según `?page=`. Sin pa
 | `nuevoPaciente` | Añadir usuario |
 | `valoracion` | Formulario de valoración |
 | `editarPaciente&fila=N` | Edición de un usuario |
-| `huerfanaHC&fila=N` | Buscador de historia clínica huérfana |
+| `hc&id=ID_HC` | Historia clínica (ficha web) |
 
 Con `&embed=1` la página se abre como ventana emergente. Los formularios se cierran según el contexto en que estén abiertos (diálogo de Sheets, ventana emergente o pestaña); ver `ui/JS_Cierre_Formulario.html`.
 
 ## Paneles de formulario bajo demanda
 
-Los formularios del panel lateral (`Panel_Valoracion`, `Panel_Editar`, `Panel_Cita`, `Panel_Nuevo`, `Panel_Huerfana`) no van dentro del HTML de cada página: se descargan la primera vez que se abren y, además, se precargan en segundo plano unos segundos después de cargar la página.
+Los formularios del panel lateral (`Panel_Valoracion`, `Panel_Editar`, `Panel_Cita`, `Panel_Nuevo`, `Panel_HC`…) no van dentro del HTML de cada página: se descargan la primera vez que se abren y, además, se precargan en segundo plano unos segundos después de cargar la página.
 
 - Las páginas los declaran con `<?!= incluirPanel('ruta/Panel_X', 'PanelX'); ?>` (`core/WebApp.gs`) y el cargador está en `ui/JS_Paneles_Diferidos.html`.
 - El servidor los sirve con `obtenerPanelWeb()`, que solo acepta los nombres de la lista `PANELES_DIFERIDOS_`.
@@ -51,7 +48,7 @@ Los formularios del panel lateral (`Panel_Valoracion`, `Panel_Editar`, `Panel_Ci
 ## Configuración
 
 - **Hojas y columnas**: todos los nombres están en `core/Config.gs`. Si renombras una pestaña o una cabecera en Sheets, solo hay que cambiarlo ahí.
-- **Propiedades del script** (menú ⚙️): plantilla de historia clínica, carpeta de Drive de destino y mensaje de WhatsApp.
+- **Propiedades del script** (menú ⚙️): mensaje de WhatsApp (menú ⚙️).
 - **Servicios avanzados**: People API (contactos), activada en `appsscript.json`.
 - **Zona horaria**: `Europe/Madrid`.
 

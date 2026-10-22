@@ -11,7 +11,7 @@
  * Regla: TODO cambio de esos campos pasa por historialRegistrar_ (no hay respaldo por onEdit). Llamado desde:
  *   cambiarEstadoPacienteWeb / cambiarEstadoLoteWeb (usuarios/BaseDatos.gs), _ejecutarAltaEnFila (usuarios/Alta.gs),
  *   actualizarPaciente (usuarios/Editar_Usuario.gs), guardarPaciente (usuarios/Anadir_Usuario.gs) y
- *   actualizarEstadoPaciente (agenda/Cita.gs, "Dar cita").
+ *   actualizarEstadoPorIdDesdeCitasWeb_ (agenda/Web_Escritura_Citas.gs, "Dar cita" y "Asignar hueco").
  *   Cualquier función nueva que cambie esos campos de la Maestra debe llamarla igual.
  *
  * Seguridad: si el historial falla, NO se bloquea la operación (se anota en el registro de ejecuciones). Para

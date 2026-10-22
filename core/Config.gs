@@ -7,10 +7,9 @@
 const SHEETS = {
   MAESTRA: "Base de Datos Maestra",
   VALORACIONES: "Valoraciones",
-  EVENTOS: "Eventos",
   RECORDATORIOS: "Recordatorios",
   HISTORIAL: "Historial Estado",  // cambios de Estado / Tipo de Ingreso / Gravedad (usuarios/Historial_Estado.gs, CONTEXTO.md sección 11, paso 4)
-  CITAS: "Citas"                  // tabla plana de citas (agenda/Citas_Datos.gs, CONTEXTO.md sección 11, paso 6). Hasta el corte es una COPIA de la Agenda
+  CITAS: "Citas"                  // tabla plana de citas (agenda/Citas_Datos.gs, CONTEXTO.md sección 11, paso 6). Desde el corte (21-oct-2026) es la única fuente de las citas
 };
 
 /**
