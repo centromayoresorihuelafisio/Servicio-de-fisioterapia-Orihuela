@@ -1,85 +1,4 @@
 /**
- * Inserta la fecha actual en un documento de Google Docs a partir de su URL.
- * Busca la sección de ALTA en la tabla 'ASISTENCIA' y añade la fecha de hoy.
- */
-function actualizarFechaAltaEnDoc(docUrl) {
-  Logger.log("--- DEBUG DOC UPDATE ---");
-  Logger.log("Attempting to update Doc URL: " + docUrl);
-  try {
-    // 1. Extraer el ID del documento de la URL
-    const docIdMatch = docUrl.match(/[\w-]{25,}/);
-    if (!docIdMatch) {
-      Logger.log("Error: URL de Google Docs inválida.");
-      return "Error: URL de Google Docs inválida o faltante.";
-    }
-    const docId = docIdMatch[0];
-    Logger.log("Extracted Doc ID: " + docId);
-
-    // 2. Abrir el documento
-    const doc = DocumentApp.openById(docId);
-    const body = doc.getBody();
-
-    const newText = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "dd/MM/yyyy");
-    let altaActualizada = false;
-
-    // 3. Buscar la tabla de ASISTENCIA
-    for (let i = 0; i < body.getNumChildren(); i++) {
-      const child = body.getChild(i);
-
-      if (child.getType() === DocumentApp.ElementType.TABLE) {
-        const table = child.asTable();
-
-        // Verificamos si la tabla contiene los encabezados relevantes.
-        try {
-          const firstCellText = table.getCell(0, 0).getText().trim().toUpperCase();
-          Logger.log("Checking table: First cell text is '" + firstCellText + "'");
-
-          if (firstCellText.includes("INGRESO") || firstCellText.includes("FECHA") || firstCellText.includes("ASISTENCIA")) {
-            Logger.log("FOUND ASISTENCIA TABLE. Searching for empty ALTA cell...");
-
-            // Iteramos sobre las filas de la tabla, empezando desde la segunda fila (índice 1)
-            for (let r = 1; r < table.getNumRows(); r++) {
-              // Columna 1 (ALTA) - Recordar que la columna 0 es INGRESO, la 1 es ALTA
-              const altaCell = table.getCell(r, 1);
-
-              const cellContent = altaCell.getText().trim().toLowerCase();
-              Logger.log(`Row ${r}: ALTA cell content is '${cellContent}'`);
-
-              // Si la celda de ALTA está vacía o tiene el texto de placeholder "Fecha", escribimos la fecha
-              if (cellContent === "" || cellContent === "fecha") {
-                altaCell.setText(newText);
-                altaActualizada = true;
-                Logger.log(`Date written to row ${r}.`);
-                break; // Salimos del bucle de filas
-              }
-            }
-          }
-        } catch (e) {
-          // Ignorar errores al acceder a celdas si la tabla no es la correcta
-          Logger.log("Error checking cell in table (expected for non-matching tables): " + e);
-          continue;
-        }
-      }
-
-      if (altaActualizada) break; // Salimos del bucle de children
-    }
-
-    doc.saveAndClose();
-
-    if (altaActualizada) {
-      return `📅 Fecha de alta (${newText}).`;
-    } else {
-      return "⚠️ No se encontró la tabla de ASISTENCIA/ALTA o no hay celdas de ALTA vacías disponibles en el documento.";
-    }
-
-  } catch (e) {
-    // Si el usuario del script no tiene permisos o el documento no existe.
-    Logger.log("FATAL ERROR IN DOC UPDATE: " + e.toString());
-    return "❌ Error al acceder o editar el documento. Esto puede deberse a permisos o a que el documento no existe: " + e.toString();
-  }
-}
-
-/**
  * Versión de menú: da de alta al paciente de la fila seleccionada
  * en la hoja maestra.
  */
@@ -235,9 +154,10 @@ function _ejecutarAltaEnFila(sheet, activeRow) {
     }
 
     if (docUrl) {
-      // HC en la ficha web → la fecha de alta va al episodio abierto de "Episodios HC"; si el enlace aún es un Doc, como siempre.
-      const docResult = hcEsFichaWeb_(docUrl) ? hcAltaEnHoja_(docUrl) : actualizarFechaAltaEnDoc(docUrl);
-      finalMessage += "\n\n" + docResult;
+      // HC en la ficha web → la fecha de alta va al episodio abierto de "Episodios HC".
+      finalMessage += "\n\n" + (hcEsFichaWeb_(docUrl)
+        ? hcAltaEnHoja_(docUrl)
+        : "⚠️ El enlace de la Historia Clínica no es una ficha web (es un documento antiguo): la fecha de alta no se ha anotado en la HC.");
     } else {
       finalMessage += "\n\n⚠️ No se encontró una URL válida de Historia Clínica (hipervínculo) para actualizar.";
     }

@@ -348,11 +348,10 @@ function crearContactoGoogle(nombre, telefono) {
 
 
 /**
- * Genera una historia clínica en Google Docs basada en un formato de plantilla
- * para el paciente recién registrado a través del formulario HTML.
- * No depende de la selección manual de filas en la hoja de cálculo.
- * * @param {Object} patientData - Datos del formulario enviados desde el frontend.
- * @return {Object} Respuesta con el estado de la operación y la URL del documento.
+ * Crea la historia clínica (ficha web) del paciente recién registrado a través del formulario HTML.
+ * No depende de la selección manual de filas en la hoja de cálculo: localiza al usuario por su ID paciente.
+ * @param {Object} patientData - Datos del formulario enviados desde el frontend (con `idPaciente`).
+ * @return {Object} Respuesta con el estado de la operación y la URL de la ficha.
  */
 function generarHistoriaClinicaRegistroUsuario(patientData) {
   try {
@@ -362,49 +361,7 @@ function generarHistoriaClinicaRegistroUsuario(patientData) {
       return { success: false, message: "Error: La hoja 'Base de Datos Maestra' no existe." };
     }
 
-    // Identificadores de plantilla y carpeta de destino: misma configuración que
-    // usa el menú 🧍 → Añadir Historia Clínica (⚙️ Config), para que ambas vías
-    // de generación usen siempre la misma plantilla.
-    const scriptProperties = PropertiesService.getScriptProperties();
-    const templateId = scriptProperties.getProperty(PROP_KEYS.DOC_TEMPLATE_ID);
-    const folderId = scriptProperties.getProperty(PROP_KEYS.DRIVE_FOLDER_ID);
-
-    if (HC_WEB_MODO_PRUEBA && (!templateId || !folderId)) {
-      return { success: false, message: 'Falta configurar el ID de la Plantilla o de la Carpeta de Destino. Ve al menú ⚙️ Config y actualiza los valores.' };
-    }
-
-    // Extracción de variables desde el objeto recibido del formulario
     const nombre = patientData['Nombre'] || '';
-    const dni = patientData['DNI'] || '';
-    const telefono1 = patientData['Teléfono 1'] || '';
-    const telefono2 = patientData['Teléfono 2'] || '';
-    
-    // Cálculo automático de la edad si se envió la fecha de nacimiento
-    let edad = '';
-    if (patientData['Fecha nacimiento']) {
-      const fechaNac = new Date(patientData['Fecha nacimiento']);
-      const hoy = new Date();
-      let calculoEdad = hoy.getFullYear() - fechaNac.getFullYear();
-      const mes = hoy.getMonth() - fechaNac.getMonth();
-      // Ajuste si aún no ha cumplido años en el año actual
-      if (mes < 0 || (mes === 0 && hoy.getDate() < fechaNac.getDate())) {
-        calculoEdad--;
-      }
-      edad = calculoEdad >= 0 ? calculoEdad.toString() : '';
-    }
-
-    // Formatear fechas de HTML (formatos YYYY-MM-DD) a formato común (DD/MM/YYYY) para el documento
-    const formatHtmlDate = (dateStr) => {
-      if (!dateStr) return '';
-      const parts = dateStr.split('-');
-      if (parts.length === 3) {
-        return `${parts[2]}/${parts[1]}/${parts[0]}`;
-      }
-      return dateStr;
-    };
-
-    const fechaInscripcion = formatHtmlDate(patientData['Fecha inscripción']);
-    const fechaNacimiento = formatHtmlDate(patientData['Fecha nacimiento']);
 
     const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0].map(h => h.toString().trim().toLowerCase());
     const histColIndex = headers.indexOf(COLUMNAS.MAESTRA.HISTORIA_CLINICA.toLowerCase());
@@ -443,47 +400,14 @@ function generarHistoriaClinicaRegistroUsuario(patientData) {
       }
     }
 
-    // HC definitiva (sin Doc): fila nueva en "Historias Clínicas" + episodio abierto SIN ingreso (lo rellena la primera cita;
+    // La HC es la ficha web (sin Doc): fila nueva en "Historias Clínicas" + episodio abierto SIN ingreso (lo rellena la primera cita;
     // la fecha de inscripción es otra cosa y vive solo en la Maestra).
-    if (!HC_WEB_MODO_PRUEBA) {
-      const nueva = hcCrearHC_(nombre, '', idPaciente);
-      if (histColIndex !== -1 && targetRow !== -1) {
-        sheet.getRange(targetRow, histColIndex + 1).setRichTextValue(
-          SpreadsheetApp.newRichTextValue().setText("Ver Historia Clínica").setLinkUrl(nueva.url).build());
-      }
-      return { success: true, url: nueva.url };
-    }
-
-    // 1. Duplicar la plantilla en la carpeta de destino de Google Drive
-    const targetFolder = DriveApp.getFolderById(folderId);
-    const newDocName = `HISTORIA CLINICA ${nombre}${dni ? ' ' + dni + '' : ''}`;
-    const newDocFile = DriveApp.getFileById(templateId).makeCopy(newDocName, targetFolder);
-    const newDoc = DocumentApp.openById(newDocFile.getId());
-    const body = newDoc.getBody();
-
-    // 2. Reemplazar los marcadores correspondientes en el cuerpo del documento duplicado
-    body.replaceText('{{nombre}}', nombre);
-    body.replaceText('{{dni}}', dni);
-    body.replaceText('{{edad}}', edad);
-    body.replaceText('{{telefono1}}', telefono1);
-    body.replaceText('{{telefono2}}', telefono2);
-    body.replaceText('{{fechaInscripcion}}', fechaInscripcion);
-    body.replaceText('{{fechaNacimiento}}', fechaNacimiento);
-
-    // Guardar cambios y cerrar edición del documento para confirmar su escritura en Drive
-    newDoc.saveAndClose();
-    const newDocUrl = newDoc.getUrl();
-
-    // 3. Escribir el enlace en la fila que localizamos arriba
+    const nueva = hcCrearHC_(nombre, '', idPaciente);
     if (histColIndex !== -1 && targetRow !== -1) {
-      const richText = SpreadsheetApp.newRichTextValue()
-        .setText("Ver Historia Clínica")
-        .setLinkUrl(newDocUrl)
-        .build();
-      sheet.getRange(targetRow, histColIndex + 1).setRichTextValue(richText);
+      sheet.getRange(targetRow, histColIndex + 1).setRichTextValue(
+        SpreadsheetApp.newRichTextValue().setText("Ver Historia Clínica").setLinkUrl(nueva.url).build());
     }
-
-    return { success: true, url: newDocUrl };
+    return { success: true, url: nueva.url };
 
   } catch (error) {
     Logger.log("Error en generarHistoriaClinicaRegistroUsuario: " + error.message);

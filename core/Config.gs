@@ -21,7 +21,6 @@ const SHEETS = {
  * rompería la lectura sin ningún aviso. Ahora hay una única fuente por clave.
  */
 const PROP_KEYS = {
-  DOC_TEMPLATE_ID: "DOC_TEMPLATE_ID",
   DRIVE_FOLDER_ID: "DRIVE_FOLDER_ID",
   WHATSAPP_MESSAGE: "WHATSAPP_MESSAGE"
 };
@@ -62,7 +61,6 @@ const COLUMNAS = {
     TELEFONO: "Teléfono",
     SESION: "Sesión",
     ASISTENCIA: "Asistencia",
-    ID_EVENTO_CALENDAR: "ID Evento Calendar",
     NOTAS: "Notas",
     HISTORIA_CLINICA: "Historia clínica"
   },
@@ -76,7 +74,6 @@ const COLUMNAS = {
     SESION: "Sesión",
     ASISTENCIA: "Asistencia",
     NOTAS: "Notas",
-    ID_EVENTO_CALENDAR: "ID Evento Calendar",
     CREADA: "Creada el"          // vacío en las citas migradas (no se puede reconstruir); lo rellenará la capa de escritura
   }
 };
@@ -104,28 +101,12 @@ const HISTORIAL_CAMPOS = [COLUMNAS.MAESTRA.ESTADO, COLUMNAS.MAESTRA.TIPO_INGRESO
  * cabecera. Igual que con COLUMNAS: se incluyen aunque solo se usen en un
  * único archivo, para tener un solo sitio que tocar si la hoja cambia de
  * estructura.
- *
- * TELEFONO y SESION de AGENDA no los usa ningún archivo activo ahora mismo
- * (eran constantes declaradas en agenda/Cita.gs sin ninguna referencia real) — se
- * dejan aquí documentadas como referencia de la estructura real de la hoja,
- * por si las necesitas más adelante.
  */
 const COLUMNAS_NUM = {
   MAESTRA: {
     NOMBRE: 2,
     TELEFONO: 4,
     ESTADO: 8
-  },
-  AGENDA: {
-    FECHA: 1,
-    DIA: 2,
-    HORA: 3,
-    USUARIO: 4,
-    TELEFONO: 5,
-    SESION: 6,
-    ASISTENCIA: 7,
-    HISTORIA_CLINICA: 9,
-    NOTAS: 10
   },
   // Orden posicional exacto con el que procesarValoracion() (Guardar
   // Valoraciones.gs) escribe cada fila con appendRow — esa función no busca

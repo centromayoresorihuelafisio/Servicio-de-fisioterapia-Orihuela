@@ -1,0 +1,101 @@
+<!--
+  ui/JS_Paneles_Diferidos.html
+  Carga bajo demanda los paneles de formulario (Panel_Valoracion, Panel_Editar, Panel_Cita, Panel_Nuevo)
+  para que las páginas pesen mucho menos al abrirse. Se incluye UNA vez en cada página, antes de los paneles:
+      <?!= include('ui/JS_Paneles_Diferidos'); ?>
+      <?!= incluirPanel('valoraciones/Panel_Valoracion', 'PanelValoracion'); ?>
+  Con PANELES_BAJO_DEMANDA = true (core/Config.gs), incluirPanel() deja en la página un resguardo
+  (window.PanelValoracion = { abrir }) en lugar del panel entero. El primer abrir():
+    · si el panel ya está descargado, lo abre igual que siempre (síncrono);
+    · si no, muestra "Cargando…", pide el panel al servidor (obtenerPanelWeb), lo monta y lo abre.
+  El controlador que devuelve abrir() responde a haCambiado() y alEscape() desde el primer momento.
+  Además, unos segundos después de cargar la página, los paneles se descargan de uno en uno en segundo
+  plano, de modo que normalmente ya están listos cuando se pulsa el botón.
+  Con PANELES_BAJO_DEMANDA = false todo vuelve a ir dentro de la página y este archivo no hace nada.
+-->
+<script>
+var PanelesDiferidos = (function () {
+  var REGISTRADOS = [];          // [{ global, ruta }] en el orden en que la página los declara
+  var CARGAS = {};               // ruta -> Promise (una sola petición por panel)
+  var RETRASO_PRECARGA = 2500;   // ms tras window.load antes de empezar a descargar en segundo plano
+
+  // Inserta el HTML del panel (<style>, <template>, <script>) en el documento.
+  // Los <script> que llegan dentro de un innerHTML no se ejecutan: hay que recrearlos.
+  function montar(html) {
+    var caja = document.createElement('div');
+    caja.innerHTML = html;
+    var scripts = [];
+    Array.prototype.slice.call(caja.childNodes).forEach(function (n) {
+      if (n.nodeType !== 1) return;                                  // comentarios y espacios
+      if (n.tagName === 'SCRIPT') scripts.push(n);
+      else if (n.tagName === 'STYLE') document.head.appendChild(n);
+      else document.body.appendChild(n);                             // <template>
+    });
+    scripts.forEach(function (viejo) {
+      var s = document.createElement('script');
+      s.text = viejo.text;
+      document.body.appendChild(s);
+    });
+  }
+
+  function cargar(ruta) {
+    if (CARGAS[ruta]) return CARGAS[ruta];
+    CARGAS[ruta] = new Promise(function (ok, ko) {
+      google.script.run
+        .withSuccessHandler(function (html) {
+          try { montar(html); ok(); } catch (e) { delete CARGAS[ruta]; ko(e); }
+        })
+        .withFailureHandler(function (e) { delete CARGAS[ruta]; ko(e); })   // se podrá reintentar
+        .obtenerPanelWeb(ruta);
+    });
+    return CARGAS[ruta];
+  }
+
+  function estadoEnHost(host, html) {
+    host.innerHTML = '<div style="padding:2.5rem 1rem;text-align:center;font:13px/1.5 var(--font, sans-serif);color:var(--md-on-surface-med, #5f6368)">' + html + '</div>';
+  }
+
+  function registrar(global, ruta) {
+    REGISTRADOS.push({ global: global, ruta: ruta });
+    var resguardo = {
+      diferido: true,
+      abrir: function (host, opts) {
+        var real = window[global];
+        if (real && real !== resguardo) return real.abrir(host, opts);   // ya descargado: como siempre
+        var ctl = null;
+        estadoEnHost(host, 'Cargando…');
+        cargar(ruta).then(function () {
+          if (!host.isConnected) return;                                  // se cerró mientras cargaba
+          ctl = window[global].abrir(host, opts);
+        }, function () {
+          if (!host.isConnected) return;
+          estadoEnHost(host, 'No se pudo cargar el formulario.<br><button type="button" class="pd-reintentar" style="margin-top:.8rem;padding:.45rem 1rem;border:1px solid var(--md-outline, #dadce0);border-radius:50px;background:transparent;color:inherit;font:inherit;cursor:pointer">Reintentar</button>');
+          var b = host.querySelector('.pd-reintentar');
+          if (b) b.addEventListener('click', function () { ctl = resguardo.abrir(host, opts); });
+        });
+        // Controlador provisional: hasta que el panel real esté abierto, no hay cambios sin guardar ni nada que cerrar con Esc.
+        return {
+          haCambiado: function () { return !!(ctl && ctl.haCambiado && ctl.haCambiado()); },
+          alEscape:   function () { return !!(ctl && ctl.alEscape && ctl.alEscape()); },
+          cerrar:     function () { return (ctl && ctl.cerrar) ? ctl.cerrar() : undefined; }
+        };
+      }
+    };
+    window[global] = resguardo;
+  }
+
+  // Descarga en segundo plano, de uno en uno, los paneles que aún no estén cargados.
+  function precargar() {
+    var pendientes = REGISTRADOS.filter(function (r) { return window[r.global] && window[r.global].diferido; });
+    (function siguiente() {
+      if (!pendientes.length) return;
+      if (document.hidden) { setTimeout(siguiente, 4000); return; }   // pestaña en segundo plano: se espera
+      var r = pendientes.shift();
+      cargar(r.ruta).then(function () { setTimeout(siguiente, 300); }, function () { setTimeout(siguiente, 4000); });
+    })();
+  }
+  window.addEventListener('load', function () { setTimeout(precargar, RETRASO_PRECARGA); });
+
+  return { registrar: registrar, cargar: cargar, precargar: precargar };
+})();
+</script>

@@ -5,20 +5,10 @@
 function onOpen() {
   const ui = SpreadsheetApp.getUi();
 
-  // 1. Menú AGENDA (📅)
+  // 1. Menú AGENDA (📅): solo queda WhatsApp (opera sobre la Maestra). El resto de entradas operaban sobre la
+  //    hoja "Agenda AAAA-AAAA", que desde el corte (21-oct-2026) es solo archivo; la Agenda vive en la web app.
   ui.createMenu("📅")
-    .addItem('📍 Hoy', 'irAFechaActual')
-    .addItem('🔍 Buscar Fecha', 'mostrarSelectorFecha')
-    .addItem('🗂️ Jornada', 'prepararJornada')
-    .addSeparator() // Separador
-    .addItem('📞 Citas', 'mostrarDialogoCita')
     .addItem('💬 WhatsApp', 'abrirChatWhatsapp')
-    .addItem("🗓️ Agenda Semanal", "showAgendaModal")
-    .addItem("📌 Evento", "mostrarFormularioEvento")
-    .addItem('➡️ Siguiente cita', 'copiarSiguienteCita')
-    .addSeparator() // Separador
-    .addItem("⬆️ Sincronizar con Calendar", "exportSheetAgendaToCalendar")
-    .addItem("📕 Nuevo Curso", "generarAgendaCurso")
     .addToUi();
 
   // 2. Menú PACIENTES (🧍)
@@ -26,8 +16,6 @@ function onOpen() {
     .addItem("➕ Nuevo Paciente", "abrirFormularioPaciente")
     .addItem("📋 Valoración", "abrirFormularioValoracion")
     .addItem("🗃️ Añadir Historia Clínica", "generarHistoriaClinica")
-    .addItem("🔗 Enlace HC", "insertarEnlaceHistoriaClinica")
-    .addItem("🕵️ Buscar HC", "buscarHistoriaClinicaHuerfana")
     .addSeparator() // Separador
     .addItem("✔️ Alta Paciente", "darDeAltaPaciente")
     .addItem("🔄 Ordenar", "ordenarPacientes")
@@ -37,9 +25,7 @@ function onOpen() {
     .addToUi();
   // 3. Menú CONFIGURACIÓN
   ui.createMenu("⚙️")
-    .addItem('1️⃣ Cambiar Plantilla Historia Clínica', 'configurarPlantillaHC')
-    .addItem('2️⃣ Cambiar Carpeta Destino Drive', 'configurarCarpetaDrive')
-    .addItem('3️⃣ Cambiar Mensaje WhatsApp', 'configurarMensajeWhatsapp')
+    .addItem('1️⃣ Cambiar Mensaje WhatsApp', 'configurarMensajeWhatsapp')
     .addItem('⬇️ Exportar Código', 'exportarProyectoAUnicoArchivo')
     .addToUi();
  }

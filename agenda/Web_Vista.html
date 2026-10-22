@@ -1164,9 +1164,6 @@
           <span class="material-symbols-outlined">search</span>
           <input type="text" id="inputBusqueda" placeholder="Buscar…  ( / )" title="Buscar por usuario, sesión o notas">
         </div>
-        <button class="btn-toolbar primario" id="btnJornada" title="Abre las Historias Clínicas del turno actual de hoy">
-          <span class="material-symbols-outlined">today</span> Preparar Jornada
-        </button>
         <div class="menu-wrap" id="menuMasWrap">
           <button class="btn-toolbar btn-nav" id="btnMenuMas" aria-haspopup="true" aria-expanded="false" title="Más opciones">
             <span class="material-symbols-outlined">more_vert</span>
@@ -1198,9 +1195,6 @@
 
         <span class="separador"></span>
 
-        <button class="btn-toolbar" id="btnEnlazarHC" disabled title="Busca y enlaza la Historia Clínica a las citas seleccionadas">
-          <span class="material-symbols-outlined">link</span> Enlazar HC
-        </button>
         <button title="Nueva valoración del usuario seleccionado" class="btn-toolbar" id="btnValoracion" disabled>
           <span class="material-symbols-outlined">assignment</span> Valoración
         </button>
@@ -2077,7 +2071,6 @@
               cita['Teléfono'] = '';
               cita['Sesión'] = '';
               cita['Asistencia'] = '';
-              cita['ID Evento Calendar'] = '';
               if (COL_HISTORIA) cita[COL_HISTORIA] = '';
               cita['Notas'] = '';
               cita._hueco = true;
@@ -2144,7 +2137,7 @@
 
       // ---------- Selección múltiple (el clic añade o quita de la selección) ----------
       var BOTONES_UNA_SOLA = ['btnValoracion'].map(function(id) { return document.getElementById(id); });
-      var BOTONES_UNA_O_MAS = ['btnEnlazarHC', 'btnWhatsapp', 'btnMenuCopiar', 'btnCopiarCita', 'btnCopiarCita2', 'btnEliminarCitas'].map(function(id) { return document.getElementById(id); });
+      var BOTONES_UNA_O_MAS = ['btnWhatsapp', 'btnMenuCopiar', 'btnCopiarCita', 'btnCopiarCita2', 'btnEliminarCitas'].map(function(id) { return document.getElementById(id); });
 
       function citasSeleccionadas() {
         return CITAS.filter(function(c) { return filasSeleccionadas.has(c._fila) && !c._hueco; });
@@ -2289,47 +2282,6 @@
           var cita = CITAS.find(function(c) { return c._fila == fil.dataset.fila; });
           if (cita && !cita._hueco) alternarSeleccionFila(cita);
         }
-      });
-
-      // ---------- Preparar Jornada ----------
-      function mostrarLanzadorHCs(urls, turno) {
-        var overlay = document.getElementById('modalOverlay');
-        var btnCancelar = document.getElementById('modalBtnCancelar');
-        var btnAceptar = document.getElementById('modalBtnAceptar');
-
-        document.getElementById('modalMensaje').textContent =
-          'Se van a abrir ' + urls.length + (urls.length === 1 ? ' pestaña' : ' pestañas') +
-          ' de Historia Clínica del turno de ' + turno + '. Si el navegador bloquea las ventanas emergentes, permite los popups de este sitio y vuelve a intentarlo.';
-        btnCancelar.style.display = 'inline-flex';
-        btnAceptar.textContent = 'Abrir Historias Clínicas';
-        overlay.classList.add('visible');
-
-        function limpiar() {
-          overlay.classList.remove('visible');
-          btnAceptar.textContent = 'Aceptar';
-          btnAceptar.removeEventListener('click', onAbrir);
-          btnCancelar.removeEventListener('click', onCancelar);
-        }
-        // Las ventanas se abren DENTRO del clic para que cuenten como gesto directo.
-        function onAbrir() { urls.forEach(function(url) { window.open(url, '_blank'); }); limpiar(); }
-        function onCancelar() { limpiar(); }
-
-        btnAceptar.addEventListener('click', onAbrir);
-        btnCancelar.addEventListener('click', onCancelar);
-      }
-
-      document.getElementById('btnJornada').addEventListener('click', function() {
-        google.script.run
-          .withSuccessHandler(function(res) {
-            if (res.error) { mostrarAviso(res.error); return; }
-            if (!res.urls || res.urls.length === 0) {
-              mostrarAviso('No hay citas con Historia Clínica para el turno de ' + res.turno + ' de hoy.');
-              return;
-            }
-            mostrarLanzadorHCs(res.urls, res.turno);
-          })
-          .withFailureHandler(function(err) { mostrarAviso('Error: ' + err); })
-          .obtenerEnlacesJornadaWeb();
       });
 
       // ---------- Panel lateral de Valoración (sustituye a la ventana emergente) ----------
@@ -2749,7 +2701,7 @@
       function modoCitasNuevo() { return CITAS.length > 0 && CITAS[0]._id !== undefined; }
 
       function camposMovibles() {
-        var k = ['Usuario', 'Teléfono', 'Sesión', 'Asistencia', 'ID Evento Calendar', 'Notas'];
+        var k = ['Usuario', 'Teléfono', 'Sesión', 'Asistencia', 'Notas'];
         if (COL_HISTORIA) k.push(COL_HISTORIA);
         return k;
       }
@@ -3126,33 +3078,6 @@
             } });
         });
       }
-
-      // ---------- Enlazar Historia Clínica ----------
-      document.getElementById('btnEnlazarHC').addEventListener('click', function() {
-        var sel = citasSeleccionadas();
-        if (sel.length === 0) return;
-
-        var filas = sel.map(function(c) { return c._fila; });
-        var btn = this;
-        var textoOriginal = btn.innerHTML;
-
-        btn.disabled = true;
-        btn.innerHTML = '<span class="material-symbols-outlined spin-icon">progress_activity</span> Enlazando…';
-
-        google.script.run
-          .withSuccessHandler(function(res) {
-            btn.innerHTML = textoOriginal;
-            if (!res.success) { mostrarAviso(res.message); return; }
-            mostrarAviso(res.message);
-            quitarSeleccion();
-            cargar(semanaActual, true);
-          })
-          .withFailureHandler(function(err) {
-            btn.innerHTML = textoOriginal;
-            mostrarAviso('Error: ' + err);
-          })
-          .insertarEnlaceHistoriaClinicaWeb(filas);
-      });
 
       // ---------- Auto-refresh: sondeo barato de versión (CacheService) y recarga
       // silenciosa solo si cambió. Se salta si hay una celda en edición. ----------

@@ -1,17 +1,17 @@
 // =====================================================================================
 // agenda/Disponibilidad.gs
-// DISPONIBILIDAD DE LA AGENDA: horas CERRADAS (en las que no se dan citas) aunque existan como hueco en la hoja de la Agenda.
+// DISPONIBILIDAD DE LA AGENDA: horas CERRADAS (en las que no se dan citas) aunque existan como hueco en la parrilla de la Agenda.
 //
-// La hoja de la Agenda se genera con todos los huecos posibles (mañana 08:00–14:00, tarde 16:00–20:00, cada 30 min), pero el horario
+// La parrilla de la Agenda tiene todos los huecos posibles (mañana 08:00–14:00, tarde 16:00–20:00, cada 30 min), pero el horario
 // real del servicio cambia según la época. Aquí se guarda qué horas están cerradas en cada fecha; todo lo demás sigue abierto.
 // Sin ninguna fila para una fecha, esa fecha queda exactamente como siempre (todo abierto).
 //
 // Se gestiona desde la web app: Agenda → menú ⋮ → Disponibilidad (agenda/Panel_Disponibilidad.html). No hay que tocar Sheets.
 //
 // Dónde se respeta una hora cerrada (solo si está LIBRE; una cita ya puesta en esa hora nunca se esconde):
-//   · Agenda web (obtenerAgendaSemanaWeb): el hueco no se devuelve → no se ve, no cuenta como libre y no se puede arrastrar a él.
+//   · Agenda web (obtenerAgendaSemanaWeb → Web_Semana_Citas.gs): el hueco no se devuelve → no se ve, no cuenta como libre y no se puede arrastrar a él.
 //   · Formulario de cita (obtenerSemanasYHuecos): el hueco no se ofrece.
-//   · Copiar a la siguiente cita (_prepararCopiaCita): no se copia a una hora cerrada (error claro).
+//   · Copiar a la siguiente cita (copiarVariasDesdeCitasWeb_): no se copia a una hora cerrada (error claro).
 //
 // Almacén: hoja "Disponibilidad" (se crea sola al aplicar por primera vez), una fila por fecha con alguna hora cerrada:
 //   Fecha (texto "yyyy-MM-dd") | Horas cerradas (texto "08:00,08:30,...")
@@ -137,8 +137,7 @@ function aplicarDisponibilidadWeb(datos) {
     fechas.forEach(f => { if (cerradas.length) mapa[f] = cerradas.slice(); else delete mapa[f]; });
     _escribirDisponibilidad_(hoja, mapa);
     _cacheDisponibilidad_ = null;
-    invalidarCacheAgenda_(obtenerHojaAgenda()); // la Agenda web (y las demás pestañas abiertas) deben recalcular la semana
-    citasInvalidarCache_();                     // y lo mismo con la versión de la tabla plana "Citas" (cuando la web lea de ella)
+    citasInvalidarCache_();   // sube la versión de "Citas": la Agenda web (y las demás pestañas abiertas) recalculan la semana
 
     const afectadas = cerradas.length ? _contarCitasEnHorasCerradas_(mapa, fechas) : 0;
     let mensaje = cerradas.length
@@ -166,29 +165,7 @@ function _escribirDisponibilidad_(hoja, mapa) {
 
 /** Cuántas citas YA puestas caen en horas cerradas de esas fechas (se mantienen; solo se avisa). */
 function _contarCitasEnHorasCerradas_(mapa, fechas) {
-  if (citasModoNuevo_()) {   // tabla plana "Citas" (CONTEXTO.md, sección 11, paso 6)
-    const enRangoNuevo = {};
-    fechas.forEach(f => { enRangoNuevo[f] = true; });
-    return citasLeer_().filter(c => enRangoNuevo[c.fecha] && c.hora && disponibilidadCerrada_(mapa, c.fecha, c.hora)).length;
-  }
-  const sheet = obtenerHojaAgenda();
-  const lastRow = sheet.getLastRow();
-  if (lastRow < 2) return 0;
-  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0].map(h => h.toString().trim());
-  const cF = headers.indexOf(COLUMNAS.AGENDA.FECHA), cH = headers.indexOf(COLUMNAS.AGENDA.HORA), cU = headers.indexOf(COLUMNAS.AGENDA.USUARIO);
-  if (cF === -1 || cH === -1 || cU === -1) return 0;
-  const tz = Session.getScriptTimeZone();
   const enRango = {};
   fechas.forEach(f => { enRango[f] = true; });
-  const col = c => sheet.getRange(2, c + 1, lastRow - 1, 1).getValues();
-  const F = col(cF), H = col(cH), U = col(cU);
-  let n = 0;
-  for (let i = 0; i < F.length; i++) {
-    if (!(F[i][0] instanceof Date) || !(H[i][0] instanceof Date)) continue;
-    const usuario = U[i][0];
-    if (!(usuario && usuario.toString().trim() !== '')) continue;
-    const iso = Utilities.formatDate(F[i][0], tz, 'yyyy-MM-dd');
-    if (enRango[iso] && disponibilidadCerrada_(mapa, iso, Utilities.formatDate(H[i][0], tz, 'HH:mm'))) n++;
-  }
-  return n;
+  return citasLeer_().filter(c => enRango[c.fecha] && c.hora && disponibilidadCerrada_(mapa, c.fecha, c.hora)).length;
 }

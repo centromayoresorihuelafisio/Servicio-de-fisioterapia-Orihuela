@@ -7,8 +7,8 @@
  * Los datos personales se leen de la Maestra, las escalas de "Valoraciones" y la asistencia de la Agenda.
  * No escribe NUNCA en la Maestra, en la Agenda, en Valoraciones ni en los Docs.
  *
- * FASE 1 (coexistencia): los Docs siguen siendo la fuente que usan Alta.gs / Generar.gs. Mientras
- * HC_WEB_MODO_PRUEBA sea true, la ficha avisa de que lo que se edite aquí vive solo en la nueva hoja.
+ * La historia vive en estas hojas (los Docs originales ya no se usan). Las HC nuevas se crean aquí (Generar.gs / Anadir_Usuario.gs),
+ * el alta escribe en "Episodios HC" (Alta.gs) y el enlace de la Maestra apunta a la ficha web.
  */
 
 const HC_WEB_ = {
@@ -18,29 +18,11 @@ const HC_WEB_ = {
   COL: { ID: 1, NOMBRE: 2, HISTORIA: 3, TRATAMIENTO: 4, MODIFICADO: 5, ORIGEN: 6, DOC: 7, ID_PACIENTE: 8 }  // 8 = "ID paciente" (paso 3b, CONTEXTO.md sección 11): a qué usuario de la Maestra pertenece la historia
 };
 
-/**
- * true  → FASE PRUEBA: la ficha avisa de que lo editado no llega al Doc, y las HC nuevas / altas siguen yendo a Google Docs.
- * false → DEFINITIVO: la historia vive en las hojas "Historias Clínicas" / "Episodios HC". Las HC nuevas se crean ahí,
- *         el alta escribe en "Episodios HC" y el enlace de la Maestra apunta a la ficha web. Los Docs no se tocan más.
- * Es el interruptor para deshacer: con true vuelve el comportamiento anterior (los enlaces ya cambiados se restauran
- * con revertirEnlacesHCaDocs() de herramientas/Enlazar_HC_Web.gs).
- */
-const HC_WEB_MODO_PRUEBA = false;
-
-// Misma clasificación que ESTILOS_ASISTENCIA de agenda/Web_Vista.html (sobre texto sin tildes y en minúsculas).
-const HC_ESTILOS_ASISTENCIA_ = [
-  { clase: 'mal',    patron: /^no\b|^sin asist|falt|ausen|plant|no (vino|asist|acud|se present)/ },
-  { clase: 'neutro', patron: /pendient|por confirmar|sin confirmar|sin registrar/ },
-  { clase: 'aviso',  patron: /cancel|anul|aplaz|recuper|justific|retras/ },
-  { clase: 'ok',     patron: /asist|vino|presente|realiz|acudi|^si$|^ok$/ }
-];
-
 /** Sirve la página de la ficha: ?page=hc&id=ID_HC  (o &idPaciente=ID_PACIENTE si no hay ID HC). */
 function servirFichaHCWeb(parametros) {
   const t = HtmlService.createTemplateFromFile('historia/HC_Vista');
   t.idHC = (parametros && parametros.id) || '';                       // ID HC (?page=hc&id=)
   t.idPaciente = (parametros && parametros.idPaciente) || '';         // ID paciente (?page=hc&idPaciente=), si no hay ID HC
-  t.modoPrueba = HC_WEB_MODO_PRUEBA;
   t.imprimir = !!(parametros && String(parametros.imprimir) === '1');
   t.baseUrl = ScriptApp.getService().getUrl();
   return t.evaluate().setTitle('Historia clínica').addMetaTag('viewport', 'width=device-width, initial-scale=1');
@@ -175,7 +157,7 @@ function obtenerHCWeb(idHC, idPaciente, enlaceAntiguo) {
     const resp = {
       success: true, id: id, usuario: usuario, docOriginal: String(fila7[6] || (hcEsFichaWeb_(docUrl) ? '' : docUrl) || ''),
       historia: String(fila7[2] || ''), tratamiento: String(fila7[3] || ''), modificado: hcMs_(fila7[4]),
-      episodios: episodios, modoPrueba: HC_WEB_MODO_PRUEBA
+      episodios: episodios
     };
     // Las dos fuentes externas no deben impedir ver la historia si fallan.
     try { resp.valoraciones = hcLeerValoraciones_(h.ss, usuario, tz); } catch (e1) { resp.valoraciones = []; resp.avisoValoraciones = e1.message; }
@@ -233,65 +215,31 @@ function hcLeerValoraciones_(ss, usuario, tz) {
 }
 
 /**
- * Lee UNA vez la Agenda del curso activo y deja cada cita clasificada (nombre, fecha, teléfono, clase de asistencia),
- * agrupada por nombre. Solo cuenta el curso actual: los cursos anteriores no se tienen en cuenta (decisión del dueño, 21-oct-2026).
- * `desdeISO` se mantiene por compatibilidad con los llamadores y no cambia qué hojas se leen.
+ * Lee UNA vez la tabla "Citas" y devuelve las citas agrupadas por ID paciente. Los cursos anteriores no se tienen en cuenta
+ * (decisión del dueño, 21-oct-2026).
+ * `desdeISO` se mantiene por compatibilidad con los llamadores.
  */
 function hcLeerDatosAgenda_(tz, desdeISO) {
-  // Tabla plana "Citas" (CONTEXTO.md, sección 11, paso 6): citas por ID paciente, sin nombre ni teléfono. Solo con el interruptor CITAS_MODO_NUEVO activo.
-  if (citasModoNuevo_()) return { hoy: Utilities.formatDate(new Date(), tz, 'yyyy-MM-dd'), nuevo: true, porId: citasPorPaciente_() };
-  const actual = obtenerHojaAgenda();
-  return { hoy: Utilities.formatDate(new Date(), tz, 'yyyy-MM-dd'), actual: hcCitasPorNombre_(actual, tz) };
+  // Tabla "Citas": citas por ID paciente (sin nombre ni teléfono).
+  return { hoy: Utilities.formatDate(new Date(), tz, 'yyyy-MM-dd'), porId: citasPorPaciente_() };
 }
 
-function hcCitasPorNombre_(hoja, tz) {
-  const porNombre = {};
-  const ult = hoja.getLastRow(); if (ult < 2) return porNombre;
-  const cab = hoja.getRange(1, 1, 1, hoja.getLastColumn()).getValues()[0].map(function (x) { return String(x).trim(); });
-  const cF = cab.indexOf(COLUMNAS.AGENDA.FECHA), cU = cab.indexOf(COLUMNAS.AGENDA.USUARIO),
-        cT = cab.indexOf(COLUMNAS.AGENDA.TELEFONO), cA = cab.indexOf(COLUMNAS.AGENDA.ASISTENCIA);
-  if (cF === -1 || cU === -1 || cA === -1) return porNombre;
-  const filas = hoja.getRange(2, 1, ult - 1, Math.max(cF, cU, cT, cA) + 1).getValues();
-  filas.forEach(function (f) {
-    const nom = hcNorm_(f[cU]); if (!nom) return;
-    const fecha = hcAISO_(f[cF], tz); if (!fecha) return;
-    const v = hcNorm_(f[cA]).toLowerCase();
-    let clase = 'neutro';
-    if (v) for (let i = 0; i < HC_ESTILOS_ASISTENCIA_.length; i++) if (HC_ESTILOS_ASISTENCIA_[i].patron.test(v)) { clase = HC_ESTILOS_ASISTENCIA_[i].clase; break; }
-    (porNombre[nom] = porNombre[nom] || []).push({ fecha: fecha, tel: cT === -1 ? '' : hcDigitos_(f[cT]), clase: clase });
-  });
-  return porNombre;
-}
-
-/** Cuenta las citas de un usuario con los datos de Agenda ya leídos (misma lógica de siempre: nombre + teléfono, solo hasta hoy). */
+/** Cuenta las citas de un usuario con los datos de la tabla "Citas" ya leídos, por ID paciente (solo hasta hoy; lo pendiente va aparte). */
 function hcContarAsistenciaDe_(datos, usuario, desdeISO) {
-  const nom = hcNorm_(usuario.nombre);
-  const tels = [hcDigitos_(usuario.telefono), hcDigitos_(usuario.telefono2)].filter(Boolean);
   const r = { asistidas: 0, noAsistidas: 0, justificadas: 0, pendientes: 0, otras: 0, telefonoDistinto: 0 };
-  if (datos.nuevo) {   // por ID paciente: no hay homónimos ni teléfonos que comparar (otras y telefonoDistinto quedan en 0)
-    (datos.porId[usuario.idPaciente] || []).forEach(function (c) {
-      if (desdeISO && c.fecha < desdeISO) return;
-      if (c.fecha > datos.hoy || c.asistencia === ASISTENCIA_CITA.PENDIENTE) r.pendientes++;
-      else if (c.asistencia === ASISTENCIA_CITA.ASISTIDO) r.asistidas++;
-      else if (c.asistencia === ASISTENCIA_CITA.NO_ASISTIDO) r.noAsistidas++;
-      else if (c.asistencia === ASISTENCIA_CITA.JUSTIFICADA) r.justificadas++;
-      else r.otras++;
-    });
-    return r;
-  }
-  [datos.actual].forEach(function (porNombre) {
-    (porNombre[nom] || []).forEach(function (c) {
-      if (desdeISO && c.fecha < desdeISO) return;
-      if (c.tel && tels.length && tels.indexOf(c.tel) === -1) { r.telefonoDistinto++; return; }  // mismo nombre, otro teléfono: no se cuenta
-      if (c.fecha > datos.hoy || c.clase === 'neutro') { r.pendientes++; return; }
-      if (c.clase === 'ok') r.asistidas++; else if (c.clase === 'mal') r.noAsistidas++; else if (c.clase === 'aviso') r.justificadas++; else r.otras++;
-    });
+  (datos.porId[usuario.idPaciente] || []).forEach(function (c) {
+    if (desdeISO && c.fecha < desdeISO) return;
+    if (c.fecha > datos.hoy || c.asistencia === ASISTENCIA_CITA.PENDIENTE) r.pendientes++;
+    else if (c.asistencia === ASISTENCIA_CITA.ASISTIDO) r.asistidas++;
+    else if (c.asistencia === ASISTENCIA_CITA.NO_ASISTIDO) r.noAsistidas++;
+    else if (c.asistencia === ASISTENCIA_CITA.JUSTIFICADA) r.justificadas++;
+    else r.otras++;
   });
   return r;
 }
 
 /**
- * Cuenta las citas del usuario en la Agenda del curso activo (los cursos anteriores no se cuentan), por nombre + teléfono. Cuenta solo hasta hoy; lo pendiente va aparte y no entra en el porcentaje.
+ * Cuenta las citas del usuario en la tabla "Citas" por ID paciente. Cuenta solo hasta hoy; lo pendiente va aparte y no entra en el porcentaje.
  */
 function hcContarAsistencia_(usuario, desdeISO, tz) {
   return hcContarAsistenciaDe_(hcLeerDatosAgenda_(tz, desdeISO || ''), usuario, desdeISO);
@@ -400,7 +348,7 @@ function obtenerHCsActivasWeb() {
           success: true, id: id, usuario: usuario,
           docOriginal: String(f7[6] || (hcEsFichaWeb_(docUrl) ? '' : docUrl) || ''),
           historia: String(f7[2] || ''), tratamiento: String(f7[3] || ''), modificado: hcMs_(f7[4]),
-          episodios: episodios, modoPrueba: HC_WEB_MODO_PRUEBA
+          episodios: episodios
         };
         if (filasVal) resp.valoraciones = hcValoracionesDeUsuario_(filasVal, usuario); else { resp.valoraciones = []; resp.avisoValoraciones = avisoVal; }
         if (agenda) {

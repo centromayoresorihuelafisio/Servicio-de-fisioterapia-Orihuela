@@ -3,11 +3,9 @@
  * dar de alta y WhatsApp; tanda 2: mover e intercambiar; tanda 3: lo que CREA citas — asignar hueco, copiar citas o semana y el
  * formulario de varias horas de agenda/Cita.gs).
  *
- * Cada función de agenda/Web.gs que antes tocaba la hoja Agenda por número de fila empieza ahora con una línea:
- *     if (citasModoNuevo_()) return xxxDesdeCitasWeb_(...);
- * así que con el interruptor CITAS_MODO_NUEVO apagado (agenda/Citas_Datos.gs) NADA de este archivo se ejecuta y la
- * Agenda funciona exactamente como antes. Con el interruptor encendido, el parámetro `fila` que sigue enviando el
- * cliente es en realidad el ID de la cita (en la lectura nueva, `_fila` vale el ID de la cita: agenda/Web_Semana_Citas.gs).
+ * Cada función de agenda/Web.gs delega aquí (`return xxxDesdeCitasWeb_(...)`). El parámetro `fila` que sigue enviando el
+ * cliente es en realidad el ID de la cita (en la lectura, `_fila` vale el ID de la cita: agenda/Web_Semana_Citas.gs). Con el
+ * interruptor CITAS_MODO_NUEVO apagado (agenda/Citas_Datos.gs) la capa de datos rechaza toda escritura.
  *
  * Las funciones de este archivo NO toman LockService: la capa (agenda/Citas_Datos.gs) lo toma por dentro en cada
  * escritura y los llamadores no deben tenerlo ya.
@@ -44,7 +42,6 @@ function actualizarCampoDesdeCitasWeb_(idCita, campo, valor) {
 /**
  * Elimina una o varias citas (borra su fila). La respuesta lleva `snapshots` (citas completas, con ID y "Creada el")
  * que el cliente guarda para Deshacer y devuelve tal cual a restaurarCitasWeb.
- * NO borra el evento de Calendar enlazado (igual que antes).
  */
 function eliminarDesdeCitasWeb_(ids) {
   const lista = (Array.isArray(ids) ? ids : [ids])
@@ -104,7 +101,7 @@ function generarUrlWhatsappDesdeCitasWeb_(idCita) {
 /**
  * Mueve una cita a un hueco libre. `claveDestino` es la clave del hueco que da la lectura nueva
  * ("hueco AAAA-MM-DD HH:mm", agenda/Web_Semana_Citas.gs); la capa valida la parrilla, Disponibilidad y que esté libre.
- * La cita conserva su ID, su paciente, su Sesión, sus Notas y su ID Evento Calendar (solo cambian fecha y hora).
+ * La cita conserva su ID, su paciente, su Sesión y sus Notas (solo cambian fecha y hora).
  */
 function moverDesdeCitasWeb_(idCita, claveDestino) {
   const clave = String(claveDestino === null || claveDestino === undefined ? '' : claveDestino).trim();
@@ -199,7 +196,7 @@ function asignarPacienteDesdeCitasWeb_(claveHueco, nombrePaciente) {
 }
 
 /**
- * PARTE PURA (no toca hojas). Destinos de la copia de una cita: mismas reglas que la copia vieja (_prepararCopiaCita de agenda/Web.gs).
+ * PARTE PURA (no toca hojas). Destinos de la copia de una cita: mismas reglas que tenía la copia de la hoja vieja.
  * Simple: lunes y martes +2 días, miércoles y jueves +5, viernes +7. Doble: lunes y martes [+2, +5], miércoles y jueves [+5, +2]
  * (cada salto cuenta desde el anterior). La Sesión de cada destino es la de la cita origen + 1, + 2 (si la del origen no es un número
  * >= 1 se cuenta desde 0, como antes).
@@ -296,14 +293,6 @@ function copiarVariasDesdeCitasWeb_(items, forzar) {
     Logger.log('Error en copiarVariasDesdeCitasWeb_: ' + e.message);
     return { success: false, message: e.message };
   }
-}
-
-/**
- * "Enlazar Historia Clínica" ya no tiene nada que hacer: con la tabla nueva el enlace a la ficha NO se guarda en la cita, sale siempre de la
- * Maestra por ID paciente al leer la semana (agenda/Web_Semana_Citas.gs). El botón puede retirarse del cliente con el resto de lo viejo.
- */
-function enlazarHCDesdeCitasWeb_() {
-  return { success: true, message: 'Con la agenda nueva el enlace a la historia clínica sale siempre de la ficha del usuario: no hace falta enlazarlo.' };
 }
 
 // ----------------------------------------------------------------------------- formulario de Cita (agenda/Cita.gs)

@@ -9,8 +9,6 @@
  * Soporta: objetos Date, strings "dd/mm/aaaa" o "dd/mm/aa" (incluso embebidos en texto),
  * y números seriales de Google Sheets. Normaliza siempre a medianoche (00:00:00).
  *
- * GANADORA de: "agenda/Ir_A_Fecha.gs" (superset funcional de la versión de "usuarios/Ordenar.gs").
- * Elimina la función parseFecha de "usuarios/Ordenar.gs" tras pegar esto.
  */
 function parseFecha(valor) {
   if (!valor && valor !== 0) return null;
@@ -128,9 +126,7 @@ function normalizarDniUsuario(texto) {
  * Devuelve la hoja de Agenda del curso académico ACTUAL (no la primera que contenga "Agenda").
  * El curso va de Septiembre a Agosto: sep-dic -> año actual/año+1; ene-jul -> año-1/año actual.
  *
- * GANADORA de: "agenda/Cita.gs" (más robusta que la de "agenda/Eventos.gs", que cogía cualquier
- * hoja que contuviera "Agenda" en el nombre, arriesgando coger el curso equivocado).
- * Elimina la función obtenerHojaAgenda de "agenda/Eventos.gs" tras pegar esto.
+ * (Desde el corte del 21-oct-2026 la hoja Agenda es solo archivo: la usan únicamente las herramientas de migración/diagnóstico y la HC.)
  */
 function obtenerHojaAgenda() {
   const ss = getSS();
@@ -178,12 +174,12 @@ function obtenerHojaAgenda() {
 /**
  * Extrae la URL de un enlace de Historia Clínica de una celda, sin importar
  * cómo se guardó: como Rich Text (formato usado por generarHistoriaClinica,
- * guardarCitasMultiples e insertarEnlaceHistoriaClinica), como fórmula
+ * guardarCitasMultiples), como fórmula
  * =HIPERVINCULO()/=HYPERLINK() (por si alguna celda antigua la tuviera así),
  * o como texto plano con una URL. Devuelve '' si no hay ningún enlace válido.
  *
- * Se usa en cargarMapaHistoriasClinicas, obtenerBaseDatosCompletaWeb y
- * _ejecutarAltaEnFila para no duplicar esta lógica en varios sitios.
+ * Se usa en obtenerBaseDatosCompletaWeb y _ejecutarAltaEnFila (y en las historias clínicas)
+ * para no duplicar esta lógica en varios sitios.
  */
 function extraerUrlHistoriaClinica(valorCelda, richTextCell, formula) {
   if (richTextCell) {
@@ -262,150 +258,6 @@ function resolverColumnaTelefono_(hoja, encabezados) {
     const t = String(h).toLowerCase();
     return t.includes('tel') || t.includes('mov');
   });
-}
-
-/**
- * Construye un mapa { nombrePacienteEnMinuscula: { url: enlaceHistoriaClinica } }
- * leyendo la hoja "Base de Datos Maestra". Comprueba null de forma defensiva
- * antes de leer getLinkUrl() para no lanzar excepción con celdas vacías.
- *
- * GANADORA de: "HC Agenda.gs" (más defensiva que la de "agenda/Cita.gs", que no comprobaba
- * null antes de leer richTextCell.getLinkUrl() y dependía de la constante global
- * HOJA_MAESTRA_NOMBRE definida en otro archivo).
- * Elimina la función cargarMapaHistoriasClinicas de "agenda/Cita.gs" tras pegar esto.
- */
-function cargarMapaHistoriasClinicas(ss) {
-  const HOJA_MAESTRA = SHEETS.MAESTRA;
-  const sheetMaestra = ss.getSheetByName(HOJA_MAESTRA);
-
-  if (!sheetMaestra) {
-    throw new Error("No se encontró la hoja 'Base de Datos Maestra'.");
-  }
-
-  const dataRange = sheetMaestra.getDataRange();
-  const values = dataRange.getValues();
-  const richTextValues = dataRange.getRichTextValues();
-  const formulas = dataRange.getFormulas();
-
-  if (values.length < 2) return null;
-
-  const headers = values[0].map(h => h.toString().trim());
-  const colNombre = headers.indexOf(COLUMNAS.MAESTRA.NOMBRE);
-  const colHC = headers.indexOf(COLUMNAS.MAESTRA.HISTORIA_CLINICA);
-
-  if (colNombre === -1 || colHC === -1) {
-    throw new Error("Columnas 'Nombre' o 'Historia clínica' no halladas en la Maestra.");
-  }
-
-  const mapa = {};
-
-  for (let i = 1; i < values.length; i++) {
-    const nombre = values[i][colNombre] ? values[i][colNombre].toString().trim() : '';
-    if (!nombre) continue;
-
-    const url = extraerUrlHistoriaClinica(values[i][colHC], richTextValues[i][colHC], formulas[i][colHC]);
-    if (url) {
-      mapa[nombre.toLowerCase()] = { url: url };
-    }
-  }
-
-  return mapa;
-}
-
-/**
- * Inserta un enlace a la Historia Clínica en la columna correspondiente de la
- * hoja de Agenda activa, para todas las filas seleccionadas (soporta selección
- * múltiple con Ctrl+Click). Busca las columnas "Hora", "Usuario" e
- * "Historia clínica" por NOMBRE de cabecera (no por número fijo), por lo que
- * no se rompe si reordenas columnas.
- *
- * GANADORA de: "HC Agenda.gs" (más robusta que la de "agenda/Cita.gs", que usaba
- * columnas fijas por número y solo soportaba un único rango de selección).
- * Elimina la función insertarEnlaceHistoriaClinica de "agenda/Cita.gs" tras pegar esto.
- */
-function insertarEnlaceHistoriaClinica() {
-  const ui = SpreadsheetApp.getUi();
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-
-  try {
-    const sheetAgenda = ss.getActiveSheet();
-    const sheetName = sheetAgenda.getName();
-
-    // 1. Validar si es una hoja de Agenda
-    if (!sheetName.startsWith("Agenda ")) {
-      ui.alert("Error", "Esta función solo se puede usar en una hoja de 'Agenda AAAA-AAAA'.", ui.ButtonSet.OK);
-      return;
-    }
-
-    // Obtener todos los rangos seleccionados (Ctrl + Click)
-    const rangeList = sheetAgenda.getActiveRangeList();
-    if (!rangeList) return;
-    const ranges = rangeList.getRanges();
-
-    const headersAgenda = sheetAgenda.getRange(1, 1, 1, sheetAgenda.getMaxColumns()).getValues()[0];
-
-    // 2. Determinar los índices de columna por nombre
-    const COL_INDICES = {
-      HORA: headersAgenda.findIndex(h => h.toString().trim() === COLUMNAS.AGENDA.HORA) + 1,
-      USUARIO: headersAgenda.findIndex(h => h.toString().trim() === COLUMNAS.AGENDA.USUARIO) + 1,
-      HC_CLINICA: headersAgenda.findIndex(h => h.toString().trim() === COLUMNAS.AGENDA.HISTORIA_CLINICA) + 1
-    };
-
-    if (COL_INDICES.HORA === 0 || COL_INDICES.USUARIO === 0 || COL_INDICES.HC_CLINICA === 0) {
-      ui.alert("Error", "No se encontraron las columnas 'Hora', 'Usuario' o 'Historia clínica'.", ui.ButtonSet.OK);
-      return;
-    }
-
-    // --- OPTIMIZACIÓN: CARGA ÚNICA DE MAESTRA ---
-    const mapaHistorias = cargarMapaHistoriasClinicas(ss);
-    if (!mapaHistorias) return;
-
-    let enlacesInsertados = 0;
-
-    // 3. Iterar por cada rango seleccionado
-    ranges.forEach(range => {
-      const startRow = range.getRow();
-      const numRows = range.getNumRows();
-
-      for (let i = 0; i < numRows; i++) {
-        const currentRow = startRow + i;
-
-        // Validación de seguridad basada en tipo de dato (evita separadores/vacíos)
-        const valorHora = sheetAgenda.getRange(currentRow, COL_INDICES.HORA).getValue();
-
-        if (!(valorHora instanceof Date) || isNaN(valorHora.getTime())) {
-          continue;
-        }
-
-        // Obtener el nombre del paciente
-        const nombrePacienteRaw = sheetAgenda.getRange(currentRow, COL_INDICES.USUARIO).getValue().toString().trim();
-
-        if (!nombrePacienteRaw) continue;
-
-        // Buscar en el mapa cargado en memoria
-        const enlaceInfo = mapaHistorias[nombrePacienteRaw.toLowerCase()];
-
-        if (enlaceInfo) {
-          const richTextValue = SpreadsheetApp.newRichTextValue()
-            .setText("Ver Historia Clínica")
-            .setLinkUrl(enlaceInfo.url)
-            .build();
-
-          sheetAgenda.getRange(currentRow, COL_INDICES.HC_CLINICA).setRichTextValue(richTextValue);
-          enlacesInsertados++;
-        }
-      }
-    });
-
-    if (enlacesInsertados > 0) {
-      ss.toast(`Se han insertado ${enlacesInsertados} enlaces de Historia Clínica.`, "Éxito", 3);
-    } else {
-      ui.alert("Información", "No se encontraron pacientes válidos o coincidencias en la Maestra.", ui.ButtonSet.OK);
-    }
-
-  } catch (e) {
-    ui.alert("Error Crítico", e.message, ui.ButtonSet.OK);
-  }
 }
 
 

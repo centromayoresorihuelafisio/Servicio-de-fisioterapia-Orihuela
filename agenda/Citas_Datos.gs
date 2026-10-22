@@ -3,23 +3,22 @@
  * Paso 6 del "Orden de trabajo" de CONTEXTO.md, sección 11 (decisión 8). FASE 1: lectura. FASE 2: escritura (al final del archivo).
  *
  * La hoja "Citas" (SHEETS.CITAS) tiene una fila por cita real: ID cita (UUID, no el número de fila), Fecha (fecha real),
- * Hora ("HH:mm", texto), ID paciente, Nombre (referencia), Sesión, Asistencia (una de ASISTENCIA_CITA), Notas,
- * ID Evento Calendar y Creada el. No hay filas de huecos libres (los huecos se calculan con la parrilla y `Disponibilidad`),
+ * Hora ("HH:mm", texto), ID paciente, Nombre (referencia), Sesión, Asistencia (una de ASISTENCIA_CITA), Notas
+ * y Creada el. (La columna "ID Evento Calendar" de la hoja real ya no se usa: se puede borrar, el código la ignora.) No hay filas de huecos libres (los huecos se calculan con la parrilla y `Disponibilidad`),
  * y teléfono y enlace a la HC no se copian: se consultan por ID paciente. Cabeceras en COLUMNAS.CITAS (core/Config.gs).
  *
  * LECTURA (fase 1): `citasLeer_`, `citasDeSemana_`, `citasDePaciente_`, `citasCategoriaAsistencia_`, `citasSesionPropuesta_`.
  * ESCRITURA (fase 2): `citasCrear_`, `citasCrearVarias_` (3c, tanda 3), `citasMover_`, `citasIntercambiar_`, `citasCambiarCampo_`, `citasEliminar_`,
- *   `citasRestaurar_`, `citasGuardarIdEvento_`. Son las ÚNICAS funciones que deben escribir en "Citas" (y las que rellenan
+ *   `citasRestaurar_`. Son las ÚNICAS funciones que deben escribir en "Citas" (y las que rellenan
  *   "Creada el"). Devuelven { success, message, ... } como el resto de la API web.
  *
- * INTERRUPTOR: CITAS_MODO_NUEVO (más abajo) está en false. Mientras lo esté, NINGUNA función de escritura toca la hoja (devuelven
- * success:false con un aviso): "Citas" es solo una copia que regenera `migrarCitas`, y esa migración se niega a regenerar en cuanto
- * hay una fila con "Creada el". Se pone en true UNA vez, en el corte (fase 4). Hasta entonces la Agenda web sigue escribiendo en
- * las hojas `Agenda AAAA-AAAA`, y nada llama todavía a estas funciones.
+ * INTERRUPTOR: CITAS_MODO_NUEVO (más abajo) está en true desde el corte (21-oct-2026): la Agenda web lee y escribe solo en "Citas" y la
+ * hoja `Agenda AAAA-AAAA` quedó congelada como archivo (`congelarAgendaAnterior`). Con false, NINGUNA función de escritura toca la hoja
+ * (devuelven success:false con un aviso). La migración inicial (`migrarCitas`) ya se ejecutó y se retiró del proyecto.
  *
  * Reglas de la capa nueva (sustituyen a lo que antes eran "huecos" con fila fija):
  *   - Un hueco es válido si cae en la parrilla (lunes a viernes, 08:00-14:00 y, de lunes a jueves, 16:00-20:00, cada 30 min;
- *     el último bloque empieza 30 min antes del final, como `generarBloques` de herramientas/Generar_Curso.gs) y esa hora no está
+ *     el último bloque empieza 30 min antes del final, como la antigua `generarBloques`, ya retirada) y esa hora no está
  *     cerrada en `Disponibilidad`. Mover o crear una cita a una hora cerrada se rechaza; una cita que ya está en una hora que se cerró después se respeta.
  *   - Un hueco admite UNA sola cita (misma fecha y hora = ocupado).
  *   - Se crea siempre con ID paciente de un usuario que existe en la Maestra; el nombre se toma de ahí.
@@ -37,7 +36,7 @@ function citasModoNuevo_() { return CITAS_MODO_NUEVO === true; }
 
 function citasCabeceras_() {
   const c = COLUMNAS.CITAS;
-  return [c.ID, c.FECHA, c.HORA, c.ID_PACIENTE, c.NOMBRE, c.SESION, c.ASISTENCIA, c.NOTAS, c.ID_EVENTO_CALENDAR, c.CREADA];
+  return [c.ID, c.FECHA, c.HORA, c.ID_PACIENTE, c.NOMBRE, c.SESION, c.ASISTENCIA, c.NOTAS, c.CREADA];
 }
 
 /** Hoja "Citas". Con crear = true la crea (con cabeceras) si no existe; si no, devuelve null cuando falta. */
@@ -49,7 +48,7 @@ function citasHoja_(crear) {
     hoja = ss.insertSheet(SHEETS.CITAS, ss.getNumSheets());
     hoja.getRange(1, 1, 1, cab.length).setValues([cab]).setFontWeight('bold');
     hoja.setFrozenRows(1);
-    [280, 100, 70, 280, 220, 70, 110, 300, 200, 150].forEach((ancho, i) => hoja.setColumnWidth(i + 1, ancho));
+    [280, 100, 70, 280, 220, 70, 110, 300, 150].forEach((ancho, i) => hoja.setColumnWidth(i + 1, ancho));
   }
   return hoja;
 }
@@ -109,7 +108,6 @@ function citasObjetoDeFila_(f, idx, tz) {
     sesion: celda('SESION'),
     asistencia: citasTexto_(celda('ASISTENCIA')),
     notas: citasTexto_(celda('NOTAS')),
-    idEvento: citasTexto_(celda('ID_EVENTO_CALENDAR')),
     creada: Object.prototype.toString.call(creada) === '[object Date]' && !isNaN(creada) ? Utilities.formatDate(creada, tz, 'yyyy-MM-dd HH:mm:ss') : citasTexto_(creada)
   };
 }
@@ -118,7 +116,7 @@ function citasObjetoDeFila_(f, idx, tz) {
  * Las citas de la hoja "Citas" (una lectura de toda la tabla), ordenadas por fecha y hora.
  * @param {{desdeISO?:string, hastaISO?:string, idPaciente?:string}=} filtro Fechas 'yyyy-MM-dd' inclusivas.
  * @return {Array<{id:string, fecha:string, hora:string, idPaciente:string, nombre:string, sesion:*, asistencia:string,
- *   notas:string, idEvento:string, creada:string}>} `fecha` en 'yyyy-MM-dd'; `creada` en 'yyyy-MM-dd HH:mm:ss' o ''.
+ *   notas:string, creada:string}>} `fecha` en 'yyyy-MM-dd'; `creada` en 'yyyy-MM-dd HH:mm:ss' o ''.
  */
 function citasLeer_(filtro) {
   filtro = filtro || {};
@@ -289,11 +287,10 @@ function citasEscribirFilas_(ctx, citas) {
     f[idx.SESION] = c.sesion === null || c.sesion === undefined ? '' : c.sesion;
     f[idx.ASISTENCIA] = c.asistencia;
     f[idx.NOTAS] = c.notas || '';
-    f[idx.ID_EVENTO_CALENDAR] = c.idEvento || '';
     f[idx.CREADA] = citasFechaHoraDeTexto_(c.creada);
     return f;
   });
-  ['ID', 'HORA', 'ID_PACIENTE', 'NOMBRE', 'ASISTENCIA', 'NOTAS', 'ID_EVENTO_CALENDAR'].forEach(k => hoja.getRange(inicio, idx[k] + 1, filas.length, 1).setNumberFormat('@'));
+  ['ID', 'HORA', 'ID_PACIENTE', 'NOMBRE', 'ASISTENCIA', 'NOTAS'].forEach(k => hoja.getRange(inicio, idx[k] + 1, filas.length, 1).setNumberFormat('@'));
   hoja.getRange(inicio, idx.FECHA + 1, filas.length, 1).setNumberFormat('dd/MM/yyyy');
   hoja.getRange(inicio, idx.CREADA + 1, filas.length, 1).setNumberFormat('dd/MM/yyyy HH:mm:ss');
   hoja.getRange(inicio, 1, filas.length, n).setValues(filas);
@@ -339,7 +336,7 @@ function citasCrear_(datos) {
     const cita = {
       id: Utilities.getUuid(), fecha: fechaISO, hora: v.hora, idPaciente: idPaciente, nombre: nombre,
       sesion: datos.sesion === null || datos.sesion === undefined ? '' : datos.sesion, asistencia: asistencia,
-      notas: datos.notas ? String(datos.notas) : '', idEvento: '', creada: Utilities.formatDate(new Date(), tz, 'yyyy-MM-dd HH:mm:ss')
+      notas: datos.notas ? String(datos.notas) : '', creada: Utilities.formatDate(new Date(), tz, 'yyyy-MM-dd HH:mm:ss')
     };
     citasEscribirFilas_(ctx, [cita]);
     return { success: true, cita: cita };
@@ -409,7 +406,7 @@ function citasCrearVarias_(lista, opciones) {
       creadas.push({
         id: Utilities.getUuid(), fecha: fechaISO, hora: v.hora, idPaciente: idPaciente, nombre: nombres[idPaciente],
         sesion: d.sesion === null || d.sesion === undefined ? '' : d.sesion, asistencia: asistencia,
-        notas: d.notas ? String(d.notas) : '', idEvento: '', creada: ahora
+        notas: d.notas ? String(d.notas) : '', creada: ahora
       });
     });
 
@@ -439,7 +436,7 @@ function citasMover_(idCita, fechaISO, hora) {
   });
 }
 
-/** Intercambia la fecha y la hora de dos citas (cada una conserva su ID, su paciente y su ID Evento Calendar). */
+/** Intercambia la fecha y la hora de dos citas (cada una conserva su ID y su paciente). */
 function citasIntercambiar_(idA, idB) {
   return citasOperar_('citasIntercambiar_', function (ctx, tz) {
     if (citasTexto_(idA) === citasTexto_(idB)) return { success: true, message: 'Misma cita, sin cambios.' };
@@ -477,19 +474,9 @@ function citasCambiarCampo_(idCita, campo, valor) {
   });
 }
 
-/** Guarda el ID del evento de Google Calendar de una cita (lo usa la exportación a Calendar). */
-function citasGuardarIdEvento_(idCita, idEvento) {
-  return citasOperar_('citasGuardarIdEvento_', function (ctx) {
-    const pos = citasPosicion_(ctx, idCita);
-    if (pos === -1) return citasError_('La cita ya no existe.');
-    ctx.hoja.getRange(pos + 2, ctx.idx.ID_EVENTO_CALENDAR + 1).setNumberFormat('@').setValue(citasTexto_(idEvento));
-    return { success: true };
-  });
-}
-
 /**
  * Elimina citas (borra su fila). Devuelve `snapshots` (una cita completa por cada eliminada, con la forma de citasLeer_) para que
- * el cliente pueda deshacer con citasRestaurar_, igual que hoy con la Agenda. NO borra el evento de Calendar enlazado.
+ * el cliente pueda deshacer con citasRestaurar_, igual que hoy con la Agenda.
  * @param {string[]} idsCita
  */
 function citasEliminar_(idsCita) {

@@ -71,12 +71,11 @@ function leerRecordatorios_(sheet) {
 
 /**
  * Para que otras pestañas abiertas de la Agenda se refresquen sin hacer nada: el sondeo
- * del cliente (obtenerVersionAgendaWeb) compara la versión de la caché de la Agenda,
+ * del cliente (obtenerVersionAgendaWeb) compara la versión de la tabla "Citas",
  * así que basta con subirla tras cada cambio.
  */
 function avisarCambioRecordatorios_() {
-  try { invalidarCacheAgenda_(obtenerHojaAgenda()); } catch (e) { /* no crítico */ }
-  try { citasInvalidarCache_(); } catch (e) { /* no crítico */ }   // versión de la tabla plana "Citas"
+  try { citasInvalidarCache_(); } catch (e) { /* no crítico */ }
 }
 
 function buscarFilaRecordatorio_(sheet, id) {

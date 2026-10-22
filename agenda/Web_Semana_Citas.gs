@@ -1,12 +1,11 @@
 /**
  * LECTURA DE LA AGENDA WEB DESDE LA TABLA PLANA "Citas" (paso 6, FASE 3b de CONTEXTO.md, sección 11)
  *
- * `obtenerAgendaSemanaWeb` (agenda/Web.gs) llama aquí SOLO cuando `citasModoNuevo_()` es true; con el interruptor apagado la Agenda
- * web sigue leyendo la hoja `Agenda AAAA-AAAA` exactamente como antes.
+ * `obtenerAgendaSemanaWeb` (agenda/Web.gs) llama aquí. La hoja `Agenda AAAA-AAAA` quedó congelada como archivo y ya no se lee.
  *
  * Para que el cliente (agenda/Web_Vista.html) no cambie en la lectura, la semana se devuelve con la MISMA forma que daba la hoja vieja:
  * `{ citas, semana, headers, opcionesAsistencia }`, donde cada elemento de `citas` es un objeto con una propiedad por cabecera
- * (Fecha, Día, Hora, Usuario, Teléfono, Sesión, Asistencia, ID Evento Calendar, Historia clínica, Notas) más `_fila`, `_fechaISO`,
+ * (Fecha, Día, Hora, Usuario, Teléfono, Sesión, Asistencia, Historia clínica, Notas) más `_fila`, `_fechaISO`,
  * `_horaOrden` y `_hueco`. Diferencias con la hoja vieja:
  *   - `_fila` ya no es un número de fila: es el ID de la cita (o, en un hueco libre, el texto "hueco AAAA-MM-DD HH:mm"). El cliente de
  *     lectura solo lo usa como clave opaca. Se añaden `_id` (ID cita, '' en un hueco) y `_idPaciente` para la fase 3c.
@@ -26,10 +25,10 @@
 
 const AGENDA_SEMANA_DIAS_ = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
 
-/** Cabeceras de la semana, en el mismo orden que las columnas de la hoja vieja (herramientas/Generar_Curso.gs). */
+/** Cabeceras de la semana, en el mismo orden que las columnas de la hoja vieja (sin la de Calendar, ya retirada). */
 function agendaSemanaCabeceras_() {
   const a = COLUMNAS.AGENDA;
-  return [a.FECHA, a.DIA, a.HORA, a.USUARIO, a.TELEFONO, a.SESION, a.ASISTENCIA, a.ID_EVENTO_CALENDAR, a.HISTORIA_CLINICA, a.NOTAS];
+  return [a.FECHA, a.DIA, a.HORA, a.USUARIO, a.TELEFONO, a.SESION, a.ASISTENCIA, a.HISTORIA_CLINICA, a.NOTAS];
 }
 
 /** Lunes y viernes (y las 5 fechas) de la semana que contiene `fechaISO` (sin fecha, la actual). Mismo cálculo que obtenerAgendaSemanaWeb. */
@@ -98,7 +97,7 @@ function agendaSemanaConstruir_(citas, usuarios, fechas, horasDelDia, cerrada) {
     f[a.FECHA] = agendaSemanaFechaCorta_(iso);
     f[a.DIA] = AGENDA_SEMANA_DIAS_[new Date(+iso.slice(0, 4), +iso.slice(5, 7) - 1, +iso.slice(8, 10)).getDay()];
     f[a.HORA] = hora;
-    f[a.USUARIO] = ''; f[a.TELEFONO] = ''; f[a.SESION] = ''; f[a.ASISTENCIA] = ''; f[a.ID_EVENTO_CALENDAR] = ''; f[a.HISTORIA_CLINICA] = ''; f[a.NOTAS] = '';
+    f[a.USUARIO] = ''; f[a.TELEFONO] = ''; f[a.SESION] = ''; f[a.ASISTENCIA] = ''; f[a.HISTORIA_CLINICA] = ''; f[a.NOTAS] = '';
     return f;
   };
   fechas.forEach(function (iso) {
@@ -121,7 +120,6 @@ function agendaSemanaConstruir_(citas, usuarios, fechas, horasDelDia, cerrada) {
         f[a.TELEFONO] = u ? u.telefono : '';
         f[a.SESION] = c.sesion === null || c.sesion === undefined ? '' : c.sesion;
         f[a.ASISTENCIA] = c.asistencia === ASISTENCIA_CITA.PENDIENTE ? '' : c.asistencia;
-        f[a.ID_EVENTO_CALENDAR] = c.idEvento;
         f[a.HISTORIA_CLINICA] = u ? u.hc : '';
         f[a.NOTAS] = c.notas;
         filas.push(f);
