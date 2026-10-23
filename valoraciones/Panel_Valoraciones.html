@@ -5,8 +5,9 @@
   <?!= incluirPanel('valoraciones/Panel_Valoraciones', 'PanelValoraciones'); ?>
   (y está en la lista PANELES_DIFERIDOS_ de core/WebApp.gs).
 
-  API: PanelValoraciones.abrir(contenedor, { paciente, dni, telefono, historial, obsoleto, alHistorial, onGuardado, onCancelar, onCambio })
+  API: PanelValoraciones.abrir(contenedor, { idPaciente, paciente, dni, telefono, historial, obsoleto, alHistorial, onGuardado, onCancelar, onCambio })
   Devuelve { haCambiado(), alEscape() } igual que los demás paneles.
+  `idPaciente` (ID paciente de la Maestra) es lo que identifica al usuario; `paciente` (nombre) y `dni` solo se muestran.
 
   Datos: si la página ya tiene las valoraciones en memoria (ui/JS_Valoraciones_Cache) se pasan en `historial` y el panel
   se abre al instante, sin esperar al servidor. Si además `obsoleto` es true (datos de hace más de un minuto), se
@@ -127,6 +128,7 @@
 window.PanelValoraciones = {
   abrir: function (host, opts) {
     opts = opts || {};
+    var idPaciente = String(opts.idPaciente || '').trim();
     var nombre = String(opts.paciente || '').trim();
     var dni = String(opts.dni || '').trim();
     var telefono = String(opts.telefono || '').trim();
@@ -317,7 +319,7 @@ window.PanelValoraciones = {
           if (!conectado()) return;
           S.vista = 'error'; S.msg = String((err && err.message) || err || ''); pintar();
         })
-        .obtenerValoracionesUsuarioWeb(nombre, dni);
+        .obtenerValoracionesUsuarioWeb(idPaciente);
     }
     // Refresco en segundo plano: no muestra nada de «Cargando». Actualiza la memoria de la página aunque el panel ya se haya
     // cerrado, y repinta la lista solo si hay algo distinto y el usuario no está en medio de un formulario o una edición.
@@ -331,7 +333,7 @@ window.PanelValoraciones = {
           S.historial = nuevo; tomarTelefono();
           if (S.vista === 'lista' && !ocupado) pintar();
         })
-        .obtenerValoracionesUsuarioWeb(nombre, dni);
+        .obtenerValoracionesUsuarioWeb(idPaciente);
     }
     function mostrarLista() { ctlForm = null; S.vista = 'lista'; S.confirmar = null; pintar(); }
     function recargarYMostrarLista() { cargar(mostrarLista); }
@@ -345,7 +347,7 @@ window.PanelValoraciones = {
       if (undoEl) root.appendChild(undoEl);
       var cont = root.querySelector('.pvs-form-host');
       ctlForm = PanelValoracion.abrir(cont, {
-        paciente: nombre, dni: dni, telefono: telefono,
+        idPaciente: idPaciente, paciente: nombre, dni: dni, telefono: telefono,
         onGuardado: function () {
           if (!conectado()) return;
           avisarOtrasVentanas();
@@ -372,7 +374,7 @@ window.PanelValoraciones = {
       var r = S.edit, fecha = root.querySelector('#pvs-e-fecha').value;
       if (!fecha) { aviso('La fecha es obligatoria.'); return; }
       var datos = {
-        fila: r._fila, nombreEsperado: r.nombre || nombre, dniEsperado: r.dni || '', fechaOriginal: r.fecha || '',
+        fila: r._fila, idPaciente: idPaciente, fechaOriginal: r.fecha || '',
         fecha: fecha, tipo: root.querySelector('#pvs-e-tipo').value, telefono: root.querySelector('#pvs-e-telefono').value,
         notas: root.querySelector('#pvs-e-notas').value
       };
@@ -401,7 +403,7 @@ window.PanelValoraciones = {
     function eliminar(fila) {
       var reg = S.historial.filter(function (h) { return h._fila === fila; })[0];
       if (!reg) return;
-      var snapshot = Object.assign({}, reg, { nombre: reg.nombre || nombre, dni: reg.dni || '' });   // foto completa para poder deshacer
+      var snapshot = Object.assign({}, reg, { idPaciente: idPaciente, nombre: reg.nombre || nombre, dni: reg.dni || dni });   // foto completa para poder deshacer
       ocupado = true; pintar();
       google.script.run
         .withSuccessHandler(function (res) {
@@ -413,7 +415,7 @@ window.PanelValoraciones = {
           recargarYMostrarLista();
         })
         .withFailureHandler(function (err) { ocupado = false; if (!conectado()) return; S.confirmar = null; pintar(); aviso('Error al eliminar: ' + ((err && err.message) || err)); })
-        .eliminarValoracionWeb(reg._fila, snapshot.nombre, reg.fecha || '', snapshot.dni);
+        .eliminarValoracionWeb(reg._fila, idPaciente, reg.fecha || '');
     }
     function quitarUndo() { if (undoTimer) { clearTimeout(undoTimer); undoTimer = null; } if (undoEl) { undoEl.remove(); undoEl = null; } }
     function mostrarUndo(snapshot) {

@@ -2255,7 +2255,7 @@
           else if (acc === 'cita') { var cc = citaPorFila(f); if (cc) abrirCitaPanel(cc['Usuario']); }
           else if (acc === 'valoracion') {
             var ci = CITAS.find(function(c) { return c._fila == f; });
-            if (ci) abrirValoracionCita(ci['Usuario']);
+            if (ci) abrirValoracionCita(ci['_idPaciente'], ci['Usuario']);
           }
           return;
         }
@@ -2343,26 +2343,28 @@
       }
 
       // ---------- Valoración, Dar cita y WhatsApp (barra de selección y acciones por fila) ----------
-      // Los paneles trabajan con el nombre del paciente, no con la fila ni con la semana mostrada, así que seguir
-      // navegando por la agenda (o el refresco automático) no los afecta.
-      function abrirValoracionCita(nombre) {
+      // El panel de valoraciones trabaja con el ID paciente del usuario (nunca con el nombre ni el DNI), no con la fila ni con la
+      // semana mostrada, así que seguir navegando por la agenda (o el refresco automático) no lo afecta. El nombre solo se muestra.
+      function abrirValoracionCita(idPaciente, nombre) {
+        idPaciente = String(idPaciente || '').trim();
         nombre = (nombre || '').trim();
-        if (!nombre) { mostrarAviso('Esa cita no tiene paciente asignado.'); return; }
-        var cita = CITAS.find(function(c) { return c['Usuario'] === nombre && c['Teléfono']; });
+        if (!idPaciente) { mostrarAviso('Esa cita no tiene paciente asignado.'); return; }
+        var cita = CITAS.find(function(c) { return c['_idPaciente'] === idPaciente && c['Teléfono']; });
         var ficha = fichaDeMemoria(nombre);                                   // DNI y teléfono de la Maestra, si las fichas ya están cargadas
         var dniUsuario = ficha ? String(FichaUsuario.valor(ficha.paciente, ficha.headers, 'DNI') || '').trim() : '';
         var telUsuario = cita ? String(cita['Teléfono']) : (ficha ? String(FichaUsuario.valor(ficha.paciente, ficha.headers, 'Teléfono 1') || '') : '');
-        var clave = 'valoracion:' + nombre;
+        var clave = 'valoracion:' + idPaciente;
         // Sin valoraciones previas abre directamente el formulario de Nueva valoración; con valoraciones, su panel
         // (evolución, historial, añadir / editar / eliminar). Lo decide valoraciones/Panel_Valoraciones.
         return abrirPanelLateral(clave, 'Valoraciones · ' + nombre, false, function(cont) {
           return PanelValoraciones.abrir(cont, Object.assign({
+            idPaciente: idPaciente,
             paciente: nombre,
             dni: dniUsuario,
             telefono: telUsuario,
             onGuardado: function() { mostrarAviso('Valoración guardada'); if (panelClave === clave) cerrarPanel(true); },
             onCancelar: function() { if (panelClave === clave) cerrarPanel(); }
-          }, ValoracionesCache.opcionesPanel(nombre, dniUsuario)));   // valoraciones ya precargadas: el panel se abre al instante
+          }, ValoracionesCache.opcionesPanel(idPaciente)));   // valoraciones ya precargadas: el panel se abre al instante
         });
       }
 
@@ -2449,7 +2451,7 @@
 
       document.getElementById('btnValoracion').addEventListener('click', function() {
         var sel = citasSeleccionadas();
-        if (sel.length === 1) abrirValoracionCita(sel[0]['Usuario']);
+        if (sel.length === 1) abrirValoracionCita(sel[0]['_idPaciente'], sel[0]['Usuario']);
       });
 
       function filasWhatsappSeleccion() { return citasSeleccionadas().map(function(c) { return c._fila; }); }
@@ -3239,7 +3241,7 @@
         return FichaUsuario.html(res.paciente, hs, {
           nombre: nombre,
           // «Valoración» (formulario) si el usuario no tiene ninguna; «Valoraciones» (su panel) si ya tiene
-          acciones: ['whatsapp', 'hc', 'cita', ValoracionesCache.accion(nombre, FichaUsuario.valor(res.paciente, hs, 'DNI'))],
+          acciones: ['whatsapp', 'hc', 'cita', ValoracionesCache.accion(res.paciente['ID paciente'])],
           // "Otros datos" no repite la columna de prioridad (la primera) ni la Historia clínica, igual que la Base de Datos
           excluir: [hs[0]].concat(hs.filter(function(h) { return String(h).toLowerCase().indexOf('historia') !== -1; }))
         });
@@ -3336,7 +3338,7 @@
         return abrirPanelLateral(clave, 'Ficha de usuario', false, function(cont) {
           var caja = cont;
           fichaAbierta = { clave: clave, nombre: nombre, caja: caja, html: '' };
-          function pintar(res) { fichaAbierta.html = htmlFichaUsuario(res, nombre); FichaUsuario.pintar(caja, fichaAbierta.html); }
+          function pintar(res) { fichaAbierta.idPaciente = String((res.paciente && res.paciente['ID paciente']) || ''); fichaAbierta.html = htmlFichaUsuario(res, nombre); FichaUsuario.pintar(caja, fichaAbierta.html); }
           function error(msg) { fichaAbierta.html = ''; FichaUsuario.pintar(caja, FichaUsuario.mensaje(nombre, msg)); }
 
           var enMemoria = fichaDeMemoria(nombre);
@@ -3367,7 +3369,7 @@
               accion: function(a) {
                 var citaAct = CITAS.find(function(x) { return !x._hueco && x['Usuario'] === nombre; });
                 if (a === 'cita') abrirCitaPanel(nombre);
-                else if (a === 'valoracion') abrirValoracionCita(nombre);
+                else if (a === 'valoracion') abrirValoracionCita(fichaAbierta ? fichaAbierta.idPaciente : '', nombre);
                 else if (!citaAct) mostrarAviso('Este usuario ya no tiene citas en la semana mostrada.');
                 else if (a === 'whatsapp') abrirWhatsappFila(citaAct._fila);
                 else if (a === 'hc') abrirHCFila(citaAct._fila);

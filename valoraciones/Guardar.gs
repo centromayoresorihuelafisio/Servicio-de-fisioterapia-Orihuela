@@ -1,8 +1,8 @@
 /**
- * Lee la Base de Datos Maestra y devuelve un array [{ nombre, telefono, dni }], uno por
- * fila con nombre. El DNI se localiza por su cabecera (COLUMNAS.MAESTRA.DNI); si la hoja
- * no tiene esa columna, todos salen con dni vacío. Nombre y teléfono siguen leyéndose por
- * posición, igual que antes.
+ * Lee la Base de Datos Maestra y devuelve un array [{ id, nombre, telefono, dni }], uno por fila con nombre.
+ * El ID paciente y el DNI se localizan por su cabecera (COLUMNAS.MAESTRA); nombre y teléfono, por posición.
+ * Una sola lectura de la hoja: de ahí salen el autocompletado del formulario, los datos que se guardan en
+ * cada valoración y los nombres que muestra la página Valoraciones.
  */
 function leerPacientesMaestra_() {
   const sheet = getSS().getSheetByName(SHEETS.MAESTRA);
@@ -13,11 +13,10 @@ function leerPacientesMaestra_() {
   const COLUMNA_NOMBRE = COLUMNAS_NUM.MAESTRA.NOMBRE;     // Columna B (Nombre)
   const COLUMNA_TELEFONO = COLUMNAS_NUM.MAESTRA.TELEFONO; // Columna D (Teléfono)
 
-  const cabeceras = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0]
-    .map(h => h.toString().trim().toLowerCase());
-  const idxDni = cabeceras.indexOf(COLUMNAS.MAESTRA.DNI.toLowerCase()); // 0-based, -1 si no existe
+  const idxDni = obtenerIndiceColumnaPorNombre_(sheet, COLUMNAS.MAESTRA.DNI);          // 0-based, -1 si no existe
+  const idxId = obtenerIndiceColumnaPorNombre_(sheet, COLUMNAS.MAESTRA.ID_PACIENTE);   // 0-based, -1 si no existe
 
-  const ancho = Math.max(COLUMNA_TELEFONO, idxDni + 1);
+  const ancho = Math.max(COLUMNA_TELEFONO, idxDni + 1, idxId + 1);
   const datos = sheet.getRange(2, 1, lastRow - 1, ancho).getValues();
 
   const pacientes = [];
@@ -25,6 +24,7 @@ function leerPacientesMaestra_() {
     const nombre = row[COLUMNA_NOMBRE - 1] ? row[COLUMNA_NOMBRE - 1].toString().trim() : '';
     if (!nombre) return;
     pacientes.push({
+      id: (idxId !== -1 && row[idxId]) ? row[idxId].toString().trim() : '',
       nombre: nombre,
       telefono: row[COLUMNA_TELEFONO - 1] ? row[COLUMNA_TELEFONO - 1].toString().trim() : '',
       dni: (idxDni !== -1 && row[idxDni]) ? row[idxDni].toString().trim().toUpperCase() : ''
@@ -33,25 +33,24 @@ function leerPacientesMaestra_() {
   return pacientes;
 }
 
+/** Usuario de la Maestra con ese ID paciente ({ id, nombre, telefono, dni }); null si no existe o el ID viene vacío. */
+function pacienteMaestraPorId_(idPaciente) {
+  const id = String(idPaciente || '').trim();
+  if (!id) return null;
+  return leerPacientesMaestra_().filter(p => p.id === id)[0] || null;
+}
+
 /**
- * Obtiene todos los pacientes de la Base de Datos Maestra para el autocompletado,
- * y además obtiene el valor de la celda activa para precargarlo.
- *
- * Devuelve `allPatientsData` (nombre → teléfono, como siempre; lo usa el formulario
- * antiguo) y `pacientes` ([{ nombre, telefono, dni }]), que sí distingue a dos
- * pacientes con el mismo nombre.
+ * Lista de usuarios de la Base de Datos Maestra para el autocompletado del formulario de valoración.
+ * Devuelve `pacientes` ([{ id, nombre, telefono, dni }]): el ID es lo que el formulario envía al guardar,
+ * y distingue a dos usuarios con el mismo nombre.
  */
 function obtenerPacientesParaAutocompletar() {
   try {
-    const pacientes = leerPacientesMaestra_();
-    const allPatientsData = {};
-    pacientes.forEach(p => { allPatientsData[p.nombre] = p.telefono; });
-
-    return { allPatientsData: allPatientsData, pacientes: pacientes };
-
+    return { pacientes: leerPacientesMaestra_() };
   } catch (e) {
     Logger.log("Error en autocompletado: " + e.message);
-    return { allPatientsData: {}, pacientes: [], error: e.message };
+    return { pacientes: [], error: e.message };
   }
 }
 
@@ -61,7 +60,7 @@ function obtenerPacientesParaAutocompletar() {
 /**
  * Procesa los datos del formulario de valoración y los guarda.
  * Calcula los promedios de las secciones funcionales.
- * @param {object} data El objeto con los datos del formulario.
+ * @param {object} data Datos del formulario; `idPaciente` identifica al usuario (obligatorio).
  * @returns {string} Un mensaje de éxito o fracaso.
  */
 function procesarValoracion(data) {
@@ -83,26 +82,14 @@ function procesarValoracion(data) {
       return Math.round((sum / validValues.length) * 10) / 10; 
     };
 
-    // 1. Normalización Capa 2 (Servidor) - Ahora en mayúsculas siempre
-    const nombreFinal = normalizarFormatoNombre(data.nombre);
-    if (!nombreFinal) throw new Error("Nombre de paciente inválido.");
-
-    // DNI del paciente: lo normal es que el formulario lo envíe ya elegido. Si no llega (p. ej. el
-    // formulario antiguo del menú de Sheets), se busca en la Maestra por nombre; si ese nombre
-    // corresponde a varios pacientes con DNI distintos, no se adivina: se pide elegir uno.
-    let dni = (data.dni || "").toString().trim().toUpperCase();
-    if (!dni) {
-      const limpiar = s => s.toString().trim().replace(/\s+/g, ' ').toUpperCase();
-      const coincidencias = leerPacientesMaestra_().filter(p => limpiar(p.nombre) === limpiar(nombreFinal));
-      const dnisDistintos = Array.from(new Set(coincidencias.map(p => p.dni).filter(d => d)));
-      if (dnisDistintos.length > 1) {
-        throw new Error("Hay varios pacientes llamados '" + nombreFinal + "' (DNI distintos). Elige el paciente desde la Base de Datos o desde Valoraciones, donde se distinguen por DNI.");
-      }
-      if (dnisDistintos.length === 1) dni = dnisDistintos[0];
-    }
+    // 1. Usuario: el formulario envía SOLO su ID paciente; nombre, DNI y teléfono salen de la Maestra.
+    const paciente = pacienteMaestraPorId_(data.idPaciente);
+    if (!paciente) throw new Error("No se encontró al usuario en la Base de Datos (ID paciente). Elígelo de la lista.");
+    const nombreFinal = normalizarFormatoNombre(paciente.nombre) || paciente.nombre;
+    const dni = paciente.dni;
+    const telefono = paciente.telefono;
 
     const tipoValoracion = data.tipoValoracion || "Inicial";
-    const telefono = data.telefono || "";
     const notas = data.notas ? data.notas.trim() : "";
 
     // 2. Parseo de datos clínicos
@@ -124,23 +111,24 @@ function procesarValoracion(data) {
     const hoy = new Date();
     const fechaSolo = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
 
-    // 5. Preparar fila (Ajusta el orden según las columnas físicas de tu Google Sheets)
-    const filaDatos = [
-      fechaSolo,           // Fecha como objeto nativo
-      tipoValoracion,       // Tipo (Inicial, Seguimiento, Final)
-      nombreFinal,          // Nombre Normalizado
-      telefono,             // Teléfono
-      pegDolorOutput,       // PEG Dolor
-      pegActividadOutput,   // PEG Actividad
-      pegVidaOutput,        // PEG Vida
-      mediaColumna,         // Media Columna
-      mediaMS,              // Media MS
-      mediaMI,              // Media MI
-      mediaFG,              // Función Global
-      analgesicosOutput,    // Analgésicos
-      notas,                // Notas Clínicas
-      dni                   // DNI (columna 14; vacío si el paciente no tiene DNI en la Maestra)
-    ];
+    // 5. Preparar fila: cada valor en su columna (COLUMNAS_NUM.VALORACIONES, core/Config.gs)
+    const C = COLUMNAS_NUM.VALORACIONES;
+    const filaDatos = [];
+    filaDatos[C.FECHA - 1] = fechaSolo;               // Fecha como objeto nativo
+    filaDatos[C.TIPO - 1] = tipoValoracion;           // Inicial, Seguimiento, Final
+    filaDatos[C.NOMBRE - 1] = nombreFinal;            // Nombre normalizado (el de la Maestra en este momento)
+    filaDatos[C.TELEFONO - 1] = telefono;
+    filaDatos[C.PEG_DOLOR - 1] = pegDolorOutput;
+    filaDatos[C.PEG_ACTIVIDAD - 1] = pegActividadOutput;
+    filaDatos[C.PEG_VIDA - 1] = pegVidaOutput;
+    filaDatos[C.MEDIA_COLUMNA - 1] = mediaColumna;
+    filaDatos[C.MEDIA_MS - 1] = mediaMS;
+    filaDatos[C.MEDIA_MI - 1] = mediaMI;
+    filaDatos[C.FUNCION_GLOBAL - 1] = mediaFG;
+    filaDatos[C.ANALGESICOS - 1] = analgesicosOutput;
+    filaDatos[C.NOTAS - 1] = notas;
+    filaDatos[C.DNI - 1] = dni;                       // vacío si el usuario no tiene DNI en la Maestra
+    filaDatos[C.ID_PACIENTE - 1] = paciente.id;       // con qué usuario se enlaza la valoración (nunca se edita a mano)
 
     sheet.appendRow(filaDatos);
     return `Valoración de tipo '${tipoValoracion}' guardada con éxito.`;

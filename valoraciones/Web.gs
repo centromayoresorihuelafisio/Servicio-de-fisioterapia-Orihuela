@@ -24,33 +24,37 @@ function obtenerValoracionesWeb() {
     const tz = Session.getScriptTimeZone();
     const C = COLUMNAS_NUM.VALORACIONES; // posiciones 1-based, ver core/Config.gs
 
-    // La columna DNI puede no existir todavía en la hoja: se lee solo hasta donde llegue.
-    const ultimaCol = Math.min(C.DNI, sheet.getMaxColumns());
+    // La columna ID puede no existir todavía en la hoja: se lee solo hasta donde llegue.
+    const ultimaCol = Math.min(C.ID_PACIENTE, sheet.getMaxColumns());
     const datos = sheet.getRange(2, 1, lastRow - 1, ultimaCol).getValues();
+    // Nombre, DNI y teléfono ACTUALES de cada usuario (Maestra); la fila de la hoja solo guarda lo que había al valorar.
+    const maestra = {};
+    leerPacientesMaestra_().forEach(p => { if (p.id) maestra[p.id] = p; });
     const porPaciente = {};
+    let sinId = 0;
 
     datos.forEach((fila, i) => {
       const nombre = (fila[C.NOMBRE - 1] || '').toString().trim();
       if (!nombre) return; // fila vacía o incompleta, se ignora
 
-      const dni = normalizarDniValoracion_(fila[C.DNI - 1]);
-      // Clave de agrupación: el DNI identifica a la persona; sin DNI, se cae al nombre como hasta ahora.
-      const clave = dni ? 'D:' + dni : 'N:' + nombre;
+      const id = idPacienteDeFila_(fila, C);
+      if (!id) { sinId++; return; }
 
-      const registro = registroValoracion_(fila, i, C, tz);
-
-      if (!porPaciente[clave]) {
-        porPaciente[clave] = {
-          clave: clave,
-          nombre: nombre,
-          dni: dni,
-          telefono: (fila[C.TELEFONO - 1] || '').toString(),
+      if (!porPaciente[id]) {
+        const m = maestra[id];
+        porPaciente[id] = {
+          clave: id,
+          idPaciente: id,
+          nombre: m ? m.nombre : nombre,
+          dni: m ? m.dni : normalizarDniValoracion_(fila[C.DNI - 1]),
+          telefono: m ? m.telefono : '',
           historial: []
         };
       }
-      porPaciente[clave].historial.push(registro);
-      // Nos quedamos con el teléfono más reciente no vacío, por si cambió.
-      if (fila[C.TELEFONO - 1]) porPaciente[clave].telefono = fila[C.TELEFONO - 1].toString();
+      const p = porPaciente[id];
+      p.historial.push(registroValoracion_(fila, i, C, tz));
+      // Usuario que ya no está en la Maestra: se muestra con el último teléfono no vacío de sus filas.
+      if (!maestra[id] && fila[C.TELEFONO - 1]) p.telefono = fila[C.TELEFONO - 1].toString();
     });
 
     const pacientes = Object.keys(porPaciente).map(clave => {
@@ -64,11 +68,17 @@ function obtenerValoracionesWeb() {
     // Más reciente primero por defecto.
     pacientes.sort((a, b) => (a.ultima.fecha < b.ultima.fecha ? 1 : a.ultima.fecha > b.ultima.fecha ? -1 : 0));
 
-    return { pacientes: pacientes };
+    return { pacientes: pacientes, sinId: sinId };
   } catch (e) {
     Logger.log('Error en obtenerValoracionesWeb: ' + e.message);
     return { pacientes: [], error: e.message };
   }
+}
+
+/** ID paciente de una fila ya leída de la hoja Valoraciones ('' si aún no lo tiene). */
+function idPacienteDeFila_(fila, C) {
+  const v = fila[C.ID_PACIENTE - 1];
+  return (v === null || v === undefined) ? '' : v.toString().trim();
 }
 
 /**
@@ -84,9 +94,10 @@ function registroValoracion_(fila, i, C, tz) {
   const fechaCelda = fila[C.FECHA - 1];
   return {
     _fila: i + 2, // fila real en la hoja (para poder editarla o borrarla)
-    nombre: (fila[C.NOMBRE - 1] || '').toString().trim(), // nombre tal cual está en ESA fila (sirve para validar al editar/borrar)
+    idPaciente: idPacienteDeFila_(fila, C), // usuario al que pertenece (sirve para validar al editar/borrar/deshacer)
+    nombre: (fila[C.NOMBRE - 1] || '').toString().trim(), // nombre tal cual está en ESA fila (informativo; también permite deshacer un borrado)
     fecha: fechaCelda instanceof Date ? Utilities.formatDate(fechaCelda, tz, 'yyyy-MM-dd') : '',
-    dni: normalizarDniValoracion_(fila[C.DNI - 1]), // DNI de ESA fila (sirve para validar al editar/borrar/deshacer)
+    dni: normalizarDniValoracion_(fila[C.DNI - 1]), // DNI de ESA fila (informativo)
     tipo: (fila[C.TIPO - 1] || '').toString(),
     telefono: (fila[C.TELEFONO - 1] || '').toString(),
     pegDolor: numeroOVacio_(fila[C.PEG_DOLOR - 1]),
@@ -103,21 +114,16 @@ function registroValoracion_(fila, i, C, tz) {
 
 /**
  * Historial de valoraciones de UN usuario, de la más antigua a la más reciente. Lo usa el panel lateral
- * de valoraciones del usuario (valoraciones/Panel_Valoraciones), abierto desde la ficha en Agenda y Base de Datos.
+ * de valoraciones del usuario (valoraciones/Panel_Valoraciones), abierto desde la ficha en Agenda, Base de Datos y HC.
+ * Son del usuario las filas con ese ID paciente; ni el nombre ni el DNI intervienen.
  *
- * Qué filas son del usuario: si tiene DNI y la fila también, deben coincidir; si a alguno de los dos
- * le falta el DNI, se compara el nombre (sin tildes, mayúsculas ni espacios de más). Es la misma idea
- * que la agrupación de la página Valoraciones, pero tolerante con las diferencias de escritura del nombre.
- *
- * @param {string} nombre Nombre del usuario.
- * @param {string=} dni   DNI del usuario (opcional).
+ * @param {string} idPaciente ID paciente del usuario (Maestra).
  * @return {{success: boolean, historial?: Array, message?: string}}
  */
-function obtenerValoracionesUsuarioWeb(nombre, dni) {
+function obtenerValoracionesUsuarioWeb(idPaciente) {
   try {
-    const objetivo = normalizarNombreFicha_(nombre);
-    const dniObjetivo = normalizarDniValoracion_(dni);
-    if (!objetivo && !dniObjetivo) return { success: true, historial: [] };
+    const id = String(idPaciente || '').trim();
+    if (!id) return { success: true, historial: [] };
 
     const sheet = getSS().getSheetByName(SHEETS.VALORACIONES);
     if (!sheet) return { success: false, message: `No se encontró la hoja "${SHEETS.VALORACIONES}".` };
@@ -127,19 +133,13 @@ function obtenerValoracionesUsuarioWeb(nombre, dni) {
 
     const tz = Session.getScriptTimeZone();
     const C = COLUMNAS_NUM.VALORACIONES;
-    // La columna DNI puede no existir todavía en la hoja: se lee solo hasta donde llegue.
-    const ultimaCol = Math.min(C.DNI, sheet.getMaxColumns());
+    // La columna ID puede no existir todavía en la hoja: se lee solo hasta donde llegue.
+    const ultimaCol = Math.min(C.ID_PACIENTE, sheet.getMaxColumns());
     const datos = sheet.getRange(2, 1, lastRow - 1, ultimaCol).getValues();
 
     const historial = [];
     datos.forEach((fila, i) => {
-      const nombreFila = (fila[C.NOMBRE - 1] || '').toString().trim();
-      if (!nombreFila) return; // fila vacía o incompleta
-      const dniFila = normalizarDniValoracion_(fila[C.DNI - 1]);
-      const esDelUsuario = (dniObjetivo && dniFila)
-        ? dniObjetivo === dniFila
-        : normalizarNombreFicha_(nombreFila) === objetivo;
-      if (esDelUsuario) historial.push(registroValoracion_(fila, i, C, tz));
+      if (idPacienteDeFila_(fila, C) === id) historial.push(registroValoracion_(fila, i, C, tz));
     });
 
     historial.sort((a, b) => (a.fecha < b.fecha ? -1 : a.fecha > b.fecha ? 1 : a._fila - b._fila));
@@ -169,26 +169,18 @@ function normalizarDniValoracion_(valor) {
 }
 
 /**
- * Comprueba que la fila `fila` de la hoja Valoraciones sigue siendo la que el
- * cliente cargó: mismo nombre de paciente, misma fecha (yyyy-MM-dd) y mismo DNI
- * (vacío si la fila aún no lo tiene). Hace falta la fecha además del nombre
- * porque un mismo paciente tiene varias valoraciones. Cada dato que el cliente
- * no envíe (undefined/null) simplemente no se comprueba.
+ * Comprueba que la fila `fila` de la hoja Valoraciones sigue siendo la que el cliente cargó: mismo ID paciente
+ * (obligatorio) y, si se envía, misma fecha (yyyy-MM-dd; hace falta porque un usuario tiene varias valoraciones).
  */
-function filaValoracionCoincide_(sheet, fila, nombreEsperado, fechaEsperadaISO, dniEsperado) {
-  const hayNombre = nombreEsperado !== undefined && nombreEsperado !== null && String(nombreEsperado).trim() !== '';
-  const hayFecha = fechaEsperadaISO !== undefined && fechaEsperadaISO !== null;
-  const hayDni = dniEsperado !== undefined && dniEsperado !== null;
-  if (!hayNombre && !hayFecha && !hayDni) return true;
-
+function filaValoracionCoincide_(sheet, fila, idEsperado, fechaEsperadaISO) {
+  const id = String(idEsperado || '').trim();
+  if (!id) return false;
   const C = COLUMNAS_NUM.VALORACIONES;
-  const ancho = Math.min(Math.max(C.NOMBRE, C.FECHA, C.DNI), sheet.getMaxColumns());
+  const ancho = Math.min(Math.max(C.FECHA, C.ID_PACIENTE), sheet.getMaxColumns());
   const celdas = sheet.getRange(fila, 1, 1, ancho).getValues()[0];
 
-  if (hayDni && normalizarDniValoracion_(celdas[C.DNI - 1]) !== normalizarDniValoracion_(dniEsperado)) return false;
-
-  if (hayNombre && (celdas[C.NOMBRE - 1] || '').toString().trim() !== String(nombreEsperado).trim()) return false;
-  if (hayFecha) {
+  if (idPacienteDeFila_(celdas, C) !== id) return false;
+  if (fechaEsperadaISO !== undefined && fechaEsperadaISO !== null) {
     const celdaFecha = celdas[C.FECHA - 1];
     const iso = celdaFecha instanceof Date ? Utilities.formatDate(celdaFecha, Session.getScriptTimeZone(), 'yyyy-MM-dd') : '';
     if (iso !== String(fechaEsperadaISO)) return false;
@@ -206,9 +198,9 @@ function filaValoracionCoincide_(sheet, fila, nombreEsperado, fechaEsperadaISO, 
  *
  * @param {object} datos { fila, fecha (yyyy-MM-dd), tipo, telefono,
  *   pegDolor, pegActividad, pegVida, mediaColumna, mediaMS, mediaMI,
- *   funcionGlobal, analgesicos, notas, nombreEsperado, fechaOriginal } —
- *   `nombreEsperado`, `fechaOriginal` (la fecha ANTES de corregirla) y `dniEsperado`
- *   sirven para comprobar que la fila sigue siendo la misma valoración.
+ *   funcionGlobal, analgesicos, notas, idPaciente, fechaOriginal } —
+ *   `idPaciente` y `fechaOriginal` (la fecha ANTES de corregirla) sirven para
+ *   comprobar que la fila sigue siendo la misma valoración.
  */
 function actualizarValoracionWeb(datos) {
   try {
@@ -220,7 +212,8 @@ function actualizarValoracionWeb(datos) {
     if (!fila || fila < 2 || fila > sheet.getLastRow()) {
       return { success: false, message: 'Fila no válida.' };
     }
-    if (!filaValoracionCoincide_(sheet, fila, datos.nombreEsperado, datos.fechaOriginal, datos.dniEsperado)) {
+    if (!String(datos.idPaciente || '').trim()) return { success: false, message: 'Falta el ID del usuario.' };
+    if (!filaValoracionCoincide_(sheet, fila, datos.idPaciente, datos.fechaOriginal)) {
       return { success: false, message: 'La lista ha cambiado desde que se cargó. Recarga la página e inténtalo de nuevo.' };
     }
 
@@ -264,10 +257,10 @@ function actualizarValoracionWeb(datos) {
  * Elimina por completo una fila de la hoja "Valoraciones" (borrado real de
  * la fila, no solo de su contenido).
  *
- * `nombreEsperado`, `fechaEsperada` (yyyy-MM-dd) y `dniEsperado` protegen frente a
- * filas que hayan cambiado de número: si ya no coinciden, no se borra nada.
+ * `idPaciente` y `fechaEsperada` (yyyy-MM-dd) protegen frente a filas que hayan
+ * cambiado de número: si ya no coinciden, no se borra nada.
  */
-function eliminarValoracionWeb(fila, nombreEsperado, fechaEsperada, dniEsperado) {
+function eliminarValoracionWeb(fila, idPaciente, fechaEsperada) {
   try {
     const ss = getSS();
     const sheet = ss.getSheetByName(SHEETS.VALORACIONES);
@@ -278,7 +271,8 @@ function eliminarValoracionWeb(fila, nombreEsperado, fechaEsperada, dniEsperado)
       return { success: false, message: 'Fila no válida.' };
     }
 
-    if (!filaValoracionCoincide_(sheet, filaNum, nombreEsperado, fechaEsperada, dniEsperado)) {
+    if (!String(idPaciente || '').trim()) return { success: false, message: 'Falta el ID del usuario.' };
+    if (!filaValoracionCoincide_(sheet, filaNum, idPaciente, fechaEsperada)) {
       return { success: false, message: 'La lista ha cambiado desde que se cargó. Recarga la página e inténtalo de nuevo.' };
     }
 
@@ -294,11 +288,9 @@ function eliminarValoracionWeb(fila, nombreEsperado, fechaEsperada, dniEsperado)
  * Deshace un "Eliminar" reciente: vuelve a insertar la fila de una
  * valoración borrada, con los mismos datos que tenía. El cliente ya guardaba
  * el registro completo en memoria (el mismo que pinta en el historial), así
- * que aquí no hace falta leer nada de la hoja primero — solo el nombre del
- * paciente viaja aparte porque el registro, tal cual se guarda en memoria,
- * no lo incluye.
- * @param {object} datos El registro completo (fecha, tipo, pegDolor, ...,
- *   _fila) más `nombre`, añadido por el cliente al capturar la foto.
+ * que aquí no hace falta leer nada de la hoja primero.
+ * @param {object} datos El registro completo (fecha, tipo, pegDolor, ..., _fila,
+ *   idPaciente, nombre, dni). El usuario debe seguir existiendo en la Maestra.
  */
 function restaurarValoracionWeb(datos) {
   try {
@@ -306,9 +298,9 @@ function restaurarValoracionWeb(datos) {
     const sheet = ss.getSheetByName(SHEETS.VALORACIONES);
     if (!sheet) return { success: false, message: `No se encontró la hoja "${SHEETS.VALORACIONES}".` };
 
-    if (!datos || !datos.nombre) {
-      return { success: false, message: 'No hay datos que restaurar.' };
-    }
+    if (!datos) return { success: false, message: 'No hay datos que restaurar.' };
+    const paciente = pacienteMaestraPorId_(datos.idPaciente);
+    if (!paciente) return { success: false, message: 'El usuario ya no está en la Base de Datos: no se puede restaurar su valoración.' };
 
     const fechaObj = parsearFechaISO_(datos.fecha);
     if (!fechaObj) return { success: false, message: 'La fecha guardada no es válida.' };
@@ -320,7 +312,7 @@ function restaurarValoracionWeb(datos) {
     const filaDatos = [];
     filaDatos[C.FECHA - 1] = fechaObj;
     filaDatos[C.TIPO - 1] = datos.tipo || '';
-    filaDatos[C.NOMBRE - 1] = datos.nombre;
+    filaDatos[C.NOMBRE - 1] = datos.nombre || paciente.nombre;
     filaDatos[C.TELEFONO - 1] = datos.telefono || '';
     filaDatos[C.PEG_DOLOR - 1] = numeroOVacio_(datos.pegDolor);
     filaDatos[C.PEG_ACTIVIDAD - 1] = numeroOVacio_(datos.pegActividad);
@@ -332,9 +324,10 @@ function restaurarValoracionWeb(datos) {
     filaDatos[C.ANALGESICOS - 1] = numeroOVacio_(datos.analgesicos);
     filaDatos[C.NOTAS - 1] = datos.notas || '';
     filaDatos[C.DNI - 1] = normalizarDniValoracion_(datos.dni);
+    filaDatos[C.ID_PACIENTE - 1] = paciente.id;
 
-    // Si la hoja aún no tiene la columna del DNI, se amplía para poder escribir la fila completa.
-    if (sheet.getMaxColumns() < C.DNI) sheet.insertColumnsAfter(sheet.getMaxColumns(), C.DNI - sheet.getMaxColumns());
+    // Si la hoja aún no tiene la columna del ID, se amplía para poder escribir la fila completa.
+    if (sheet.getMaxColumns() < C.ID_PACIENTE) sheet.insertColumnsAfter(sheet.getMaxColumns(), C.ID_PACIENTE - sheet.getMaxColumns());
 
     sheet.insertRowBefore(fila);
     sheet.getRange(fila, 1, 1, filaDatos.length).setValues([filaDatos]);

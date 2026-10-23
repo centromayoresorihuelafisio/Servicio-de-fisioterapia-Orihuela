@@ -12,31 +12,25 @@
     · El panel de valoraciones (valoraciones/Panel_Valoraciones) se abre al instante con lo que ya está en memoria.
                                                                               -> opcionesPanel(nombre, dni)
 
-  API:
-    ValoracionesCache.tiene(nombre, dni)            true / false, o null si aún no se han cargado
-    ValoracionesCache.historialDe(nombre, dni)      valoraciones del usuario (de la más antigua a la más reciente), o null si aún no hay datos
-    ValoracionesCache.accion(nombre, dni)           acción { id, texto, icono, titulo } para la lista "acciones" de FichaUsuario.html
-    ValoracionesCache.opcionesPanel(nombre, dni)    { historial, obsoleto, alHistorial } para añadir a las opciones de PanelValoraciones.abrir
-    ValoracionesCache.actualizarUsuario(n, d, h)    sustituye las valoraciones de ese usuario (lo llama el panel tras cualquier cambio)
-    ValoracionesCache.alCambiar(fn)                 fn() se llama cada vez que cambian los datos (para repintar la ficha abierta)
-    ValoracionesCache.recargar()                    vuelve a leer todo en segundo plano
+  API (todo por ID paciente, columna "ID paciente" de la Maestra; nunca por nombre ni DNI):
+    ValoracionesCache.tiene(id)                 true / false, o null si aún no se han cargado
+    ValoracionesCache.historialDe(id)           valoraciones del usuario (de la más antigua a la más reciente), o null si aún no hay datos
+    ValoracionesCache.accion(id)                acción { id, texto, icono, titulo } para la lista "acciones" de FichaUsuario.html
+    ValoracionesCache.opcionesPanel(id)         { historial, obsoleto, alHistorial } para añadir a las opciones de PanelValoraciones.abrir
+    ValoracionesCache.actualizarUsuario(id, h)  sustituye las valoraciones de ese usuario (lo llama el panel tras cualquier cambio)
+    ValoracionesCache.alCambiar(fn)             fn() se llama cada vez que cambian los datos (para repintar la ficha abierta)
+    ValoracionesCache.recargar()                vuelve a leer todo en segundo plano
 
-  Qué valoraciones son de un usuario (igual que en el servidor, obtenerValoracionesUsuarioWeb): si el usuario y la fila
-  tienen DNI, deben coincidir; si a alguno le falta, se compara el nombre (sin tildes, mayúsculas ni espacios de más).
+  Qué valoraciones son de un usuario (igual que en el servidor): las filas con su ID paciente. Una fila sin ID no llega al cliente.
 -->
 <script>
 var ValoracionesCache = (function() {
   var RETRASO_PRECARGA = 3000;   // ms tras cargar la página antes de pedir las valoraciones
   var FRESCO_MS = 60000;         // pasado este tiempo, al abrir el panel se refresca además en segundo plano
-  var filas = null;              // null = aún sin cargar; si no, todas las valoraciones (cada una con nombre y dni de SU fila)
+  var filas = null;              // null = aún sin cargar; si no, todas las valoraciones (cada una con su idPaciente)
   var tCarga = 0, cargando = false, repetir = false, version = 0, escuchas = [];
 
-  function norm(x) { return String(x === null || x === undefined ? '' : x).normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim().toUpperCase(); }
-  function normDni(x) { return String(x === null || x === undefined ? '' : x).trim().toUpperCase(); }
-  function coincide(r, nombreN, dniN) {
-    var dniFila = normDni(r.dni);
-    return (dniN && dniFila) ? dniN === dniFila : norm(r.nombre) === nombreN;
-  }
+  function normId(x) { return String(x === null || x === undefined ? '' : x).trim(); }
   function porFecha(a, b) { return a.fecha < b.fecha ? -1 : a.fecha > b.fecha ? 1 : (a._fila - b._fila); }
   function avisar() { escuchas.slice().forEach(function(f) { try { f(); } catch (e) { /* un oyente roto no debe frenar a los demás */ } }); }
 
@@ -54,8 +48,7 @@ var ValoracionesCache = (function() {
         var todas = [];
         res.pacientes.forEach(function(p) {
           (p.historial || []).forEach(function(r) {
-            if (!r.nombre) r.nombre = p.nombre || '';
-            if (!r.dni && p.dni) r.dni = p.dni;
+            if (!r.idPaciente) r.idPaciente = p.idPaciente || '';
             todas.push(r);
           });
         });
@@ -66,42 +59,42 @@ var ValoracionesCache = (function() {
       .obtenerValoracionesWeb();
   }
 
-  function historialDe(nombre, dni) {
+  function historialDe(id) {
     if (filas === null) return null;
-    var n = norm(nombre), d = normDni(dni);
-    if (!n && !d) return [];
-    return filas.filter(function(r) { return coincide(r, n, d); }).sort(porFecha);
+    var i = normId(id);
+    if (!i) return [];
+    return filas.filter(function(r) { return r.idPaciente === i; }).sort(porFecha);
   }
-  function tiene(nombre, dni) {
+  function tiene(id) {
     if (filas === null) return null;
-    var n = norm(nombre), d = normDni(dni);
-    if (!n && !d) return false;
-    return filas.some(function(r) { return coincide(r, n, d); });
+    var i = normId(id);
+    if (!i) return false;
+    return filas.some(function(r) { return r.idPaciente === i; });
   }
 
   // Botón de la ficha: cambia según exista o no alguna valoración del usuario (como Crear HC / Historia).
-  function accion(nombre, dni) {
-    if (tiene(nombre, dni) === true) {
+  function accion(id) {
+    if (tiene(id) === true) {
       return { id: 'valoracion', texto: 'Valoraciones', icono: 'monitoring', titulo: 'Ver las valoraciones del usuario: evolución e historial' };
     }
     return { id: 'valoracion', texto: 'Valoración', icono: 'assignment', titulo: 'Nueva valoración del usuario' };
   }
 
   // Lo que el panel necesita para abrirse sin esperar al servidor. Sin datos aún, el panel los pide él mismo.
-  function opcionesPanel(nombre, dni) {
-    var h = historialDe(nombre, dni);
+  function opcionesPanel(id) {
+    var h = historialDe(id);
     if (h === null && !cargando) cargar();
     return {
       historial: h === null ? undefined : h,
       obsoleto: h !== null && (Date.now() - tCarga > FRESCO_MS),
-      alHistorial: function(nuevo) { actualizarUsuario(nombre, dni, nuevo); }
+      alHistorial: function(nuevo) { actualizarUsuario(id, nuevo); }
     };
   }
 
-  function actualizarUsuario(nombre, dni, historial) {
+  function actualizarUsuario(id, historial) {
     if (filas === null) return;                                    // aún no hay caché: se llenará entera cuando cargue
-    var n = norm(nombre), d = normDni(dni);
-    filas = filas.filter(function(r) { return !coincide(r, n, d); }).concat(historial || []);
+    var i = normId(id);
+    filas = filas.filter(function(r) { return r.idPaciente !== i; }).concat(historial || []);
     version++; tCarga = Date.now();
     avisar();
   }

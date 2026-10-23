@@ -310,10 +310,10 @@
 
     <script>
       var PACIENTES = [];
-      var pacienteSeleccionado = null; // clave del paciente (p.clave: 'D:'+DNI o 'N:'+nombre si no tiene DNI) o null
+      var pacienteSeleccionado = null; // clave del paciente (p.clave = su ID paciente) o null
       var metricaActual = 'funcionGlobal';
       var filaEnEdicion = null;
-      var nombreEnEdicion = null, fechaEnEdicion = null, dniEnEdicion = null; // para que el servidor compruebe que la fila sigue siendo la misma
+      var idEnEdicion = null, fechaEnEdicion = null; // para que el servidor compruebe que la fila sigue siendo la misma
       var ordenCampo = null, ordenDir = 1; // 1 = asc, -1 = desc
       var ultimosFiltrados = [], filaActiva = null;
       var formularioActivo = false, controladorForm = null, formularioNombre = '';   // formulario de Nueva valoración abierto en la ficha
@@ -370,6 +370,7 @@
             ocupado(-1);
             if (res.error) { mostrarError(res.error); return; }
             PACIENTES = res.pacientes || [];
+            if (res.sinId) mostrarAviso(res.sinId + (res.sinId === 1 ? ' valoración no tiene' : ' valoraciones no tienen') + ' ID de usuario y no se muestra(n). Ejecuta asignarIdPacienteEnValoraciones.');
             render();
             // Si había un paciente con el ficha abierta, se refresca con los datos nuevos (o se cierra si ya no existe).
             renderFicha();
@@ -383,7 +384,7 @@
       }
 
       // ---------- Píldoras de severidad ----------
-      // La dirección del color depende del tipo de escala (ver valoraciones/Guardar_Vista.html):
+      // La dirección del color depende del tipo de escala (ver valoraciones/Panel_Valoracion.html):
       // - PEG Dolor/Actividad/Vida: 0-10, ALTO = MALO.
       // - Columna/M.Superior/M.Inferior/Función Global: 0-10, ALTO = BUENO.
       // - Analgésicos: 0-5, ALTO = MALO.
@@ -680,8 +681,7 @@
       function abrirModalEditar(registro) {
         filaEnEdicion = registro._fila;
         var pEd = pacienteActual();
-        nombreEnEdicion = registro.nombre || (pEd ? pEd.nombre : '');
-        dniEnEdicion = pEd ? pEd.dni : '';
+        idEnEdicion = registro.idPaciente || (pEd ? pEd.idPaciente : '');
         fechaEnEdicion = registro.fecha || '';
         document.getElementById('editFecha').value = registro.fecha || '';
         document.getElementById('editTipo').value = registro.tipo || 'Inicial';
@@ -699,8 +699,7 @@
       }
       function cerrarModalEditar() {
         filaEnEdicion = null;
-        nombreEnEdicion = null;
-        dniEnEdicion = null;
+        idEnEdicion = null;
         fechaEnEdicion = null;
         document.getElementById('modalEditarOverlay').classList.remove('visible');
       }
@@ -713,8 +712,7 @@
 
         var datos = {
           fila: filaEnEdicion,
-          nombreEsperado: nombreEnEdicion,
-          dniEsperado: dniEnEdicion,
+          idPaciente: idEnEdicion,
           fechaOriginal: fechaEnEdicion,
           fecha: fecha,
           tipo: document.getElementById('editTipo').value,
@@ -760,10 +758,9 @@
         var confirmado = await mostrarConfirm('¿Eliminar esta valoración?');
         if (!confirmado) return;
 
-        // Foto completa de la valoración ANTES de borrarla (con el nombre del
-        // paciente, que el registro no trae por sí solo), para poder deshacer.
+        // Foto completa de la valoración ANTES de borrarla, para poder deshacer.
         var pEl = pacienteActual();
-        var snapshot = Object.assign({ nombre: pEl ? pEl.nombre : '', dni: pEl ? pEl.dni : '' }, registro);   // registro.nombre (el de esa fila) prevalece
+        var snapshot = Object.assign({ idPaciente: pEl ? pEl.idPaciente : '' }, registro);   // registro.idPaciente (el de esa fila) prevalece
         ocupado(1);
 
         google.script.run
@@ -774,7 +771,7 @@
             mostrarDeshacer(snapshot, 'Valoración eliminada.');
           })
           .withFailureHandler(function(err) { ocupado(-1); mostrarAviso('Error al eliminar: ' + err); })
-          .eliminarValoracionWeb(registro._fila, snapshot.nombre, registro.fecha || '', snapshot.dni);
+          .eliminarValoracionWeb(registro._fila, snapshot.idPaciente, registro.fecha || '');
       }
 
       <?!= include('ui/JS_Modal_Deshacer'); ?>
@@ -833,6 +830,7 @@
         el.innerHTML = '<div class="ficha-form-cab"><button type="button" data-form="volver" title="' + (nombre ? 'Volver a la ficha (Esc)' : 'Cerrar (Esc)') + '"><span class="material-symbols-outlined">' + (nombre ? 'arrow_back' : 'close') + '</span></button><div class="ficha-form-tit"></div></div><div class="ficha-form-cuerpo"></div>';
         el.querySelector('.ficha-form-tit').textContent = 'Nueva valoración' + (nombre ? ' · ' + nombre : '');
         controladorForm = PanelValoracion.abrir(el.querySelector('.ficha-form-cuerpo'), {
+          idPaciente: p ? p.idPaciente : '',
           paciente: nombre,
           dni: p && p.dni ? p.dni : '',
           telefono: p && p.telefono ? String(p.telefono) : '',

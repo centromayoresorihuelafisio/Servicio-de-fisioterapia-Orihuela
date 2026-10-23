@@ -104,12 +104,10 @@ function prepararContexto_(template, contexto) {
  *   https://script.google.com/macros/s/AAAA.../exec                → índice
  *   https://script.google.com/macros/s/AAAA.../exec?page=citas
  *   https://script.google.com/macros/s/AAAA.../exec?page=nuevoPaciente
- *   https://script.google.com/macros/s/AAAA.../exec?page=valoracion
  */
 const PAGINAS_WEB = {
   citas:         { archivo: 'agenda/Cita_Vista',              titulo: 'Agenda de Citas',   icono: '📅' },
   nuevoPaciente: { archivo: 'usuarios/Anadir_Usuario_Vista',    titulo: 'Nuevo Usuario',     icono: '🧍' },
-  valoracion:    { archivo: 'valoraciones/Guardar_Vista',                   titulo: 'Valoración',        icono: '📋' },
   baseDatos:     { archivo: 'usuarios/BaseDatos_Vista',                 titulo: 'Base de Datos',     icono: '🗂️' },
   agenda:        { archivo: 'agenda/Web_Vista',                    titulo: 'Agenda',            icono: '🗓️' },
   valoraciones:  { archivo: 'valoraciones/Web_Vista',              titulo: 'Valoraciones',      icono: '📈' }
@@ -146,9 +144,9 @@ function doGet(e) {
       .addMetaTag('viewport', 'width=device-width, initial-scale=1');
   }
 
-  // 'citas' y 'valoracion' aceptan un paciente ya elegido desde la tabla de
+  // 'citas' acepta un paciente ya elegido desde la tabla de
   // la Base de Datos (?paciente=NOMBRE), para no tener que volver a buscarlo.
-  if (page === 'citas' || page === 'valoracion') {
+  if (page === 'citas') {
     const template = HtmlService.createTemplateFromFile(config.archivo);
     template.pacientePreseleccionado = e.parameter.paciente || '';
     prepararContexto_(template, contexto);

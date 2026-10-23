@@ -789,10 +789,10 @@ window.PanelHC = {
     try {
       if (tipo === 'valoracion') {
         sub = window.PanelValoraciones.abrir(subHost, Object.assign(
-          { paciente: u.nombre, telefono: u.telefono || '', dni: u.dni || '',
+          { idPaciente: u.idPaciente || '', paciente: u.nombre, telefono: u.telefono || '', dni: u.dni || '',
             onGuardado: function (m) { guardado(m, 'Valoración guardada'); }, onCancelar: cancelar,
             onCambio: function () { if (activa()) subCambio = true; } },
-          window.ValoracionesCache ? window.ValoracionesCache.opcionesPanel(u.nombre, u.dni) : {}));   // valoraciones ya precargadas: se abre al instante
+          window.ValoracionesCache ? window.ValoracionesCache.opcionesPanel(u.idPaciente) : {}));   // valoraciones ya precargadas: se abre al instante
       } else if (tipo === 'cita') {
         sub = window.PanelCita.abrir(subHost, { paciente: u.nombre, onGuardado: function (m) { guardado(m, 'Cita registrada'); }, onCancelar: cancelar });
       } else {

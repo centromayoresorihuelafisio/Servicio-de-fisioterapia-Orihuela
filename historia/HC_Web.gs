@@ -168,20 +168,20 @@ function obtenerHCWeb(idHC, idPaciente) {
 }
 
 /**
- * Lee UNA vez la hoja Valoraciones y deja cada fila ya normalizada (nombre, DNI, escalas), para poder filtrarla
+ * Lee UNA vez la hoja Valoraciones y deja cada fila ya normalizada (ID paciente, escalas), para poder filtrarla
  * por usuario sin volver a leer la hoja. Lo usan la ficha individual y la carga masiva de HC activas.
  */
 function hcLeerFilasValoraciones_(ss, tz) {
   const hoja = ss.getSheetByName(SHEETS.VALORACIONES);
   if (!hoja || hoja.getLastRow() < 2) return [];
   const C = COLUMNAS_NUM.VALORACIONES;
-  const ncol = Math.min(hoja.getLastColumn(), C.DNI);
+  const ncol = Math.min(hoja.getLastColumn(), C.ID_PACIENTE);
   const filas = hoja.getRange(2, 1, hoja.getLastRow() - 1, ncol).getValues();
   const num = function (v) { if (v === '' || v === null || v === undefined) return null; const n = parseFloat(String(v).replace(',', '.')); return isNaN(n) ? null : n; };
   return filas.map(function (r) {
     const peg = [num(r[C.PEG_DOLOR - 1]), num(r[C.PEG_ACTIVIDAD - 1]), num(r[C.PEG_VIDA - 1])].filter(function (x) { return x !== null; });
     return {
-      nom: hcNorm_(r[C.NOMBRE - 1]), dni: String(r[C.DNI - 1] || '').replace(/[^0-9A-Za-z]/g, '').toUpperCase(),
+      id: String(r[C.ID_PACIENTE - 1] || '').trim(),
       fecha: hcAISO_(r[C.FECHA - 1], tz), tipo: String(r[C.TIPO - 1] || ''),
       dolor: peg.length ? Math.round(peg.reduce(function (a, b) { return a + b; }, 0) / peg.length * 10) / 10 : null,
       funcion: num(r[C.FUNCION_GLOBAL - 1]), analg: num(r[C.ANALGESICOS - 1])
@@ -189,21 +189,20 @@ function hcLeerFilasValoraciones_(ss, tz) {
   });
 }
 
-/** Valoraciones de un usuario a partir de las filas ya leídas, de la más antigua a la más reciente. Si la fila trae DNI y el usuario también, manda el DNI; si no, el nombre. */
+/** Valoraciones de un usuario a partir de las filas ya leídas, de la más antigua a la más reciente. Se enlazan por ID paciente (nunca por nombre ni DNI). */
 function hcValoracionesDeUsuario_(filas, usuario) {
-  const nom = hcNorm_(usuario.nombre), dni = String(usuario.dni || '').replace(/[^0-9A-Za-z]/g, '').toUpperCase();
+  const id = String(usuario.idPaciente || '').trim();
+  if (!id) return [];
   const out = [];
   filas.forEach(function (r) {
-    const coincide = (r.dni && dni) ? r.dni === dni : r.nom === nom;
-    if (coincide) out.push({ fecha: r.fecha, tipo: r.tipo, dolor: r.dolor, funcion: r.funcion, analg: r.analg });
+    if (r.id === id) out.push({ fecha: r.fecha, tipo: r.tipo, dolor: r.dolor, funcion: r.funcion, analg: r.analg });
   });
   out.sort(function (a, b) { return a.fecha < b.fecha ? -1 : a.fecha > b.fecha ? 1 : 0; });
   return out;
 }
 
 /**
- * Valoraciones del usuario, de la más antigua a la más reciente. Si la fila trae DNI (columna 14, desde
- * 05/10/2026) y el usuario también, manda el DNI; si no, el nombre normalizado.
+ * Valoraciones del usuario, de la más antigua a la más reciente, por su ID paciente (columna 15 de Valoraciones).
  */
 function hcLeerValoraciones_(ss, usuario, tz) {
   return hcValoracionesDeUsuario_(hcLeerFilasValoraciones_(ss, tz), usuario);

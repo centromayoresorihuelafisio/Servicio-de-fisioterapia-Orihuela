@@ -1020,8 +1020,8 @@
           // (evolución, historial, añadir / editar / eliminar). Lo decide valoraciones/Panel_Valoraciones.
           montar: function(cont, p, cb) {
             return PanelValoraciones.abrir(cont, Object.assign(
-              { paciente: p['Nombre'] || '', telefono: p['Teléfono 1'] || '', dni: p['DNI'] || '', onGuardado: cb.guardado, onCancelar: cb.cancelar },
-              ValoracionesCache.opcionesPanel(p['Nombre'], p['DNI'])   // valoraciones ya precargadas: el panel se abre al instante
+              { idPaciente: p['ID paciente'] || '', paciente: p['Nombre'] || '', telefono: p['Teléfono 1'] || '', dni: p['DNI'] || '', onGuardado: cb.guardado, onCancelar: cb.cancelar },
+              ValoracionesCache.opcionesPanel(p['ID paciente'])   // valoraciones ya precargadas: el panel se abre al instante
             ));
           }
         },
@@ -1295,14 +1295,14 @@
       var fichaTieneVal = null;   // si la ficha pintada por última vez mostraba el botón como «Valoraciones» (true), «Valoración» (false) o aún sin saber (null)
       function htmlFicha(p) {
         var tieneHC = esUrl(COL_HISTORIA ? p[COL_HISTORIA] : '');
-        fichaTieneVal = ValoracionesCache.tiene(p['Nombre'], p['DNI']);   // para repintar si cambia al terminar la precarga
+        fichaTieneVal = ValoracionesCache.tiene(p['ID paciente']);   // para repintar si cambia al terminar la precarga
         var esFichaWeb = tieneHC && /[?&]page=hc&id=/.test(p[COL_HISTORIA]);   // la HC ya vive en la ficha web: no hay Doc que actualizar
         var pie = esFichaWeb ? [] : tieneHC ? [{ id: 'fichahc', icono: 'article', texto: 'Ficha HC', titulo: 'Abrir la ficha de historia clínica en la app (versión de prueba)' }]
                           : [{ id: 'crearhc', icono: 'note_add', texto: 'Crear HC', titulo: 'Crear la historia clínica' }];
         pie = pie.concat([{ id: 'alta', icono: 'how_to_reg', texto: 'Alta', titulo: 'Dar de alta al usuario' }, { id: 'eliminar', icono: 'delete', texto: 'Eliminar', titulo: 'Eliminar al usuario', peligro: true }]);
         return FichaUsuario.html(p, HEADERS, {
           nombre: p['Nombre'],
-          acciones: ['whatsapp', { id: 'hc', texto: tieneHC ? 'Historia' : 'Crear HC', titulo: tieneHC ? 'Abrir la historia clínica' : 'Crear la historia clínica' }, 'editar', 'cita', ValoracionesCache.accion(p['Nombre'], p['DNI'])],   // «Valoración» (formulario) o «Valoraciones» (su panel)
+          acciones: ['whatsapp', { id: 'hc', texto: tieneHC ? 'Historia' : 'Crear HC', titulo: tieneHC ? 'Abrir la historia clínica' : 'Crear la historia clínica' }, 'editar', 'cita', ValoracionesCache.accion(p['ID paciente'])],   // «Valoración» (formulario) o «Valoraciones» (su panel)
           extraCabecera: prioridadNum(p) !== null ? '<span class="fu-extra" title="Puntuación de \'Ordenar Usuarios\'">Prioridad ' + esc(prioridadTxt(p)) + '</span>' : '',
           excluir: [COL_HISTORIA, colPrioridad()],
           pie: pie
@@ -1312,7 +1312,7 @@
       ValoracionesCache.alCambiar(function() {
         var p = pacienteSeleccionado;
         if (!p || !fichaAbierta || formularioActivo) return;
-        if (ValoracionesCache.tiene(p['Nombre'], p['DNI']) !== fichaTieneVal) renderFicha();
+        if (ValoracionesCache.tiene(p['ID paciente']) !== fichaTieneVal) renderFicha();
       });
 
       function renderFicha() {
