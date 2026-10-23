@@ -1,0 +1,197 @@
+<!-- dashboard/JS_Graficos.html — gráficos del dashboard en SVG propio (sin librerías). Se incluye con include() desde dashboard/Web_Vista. -->
+<style>
+  /* Colores: solo tokens --md-* (cambian solos con el tema claro/oscuro). Clases gr-s0..5 = series; gr-b0..5 = lo mismo para el fondo de HTML. */
+  .gr-svg { display: block; width: 100%; height: auto; overflow: visible; }
+  .gr-eje { stroke: var(--md-outline); stroke-width: 1; }
+  .gr-rejilla { stroke: var(--md-outline); stroke-width: 1; stroke-dasharray: 3 3; opacity: .75; }
+  .gr-txt { fill: var(--md-on-surface-med); font-size: 11px; font-family: var(--font); }
+  .gr-val { fill: var(--md-on-surface); font-size: 11px; font-weight: 500; font-family: var(--font); }
+  .gr-vacio { fill: var(--md-on-surface-low); font-size: 12px; font-family: var(--font); }
+  .gr-s0 { fill: var(--md-primary); }  .gr-s1 { fill: var(--md-success); }  .gr-s2 { fill: var(--md-warning); }
+  .gr-s3 { fill: var(--md-purple); }   .gr-s4 { fill: var(--md-error); }    .gr-s5 { fill: var(--md-on-surface-low); }
+  .gr-l0 { stroke: var(--md-primary); } .gr-l1 { stroke: var(--md-success); } .gr-l2 { stroke: var(--md-warning); }
+  .gr-l3 { stroke: var(--md-purple); }  .gr-l4 { stroke: var(--md-error); }   .gr-l5 { stroke: var(--md-on-surface-low); }
+  .gr-linea { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+  .gr-futuro { opacity: .35; }
+  .gr-leyenda { display: flex; flex-wrap: wrap; gap: .25rem .9rem; font-size: .76rem; color: var(--md-on-surface-med); margin-bottom: .4rem; }
+  .gr-chip { display: inline-flex; align-items: center; gap: .35rem; }
+  .gr-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .gr-b0 { background: var(--md-primary); }  .gr-b1 { background: var(--md-success); }  .gr-b2 { background: var(--md-warning); }
+  .gr-b3 { background: var(--md-purple); }   .gr-b4 { background: var(--md-error); }    .gr-b5 { background: var(--md-on-surface-low); }
+</style>
+<script>
+  /**
+   * window.Graficos — gráficos SVG sin dependencias.
+   *   Graficos.montar(contenedor, 'barras' | 'lineas' | 'barrasH', spec)   dibuja y se redibuja al cambiar el ancho de la ventana.
+   *   Graficos.leyenda(contenedor, [{nombre, clase}])                       leyenda en HTML (contenedor distinto del gráfico).
+   * spec de 'barras' y 'lineas': { etiquetas: [..], titulos?: [..], series: [{nombre, valores: [n|null..], clase?: 0-5}], formato?: fn(n),
+   *   max?: número (mínimo del eje), alto?: px, atenuar?: [bool..] (solo barras), vacio?: texto, anchoEtiqueta?: px }
+   * spec de 'barrasH': { items: [{etiqueta, valor, clase?}], formato?: fn(n), vacio?: texto }
+   * Todo el texto se inserta con textContent (los nombres de usuarios nunca se interpretan como HTML).
+   */
+  window.Graficos = (function () {
+    var NS = 'http://www.w3.org/2000/svg';
+    var registro = [];
+
+    function el(nombre, atributos, texto) {
+      var e = document.createElementNS(NS, nombre);
+      if (atributos) Object.keys(atributos).forEach(function (k) { e.setAttribute(k, atributos[k]); });
+      if (texto != null) e.textContent = texto;
+      return e;
+    }
+    function limpiar(c) { while (c.firstChild) c.removeChild(c.firstChild); }
+    function ancho(c) { return Math.max(240, Math.floor(c.clientWidth || 320)); }
+    function svg(cont, W, H) {
+      var s = el('svg', { viewBox: '0 0 ' + W + ' ' + H, 'class': 'gr-svg', role: 'img' });
+      s.setAttribute('width', W); s.setAttribute('height', H);
+      cont.appendChild(s);
+      return s;
+    }
+    function vacio(cont, W, texto) {
+      var s = svg(cont, W, 90);
+      s.appendChild(el('text', { x: W / 2, y: 48, 'text-anchor': 'middle', 'class': 'gr-vacio' }, texto || 'Sin datos en este periodo'));
+    }
+
+    /** Eje "bonito": paso 1, 2 o 5 (por una potencia de 10) con 5 marcas como máximo. */
+    function escala(max) {
+      if (!(max > 0)) max = 1;
+      var paso = Math.pow(10, Math.floor(Math.log(max / 4) / Math.LN10));
+      [1, 2, 5, 10].some(function (m) { if (max / (paso * m) <= 5 + 1e-9) { paso *= m; return true; } return false; });
+      return { paso: paso, max: Math.ceil(max / paso - 1e-9) * paso };
+    }
+    function marcas(esc) {
+      var out = [];
+      for (var i = 0; i * esc.paso <= esc.max + 1e-9; i++) out.push(Math.round(i * esc.paso * 1e6) / 1e6);
+      return out;
+    }
+
+    /** Marco común de barras y líneas: rejilla, eje Y y eje X. Devuelve la geometría o null si no hay nada que dibujar. */
+    function marco(cont, spec, W) {
+      var fmt = spec.formato || String, n = spec.etiquetas.length, maxV = spec.max || 0;
+      spec.series.forEach(function (s) { s.valores.forEach(function (v) { if (v != null && v > maxV) maxV = v; }); });
+      if (!n || !(maxV > 0)) { vacio(cont, W, spec.vacio); return null; }
+      var esc = escala(maxV), ticks = marcas(esc), H = spec.alto || 220;
+      var anchoY = 0;
+      ticks.forEach(function (t) { anchoY = Math.max(anchoY, String(fmt(t)).length); });
+      var m = { t: 16, r: 8, b: 30, l: 12 + anchoY * 6.4 };
+      var pw = W - m.l - m.r, ph = H - m.t - m.b;
+      var s = svg(cont, W, H);
+      if (spec.descripcion) s.setAttribute('aria-label', spec.descripcion);
+      var y = function (v) { return m.t + ph - v / esc.max * ph; };
+      ticks.forEach(function (t) {
+        s.appendChild(el('line', { x1: m.l, x2: W - m.r, y1: y(t), y2: y(t), 'class': t === 0 ? 'gr-eje' : 'gr-rejilla' }));
+        s.appendChild(el('text', { x: m.l - 6, y: y(t) + 4, 'text-anchor': 'end', 'class': 'gr-txt' }, fmt(t)));
+      });
+      var slot = pw / n, cada = Math.max(1, Math.ceil((spec.anchoEtiqueta || 42) / slot));
+      spec.etiquetas.forEach(function (e, i) {
+        if (i % cada === 0) s.appendChild(el('text', { x: m.l + slot * i + slot / 2, y: H - 10, 'text-anchor': 'middle', 'class': 'gr-txt' }, e));
+      });
+      return { s: s, m: m, pw: pw, ph: ph, slot: slot, y: y, esc: esc, fmt: fmt, n: n };
+    }
+    function titulo(spec, i, serie, v, fmt) {
+      return (spec.titulos && spec.titulos[i] != null ? spec.titulos[i] : spec.etiquetas[i]) + ' · ' + serie.nombre + ': ' + fmt(v);
+    }
+    function clase(serie, k) { return serie.clase != null ? serie.clase : k; }
+
+    function barras(cont, spec, W) {
+      var g = marco(cont, spec, W);
+      if (!g) return;
+      var ns = spec.series.length, gw = Math.min(g.slot * 0.8, ns * 30), bw = Math.max(gw / ns - (ns > 1 ? 2 : 0), 1);
+      for (var i = 0; i < g.n; i++) {
+        var grupo = el('g', { 'class': spec.atenuar && spec.atenuar[i] ? 'gr-futuro' : '' });
+        var gx = g.m.l + g.slot * i + (g.slot - gw) / 2;
+        spec.series.forEach(function (serie, k) {
+          var v = serie.valores[i];
+          if (v == null || !(v > 0)) return;
+          var x = gx + k * (gw / ns) + (ns > 1 ? 1 : 0), h = g.ph * v / g.esc.max;
+          var r = el('rect', { x: x, y: g.y(v), width: bw, height: h, rx: Math.min(3, bw / 2), 'class': 'gr-s' + clase(serie, k) });
+          r.appendChild(el('title', null, titulo(spec, i, serie, v, g.fmt)));
+          grupo.appendChild(r);
+          if (ns === 1 && g.slot >= 34) grupo.appendChild(el('text', { x: x + bw / 2, y: g.y(v) - 4, 'text-anchor': 'middle', 'class': 'gr-val' }, g.fmt(v)));
+        });
+        g.s.appendChild(grupo);
+      }
+    }
+
+    function lineas(cont, spec, W) {
+      var g = marco(cont, spec, W);
+      if (!g) return;
+      var r = g.n <= 30 ? 3 : 2;
+      spec.series.forEach(function (serie, k) {
+        var c = clase(serie, k), tramos = [], actual = null;
+        serie.valores.forEach(function (v, i) {
+          if (v == null) { actual = null; return; }
+          if (!actual) { actual = []; tramos.push(actual); }
+          actual.push([g.m.l + g.slot * i + g.slot / 2, g.y(v), i, v]);
+        });
+        tramos.forEach(function (p) {
+          if (p.length > 1) g.s.appendChild(el('path', { d: 'M' + p.map(function (q) { return q[0].toFixed(1) + ' ' + q[1].toFixed(1); }).join(' L'), 'class': 'gr-linea gr-l' + c }));
+        });
+        tramos.forEach(function (p) {
+          p.forEach(function (q) {
+            var punto = el('circle', { cx: q[0], cy: q[1], r: r, 'class': 'gr-s' + c });
+            punto.appendChild(el('title', null, titulo(spec, q[2], serie, q[3], g.fmt)));
+            g.s.appendChild(punto);
+          });
+        });
+      });
+    }
+
+    function barrasH(cont, spec, W) {
+      var items = spec.items || [], fmt = spec.formato || String, maxV = 0;
+      items.forEach(function (it) { if (it.valor > maxV) maxV = it.valor; });
+      if (!items.length || !(maxV > 0)) return vacio(cont, W, spec.vacio);
+      var fila = 28, H = items.length * fila + 6, etq = Math.min(150, Math.round(W * 0.38)), vw = 46;
+      var pw = Math.max(W - etq - vw - 8, 40), s = svg(cont, W, H);
+      if (spec.descripcion) s.setAttribute('aria-label', spec.descripcion);
+      var maxCar = Math.max(6, Math.floor(etq / 6.4));
+      items.forEach(function (it, i) {
+        var yy = 3 + i * fila, largo = it.etiqueta.length > maxCar ? it.etiqueta.slice(0, maxCar - 1) + '…' : it.etiqueta;
+        var t = el('text', { x: etq - 8, y: yy + 16, 'text-anchor': 'end', 'class': 'gr-txt' }, largo);
+        t.appendChild(el('title', null, it.etiqueta));
+        s.appendChild(t);
+        var w = it.valor > 0 ? Math.max(pw * it.valor / maxV, 2) : 0;
+        if (w) {
+          var rc = el('rect', { x: etq, y: yy + 4, width: w, height: fila - 10, rx: 3, 'class': 'gr-s' + (it.clase != null ? it.clase : 0) });
+          rc.appendChild(el('title', null, it.etiqueta + ': ' + fmt(it.valor)));
+          s.appendChild(rc);
+        }
+        s.appendChild(el('text', { x: etq + w + 6, y: yy + 16, 'class': 'gr-val' }, fmt(it.valor)));
+      });
+    }
+
+    var TIPOS = { barras: barras, lineas: lineas, barrasH: barrasH };
+    function dibujar(cont) {
+      var g = cont._gr;
+      limpiar(cont);
+      g.ancho = ancho(cont);
+      TIPOS[g.tipo](cont, g.spec, g.ancho);
+    }
+    function montar(cont, tipo, spec) {
+      cont._gr = { tipo: tipo, spec: spec, ancho: 0 };
+      if (registro.indexOf(cont) === -1) registro.push(cont);
+      dibujar(cont);
+    }
+    function leyenda(cont, series) {
+      limpiar(cont);
+      cont.className = 'gr-leyenda';
+      series.forEach(function (s, k) {
+        var chip = document.createElement('span'), punto = document.createElement('i');
+        chip.className = 'gr-chip'; punto.className = 'gr-dot gr-b' + (s.clase != null ? s.clase : k);
+        chip.appendChild(punto); chip.appendChild(document.createTextNode(s.nombre));
+        cont.appendChild(chip);
+      });
+    }
+
+    var temporizador = null;
+    window.addEventListener('resize', function () {
+      clearTimeout(temporizador);
+      temporizador = setTimeout(function () {
+        registro = registro.filter(function (c) { return document.body.contains(c); });
+        registro.forEach(function (c) { if (ancho(c) !== c._gr.ancho) dibujar(c); });
+      }, 150);
+    });
+
+    return { montar: montar, leyenda: leyenda, _escala: escala };
+  })();
+</script>

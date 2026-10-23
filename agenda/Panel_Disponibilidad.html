@@ -5,8 +5,11 @@
   API: PanelDisponibilidad.abrir(contenedor, { semana, hoy, obtener, aplicar, onAplicado, onCancelar })
     · semana        → lunes de la semana que se está viendo ("yyyy-MM-dd"); el rango empieza siendo esa semana (lunes a viernes)
     · hoy()         → "yyyy-MM-dd" de hoy (opcional)
-    · obtener(desde, hasta) → promesa con { success, cerrados: { "yyyy-MM-dd": ["08:00", ...] } }  (horas cerradas ahora)
-    · aplicar({ desde, hasta, dias: [1..5], cerrados: ["13:30", ...] }) → promesa con { success, mensaje | message, ... }
+    · obtener(desde, hasta) → promesa con { success, cerrados: { "yyyy-MM-dd": ["08:00", ...] } }  (horas cerradas ahora; además citas: { "yyyy-MM-dd": ["08:30", ...] } = horas que ya tienen cita, para avisar antes de aplicar)
+    · aplicar({ desde, hasta, horarios: [{ dias: [1..5], cerrados: ["13:30", ...] }, ...] }) → promesa con { success, mensaje | message, ... }
+        (un solo horario, o dos si «Viernes con horario distinto» está activado: uno para lunes–jueves y otro para el viernes)
+        diasCerrados (opcional): ["yyyy-MM-dd", ...] se cierran por completo (festivos, bajas). Si solo hay días cerrados y no se ha tocado
+        el horario ni el rango, se envía { horarios: [], diasCerrados } sin desde/hasta, y el resto de horarios no se toca.
     · onAplicado(res) → se llama cuando el servidor confirma; la página cierra el panel y recarga la semana
   Devuelve { haCambiado(), alEscape(), cerrar() }.
   Servidor: agenda/Disponibilidad.gs (obtenerDisponibilidadWeb, aplicarDisponibilidadWeb). Estilos acotados a .dsp y basados en los
@@ -38,6 +41,20 @@
 .dsp-hora:hover { filter: brightness(.97); }
 .dsp-hora[aria-pressed=false] { border: 1.5px dashed var(--md-outline); background: transparent; color: var(--md-on-surface-med); text-decoration: line-through; opacity: .8; }
 .dsp-todas { align-self: flex-start; }
+.dsp-anadir { display: flex; align-items: center; gap: .5rem; }
+.dsp-anadir input[type=date] { flex: 1; min-width: 0; }
+.dsp-chips { display: flex; flex-wrap: wrap; gap: .4rem; }
+.dsp-chips:empty { display: none; }
+.dsp-chip { display: inline-flex; align-items: center; gap: .15rem; padding: .15rem .3rem .15rem .75rem; border-radius: 999px; background: var(--md-surface-variant); color: var(--md-on-surface); font-size: .78rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+.dsp-chip button { border: none; background: transparent; color: var(--md-on-surface-med); font-size: 1.05rem; line-height: 1; padding: 0 .3rem; border-radius: 999px; cursor: pointer; }
+.dsp-chip button:hover { color: var(--md-error); }
+.dsp-check { display: flex; align-items: center; gap: .5rem; font-size: .85rem; font-weight: 600; cursor: pointer; }
+.dsp-check input { width: 18px; height: 18px; margin: 0; accent-color: var(--md-primary); cursor: pointer; }
+.dsp-tabs { display: flex; gap: .4rem; }
+.dsp-tabs[hidden] { display: none; }
+.dsp-tab { flex: 1; height: 36px; border-radius: 10px; border: 1.5px solid var(--md-outline); background: transparent; color: var(--md-on-surface-med); font-family: var(--font); font-size: .82rem; font-weight: 700; cursor: pointer; transition: all 150ms; }
+.dsp-tab:hover { background: var(--md-surface-variant); }
+.dsp-tab[aria-pressed=true] { background: var(--md-primary-light); border-color: var(--md-primary); color: var(--md-primary-dark); }
 .dsp-resumen { margin: 0; font-size: .82rem; line-height: 1.5; color: var(--md-on-surface-med); }
 .dsp-resumen b { color: var(--md-on-surface); }
 .dsp-resumen .aviso { display: block; margin-top: .3rem; color: var(--md-on-surface); }
@@ -76,6 +93,12 @@ window.PanelDisponibilidad = (function () {
     }
     return out;
   }
+  function diaDe(iso) { var p = partes(iso); return new Date(p[0], p[1] - 1, p[2]).getDay(); }
+  function esLJ(iso) { var d = diaDe(iso); return d >= 1 && d <= 4; }
+  function esV(iso) { return diaDe(iso) === 5; }
+  function copia(o) { var r = {}; for (var k in o) if (o[k]) r[k] = true; return r; }
+  function lista(c) { return TODAS.filter(function (h) { return c[h]; }); }
+  function etiqueta(iso) { return ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'][diaDe(iso)] + ' ' + corta(iso); }
   function esc(t) { return String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
 
   return {
@@ -85,7 +108,12 @@ window.PanelDisponibilidad = (function () {
       var lunes = lunesDe(opts.semana && esISO(opts.semana) ? opts.semana : hoy);
       var desde = lunes, hasta = sumar(lunes, 4);
       var dias = { 1: true, 2: true, 3: true, 4: true, 5: true };
-      var cerradas = {};          // hora → true si está cerrada
+      var cerradas = { LJ: {}, V: {} };   // por grupo (LJ = lunes a jueves, V = viernes): hora → true si está cerrada
+      var partido = false;                // true = el viernes tiene un horario distinto al de lunes a jueves
+      var diasCerrados = [];             // fechas "yyyy-MM-dd" que se cierran por completo al aplicar
+      var citasRango = {}, citasDia = {}; // fecha → horas con cita (las del rango leído, y las de cada día cerrado añadido)
+      var rangoTocado = false;            // el usuario ha cambiado fechas o días de la semana
+      var grupo = 'LJ';                   // horario que se está editando ahora (siempre 'LJ' si no hay partido)
       var editado = false, guardando = false, cargando = false, mixto = false, token = 0, temporizador = null;
 
       host.innerHTML =
@@ -103,9 +131,19 @@ window.PanelDisponibilidad = (function () {
             '</section>' +
             '<section class="dsp-sec"><h3>Horas disponibles</h3>' +
               '<p class="dsp-ayuda">Las horas marcadas están disponibles. Quita la marca de las que no se pueden dar (fuera del horario, vacaciones, imprevistos…). Las citas ya puestas no se tocan.</p>' +
+              '<label class="dsp-check"><input type="checkbox" class="dsp-partido"><span>Viernes con horario distinto</span></label>' +
+              '<div class="dsp-tabs" role="group" aria-label="Horario que estás editando" hidden>' +
+                '<button type="button" class="dsp-tab" data-tab="LJ" aria-pressed="true">Lunes a jueves</button>' +
+                '<button type="button" class="dsp-tab" data-tab="V" aria-pressed="false">Viernes</button>' +
+              '</div>' +
               '<div><div class="dsp-bloque-cab"><span>Mañana</span><button type="button" class="dsp-link" data-bloque="manana"></button></div><div class="dsp-horas" data-grupo="manana"></div></div>' +
               '<div><div class="dsp-bloque-cab"><span>Tarde</span><button type="button" class="dsp-link" data-bloque="tarde"></button></div><div class="dsp-horas" data-grupo="tarde"></div></div>' +
               '<button type="button" class="dsp-link dsp-todas" data-accion="abrir-todas">Abrir todas</button>' +
+            '</section>' +
+            '<section class="dsp-sec"><h3>Días cerrados</h3>' +
+              '<p class="dsp-ayuda">Festivos, bajas o cualquier día sin consulta: se cierra el día completo, aunque esté fuera del rango de arriba. Mientras no toques el horario ni el rango, solo se cierran estos días y el resto no cambia.</p>' +
+              '<div class="dsp-anadir"><input type="date" class="dsp-cerrado-fecha" aria-label="Día que se cierra"><button type="button" class="dsp-btn" data-accion="anadir-cerrado">Añadir</button></div>' +
+              '<div class="dsp-chips"></div>' +
             '</section>' +
             '<p class="dsp-resumen" aria-live="polite"></p>' +
             '<p class="dsp-msg" role="alert"></p>' +
@@ -119,34 +157,58 @@ window.PanelDisponibilidad = (function () {
 
       function fechas() { return fechasDelRango(desde, hasta, dias); }
       function valido() { var f = fechas(); return f.length > 0 && f.length <= MAX_DIAS; }
+      function tocado() { return editado || rangoTocado; }
+      function soloDias() { return diasCerrados.length > 0 && !tocado(); }   // modo «solo cerrar días»: no se toca ningún horario
       function mostrarMsg(t) { msg.textContent = t || ''; msg.classList.toggle('visible', !!t); }
 
       function pintarHoras() {
+        var c = cerradas[grupo];
+        q('.dsp-partido').checked = partido;
+        q('.dsp-tabs').hidden = !partido;
+        Array.prototype.forEach.call(raiz.querySelectorAll('.dsp-tab'), function (b) { b.setAttribute('aria-pressed', b.getAttribute('data-tab') === grupo ? 'true' : 'false'); });
         [['manana', MANANA], ['tarde', TARDE]].forEach(function (g) {
           q('[data-grupo="' + g[0] + '"]').innerHTML = g[1].map(function (h) {
-            return '<button type="button" class="dsp-hora" data-h="' + h + '" aria-pressed="' + (cerradas[h] ? 'false' : 'true') + '">' + h + '</button>';
+            return '<button type="button" class="dsp-hora" data-h="' + h + '" aria-pressed="' + (c[h] ? 'false' : 'true') + '">' + h + '</button>';
           }).join('');
-          var todasCerradas = g[1].every(function (h) { return cerradas[h]; });
+          var todasCerradas = g[1].every(function (h) { return c[h]; });
           q('[data-bloque="' + g[0] + '"]').textContent = (todasCerradas ? 'Abrir ' : 'Cerrar ') + g[0].replace('manana', 'mañana');
         });
       }
 
+      // Citas ya puestas que caerán en horas cerradas (se mantienen, pero conviene saberlo antes de aplicar).
+      function citasAfectadas() {
+        var n = 0, propias = {};
+        function horas(x) { return citasDia[x] || citasRango[x] || []; }
+        diasCerrados.forEach(function (x) { propias[x] = true; n += horas(x).length; });
+        if (!soloDias() && valido()) fechas().forEach(function (x) {
+          if (propias[x]) return;
+          var c = partido ? (esV(x) ? cerradas.V : cerradas.LJ) : cerradas.LJ;
+          horas(x).forEach(function (h) { if (c[h]) n++; });
+        });
+        return n;
+      }
+      function avisoCitas() { var n = citasAfectadas(); return n ? '<span class="aviso">Hay <b>' + n + ' cita' + (n === 1 ? '' : 's') + '</b> en horas que se cerrarán: se mantienen.</span>' : ''; }
+      function avisoDias() { return diasCerrados.length ? '<span class="aviso">Además se cerrará el día completo: <b>' + esc(diasCerrados.map(etiqueta).join(', ')) + '</b>.</span>' : ''; }
+
       function pintarResumen() {
-        var f = fechas();
-        if (cargando) { resumen.textContent = 'Leyendo el horario actual…'; }
+        var f = fechas(), solo = soloDias();
+        if (solo) { resumen.innerHTML = 'Se cerrará el día completo en <b>' + diasCerrados.length + ' día' + (diasCerrados.length === 1 ? '' : 's') + '</b>: ' + esc(diasCerrados.map(etiqueta).join(', ')) + '. El resto de horarios no se toca.' + avisoCitas(); }
+        else if (cargando) { resumen.textContent = 'Leyendo el horario actual…'; }
         else if (!esISO(desde) || !esISO(hasta)) { resumen.textContent = 'Indica las fechas «Desde» y «Hasta».'; }
         else if (desde > hasta) { resumen.textContent = 'Revisa el rango: «Desde» no puede ser posterior a «Hasta».'; }
         else if (!Object.keys(dias).some(function (k) { return dias[k]; })) { resumen.textContent = 'Elige al menos un día de la semana.'; }
         else if (!f.length) { resumen.textContent = 'Ese rango no incluye ninguno de los días elegidos.'; }
         else if (f.length > MAX_DIAS) { resumen.textContent = 'El rango es demasiado largo (máximo ' + MAX_DIAS + ' días a la vez).'; }
         else {
-          var c = TODAS.filter(function (h) { return cerradas[h]; }).length;
+          var txt = function (cc) { var n = lista(cc).length; return n === 0 ? '<b>Todas las horas abiertas.</b>' : '<b>' + n + ' hora' + (n === 1 ? '' : 's') + ' cerrada' + (n === 1 ? '' : 's') + '</b> de ' + TODAS.length + '.'; };
+          var estado = partido
+            ? (f.some(esLJ) ? ' Lunes a jueves: ' + txt(cerradas.LJ) : '') + (f.some(esV) ? ' Viernes: ' + txt(cerradas.V) : '')
+            : ' ' + txt(cerradas.LJ);
           var letras = DIAS.filter(function (d) { return dias[d[0]]; }).map(function (d) { return d[1]; }).join(' ');
-          resumen.innerHTML = 'Se aplicará a <b>' + f.length + ' día' + (f.length === 1 ? '' : 's') + '</b> (' + esc(letras) + ', del ' + corta(desde) + ' al ' + corta(hasta) + '). ' +
-            (c === 0 ? '<b>Todas las horas abiertas.</b>' : '<b>' + c + ' hora' + (c === 1 ? '' : 's') + ' cerrada' + (c === 1 ? '' : 's') + '</b> de ' + TODAS.length + '.') +
-            (mixto ? '<span class="aviso">Algunos de esos días tienen ahora un horario distinto: se sustituirá por este.</span>' : '');
+          resumen.innerHTML = 'Se aplicará a <b>' + f.length + ' día' + (f.length === 1 ? '' : 's') + '</b> (' + esc(letras) + ', del ' + corta(desde) + ' al ' + corta(hasta) + ').' + estado +
+            (mixto ? '<span class="aviso">Algunos de esos días tienen ahora un horario distinto: se sustituirá por este.</span>' : '') + avisoDias() + avisoCitas();
         }
-        btnAplicar.disabled = guardando || cargando || !valido();
+        btnAplicar.disabled = guardando || (cargando && !solo) || !(solo || valido());
         btnAplicar.textContent = guardando ? 'Guardando…' : 'Aplicar';
         btnCancelar.disabled = guardando;
       }
@@ -159,17 +221,29 @@ window.PanelDisponibilidad = (function () {
       function programarCarga() { clearTimeout(temporizador); temporizador = setTimeout(cargarEstado, 250); }
       function cargarEstado() {
         var f = fechas();
-        if (!f.length || f.length > MAX_DIAS || !opts.obtener) { mixto = false; cargando = false; pintarResumen(); return; }
+        if (!f.length || f.length > MAX_DIAS || !opts.obtener) { citasRango = {}; mixto = false; cargando = false; pintarResumen(); return; }
         var mio = ++token; cargando = true; pintarResumen();
         Promise.resolve(opts.obtener(desde, hasta)).then(function (res) {
           if (mio !== token || !host.isConnected) return;
           cargando = false;
           if (!res || res.success === false) { mostrarMsg((res && res.message) || 'No se pudo leer la disponibilidad actual.'); pintarResumen(); return; }
           mostrarMsg('');
+          citasRango = res.citas || {};
           var por = res.cerrados || {};
-          var claves = f.map(function (x) { return (por[x] || []).slice().sort().join(','); });
-          mixto = claves.some(function (k) { return k !== claves[0]; });
-          if (!editado) { cerradas = {}; (por[f[0]] || []).forEach(function (h) { cerradas[h] = true; }); pintarHoras(); }
+          var clave = function (x) { return (por[x] || []).slice().sort().join(','); };
+          var iguales = function (k) { return k.every(function (x) { return x === k[0]; }); };
+          var fLJ = f.filter(esLJ), fV = f.filter(esV), kLJ = fLJ.map(clave), kV = fV.map(clave);
+          var okLJ = iguales(kLJ), okV = iguales(kV);
+          if (!editado) {
+            // si lunes–jueves y viernes tienen hoy horarios distintos (cada grupo coherente), se abre ya con «Viernes distinto»
+            partido = !!(fLJ.length && fV.length && okLJ && okV && kLJ[0] !== kV[0]);
+            grupo = 'LJ';
+            var leer = function (x) { var o = {}; (por[x] || []).forEach(function (h) { o[h] = true; }); return o; };
+            if (partido) { cerradas.LJ = leer(fLJ[0]); cerradas.V = leer(fV[0]); }
+            else { cerradas.LJ = leer(f[0]); cerradas.V = copia(cerradas.LJ); }
+            pintarHoras();
+          }
+          mixto = partido ? !(okLJ && okV) : !iguales(f.map(clave));
           pintarResumen();
         }, function () {
           if (mio !== token || !host.isConnected) return;
@@ -177,44 +251,78 @@ window.PanelDisponibilidad = (function () {
         });
       }
 
-      function cambiarRango() { mostrarMsg(''); pintarResumen(); programarCarga(); }
+      function cambiarRango() { rangoTocado = true; mostrarMsg(''); pintarResumen(); programarCarga(); }
+
+      function pintarCerrados() {
+        q('.dsp-chips').innerHTML = diasCerrados.map(function (x) {
+          return '<span class="dsp-chip">' + esc(etiqueta(x)) + '<button type="button" data-quitar="' + x + '" aria-label="Quitar ' + esc(etiqueta(x)) + '">×</button></span>';
+        }).join('');
+      }
+      function anadirCerrado() {
+        var inp = q('.dsp-cerrado-fecha'), iso = inp.value;
+        if (!esISO(iso)) { mostrarMsg('Elige la fecha del día que quieres cerrar.'); return; }
+        var d = diaDe(iso);
+        if (d < 1 || d > 5) { mostrarMsg('Solo se pueden cerrar días de lunes a viernes.'); return; }
+        if (diasCerrados.indexOf(iso) === -1) {
+          diasCerrados.push(iso); diasCerrados.sort();
+          // las citas de ese día pueden quedar fuera del rango leído: se piden aparte para poder avisar
+          if (opts.obtener) Promise.resolve(opts.obtener(iso, iso)).then(function (res) { if (res && res.citas && host.isConnected) { citasDia[iso] = res.citas[iso] || []; pintarResumen(); } }, function () {});
+        }
+        inp.value = ''; mostrarMsg(''); pintarCerrados(); pintarResumen();
+      }
+      function quitarCerrado(iso) { diasCerrados = diasCerrados.filter(function (x) { return x !== iso; }); mostrarMsg(''); pintarCerrados(); pintarResumen(); }
 
       raiz.addEventListener('click', function (e) {
         var b = e.target.closest('button'); if (!b || guardando) return;
-        if (b.hasAttribute('data-h')) { var h = b.getAttribute('data-h'); if (cerradas[h]) delete cerradas[h]; else cerradas[h] = true; editado = true; pintarHoras(); mostrarMsg(''); pintarResumen(); return; }
+        if (b.hasAttribute('data-quitar')) { quitarCerrado(b.getAttribute('data-quitar')); return; }
+        if (b.getAttribute('data-accion') === 'anadir-cerrado') { anadirCerrado(); return; }
+        if (b.hasAttribute('data-tab')) { grupo = b.getAttribute('data-tab'); pintarHoras(); return; }
+        if (b.hasAttribute('data-h')) { var h = b.getAttribute('data-h'), c = cerradas[grupo]; if (c[h]) delete c[h]; else c[h] = true; editado = true; pintarHoras(); mostrarMsg(''); pintarResumen(); return; }
         if (b.hasAttribute('data-dia')) { var d = b.getAttribute('data-dia'); dias[d] = !dias[d]; pintarDias(); cambiarRango(); return; }
         if (b.hasAttribute('data-bloque')) {
           var lista = b.getAttribute('data-bloque') === 'manana' ? MANANA : TARDE;
-          var cerrar = !lista.every(function (x) { return cerradas[x]; });
-          lista.forEach(function (x) { if (cerrar) cerradas[x] = true; else delete cerradas[x]; });
+          var cb = cerradas[grupo];
+          var cerrar = !lista.every(function (x) { return cb[x]; });
+          lista.forEach(function (x) { if (cerrar) cb[x] = true; else delete cb[x]; });
           editado = true; pintarHoras(); mostrarMsg(''); pintarResumen(); return;
         }
-        if (b.getAttribute('data-accion') === 'abrir-todas') { cerradas = {}; editado = true; pintarHoras(); mostrarMsg(''); pintarResumen(); return; }
+        if (b.getAttribute('data-accion') === 'abrir-todas') { cerradas[grupo] = {}; editado = true; pintarHoras(); mostrarMsg(''); pintarResumen(); return; }
         if (b.hasAttribute('data-rap')) {
           if (b.getAttribute('data-rap') === 'semana') { desde = lunesDe(hoy); hasta = sumar(desde, 4); }
           else { var p = partes(hoy); desde = aISO(new Date(p[0], p[1] - 1, 1)); hasta = aISO(new Date(p[0], p[1], 0)); }
           pintarFechas(); cambiarRango(); return;
         }
       });
+      q('.dsp-partido').addEventListener('change', function (e) {
+        if (guardando) { e.target.checked = partido; return; }
+        partido = e.target.checked;
+        if (partido) cerradas.V = copia(cerradas.LJ); else grupo = 'LJ';   // al activarlo, el viernes parte del mismo horario; al quitarlo, todos los días usan el de lunes–jueves
+        editado = true; pintarHoras(); mostrarMsg(''); pintarResumen();
+      });
+      q('.dsp-cerrado-fecha').addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); if (!guardando) anadirCerrado(); } });
       iDesde.addEventListener('change', function () { desde = iDesde.value; if (esISO(desde) && esISO(hasta) && hasta < desde) { hasta = desde; pintarFechas(); } cambiarRango(); });
       iHasta.addEventListener('change', function () { hasta = iHasta.value; cambiarRango(); });
 
       btnCancelar.addEventListener('click', function () { if (opts.onCancelar) opts.onCancelar(); });
       btnAplicar.addEventListener('click', function () {
-        if (guardando || !valido()) return;
+        if (guardando || !(soloDias() || valido())) return;
         guardando = true; mostrarMsg(''); pintarResumen();
-        var datos = { desde: desde, hasta: hasta, dias: DIAS.map(function (d) { return d[0]; }).filter(function (d) { return dias[d]; }), cerrados: TODAS.filter(function (h) { return cerradas[h]; }) };
+        var sel = DIAS.map(function (d) { return d[0]; }).filter(function (d) { return dias[d]; });
+        var horarios = partido
+          ? [{ dias: sel.filter(function (d) { return d <= 4; }), cerrados: lista(cerradas.LJ) }, { dias: sel.filter(function (d) { return d === 5; }), cerrados: lista(cerradas.V) }].filter(function (g) { return g.dias.length; })
+          : [{ dias: sel, cerrados: lista(cerradas.LJ) }];
+        var datos = soloDias() ? { horarios: [], diasCerrados: diasCerrados.slice() } : { desde: desde, hasta: hasta, horarios: horarios, diasCerrados: diasCerrados.slice() };
         Promise.resolve(opts.aplicar(datos)).then(function (res) {
           guardando = false;
-          if (res && res.success) { editado = false; pintarResumen(); if (opts.onAplicado) opts.onAplicado(res); }
+          if (res && res.success) { editado = false; rangoTocado = false; diasCerrados = []; pintarCerrados(); pintarResumen(); if (opts.onAplicado) opts.onAplicado(res); }
           else { pintarResumen(); mostrarMsg((res && (res.message || res.mensaje)) || 'No se pudo guardar.'); }
         }, function (err) { guardando = false; pintarResumen(); mostrarMsg('Error al guardar: ' + ((err && err.message) || err)); });
       });
 
-      pintarFechas(); pintarDias(); pintarHoras(); pintarResumen(); cargarEstado();
+      pintarFechas(); pintarDias(); pintarHoras(); pintarCerrados(); pintarResumen(); cargarEstado();
 
       return {
-        haCambiado: function () { return editado && !guardando; },   // horas tocadas y aún sin aplicar
+        haCambiado: function () { return (editado || diasCerrados.length > 0) && !guardando; },   // horas tocadas y aún sin aplicar
         alEscape: function () { return false; },                     // el Esc lo gestiona la página (cierra, preguntando si hay cambios)
         cerrar: function () { token++; clearTimeout(temporizador); }
       };
