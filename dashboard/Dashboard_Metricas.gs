@@ -20,6 +20,7 @@
 
 const DASH_MAX_DIAS_ = 400;          // periodo máximo que acepta obtenerDashboardCitasWeb
 const DASH_UMBRAL_REINCIDENTE_ = 2;
+const DASH_UMBRAL_ABANDONO_ = 3;    // decisión del dueño (26-oct-2026): «abandono» = más de 2 citas «No asistido» (3 o más) en el periodo
 const DASH_DIAS_ = { 1: 'Lunes', 2: 'Martes', 3: 'Miércoles', 4: 'Jueves', 5: 'Viernes' };
 
 // Categorías de asistencia: la ASISTENCIA_CITA de core/Config.gs. Se resuelve al llamar (no al cargar el archivo, porque el orden de
@@ -105,7 +106,7 @@ function dashOcupacion_(citas, cfg) {
  * Cálculo de D1: ocupación, faltas y reincidentes. Las citas ya vienen filtradas (periodo, usuarios, con ID paciente).
  * @param {{citas:Array<{fecha:string,hora:string,idPaciente:string,asistencia:string}>, desde:string, hasta:string, hoy:string,
  *   umbral?:number, festivos:Object, horasDelDia:function(string):string[], esCerrada:function(string,string):boolean}} e
- * @return {{ocupacion:Object, faltas:Object, reincidentes:Object}}
+ * @return {{ocupacion:Object, faltas:Object, atendidos:Object, abandonos:Object, reincidentes:Object}}
  */
 function dashCalcularCitas_(e) {
   const A = dashAsistencia_();
@@ -116,7 +117,9 @@ function dashCalcularCitas_(e) {
 
   const cont = { asistido: 0, noAsistido: 0, justificada: 0, pendiente: 0, sinRegistrar: 0 };
   const porUsuario = Object.create(null);
+  const atendidos = Object.create(null);     // usuarios con al menos una cita «Asistido»
   enPeriodo.forEach(c => {
+    if (c.asistencia === A.ASISTIDO) atendidos[c.idPaciente] = true;
     const u = porUsuario[c.idPaciente] || (porUsuario[c.idPaciente] = { registradas: 0, noAsistidas: 0 });
     if (c.asistencia === A.ASISTIDO) { cont.asistido++; u.registradas++; }
     else if (c.asistencia === A.NO_ASISTIDO) { cont.noAsistido++; u.registradas++; u.noAsistidas++; }
@@ -131,10 +134,14 @@ function dashCalcularCitas_(e) {
     .map(id => ({ idPaciente: id, nombre: '', noAsistidas: porUsuario[id].noAsistidas, registradas: porUsuario[id].registradas }))
     .sort((a, b) => b.noAsistidas - a.noAsistidas || b.registradas - a.registradas || (a.idPaciente < b.idPaciente ? -1 : 1));
   const usuariosConRegistro = Object.keys(porUsuario).filter(id => porUsuario[id].registradas > 0).length;
+  const nAtendidos = Object.keys(atendidos).length;
+  const nAbandonos = Object.keys(porUsuario).filter(id => porUsuario[id].noAsistidas >= DASH_UMBRAL_ABANDONO_).length;
 
   return {
     ocupacion: ocupacion,
     faltas: Object.assign({ n: registradas, porcentaje: dashPct_(cont.noAsistido, registradas) }, cont),
+    atendidos: { usuarios: nAtendidos, sesiones: cont.asistido, media: nAtendidos ? Math.round(cont.asistido / nAtendidos * 10) / 10 : null },
+    abandonos: { umbral: DASH_UMBRAL_ABANDONO_, total: nAbandonos, usuariosConRegistro: usuariosConRegistro },
     reincidentes: { umbral: umbral, total: lista.length, usuariosConRegistro: usuariosConRegistro, pct: dashPct_(lista.length, usuariosConRegistro), lista: lista.slice(0, 20) }
   };
 }
@@ -309,8 +316,12 @@ function dashResumenEvolucion_(pares, mejoraSube) {
   const media = arr => arr.length ? Math.round(arr.reduce((s, x) => s + x, 0) / arr.length * 10) / 10 : null;
   let mejoran = 0, igual = 0, empeoran = 0;
   cambios.forEach(c => { if (c === 0) igual++; else if ((c > 0) === mejoraSube) mejoran++; else empeoran++; });
+  // % de mejora de la media: (última − primera) ÷ primera si mejorar es subir (función); (primera − última) ÷ primera si es bajar (dolor, analgésicos).
+  // Se calcula con las medias sin redondear; null si no hay casos o la media de la primera es 0.
+  const sP = pares.reduce((t, p) => t + p[0], 0), sU = pares.reduce((t, p) => t + p[1], 0);
+  const pctMejoraMedia = sP > 0 ? Math.round((mejoraSube ? sU - sP : sP - sU) / sP * 1000) / 10 : null;
   return {
-    n: pares.length, primera: media(pares.map(p => p[0])), ultima: media(pares.map(p => p[1])), cambio: dashResumen_(cambios),
+    n: pares.length, primera: media(pares.map(p => p[0])), ultima: media(pares.map(p => p[1])), cambio: dashResumen_(cambios), pctMejoraMedia: pctMejoraMedia,
     mejoran: mejoran, igual: igual, empeoran: empeoran
   };
 }

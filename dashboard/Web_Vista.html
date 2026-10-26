@@ -91,6 +91,32 @@
       .seccion-sub { font-size: .75rem; color: var(--md-on-surface-med); margin: 0 .15rem .6rem; }
       .pie { font-size: .72rem; color: var(--md-on-surface-low); margin: .9rem .25rem .25rem; }
 
+      .kpi-link { margin-top: .35rem; align-self: flex-start; background: none; border: 0; padding: 0; color: var(--md-primary); font-size: .72rem; font-weight: 500; cursor: pointer; }
+      .kpi-link:hover { text-decoration: underline; }
+      .kpi-link:focus-visible, .menu button:focus-visible, .btn-png:focus-visible, details.avanzado summary:focus-visible { outline: 2px solid var(--md-primary); outline-offset: 2px; }
+      .seccion.primero { margin-top: .2rem; }
+      .manual { margin-top: .2rem; }
+      details.avanzado { background: var(--md-surface); border: 1px solid var(--md-outline); border-radius: 12px; margin-bottom: .6rem; }
+      details.avanzado > summary { list-style: none; cursor: pointer; padding: .7rem 1rem; font-size: .88rem; font-weight: 600; display: flex; align-items: center; gap: .5rem; border-radius: 12px; }
+      details.avanzado > summary::-webkit-details-marker { display: none; }
+      details.avanzado > summary:hover { background: var(--md-surface-variant); }
+      details.avanzado > summary .chev { font-size: 20px; color: var(--md-on-surface-med); transition: transform var(--transition); }
+      details.avanzado[open] > summary .chev { transform: rotate(180deg); }
+      details.avanzado > summary small { font-weight: 400; font-size: .74rem; color: var(--md-on-surface-med); }
+      details.avanzado > .cuerpo { padding: 0 .75rem .75rem; }
+      details.avanzado .tarjeta { background: var(--md-bg); }
+      details.avanzado .kpi { background: var(--md-bg); }
+      .btn-png { margin-left: auto; background: none; border: 0; border-radius: 50%; width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; color: var(--md-on-surface-med); cursor: pointer; }
+      .btn-png:hover { background: var(--md-surface-variant); color: var(--md-primary); }
+      .btn-png .material-symbols-outlined { font-size: 18px; }
+      .menu-exportar { position: relative; }
+      .menu { position: absolute; top: calc(100% + 4px); right: 0; z-index: 20; min-width: 270px; background: var(--md-surface); border: 1px solid var(--md-outline); border-radius: 12px; box-shadow: 0 4px 16px rgba(32,33,36,.18); padding: .3rem; display: flex; flex-direction: column; }
+      .menu button { display: flex; align-items: center; gap: .55rem; text-align: left; background: none; border: 0; border-radius: 8px; padding: .5rem .7rem; font-size: .82rem; color: var(--md-on-surface); cursor: pointer; }
+      .menu button:hover { background: var(--md-surface-variant); }
+      .menu button:disabled { opacity: .5; cursor: progress; }
+      .menu .material-symbols-outlined { font-size: 19px; color: var(--md-primary); }
+      .menu small { display: block; font-size: .7rem; color: var(--md-on-surface-med); }
+
       @media (max-width: 720px) {
         html, body { height: auto; }
         body { display: block; }
@@ -137,6 +163,13 @@
         <span class="separador-toolbar"></span>
         <button type="button" class="btn-toolbar primario" id="btnActualizar" title="Volver a leer las hojas (los datos se guardan 10 minutos)"><span class="material-symbols-outlined">refresh</span> Actualizar</button>
         <span class="contador" id="textoActualizado"></span>
+        <div class="menu-exportar">
+          <button type="button" class="btn-toolbar" id="btnExportar" aria-haspopup="true" aria-expanded="false" title="Exportar los resultados y las gráficas"><span class="material-symbols-outlined">download</span> Exportar</button>
+          <div class="menu" id="menuExportar" role="menu" hidden>
+            <button type="button" role="menuitem" id="expDatos"><span class="material-symbols-outlined">table_view</span><span>Resultados en Excel (.xlsx)<small>Un libro con una hoja por bloque</small></span></button>
+            <button type="button" role="menuitem" id="expGraficas"><span class="material-symbols-outlined">imagesmode</span><span>Todas las gráficas (ZIP de PNG)<small>Fondo blanco, listas para Word</small></span></button>
+          </div>
+        </div>
         <button type="button" class="btn-toolbar btn-nav" id="btnTema" title="Cambiar tema"></button>
       </div>
     </header>
@@ -147,9 +180,21 @@
     </div>
 
     <main id="principal">
-      <section class="kpis" id="kpis" aria-label="Resumen"></section>
+      <h2 class="seccion primero">Participación y asistencia</h2>
+      <section class="kpis" id="kpisPart" aria-label="Participación y asistencia"></section>
+      <h2 class="seccion">Evaluación clínica</h2>
+      <section class="kpis" id="kpisEval" aria-label="Evaluación clínica"></section>
+      <p class="pie manual">Usuarios grupales atendidos, derivación al taller de gerontogimnasia y grado de satisfacción no están en la hoja: se rellenan a mano.</p>
 
-      <section class="rejilla">
+      <h2 class="seccion">Más detalle</h2>
+      <p class="seccion-sub">Despliega lo que necesites. Cada gráfica se puede descargar con el icono de su esquina, y todo el conjunto desde «Exportar».</p>
+      <details class="avanzado" id="detKpis">
+        <summary><span class="material-symbols-outlined chev">expand_more</span> Más indicadores <small>ocupación, faltas, reincidentes, esperas, duración y sesiones</small></summary>
+        <div class="cuerpo"><section class="kpis" id="kpis" aria-label="Más indicadores"></section></div>
+      </details>
+      <details class="avanzado" id="detAgenda">
+        <summary><span class="material-symbols-outlined chev">expand_more</span> Ocupación y asistencia de la agenda <small>por semana, día y franja; asistencia; reincidentes</small></summary>
+        <div class="cuerpo"><section class="rejilla">
         <article class="tarjeta ancha">
           <header><h2>Ocupación por semana</h2></header>
           <div id="leySemana"></div><div id="gSemana"></div>
@@ -185,6 +230,11 @@
           </div>
           <p class="nota" id="nReinc"></p>
         </article>
+        </section></div>
+      </details>
+      <details class="avanzado" id="detPacientes">
+        <summary><span class="material-symbols-outlined chev">expand_more</span> Pacientes, esperas y duración <small>inscripciones y altas, lista de espera, duración y sesiones</small></summary>
+        <div class="cuerpo"><section class="rejilla">
         <article class="tarjeta ancha">
           <header><h2>Inscripciones y altas por mes</h2></header>
           <div id="leyMes"></div><div id="gMes"></div>
@@ -210,9 +260,12 @@
           <div id="gSesiones"></div>
           <p class="nota" id="nSesiones"></p>
         </article>
-      </section>
+      </section></div>
+      </details>
 
-      <h2 class="seccion">Evolución clínica</h2>
+      <details class="avanzado" id="detClinica">
+        <summary><span class="material-symbols-outlined chev">expand_more</span> Evolución clínica <small>dolor, función y analgésicos: primera frente a última valoración</small></summary>
+        <div class="cuerpo">
       <p class="seccion-sub">Primera frente a última valoración de cada usuario (hacen falta dos fechas distintas). Entran los usuarios cuya última valoración cae en el periodo.</p>
       <section class="kpis" id="kpisClinica" aria-label="Resumen de evolución clínica"></section>
       <section class="rejilla">
@@ -232,7 +285,11 @@
           <p class="nota" id="nClinCambio"></p>
         </article>
       </section>
-      <h2 class="seccion">Flujo de estados</h2>
+        </div>
+      </details>
+      <details class="avanzado" id="detEstados">
+        <summary><span class="material-symbols-outlined chev">expand_more</span> Flujo de estados <small>entradas, cambios y tiempo en cada estado</small></summary>
+        <div class="cuerpo">
       <p class="seccion-sub">Cambios de Estado registrados en el historial. Solo cuentan los cambios hechos desde que se empezó a registrar: los datos de partida no son cambios.</p>
       <section class="kpis" id="kpisFlujo" aria-label="Resumen del flujo de estados"></section>
       <section class="rejilla">
@@ -262,10 +319,13 @@
           <p class="nota" id="nFlujo"></p>
         </article>
       </section>
+        </div>
+      </details>
       <p class="pie" id="pie"></p>
     </main>
 
     <?!= include('dashboard/JS_Graficos'); ?>
+    <?!= include('dashboard/JS_Exportar'); ?>
     <script>
       var $ = function (id) { return document.getElementById(id); };
       var NF = new Intl.NumberFormat('es-ES', { maximumFractionDigits: 1 });
@@ -293,13 +353,57 @@
 
       // ---------- Tarjetas de resumen ----------
       function kpi(titulo, valor, sub, n, aviso) { kpiEn('kpis', titulo, valor, sub, n, aviso); }
-      function kpiEn(destino, titulo, valor, sub, n, aviso) {
+      function kpiEn(destino, titulo, valor, sub, n, aviso, abre) {
         var a = hijo($(destino), 'article', 'kpi');
         hijo(a, 'div', 'kpi-titulo', titulo);
         hijo(a, 'div', 'kpi-valor', valor);
         if (sub) hijo(a, 'div', 'kpi-sub', sub);
         hijo(a, 'div', 'kpi-n', n);
         if (aviso) hijo(a, 'div', 'kpi-aviso', aviso);
+        if (abre) {
+          var b = hijo(a, 'button', 'kpi-link', 'Ver detalle ›');
+          b.type = 'button';
+          b.addEventListener('click', function () { abrirDetalle(abre); });
+        }
+      }
+      function abrirDetalle(id) {
+        var d = $(id);
+        d.open = true;
+        Graficos.refrescar(d);
+        d.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+
+      // ---------- Primer vistazo: los indicadores de la dirección del centro ----------
+      var indicadores = [];     // [{ grupo, titulo, valor (número o null), unidad, detalle }] — también va a la hoja «Indicadores» del Excel
+      function pctDe(a, b) { return b > 0 ? Math.round(a / b * 1000) / 10 : null; }
+
+      function pintarVistazo(r) {
+        var c = r.citas, at = c.atendidos, ab = c.abandonos, fa = c.faltas, p = r.pacientes;
+        var e = r.clinica.evolucion, d = e.dolor, f = e.funcion, a = e.analgesicos;
+        limpiar($('kpisPart')); limpiar($('kpisEval'));
+        indicadores = [];
+        var uno = function (grupo, titulo, valor, texto, unidad, sub, n, aviso, abre) {
+          kpiEn(grupo === 'Participación y asistencia' ? 'kpisPart' : 'kpisEval', titulo, texto, sub, n, aviso, abre);
+          indicadores.push({ grupo: grupo, titulo: titulo, valor: valor, unidad: unidad, detalle: avisos([sub, n, aviso]) });
+        };
+        var G1 = 'Participación y asistencia', G2 = 'Evaluación clínica';
+        uno(G1, 'Usuarios individuales atendidos', at.usuarios, num(at.usuarios), 'usuarios', 'Con al menos una sesión asistida', 'Citas «Asistido» del periodo', '', 'detAgenda');
+        uno(G1, 'Número de sesiones', at.sesiones, num(at.sesiones), 'sesiones', 'Citas con asistencia «Asistido»', 'Del ' + fechaES(r.periodo.desde) + ' al ' + fechaES(r.periodo.hasta), '', 'detAgenda');
+        uno(G1, 'Media de sesiones por usuario', at.media, num(at.media), 'sesiones/usuario', 'Sesiones ÷ usuarios atendidos', 'n = ' + plural(at.usuarios, 'usuario', 'usuarios'), '', 'detPacientes');
+        uno(G1, 'Bajas por alta', p.porMes.altas, num(p.porMes.altas), 'usuarios', 'Tratamientos terminados en el periodo', 'Episodios con fecha de alta', '', 'detPacientes');
+        uno(G1, 'Bajas por abandono', ab.total, num(ab.total), 'usuarios', ab.umbral + ' o más faltas «No asistido» en el periodo',
+          'De ' + plural(ab.usuariosConRegistro, 'usuario', 'usuarios') + ' con citas registradas', '', 'detAgenda');
+        uno(G1, 'Índice de absentismo', fa.porcentaje, pct(fa.porcentaje), '%', plural(fa.noAsistido, 'falta', 'faltas') + ' «No asistido»',
+          'Sobre ' + plural(fa.n, 'cita con asistencia registrada', 'citas con asistencia registrada'),
+          fa.sinRegistrar ? plural(fa.sinRegistrar, 'cita pasada', 'citas pasadas') + ' sin registrar' : '', 'detAgenda');
+
+        var pd = pctDe(d.mejoran, d.n), pf = pctDe(f.mejoran, f.n), pa = pctDe(a.mejoran, a.n);
+        uno(G2, 'Mejora del dolor', pd, pct(pd), '% de usuarios', d.n ? 'Mejora media del ' + pct(d.pctMejoraMedia) + ' (dolor ' + num(d.primera) + ' → ' + num(d.ultima) + ' sobre 10) · ' + d.mejoran + ' de ' + d.n + ' bajan' : 'Aún sin dos valoraciones que comparar',
+          'n = ' + plural(d.n, 'usuario', 'usuarios') + ' con valoración inicial y última', d.sinDato ? d.sinDato + ' sin dolor en la primera o la última' : '', 'detClinica');
+        uno(G2, 'Usuarios que reducen analgésicos', pa, pct(pa), '% de usuarios', a.n ? 'Reducción media del ' + pct(a.pctMejoraMedia) + ' (nivel ' + num(a.primera) + ' → ' + num(a.ultima) + ' sobre 5) · ' + a.mejoran + ' reducen, ' + a.igual + ' igual, ' + a.empeoran + ' aumentan' : 'Aún sin dos valoraciones que comparar',
+          'n = ' + plural(a.n, 'usuario', 'usuarios') + ' con analgésicos registrados', a.sinDato ? a.sinDato + ' sin analgésicos en la primera o la última' : '', 'detClinica');
+        uno(G2, 'Mejora de la capacidad funcional', pf, pct(pf), '% de usuarios', f.n ? 'Mejora media del ' + pct(f.pctMejoraMedia) + ' (función ' + num(f.primera) + ' → ' + num(f.ultima) + ' sobre 10) · ' + f.mejoran + ' de ' + f.n + ' suben' : 'Aún sin dos valoraciones que comparar',
+          'n = ' + plural(f.n, 'usuario', 'usuarios') + ' con valoración inicial y última', f.sinDato ? f.sinDato + ' sin función en la primera o la última' : '', 'detClinica');
       }
 
       function pintarKpis(r) {
@@ -521,6 +625,101 @@
       }
       function dashEtiqueta(c) { return { activo: 'Activo', espera: 'En espera', contactara: 'Contactará', noresponde: 'No responde', alta: 'Alta' }[c]; }
 
+      // ---------- Exportar ----------
+      function nombreBase() {
+        return 'dashboard_fisioterapia_' + datos.periodo.desde + '_' + datos.periodo.hasta;
+      }
+
+      /** Hojas del libro de Excel, a partir de lo que ya está cargado. No incluye nombres de usuarios. */
+      function construirHojas(r) {
+        var oc = r.citas.ocupacion, fa = r.citas.faltas, re = r.citas.reincidentes, ab = r.citas.abandonos, p = r.pacientes, e = r.clinica.evolucion, f = r.estados.flujo;
+        var filtros = r.filtros || {};
+        var hojas = [];
+        var uni = function (nombre, cab, filas) { hojas.push({ nombre: nombre, filas: [cab].concat(filas) }); };
+
+        uni('Indicadores', ['Grupo', 'Indicador', 'Valor', 'Unidad', 'Detalle'],
+          indicadores.map(function (i) { return [i.grupo, i.titulo, i.valor, i.unidad, i.detalle]; }));
+        uni('Periodo y filtros', ['Concepto', 'Valor'], [
+          ['Desde', fechaES(r.periodo.desde)], ['Hasta', fechaES(r.periodo.hasta)], ['Gravedad', filtros.gravedad || 'todas'],
+          ['Tipo de ingreso', filtros.tipo || 'todos'], ['Patología', filtros.patologia || 'todas'], ['Datos generados', new Date(r.generadoEn).toLocaleString('es-ES')]]);
+
+        var filaOc = function (x) { return [x.huecos, x.reservadas, x.efectivas, x.pctReservada, x.pctEfectiva]; };
+        var cabOc = ['Huecos abiertos', 'Citas reservadas', 'Citas asistidas', '% ocupación reservada', '% ocupación efectiva'];
+        uni('Ocupación total', cabOc, [filaOc(oc.total)]);
+        uni('Ocupación por semana', ['Semana (lunes)'].concat(cabOc), oc.porSemana.map(function (x) { return [fechaES(x.semana)].concat(filaOc(x)); }));
+        uni('Ocupación por día', ['Día'].concat(cabOc), oc.porDiaSemana.map(function (x) { return [x.etiqueta].concat(filaOc(x)); }));
+        uni('Ocupación por franja', ['Hora'].concat(cabOc), oc.porFranja.map(function (x) { return [x.hora].concat(filaOc(x)); }));
+        uni('Asistencia', ['Concepto', 'Valor'], [
+          ['Asistido', fa.asistido], ['No asistido', fa.noAsistido], ['Justificada', fa.justificada], ['Sin registrar (ya pasadas)', fa.sinRegistrar], ['Pendiente (futuras)', fa.pendiente],
+          ['Citas con asistencia registrada', fa.n], ['% de faltas (índice de absentismo)', fa.porcentaje], ['Usuarios con citas registradas', re.usuariosConRegistro],
+          ['Reincidentes (' + re.umbral + ' faltas o más)', re.total], ['Abandonos (' + ab.umbral + ' faltas o más)', ab.total]]);
+
+        var m = p.porMes.meses;
+        uni('Inscripciones y altas', ['Mes', 'Inscripciones', 'Altas'], m.map(function (x) { return [x.mes, x.inscripciones, x.altas]; }));
+        var res = function (nombre, x) { return [nombre, x.n, x.dias.media, x.dias.mediana, x.dias.min, x.dias.max]; };
+        uni('Tiempos y sesiones', ['Métrica', 'n', 'Media', 'Mediana', 'Mínimo', 'Máximo'], [
+          res('Espera hasta el primer ingreso (días)', p.tiempoEspera), res('Lista de espera hoy: días esperando', p.listaEspera), res('Duración del tratamiento (días)', p.duracion),
+          ['Sesiones asistidas por episodio', p.sesiones.n, p.sesiones.porEpisodio.media, p.sesiones.porEpisodio.mediana, p.sesiones.porEpisodio.min, p.sesiones.porEpisodio.max]]);
+        var tr = [];
+        [['Espera hasta el primer ingreso (días)', p.tiempoEspera], ['Lista de espera hoy (días)', p.listaEspera], ['Duración del tratamiento (días)', p.duracion], ['Sesiones por episodio', p.sesiones]]
+          .forEach(function (g) { g[1].tramos.forEach(function (t) { tr.push([g[0], t.etiqueta, t.n]); }); });
+        uni('Tramos', ['Métrica', 'Tramo', 'Casos'], tr);
+
+        var ev = function (nombre, x) { return [nombre, x.n, x.primera, x.ultima, x.cambio.media, x.pctMejoraMedia, pctDe(x.mejoran, x.n), x.mejoran, x.igual, x.empeoran, x.sinDato]; };
+        uni('Evolución clínica', ['Variable', 'n', 'Media primera', 'Media última', 'Cambio medio', '% de mejora de la media', '% de usuarios que mejoran', 'Mejoran', 'Igual', 'Empeoran', 'Sin dato'], [
+          ev('Dolor (PEG 0–10; menos es mejor)', e.dolor), ev('Función global (0–10; más es mejor)', e.funcion), ev('Analgésicos (0–5; menos es mejor)', e.analgesicos),
+          ['Global (dolor baja o función sube)', e.global.n, null, null, null, null, e.global.pctMejoran, e.global.mejoran, e.global.igual, e.global.empeoran, e.global.sinDato]]);
+        uni('Analgésicos por nivel', ['Nivel', 'Primera valoración', 'Última valoración'], e.analgesicos.niveles.map(function (x) { return [ANALG_NIVELES[x.nivel], x.primera, x.ultima]; }));
+
+        uni('Estados hoy', ['Estado', 'Usuarios'], f.estadoActual.items.map(function (x) { return [x.etiqueta, x.n]; }));
+        uni('Entradas por estado y mes', ['Mes', 'Activo', 'En espera', 'Contactará', 'No responde', 'Alta'],
+          f.entradasPorMes.meses.map(function (x) { return [x.mes, x.activo, x.espera, x.contactara, x.noresponde, x.alta]; }));
+        uni('Cambios de estado', ['De', 'A', 'Usuarios'], f.transiciones.lista.map(function (x) { return [x.deEtiqueta, x.aEtiqueta, x.n]; }));
+        uni('Tiempo en cada estado', ['Estado', 'Estancias cerradas', 'Media (días)', 'Mediana (días)'], f.tiempoEnEstado.map(function (x) { return [x.etiqueta, x.n, x.dias.media, x.dias.mediana]; }));
+        return hojas;
+      }
+
+      /** Icono de descarga (PNG) en la cabecera de cada tarjeta que tiene gráfica. Se pone una sola vez por tarjeta. */
+      function botonesPng() {
+        [].slice.call(document.querySelectorAll('.tarjeta')).forEach(function (t) {
+          if (t.querySelector('.btn-png') || !Exportar.tieneGrafica(t)) return;
+          var cab = t.querySelector('header');
+          var b = hijo(cab, 'button', 'btn-png');
+          b.type = 'button'; b.title = 'Descargar esta gráfica (PNG)'; b.setAttribute('aria-label', 'Descargar esta gráfica en PNG');
+          hijo(b, 'span', 'material-symbols-outlined', 'download');
+          b.addEventListener('click', function () {
+            Exportar.fichaPng(t).then(function (blob) { Exportar.descargar(blob, Exportar.nombreSeguro(t.querySelector('h2').textContent) + '.png'); })
+              .catch(function (err) { mostrarAviso('No se pudo exportar la gráfica: ' + err.message); });
+          });
+        });
+      }
+
+      function cerrarMenu() { $('menuExportar').hidden = true; $('btnExportar').setAttribute('aria-expanded', 'false'); }
+      function exportarDatos() {
+        if (!datos) return;
+        try { Exportar.descargar(Exportar.xlsx(construirHojas(datos)), nombreBase() + '.xlsx'); }
+        catch (err) { mostrarAviso('No se pudo crear el Excel: ' + err.message); }
+        cerrarMenu();
+      }
+      function exportarGraficas() {
+        if (!datos) return;
+        var boton = $('expGraficas'), tarjetas = [].slice.call(document.querySelectorAll('.tarjeta')).filter(Exportar.tieneGrafica);
+        boton.disabled = true;
+        var usados = {};
+        tarjetas.reduce(function (cadena, t, i) {
+          return cadena.then(function (lista) {
+            return Exportar.fichaPng(t).then(Exportar.bytesDeBlob).then(function (bytes) {
+              var base = String(i + 1).length < 2 ? '0' + (i + 1) : String(i + 1);
+              lista.push({ nombre: base + '_' + Exportar.nombreSeguro(t.querySelector('h2').textContent) + '.png', datos: bytes });
+              return lista;
+            });
+          });
+        }, Promise.resolve([])).then(function (lista) {
+          Exportar.descargar(Exportar.zip(lista), nombreBase() + '_graficas.zip');
+        }).catch(function (err) { mostrarAviso('No se pudieron exportar las gráficas: ' + err.message); })
+          .then(function () { boton.disabled = false; cerrarMenu(); });
+      }
+
       // ---------- Controles y carga ----------
       var datos = null, peticion = 0, temporizador = null, mesesListos = false, opcionesVistas = '';
 
@@ -597,10 +796,12 @@
             $('textoPeriodo').textContent = fechaES(r.periodo.desde) + ' – ' + fechaES(r.periodo.hasta);
             var hora = new Date(r.generadoEn).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
             $('textoActualizado').textContent = 'Datos de las ' + hora + (r.desdeCache ? ' (guardados 10 min)' : '');
+            pintarVistazo(r);
             pintarKpis(r);
             pintarGraficos(r);
             pintarClinica(r);
             pintarEstados(r);
+            botonesPng();
           })
           .withFailureHandler(function (e) {
             if (n !== peticion) return;
@@ -613,6 +814,19 @@
 
       ['selPeriodo', 'selMes', 'inDesde', 'inHasta', 'fGravedad', 'fTipo', 'fPatologia', 'selUmbral'].forEach(function (id) { $(id).addEventListener('change', cargarPronto); });
       $('btnActualizar').addEventListener('click', function () { cargar(true); });
+      $('btnExportar').addEventListener('click', function (ev) {
+        ev.stopPropagation();
+        var abrir = $('menuExportar').hidden;
+        $('menuExportar').hidden = !abrir; $('btnExportar').setAttribute('aria-expanded', abrir ? 'true' : 'false');
+        $('btnExportar').disabled = false;
+      });
+      document.addEventListener('click', function (ev) { if (!$('menuExportar').contains(ev.target)) cerrarMenu(); });
+      document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape') cerrarMenu(); });
+      $('expDatos').addEventListener('click', exportarDatos);
+      $('expGraficas').addEventListener('click', exportarGraficas);
+      [].slice.call(document.querySelectorAll('details.avanzado')).forEach(function (d) {
+        d.addEventListener('toggle', function () { if (d.open) Graficos.refrescar(d); });
+      });
       $('btnReintentar').addEventListener('click', function () { cargar(false); });
       $('btnQuitar').addEventListener('click', function () { $('fGravedad').value = $('fTipo').value = $('fPatologia').value = ''; cargarPronto(); });
 
