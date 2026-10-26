@@ -141,7 +141,7 @@ function obtenerDashboardCitasWeb(filtros) {
     return {
       success: true, hoy: hoy, periodo: { desde: desde, hasta: hasta },
       filtros: { gravedad: dashNorm_(filtros.gravedad), tipo: String(filtros.tipo || '').trim(), patologia: String(filtros.patologia || '').trim(), umbral: r.reincidentes.umbral },
-      opciones: maestra.opciones, ocupacion: r.ocupacion, faltas: r.faltas, reincidentes: r.reincidentes,
+      opciones: maestra.opciones, ocupacion: r.ocupacion, faltas: r.faltas, atendidos: r.atendidos, abandonos: r.abandonos, reincidentes: r.reincidentes,
       diagnostico: { citasEnPeriodo: citas.length, citasSinId: sinId, fueraDeParrilla: r.ocupacion.fueraDeParrilla, festivos: Object.keys(festivos).length }
     };
   } catch (e) {
@@ -380,7 +380,7 @@ function dashboardProbarFlujo() {
 // ================================================================================
 
 const DASH_CACHE_SEGUNDOS_ = 600;      // decisión del dueño (23-oct-2026): 10 minutos + botón «Actualizar»
-const DASH_CACHE_PREFIJO_ = 'dash5:';   // súbelo cuando cambie la forma de la respuesta, para no servir cachés con la forma vieja
+const DASH_CACHE_PREFIJO_ = 'dash6:';   // súbelo cuando cambie la forma de la respuesta, para no servir cachés con la forma vieja
 const DASH_CACHE_MAX_CARACTERES_ = 90000;   // CacheService admite 100 KB por valor
 
 /** Clave de caché de unos filtros ya normalizados (el periodo siempre va resuelto, así que el valor por defecto comparte clave). */
@@ -397,7 +397,7 @@ function dashClaveCache_(f) {
  *   Periodo por defecto: el curso completo de hoy (septiembre a julio).
  * @param {boolean=} forzar
  * @return {{success:boolean, message?:string, hoy?:string, curso?:{desde:string,hasta:string,etiqueta:string}, periodo?:Object,
- *   filtros?:Object, opciones?:Object, citas?:{ocupacion,faltas,reincidentes,diagnostico}, pacientes?:Object, clinica?:{evolucion,diagnostico}, estados?:{flujo,diagnostico},
+ *   filtros?:Object, opciones?:Object, citas?:{ocupacion,faltas,atendidos,abandonos,reincidentes,diagnostico}, pacientes?:Object, clinica?:{evolucion,diagnostico}, estados?:{flujo,diagnostico},
  *   generadoEn?:string, desdeCache?:boolean}}
  */
 function obtenerDashboardWeb(filtros, forzar) {
@@ -436,7 +436,7 @@ function obtenerDashboardWeb(filtros, forzar) {
 
     const r = {
       success: true, hoy: hoy, curso: curso, periodo: pac.periodo, filtros: citas.filtros, opciones: pac.opciones,
-      citas: { ocupacion: citas.ocupacion, faltas: citas.faltas, reincidentes: citas.reincidentes, diagnostico: citas.diagnostico },
+      citas: { ocupacion: citas.ocupacion, faltas: citas.faltas, atendidos: citas.atendidos, abandonos: citas.abandonos, reincidentes: citas.reincidentes, diagnostico: citas.diagnostico },
       pacientes: { listaEspera: pac.listaEspera, tiempoEspera: pac.tiempoEspera, porMes: pac.porMes, duracion: pac.duracion, sesiones: pac.sesiones, diagnostico: pac.diagnostico },
       clinica: { evolucion: cli.evolucion, diagnostico: cli.diagnostico },
       estados: { flujo: flu.flujo, diagnostico: flu.diagnostico },

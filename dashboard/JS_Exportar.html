@@ -1,0 +1,198 @@
+<!-- dashboard/JS_Exportar.html — exportación del dashboard, SIN librerías externas: libro de Excel (.xlsx), gráficas en PNG y ZIP de PNG.
+     Todo se genera en el navegador a partir de los datos ya cargados (nada vuelve al servidor). Se incluye con include() desde dashboard/Web_Vista. -->
+<script>
+  /**
+   * window.Exportar
+   *   Exportar.xlsx([{ nombre, filas: [[celda, ...], ...], anchos?: [n, ...] }])  → Blob de un libro con una hoja por elemento.
+   *       La primera fila de cada hoja se pone en negrita (cabeceras). Celda: número, texto, o null/undefined (vacía).
+   *   Exportar.fichaPng(tarjeta)        → Promise<Blob>: PNG (fondo blanco, 2×) con título, leyenda, gráfica y nota de una tarjeta.
+   *   Exportar.zip([{ nombre, datos: Uint8Array }])  → Blob .zip (sin comprimir).
+   *   Exportar.descargar(blob, nombre)
+   *   Exportar.nombreSeguro(texto)      → nombre de archivo sin tildes ni símbolos.
+   */
+  window.Exportar = (function () {
+    var COLORES = ['#2b5c75', '#137333', '#f29900', '#8430ce', '#c5221f', '#80868b'];   // = gr-b0..5 en tema claro
+    var FUENTE = 'Arial, Helvetica, sans-serif';
+
+    // ---------- ZIP (sin compresión) ----------
+    var TABLA_CRC = (function () {
+      var t = [];
+      for (var n = 0; n < 256; n++) { var c = n; for (var k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; }
+      return t;
+    })();
+    function crc32(b) { var c = 0xFFFFFFFF; for (var i = 0; i < b.length; i++) c = TABLA_CRC[(c ^ b[i]) & 0xFF] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
+    function utf8(t) { return new TextEncoder().encode(t); }
+    function u16(n) { return [n & 255, (n >>> 8) & 255]; }
+    function u32(n) { return [n & 255, (n >>> 8) & 255, (n >>> 16) & 255, (n >>> 24) & 255]; }
+
+    function zip(archivos) {
+      var partes = [], central = [], pos = 0, ahora = new Date();
+      var hora = (ahora.getHours() << 11) | (ahora.getMinutes() << 5) | (ahora.getSeconds() >> 1);
+      var fecha = ((Math.max(ahora.getFullYear(), 1980) - 1980) << 9) | ((ahora.getMonth() + 1) << 5) | ahora.getDate();
+      archivos.forEach(function (a) {
+        var nombre = utf8(a.nombre), datos = a.datos, crc = crc32(datos);
+        var cab = [0x50, 0x4B, 0x03, 0x04].concat(u16(20), u16(0x0800), u16(0), u16(hora), u16(fecha), u32(crc), u32(datos.length), u32(datos.length), u16(nombre.length), u16(0));
+        partes.push(new Uint8Array(cab), nombre, datos);
+        central.push({ cab: [0x50, 0x4B, 0x01, 0x02].concat(u16(20), u16(20), u16(0x0800), u16(0), u16(hora), u16(fecha), u32(crc), u32(datos.length), u32(datos.length),
+          u16(nombre.length), u16(0), u16(0), u16(0), u16(0), u32(0), u32(pos)), nombre: nombre });
+        pos += cab.length + nombre.length + datos.length;
+      });
+      var inicio = pos, tam = 0;
+      central.forEach(function (c) { partes.push(new Uint8Array(c.cab), c.nombre); tam += c.cab.length + c.nombre.length; });
+      partes.push(new Uint8Array([0x50, 0x4B, 0x05, 0x06].concat(u16(0), u16(0), u16(archivos.length), u16(archivos.length), u32(tam), u32(inicio), u16(0))));
+      return new Blob(partes, { type: 'application/zip' });
+    }
+
+    // ---------- Excel (.xlsx) ----------
+    var CAB_XML = '<' + '?xml version="1.0" encoding="UTF-8" standalone="yes"?' + '>';   // partido para que Apps Script no lo tome por un scriptlet
+    function xml(t) {
+      return String(t).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+    function letraColumna(i) { var s = ''; for (i++; i > 0; i = Math.floor((i - 1) / 26)) s = String.fromCharCode(65 + (i - 1) % 26) + s; return s; }
+    function nombreHoja(n, usados) {
+      var base = String(n).replace(/[\[\]:*?\/\\]/g, ' ').trim().slice(0, 31) || 'Hoja', nombre = base, k = 2;
+      while (usados[nombre.toLowerCase()]) { var suf = ' ' + k++; nombre = base.slice(0, 31 - suf.length) + suf; }
+      usados[nombre.toLowerCase()] = true;
+      return nombre;
+    }
+
+    function hojaXml(hoja) {
+      var filas = hoja.filas || [], ancho = [];
+      filas.forEach(function (f) { f.forEach(function (v, i) { var l = v == null ? 0 : String(v).length; if (!(ancho[i] >= l)) ancho[i] = l; }); });
+      var cols = ancho.map(function (a, i) {
+        var w = hoja.anchos && hoja.anchos[i] ? hoja.anchos[i] : Math.min(60, Math.max(10, a + 2));
+        return '<col min="' + (i + 1) + '" max="' + (i + 1) + '" width="' + w + '" customWidth="1"/>';
+      }).join('');
+      var cuerpo = filas.map(function (f, r) {
+        var celdas = f.map(function (v, i) {
+          if (v === null || v === undefined || v === '') return '';
+          var ref = letraColumna(i) + (r + 1), estilo = r === 0 ? ' s="1"' : '';
+          if (typeof v === 'number' && isFinite(v)) return '<c r="' + ref + '"' + estilo + '><v>' + v + '</v></c>';
+          return '<c r="' + ref + '"' + estilo + ' t="inlineStr"><is><t xml:space="preserve">' + xml(v) + '</t></is></c>';
+        }).join('');
+        return '<row r="' + (r + 1) + '">' + celdas + '</row>';
+      }).join('');
+      return CAB_XML + '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
+        + '<sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>'
+        + (cols ? '<cols>' + cols + '</cols>' : '') + '<sheetData>' + cuerpo + '</sheetData></worksheet>';
+    }
+
+    function xlsx(hojas) {
+      var usados = {}, nombres = hojas.map(function (h) { return nombreHoja(h.nombre, usados); });
+      var cabecera = CAB_XML;
+      var tipos = cabecera + '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
+        + '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/>'
+        + '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>'
+        + '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>'
+        + hojas.map(function (h, i) { return '<Override PartName="/xl/worksheets/sheet' + (i + 1) + '.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>'; }).join('')
+        + '</Types>';
+      var raiz = cabecera + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+        + '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>';
+      var libro = cabecera + '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>'
+        + nombres.map(function (n, i) { return '<sheet name="' + xml(n) + '" sheetId="' + (i + 1) + '" r:id="rId' + (i + 1) + '"/>'; }).join('') + '</sheets></workbook>';
+      var rels = cabecera + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+        + hojas.map(function (h, i) { return '<Relationship Id="rId' + (i + 1) + '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet' + (i + 1) + '.xml"/>'; }).join('')
+        + '<Relationship Id="rId' + (hojas.length + 1) + '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>';
+      var estilos = cabecera + '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
+        + '<fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font></fonts>'
+        + '<fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills>'
+        + '<borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders>'
+        + '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>'
+        + '<cellXfs count="2"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
+      var archivos = [{ nombre: '[Content_Types].xml', datos: utf8(tipos) }, { nombre: '_rels/.rels', datos: utf8(raiz) }, { nombre: 'xl/workbook.xml', datos: utf8(libro) },
+        { nombre: 'xl/_rels/workbook.xml.rels', datos: utf8(rels) }, { nombre: 'xl/styles.xml', datos: utf8(estilos) }];
+      hojas.forEach(function (h, i) { archivos.push({ nombre: 'xl/worksheets/sheet' + (i + 1) + '.xml', datos: utf8(hojaXml(h)) }); });
+      var blob = zip(archivos);
+      return new Blob([blob], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    }
+
+    // ---------- PNG de una tarjeta ----------
+    function ajustar(ctx, texto, ancho) {
+      var palabras = String(texto).split(/\s+/), lineas = [], actual = '';
+      palabras.forEach(function (p) {
+        var prueba = actual ? actual + ' ' + p : p;
+        if (actual && ctx.measureText(prueba).width > ancho) { lineas.push(actual); actual = p; } else actual = prueba;
+      });
+      if (actual) lineas.push(actual);
+      return lineas;
+    }
+    function cargarImagen(svg) {
+      return new Promise(function (ok, mal) {
+        var img = new Image();
+        img.onload = function () { ok(img); };
+        img.onerror = function () { mal(new Error('No se pudo dibujar la gráfica.')); };
+        img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+      });
+    }
+
+    /** Contenedor del gráfico dentro de una tarjeta (el elemento con un gráfico montado) y su leyenda, si la tiene. */
+    function partesTarjeta(tarjeta) {
+      var grafico = null, leyenda = null;
+      [].slice.call(tarjeta.querySelectorAll('div')).forEach(function (d) { if (d._gr && !grafico) grafico = d; if (d._leyenda && !leyenda) leyenda = d._leyenda; });
+      var h2 = tarjeta.querySelector('h2'), nota = tarjeta.querySelector('.nota');
+      return { grafico: grafico, leyenda: leyenda, titulo: h2 ? h2.textContent : 'Gráfica', nota: nota ? nota.textContent : '' };
+    }
+    function tieneGrafica(tarjeta) { return !!partesTarjeta(tarjeta).grafico; }
+
+    function fichaPng(tarjeta) {
+      var p = partesTarjeta(tarjeta);
+      var W = 760, M = 20, ESC = 2, g = Graficos.paraExportar(p.grafico, W - 2 * M);
+      if (!g) return Promise.reject(new Error('Esta tarjeta no tiene gráfica.'));
+      return cargarImagen(g.svg).then(function (img) {
+        var medida = document.createElement('canvas').getContext('2d');
+        medida.font = 'bold 16px ' + FUENTE;
+        var lineasTitulo = ajustar(medida, p.titulo, W - 2 * M);
+        medida.font = '12px ' + FUENTE;
+        var lineasNota = ajustar(medida, p.nota, W - 2 * M);
+        // La leyenda se coloca en filas que no pasan del ancho.
+        var filasLey = [], fila = [], xLey = 0;
+        (p.leyenda || []).forEach(function (s, k) {
+          var w = 16 + medida.measureText(s.nombre).width + 18;
+          if (fila.length && xLey + w > W - 2 * M) { filasLey.push(fila); fila = []; xLey = 0; }
+          fila.push({ s: s, k: k, x: xLey }); xLey += w;
+        });
+        if (fila.length) filasLey.push(fila);
+
+        var H = M + lineasTitulo.length * 22 + 8 + filasLey.length * 20 + (filasLey.length ? 8 : 0) + g.h + 10 + lineasNota.length * 16 + M;
+        var c = document.createElement('canvas');
+        c.width = W * ESC; c.height = Math.ceil(H) * ESC;
+        var x = c.getContext('2d');
+        x.scale(ESC, ESC);
+        x.fillStyle = '#ffffff'; x.fillRect(0, 0, W, H);
+        var y = M;
+        x.fillStyle = '#202124'; x.font = 'bold 16px ' + FUENTE; x.textBaseline = 'top';
+        lineasTitulo.forEach(function (l) { x.fillText(l, M, y); y += 22; });
+        y += 8;
+        x.font = '12px ' + FUENTE;
+        filasLey.forEach(function (f) {
+          f.forEach(function (it) {
+            x.fillStyle = COLORES[(it.s.clase != null ? it.s.clase : it.k) % COLORES.length];
+            x.beginPath(); x.arc(M + it.x + 5, y + 8, 5, 0, Math.PI * 2); x.fill();
+            x.fillStyle = '#5f6368'; x.fillText(it.s.nombre, M + it.x + 16, y + 2);
+          });
+          y += 20;
+        });
+        if (filasLey.length) y += 8;
+        x.drawImage(img, M, y, g.w, g.h);
+        y += g.h + 10;
+        x.fillStyle = '#5f6368'; x.font = '12px ' + FUENTE;
+        lineasNota.forEach(function (l) { x.fillText(l, M, y); y += 16; });
+        return new Promise(function (ok, mal) { c.toBlob(function (b) { b ? ok(b) : mal(new Error('No se pudo crear la imagen.')); }, 'image/png'); });
+      });
+    }
+
+    // ---------- Utilidades ----------
+    function descargar(blob, nombre) {
+      var url = URL.createObjectURL(blob), a = document.createElement('a');
+      a.href = url; a.download = nombre; a.style.display = 'none';
+      document.body.appendChild(a); a.click();
+      setTimeout(function () { document.body.removeChild(a); URL.revokeObjectURL(url); }, 1500);
+    }
+    function nombreSeguro(t) {
+      return String(t).normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^A-Za-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 60) || 'archivo';
+    }
+    function bytesDeBlob(blob) { return new Promise(function (ok, mal) { var r = new FileReader(); r.onload = function () { ok(new Uint8Array(r.result)); }; r.onerror = mal; r.readAsArrayBuffer(blob); }); }
+
+    return { xlsx: xlsx, zip: zip, fichaPng: fichaPng, tieneGrafica: tieneGrafica, descargar: descargar, nombreSeguro: nombreSeguro, bytesDeBlob: bytesDeBlob, _crc32: crc32 };
+  })();
+</script>

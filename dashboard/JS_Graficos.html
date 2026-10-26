@@ -18,12 +18,17 @@
   .gr-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
   .gr-b0 { background: var(--md-primary); }  .gr-b1 { background: var(--md-success); }  .gr-b2 { background: var(--md-warning); }
   .gr-b3 { background: var(--md-purple); }   .gr-b4 { background: var(--md-error); }    .gr-b5 { background: var(--md-on-surface-low); }
+  /* Contenedor fuera de pantalla para exportar: SIEMPRE en tema claro (la memoria es un documento blanco), con tipografía segura. */
+  .gr-export { --md-primary:#2b5c75; --md-success:#137333; --md-warning:#f29900; --md-purple:#8430ce; --md-error:#c5221f; --md-outline:#dadce0;
+    --md-on-surface:#202124; --md-on-surface-med:#5f6368; --md-on-surface-low:#80868b; --font: Arial, Helvetica, sans-serif; }
 </style>
 <script>
   /**
    * window.Graficos — gráficos SVG sin dependencias.
    *   Graficos.montar(contenedor, 'barras' | 'lineas' | 'barrasH', spec)   dibuja y se redibuja al cambiar el ancho de la ventana.
    *   Graficos.leyenda(contenedor, [{nombre, clase}])                       leyenda en HTML (contenedor distinto del gráfico).
+   *   Graficos.refrescar(raiz)                                              redibuja los gráficos de `raiz` (al abrir una sección plegada).
+   *   Graficos.paraExportar(contenedor, ancho)                              {svg, w, h}: SVG autónomo (estilos incrustados, tema claro) o null.
    * spec de 'barras' y 'lineas': { etiquetas: [..], titulos?: [..], series: [{nombre, valores: [n|null..], clase?: 0-5}], formato?: fn(n),
    *   max?: número (mínimo del eje), alto?: px, atenuar?: [bool..] (solo barras), vacio?: texto, anchoEtiqueta?: px }
    * spec de 'barrasH': { items: [{etiqueta, valor, clase?}], formato?: fn(n), vacio?: texto }
@@ -175,6 +180,7 @@
     function leyenda(cont, series) {
       limpiar(cont);
       cont.className = 'gr-leyenda';
+      cont._leyenda = series;
       series.forEach(function (s, k) {
         var chip = document.createElement('span'), punto = document.createElement('i');
         chip.className = 'gr-chip'; punto.className = 'gr-dot gr-b' + (s.clase != null ? s.clase : k);
@@ -192,6 +198,43 @@
       }, 150);
     });
 
-    return { montar: montar, leyenda: leyenda, _escala: escala };
+    /** Redibuja los gráficos dentro de `raiz` (un gráfico dibujado dentro de una sección plegada se midió con ancho 0). */
+    function refrescar(raiz) {
+      registro = registro.filter(function (c) { return document.body.contains(c); });
+      registro.forEach(function (c) { if (raiz.contains(c) && ancho(c) !== c._gr.ancho) dibujar(c); });
+    }
+
+    var PROPIEDADES = ['fill', 'stroke', 'stroke-width', 'stroke-dasharray', 'stroke-linejoin', 'stroke-linecap', 'opacity', 'font-size', 'font-weight', 'font-family', 'text-anchor'];
+    /** SVG autónomo de un gráfico montado: lo dibuja de nuevo con el mismo spec, fuera de pantalla y en tema claro, e incrusta los estilos calculados. */
+    function paraExportar(cont, W) {
+      var g = cont && cont._gr;
+      if (!g) return null;
+      var host = document.createElement('div');
+      host.className = 'gr-export';
+      host.style.cssText = 'position:fixed;left:-10000px;top:0;visibility:hidden;width:' + W + 'px';
+      document.body.appendChild(host);
+      try {
+        TIPOS[g.tipo](host, g.spec, W);
+        var s = host.querySelector('svg');
+        if (!s) return null;
+        var nodos = [s].concat([].slice.call(s.querySelectorAll('*')));
+        nodos.forEach(function (n) {
+          if (n.tagName === 'title') return;
+          var cs = getComputedStyle(n), css = '';
+          PROPIEDADES.forEach(function (p) { var v = cs.getPropertyValue(p); if (v) css += p + ':' + v + ';'; });
+          n.setAttribute('style', css);
+          n.removeAttribute('class');
+        });
+        [].slice.call(s.querySelectorAll('title')).forEach(function (t) { t.parentNode.removeChild(t); });
+        s.setAttribute('xmlns', NS);
+        s.removeAttribute('role');
+        s.setAttribute('style', 'overflow:visible');
+        return { svg: new XMLSerializer().serializeToString(s), w: +s.getAttribute('width'), h: +s.getAttribute('height') };
+      } finally {
+        document.body.removeChild(host);
+      }
+    }
+
+    return { montar: montar, leyenda: leyenda, refrescar: refrescar, paraExportar: paraExportar, _escala: escala };
   })();
 </script>
