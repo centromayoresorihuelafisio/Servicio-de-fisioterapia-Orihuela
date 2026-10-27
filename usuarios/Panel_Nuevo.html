@@ -326,13 +326,7 @@ window.PanelNuevo = {
       var f = el.closest('.md-field');
       if (f) f.classList.toggle('has-value', el.value.trim() !== '');
     }
-    function formatPhone(input) {
-      var d = input.value.replace(/\D/g, '').slice(0, 9), f = d.slice(0, 3);
-      if (d.length > 3) f += ' ' + d.slice(3, 5);
-      if (d.length > 5) f += ' ' + d.slice(5, 7);
-      if (d.length > 7) f += ' ' + d.slice(7, 9);
-      input.value = f;
-    }
+    function formatPhone(input) { Telefono.escribiendo(input); }   // regla única: ui/JS_Telefono.html
     function setError(el, texto) {
       var f = el.closest('.md-field'); if (!f) return;
       f.classList.add('has-error');
@@ -544,12 +538,7 @@ window.PanelNuevo = {
       if (comunes === a.length && comunes === b.length) return true;
       return comunes >= 2 && comunes * 2 > Math.min(a.length, b.length);
     }
-    function normTel(t) {
-      if (!t) return '';
-      var l = String(t).replace(/\D/g, '');
-      if (l.indexOf('34') === 0 && l.length > 9) l = l.substring(2);
-      return l;
-    }
+    function normTel(t) { return Telefono.clave(t); }   // para comparar duplicados (misma clave que normalizarTelefono del servidor)
     function normDni(t) { return t ? String(t).trim().toUpperCase() : ''; }
     // → { total, candidatos[0..6] }, cada uno { fila, nombre, dni, telefono, estado, motivos }. Los más fiables primero.
     function coincidencias(nombre, dni, telefonos) {

@@ -92,9 +92,17 @@ function actualizarPaciente(updatedData, idPaciente) {
     if (colDniIdx !== -1) newRowValues[colDniIdx] = normalizarDniUsuario(newRowValues[colDniIdx]);
   }
 
+  // Teléfonos (regla única, core/Utils.gs → telefonoNormalizar_): solo dígitos y como texto.
+  const colTel1Idx = headers.indexOf(COLUMNAS.MAESTRA.TELEFONO_1);
+  const colTel2Idx = headers.indexOf(COLUMNAS.MAESTRA.TELEFONO_2);
+  if (colTel1Idx !== -1) newRowValues[colTel1Idx] = telefonoNormalizar_(newRowValues[colTel1Idx]);
+  if (colTel2Idx !== -1) newRowValues[colTel2Idx] = telefonoNormalizar_(newRowValues[colTel2Idx]);
+
   // Valores de la fila ANTES de reescribirla, para el historial de Estado/Tipo de Ingreso/Gravedad (sección 11, paso 4).
   const filaAntesHistorial = sheet.getRange(rowIdx, 1, 1, headers.length).getValues()[0];
 
+  telefonoFormatoTexto_(sheet, rowIdx, colTel1Idx + 1);   // formato texto ANTES de escribir: si no, Sheets convierte "612345678" en número
+  telefonoFormatoTexto_(sheet, rowIdx, colTel2Idx + 1);
   sheet.getRange(rowIdx, 1, 1, newRowValues.length).setValues([newRowValues]);
 
   // Restauramos el hipervínculo que el setValues() de arriba acaba de aplanar.

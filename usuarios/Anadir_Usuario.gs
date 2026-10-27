@@ -209,6 +209,12 @@ function guardarPaciente(datos) {
   if (colNombreFormato !== -1) nuevaFila[colNombreFormato] = normalizarNombreUsuario(nuevaFila[colNombreFormato]);
   if (colDniFormato !== -1) nuevaFila[colDniFormato] = normalizarDniUsuario(nuevaFila[colDniFormato]);
 
+  // Teléfonos (regla única, core/Utils.gs → telefonoNormalizar_): se guardan solo con dígitos y como texto.
+  const colTel1Formato = encabezados.indexOf(COLUMNAS.MAESTRA.TELEFONO_1);
+  const colTel2Formato = encabezados.indexOf(COLUMNAS.MAESTRA.TELEFONO_2);
+  if (colTel1Formato !== -1) nuevaFila[colTel1Formato] = telefonoNormalizar_(nuevaFila[colTel1Formato]);
+  if (colTel2Formato !== -1) nuevaFila[colTel2Formato] = telefonoNormalizar_(nuevaFila[colTel2Formato]);
+
   Logger.log('Fila preparada para insertar (nuevaFila): ' + JSON.stringify(nuevaFila));
 
   try {
@@ -231,7 +237,9 @@ function guardarPaciente(datos) {
 
     Logger.log('Datos se insertarán en la fila: ' + filaVacia);
 
-    // Insertar la nueva fila en la fila vacía encontrada
+    // Insertar la nueva fila en la fila vacía encontrada (los teléfonos, antes, en formato texto para que Sheets no los convierta en número)
+    telefonoFormatoTexto_(hoja, filaVacia, colTel1Formato + 1);
+    telefonoFormatoTexto_(hoja, filaVacia, colTel2Formato + 1);
     hoja.getRange(filaVacia, 1, 1, nuevaFila.length).setValues([nuevaFila]);
 
     // Historial (sección 11, paso 4): estado inicial del usuario nuevo (Estado, Tipo de Ingreso, Gravedad).
@@ -248,7 +256,7 @@ function guardarPaciente(datos) {
     // Extraemos el nombre utilizando la propiedad 'Nombre' (o alternativas si varía la mayúscula)
     const nombreContacto = datos['Nombre'] || datos['nombre'] || '';
     // Extraemos el teléfono mapeado a la variable 'telefono1' proporcionada por su formulario
-    const telefonoContacto = datos['Teléfono 1'] || datos['telefono1'] || '';
+    const telefonoContacto = telefonoNormalizar_(datos['Teléfono 1'] || datos['telefono1'] || '');
     // Extraemos el valor del toggle de añadir a contactos (enviado desde JS)
     const anadirContacto = datos.anadirContacto;
 

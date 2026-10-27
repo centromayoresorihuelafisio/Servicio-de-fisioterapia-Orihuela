@@ -207,7 +207,7 @@ var WhatsappDialogo = (function() {
   }
   function telefonoLegible(t) {
     t = String(t || '');
-    if (/^34\d{9}$/.test(t)) return '+34 ' + t.slice(2, 5) + ' ' + t.slice(5, 7) + ' ' + t.slice(7, 9) + ' ' + t.slice(9);
+    if (/^34\d{9}$/.test(t)) return '+34 ' + Telefono.formato(t.slice(2));   // regla única: ui/JS_Telefono.html
     return t ? '+' + t : '';
   }
   function cabecera(titulo, sub, ini) {

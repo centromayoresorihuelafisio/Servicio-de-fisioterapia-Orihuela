@@ -527,6 +527,7 @@
     <?!= incluirPanel('agenda/Panel_Cita', 'PanelCita'); ?>
     <?!= incluirPanel('usuarios/Panel_Nuevo', 'PanelNuevo'); ?>
     <?!= include('ui/JS_Formato_Nombre'); ?>
+    <?!= include('ui/JS_Telefono'); ?>
     <?!= include('ui/JS_Valoraciones_Cache'); ?>
     <?!= include('ui/JS_HC_Cache'); ?>
     <?!= include('ui/JS_Ficha'); ?>
@@ -608,6 +609,11 @@
         if (excluir !== 'tipo' && filtroTipo && normalizar(textoEstado(dato(p, 'Tipo de Ingreso'))) !== normalizar(filtroTipo)) return false;
         if (excluir !== 'patologia' && filtroPatologia && patologiasDe(p).map(normalizar).indexOf(normalizar(filtroPatologia)) === -1) return false;
         if (!terminoNorm) return true;
+        // Los teléfonos se guardan solo con dígitos ("612345678") pero se ven como "612 34 56 78": si lo escrito parece un número,
+        // se compara por dígitos para que se pueda buscar tal como se ve en pantalla.
+        var dTerm = terminoNorm.replace(/\D/g, '');
+        if (dTerm.length >= 3 && /^[\d\s+.\-]+$/.test(terminoNorm) &&
+            ['Teléfono 1', 'Teléfono 2'].some(function(h) { return Telefono.clave(dato(p, h)).indexOf(dTerm) !== -1; })) return true;
         return HEADERS.some(function(h) { return normalizar(p[h]).indexOf(terminoNorm) !== -1; });
       }
 
@@ -743,11 +749,7 @@
       function claseGravedad(v) { var n = normalizar(v); return n.indexOf('leve') !== -1 ? 'leve' : n.indexOf('moderad') !== -1 ? 'moderado' : n.indexOf('urgent') !== -1 ? 'urgente' : ''; }
       function chipGravedad(v) { return '<span class="chip-g ' + claseGravedad(v) + '">' + esc(textoEstado(v)) + '</span>'; }
 
-      function formatearTel(t) {
-        var s = String(t || '').replace(/[^\d+]/g, ''), pref = '', num = s, m = s.match(/^(\+\d{1,3})(\d{9})$/);
-        if (m) { pref = m[1] + ' '; num = m[2]; }
-        return /^\d{9}$/.test(num) ? pref + num.replace(/(\d{3})(\d{3})(\d{3})/, '$1 $2 $3') : String(t || '').trim();
-      }
+      function formatearTel(t) { return Telefono.formato(t); }   // regla única: ui/JS_Telefono.html
 
       function avatarHtml(nombre, extra) {
         var n = (nombre || '').toString().trim();
@@ -799,7 +801,7 @@
         var tieneHC = esUrl(COL_HISTORIA ? p[COL_HISTORIA] : '');
         var sel = pacienteSeleccionado && pacienteSeleccionado._fila === p._fila;
         var enLote = seleccionMultiple.has(p._fila);
-        var tel = function(t, cls) { return t ? '<span class="' + cls + ' copiable" data-copiar="' + esc(t) + '" data-etiqueta="Teléfono" title="Copiar">' + resalta(formatearTel(t), termino) + '</span>' : ''; };
+        var tel = function(t, cls) { return t ? '<span class="' + cls + ' copiable" data-copiar="' + esc(Telefono.digitos(t) || t) + '" data-etiqueta="Teléfono" title="Copiar">' + resalta(formatearTel(t), termino) + '</span>' : ''; };
         return '<tr data-fila="' + p._fila + '" class="' + (sel ? 'seleccionada ' : '') + (enLote ? 'seleccion-multiple' : '') + '">' +
           '<td class="col-check"><input type="checkbox" class="chk-fila" data-fila="' + p._fila + '"' + (enLote ? ' checked' : '') + '></td>' +
           '<td class="col-usuario"><div class="celda-u">' + avatarHtml(p['Nombre']) + '<div class="doble"><div class="u-nombre">' + resalta(p['Nombre'], termino) + '</div><div class="u-sub">' +

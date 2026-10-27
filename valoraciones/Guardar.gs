@@ -87,7 +87,7 @@ function procesarValoracion(data) {
     if (!paciente) throw new Error("No se encontró al usuario en la Base de Datos (ID paciente). Elígelo de la lista.");
     const nombreFinal = normalizarFormatoNombre(paciente.nombre) || paciente.nombre;
     const dni = paciente.dni;
-    const telefono = paciente.telefono;
+    const telefono = telefonoNormalizar_(paciente.telefono);   // solo dígitos (regla única, core/Utils.gs)
 
     const tipoValoracion = data.tipoValoracion || "Inicial";
     const notas = data.notas ? data.notas.trim() : "";
@@ -130,6 +130,7 @@ function procesarValoracion(data) {
     filaDatos[C.DNI - 1] = dni;                       // vacío si el usuario no tiene DNI en la Maestra
     filaDatos[C.ID_PACIENTE - 1] = paciente.id;       // con qué usuario se enlaza la valoración (nunca se edita a mano)
 
+    telefonoFormatoTexto_(sheet, sheet.getLastRow() + 1, C.TELEFONO);   // la fila nueva, con el teléfono como texto (si no, Sheets lo convierte en número)
     sheet.appendRow(filaDatos);
     return `Valoración de tipo '${tipoValoracion}' guardada con éxito.`;
 

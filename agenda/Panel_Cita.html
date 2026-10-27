@@ -435,7 +435,7 @@ window.PanelCita = {
           setFieldValue(nombreUsuarioInput, name);
           currentUserName = name;
           currentUserPhone = allPatientsData[name] || '';
-          setFieldValue(telefonoUsuarioInput, currentUserPhone);
+          setFieldValue(telefonoUsuarioInput, Telefono.formato(currentUserPhone));
           setFieldValue(numSesionInput, '');
           setFieldValue(notasTextarea, '');
           q('.pc-f-paciente').classList.remove('has-error');
@@ -466,7 +466,7 @@ window.PanelCita = {
           renderPatientSelect(Object.keys(allPatientsData), name);
           if (name && name !== 'HEADER_ROW' && name !== 'NOT_FOUND') {
             currentUserName = name; currentUserPhone = phone;
-            setFieldValue(telefonoUsuarioInput, phone);
+            setFieldValue(telefonoUsuarioInput, Telefono.formato(phone));
             mostrarFeedback('Cita para: <strong></strong>', true, 'person');
             msgBox.querySelector('strong').textContent = name;
           } else {

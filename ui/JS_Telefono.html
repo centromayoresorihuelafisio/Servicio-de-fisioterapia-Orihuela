@@ -1,0 +1,85 @@
+<!--
+  ui/JS_Telefono.html
+  REGLA ÚNICA de teléfonos en pantalla (F3, sección 12 de CONTEXTO.md). Sustituye a las copias que había de formatearTel y formatPhone.
+    · Se GUARDA solo con dígitos, sin espacios y como texto: "612345678" (extranjero: "+447911123456").
+    · Se MUESTRA siempre "123 45 67 89" (3-2-2-2). Un número que no tiene 9 dígitos se muestra tal cual.
+  La misma regla de guardado vive en el servidor: telefonoNormalizar_() y telefonoWhatsapp_() en core/Utils.gs (si cambias una, cambia la otra).
+
+  Se incluye con include('ui/JS_Telefono') con "!" (fuera de cualquier bloque de script), ANTES del script principal de la página
+  y de los paneles. Toda página que muestre o pida teléfonos debe incluirlo (BaseDatos_Vista, agenda/Web_Vista, valoraciones/Web_Vista,
+  historia/HC_Vista y usuarios/Anadir_Usuario_Vista). Global `Telefono`:
+    Telefono.normalizar(t)  -> forma de guardado ("612345678", "+447911123456"); un texto con letras se devuelve tal cual.
+    Telefono.digitos(t)     -> lo mismo (es lo que se copia con el clic y lo que va en tel:).
+    Telefono.formato(t)     -> "123 45 67 89" para mostrar.
+    Telefono.wa(t)          -> número para wa.me ("34612345678"; extranjero sin el +).
+    Telefono.clave(t)       -> para COMPARAR (solo dígitos, sin el 34 de España): duplicados.
+    Telefono.escribiendo(input) -> da formato mientras se escribe en un <input> (mantiene el cursor al final).
+-->
+<script>
+  window.Telefono = (function () {
+    function texto(t) { return (t === null || t === undefined) ? '' : String(t).trim(); }
+
+    // Mismo algoritmo que telefonoAnalizar_ (core/Utils.gs). Devuelve { valor, tipo }: tipo = vacio | espanol | extranjero | otro | ilegible.
+    function analizar(t) {
+      var crudo = texto(t);
+      if (!crudo) return { valor: '', tipo: 'vacio' };
+      if (/[^\d\s+().\-]/.test(crudo)) return { valor: crudo, tipo: 'ilegible' };
+      var d = crudo.replace(/\D/g, '');
+      if (!d || d.length > 15) return { valor: crudo, tipo: 'ilegible' };
+      var internacional = crudo.charAt(0) === '+' || d.indexOf('00') === 0;
+      if (internacional) {
+        if (d.indexOf('00') === 0 && crudo.charAt(0) !== '+') d = d.slice(2);
+        if (d.indexOf('34') === 0 && d.length === 11) return { valor: d.slice(2), tipo: 'espanol' };
+        return { valor: '+' + d, tipo: 'extranjero' };
+      }
+      if (d.length === 9) return { valor: d, tipo: 'espanol' };
+      if (d.length === 11 && d.indexOf('34') === 0) return { valor: d.slice(2), tipo: 'espanol' };
+      return { valor: d, tipo: 'otro' };
+    }
+
+    function normalizar(t) { return analizar(t).valor; }
+
+    // 612345678 -> "612 34 56 78"; lo demás (extranjero "+447911123456", otros largos) se muestra tal cual, sin inventar.
+    function formato(t) {
+      var a = analizar(t);
+      if (a.tipo === 'espanol') return a.valor.replace(/^(\d{3})(\d{2})(\d{2})(\d{2})$/, '$1 $2 $3 $4');
+      return a.valor;
+    }
+
+    function wa(t) {
+      var v = normalizar(t);
+      if (!v) return '';
+      if (/^\d{9}$/.test(v)) return '34' + v;
+      return v.replace(/\D/g, '');
+    }
+
+    function clave(t) { return normalizar(t).replace(/\D/g, ''); }
+
+    // Da formato a lo escrito en un <input>: "6123" -> "612 3", y un +34 pegado se quita. Un "+" con otro país se deja con "+".
+    function enVivo(valor) {
+      var s = texto(valor), mas = s.charAt(0) === '+';
+      var d = s.replace(/\D/g, '');
+      if (!d) return mas ? '+' : '';
+      if (d.indexOf('00') === 0 && !mas) { d = d.slice(2); mas = true; }
+      if (mas) {
+        if (d.length < 2) return '+' + d;                                   // aún no se sabe el país
+        if (d.indexOf('34') === 0) d = d.slice(2); else return '+' + d.slice(0, 15);
+      } else if (d.indexOf('34') === 0 && d.length > 9) {
+        d = d.slice(2);                                                     // 34 + número pegado sin "+"
+      }
+      d = d.slice(0, 9);
+      var f = d.slice(0, 3);
+      if (d.length > 3) f += ' ' + d.slice(3, 5);
+      if (d.length > 5) f += ' ' + d.slice(5, 7);
+      if (d.length > 7) f += ' ' + d.slice(7, 9);
+      return f;
+    }
+
+    function escribiendo(input) {
+      var nuevo = enVivo(input.value);
+      if (nuevo !== input.value) input.value = nuevo;
+    }
+
+    return { normalizar: normalizar, digitos: normalizar, formato: formato, wa: wa, clave: clave, enVivo: enVivo, escribiendo: escribiendo };
+  })();
+</script>

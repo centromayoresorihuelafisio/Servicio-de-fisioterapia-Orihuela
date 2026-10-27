@@ -110,12 +110,8 @@ var FichaUsuario = (function() {
     return ['activo', 'espera', 'contactara', 'no-responde', 'alta'].map(function(c) { return porClase[c]; }).filter(Boolean).concat(extra);
   }
 
-  // 612345678 -> "612 345 678"; conserva "+34" si venia con el. Otros formatos, tal cual.
-  function formatearTel(t) {
-    var raw = String(t === null || t === undefined ? '' : t).trim(), d = raw.replace(/\D/g, ''), pref = '';
-    if (d.length === 11 && d.indexOf('34') === 0) { pref = raw.charAt(0) === '+' ? '+34 ' : ''; d = d.slice(2); }
-    return d.length === 9 ? pref + d.replace(/(\d{3})(\d{3})(\d{3})/, '$1 $2 $3') : raw;
-  }
+  // 612345678 -> "612 34 56 78". Regla única: ui/JS_Telefono.html (la página debe incluirlo antes que este archivo).
+  function formatearTel(t) { return Telefono.formato(t); }
 
   function avisar(m) { if (typeof mostrarAviso === 'function') mostrarAviso(m); }
   function copiar(texto, etq) {
@@ -138,7 +134,7 @@ var FichaUsuario = (function() {
 
   function htmlCampo(c, v) {
     if (c.tipo === 'tel') {
-      return '<div class="fu-tel">' + icono('call') + htmlCopia(v, 'Teléfono', formatearTel(v)) + (c.nota ? '<span class="fu-nota">' + esc(c.nota) + '</span>' : '') + '</div>';
+      return '<div class="fu-tel">' + icono('call') + htmlCopia(Telefono.digitos(v) || v, 'Teléfono', formatearTel(v)) + (c.nota ? '<span class="fu-nota">' + esc(c.nota) + '</span>' : '') + '</div>';
     }
     if (c.tipo === 'largo') return '<div class="fu-campo largo"><span class="fu-val">' + esc(v) + '</span></div>';
     var cont;

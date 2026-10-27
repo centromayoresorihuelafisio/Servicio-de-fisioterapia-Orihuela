@@ -78,8 +78,8 @@ function datosWhatsappMaestraWeb(idsPaciente) {
       const telefono = telefonos[fila - 2][0];
       if (!nombre) { items.push({ idPaciente: id, fila: fila, nombre: '', primerNombre: '', telefono: '', error: 'Ese usuario no tiene nombre.' }); return; }
       if (!telefono) { items.push({ idPaciente: id, fila: fila, nombre: nombre, primerNombre: '', telefono: '', error: 'No hay teléfono para ' + nombre }); return; }
-      const numLimpio = telefono.toString().replace(/\D/g, '');
-      const numFinal = numLimpio.startsWith("34") ? numLimpio : "34" + numLimpio;
+      const numFinal = telefonoWhatsapp_(telefono);
+      if (!numFinal) { items.push({ idPaciente: id, fila: fila, nombre: nombre, primerNombre: '', telefono: '', error: 'No hay teléfono para ' + nombre }); return; }
       items.push({ idPaciente: id, fila: fila, nombre: nombre, primerNombre: _primerNombreWhatsapp_(nombre), telefono: numFinal, error: null });
     });
     return { success: true, plantilla: _plantillaWhatsapp_(), items: items, duplicados: duplicados };

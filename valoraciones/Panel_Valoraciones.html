@@ -166,7 +166,7 @@ window.PanelValoraciones = {
     function ms(n) { return '<span class="ms">' + n + '</span>'; }
     function norm(t) { return String(t === null || t === undefined ? '' : t).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim(); }
     function fechaCorta(iso) { if (!iso) return '—'; var p = iso.split('-'); return p.length === 3 ? p[2] + '/' + p[1] + '/' + p[0].slice(2) : iso; }
-    function formatearTel(t) { var d = String(t || '').replace(/\D/g, ''); return d.length === 9 ? d.slice(0, 3) + ' ' + d.slice(3, 6) + ' ' + d.slice(6) : String(t || ''); }
+    function formatearTel(t) { return Telefono.formato(t); }   // regla única: ui/JS_Telefono.html (la página anfitriona debe incluirlo)
     function aviso(txt) { if (typeof mostrarAviso === 'function') mostrarAviso(txt); }
     function confirmar(txt) { return (typeof mostrarConfirm === 'function') ? mostrarConfirm(txt) : Promise.resolve(window.confirm(txt)); }
     function avisarOtrasVentanas() {

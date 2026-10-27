@@ -188,16 +188,10 @@ function verificarExistenciaContacto(nombre, telefono, listaGoogle) {
 // definición duplicada que existía aquí. Ver core/Utils.gs — misma lógica, fuente única.
 
 /**
- * Normaliza los números de teléfono eliminando espacios, guiones o códigos de país comunes
- * para permitir una comparación robusta y limpia.
+ * Clave para COMPARAR teléfonos (duplicados, contactos de Google): solo dígitos y sin el prefijo de España.
+ * Se apoya en la regla única `telefonoNormalizar_` (core/Utils.gs); aquí solo se le quita el "+" de los extranjeros.
  */
 function normalizarTelefono(telefono) {
   if (!telefono) return '';
-  // Deja únicamente caracteres numéricos
-  let limpio = String(telefono).replace(/\D/g, '');
-  // Si tiene el prefijo de España (34) al inicio y es largo, lo removemos para comparar números locales de 9 dígitos
-  if (limpio.startsWith('34') && limpio.length > 9) {
-    limpio = limpio.substring(2);
-  }
-  return limpio;
+  return telefonoNormalizar_(telefono).replace(/\D/g, '');
 }

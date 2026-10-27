@@ -227,7 +227,7 @@ function actualizarValoracionWeb(datos) {
     const filaDatos = [];
     filaDatos[C.FECHA - 1] = fecha;
     filaDatos[C.TIPO - 1] = datos.tipo || 'Inicial';
-    filaDatos[C.TELEFONO - 1] = datos.telefono || '';
+    filaDatos[C.TELEFONO - 1] = telefonoNormalizar_(datos.telefono);
     filaDatos[C.PEG_DOLOR - 1] = numeroOVacio_(datos.pegDolor);
     filaDatos[C.PEG_ACTIVIDAD - 1] = numeroOVacio_(datos.pegActividad);
     filaDatos[C.PEG_VIDA - 1] = numeroOVacio_(datos.pegVida);
@@ -241,6 +241,7 @@ function actualizarValoracionWeb(datos) {
     // Escribimos cada campo por su columna exacta (en vez de la fila entera
     // de un tirón) para no pisar la columna Nombre, que no viaja en filaDatos.
     // El DNI y el ID paciente tampoco se tocan al corregir una valoración (identifican a la persona, como el nombre).
+    telefonoFormatoTexto_(sheet, fila, C.TELEFONO);   // el teléfono, como texto (regla única, core/Utils.gs)
     Object.keys(C).forEach(clave => {
       if (clave === 'NOMBRE' || clave === 'DNI' || clave === 'ID_PACIENTE') return;
       sheet.getRange(fila, C[clave]).setValue(filaDatos[C[clave] - 1]);
@@ -313,7 +314,7 @@ function restaurarValoracionWeb(datos) {
     filaDatos[C.FECHA - 1] = fechaObj;
     filaDatos[C.TIPO - 1] = datos.tipo || '';
     filaDatos[C.NOMBRE - 1] = datos.nombre || paciente.nombre;
-    filaDatos[C.TELEFONO - 1] = datos.telefono || '';
+    filaDatos[C.TELEFONO - 1] = telefonoNormalizar_(datos.telefono);
     filaDatos[C.PEG_DOLOR - 1] = numeroOVacio_(datos.pegDolor);
     filaDatos[C.PEG_ACTIVIDAD - 1] = numeroOVacio_(datos.pegActividad);
     filaDatos[C.PEG_VIDA - 1] = numeroOVacio_(datos.pegVida);
@@ -330,6 +331,7 @@ function restaurarValoracionWeb(datos) {
     if (sheet.getMaxColumns() < C.ID_PACIENTE) sheet.insertColumnsAfter(sheet.getMaxColumns(), C.ID_PACIENTE - sheet.getMaxColumns());
 
     sheet.insertRowBefore(fila);
+    telefonoFormatoTexto_(sheet, fila, C.TELEFONO);
     sheet.getRange(fila, 1, 1, filaDatos.length).setValues([filaDatos]);
 
     return { success: true, message: 'Valoración restaurada correctamente.' };

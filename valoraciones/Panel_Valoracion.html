@@ -874,7 +874,7 @@ window.PanelValoracion = {
         if (repetido) {
           const extra = document.createElement('span');
           extra.style.cssText = 'margin-left:8px; font-size:.8em; opacity:.7';
-          extra.textContent = '· ' + (match.dni || match.telefono || 'sin DNI');
+          extra.textContent = '· ' + (match.dni || Telefono.formato(match.telefono) || 'sin DNI');
           item.appendChild(extra);
         }
         item.addEventListener('click', () => selectPaciente(match));
@@ -887,7 +887,7 @@ window.PanelValoracion = {
       currentUserName = paciente.nombre.toUpperCase();
       idSeleccionado = paciente.id;
       nombreUsuarioInput.value = currentUserName;
-      telefonoUsuarioInput.value = paciente.telefono || "";
+      telefonoUsuarioInput.value = Telefono.formato(paciente.telefono || "");
       dniUsuarioInput.value = paciente.dni || "";
       $('fieldNombre').classList.remove('has-error');
       closeAllLists();
@@ -1178,7 +1178,7 @@ window.PanelValoracion = {
     if (idSeleccionado && opts.paciente) {
       var nm = opts.paciente.toUpperCase();
       nombreUsuarioInput.value = nm; currentUserName = nm;
-      if (opts.telefono) telefonoUsuarioInput.value = opts.telefono;
+      if (opts.telefono) telefonoUsuarioInput.value = Telefono.formato(opts.telefono);
       if (opts.dni) dniUsuarioInput.value = opts.dni;
       $('fieldNombre').classList.remove('has-error');
       updateProgress();

@@ -1189,7 +1189,7 @@
           <div class="md-field">
             <div class="md-field-inner">
               <div class="leading-icon"><span class="ms">call</span></div>
-              <input type="tel" id="telefono1" name="Teléfono 1" pattern="[0-9 ]*" placeholder=" ">
+              <input type="tel" id="telefono1" name="Teléfono 1" pattern="[0-9 +]*" placeholder=" ">
               <label for="telefono1">Teléfono principal</label>
               <div class="trailing-error" aria-hidden="true"><span class="ms">error</span></div>
             </div>
@@ -1198,7 +1198,7 @@
           <div class="md-field">
             <div class="md-field-inner">
               <div class="leading-icon"><span class="ms">smartphone</span></div>
-              <input type="tel" id="telefono2" name="Teléfono 2" pattern="[0-9 ]*" placeholder=" ">
+              <input type="tel" id="telefono2" name="Teléfono 2" pattern="[0-9 +]*" placeholder=" ">
               <label for="telefono2">Teléfono secundario</label>
               <div class="trailing-error" aria-hidden="true"><span class="ms">error</span></div>
             </div>
@@ -1458,6 +1458,7 @@
     window.BASE_URL_FORM = '<?= baseUrl ?>';
   </script>
   <?!= include('ui/JS_Formato_Nombre'); ?>
+  <?!= include('ui/JS_Telefono'); ?>
   <?!= include('ui/JS_Cierre_Formulario'); ?>
 
   <!-- ══ Javascript Logics ══ -->
@@ -1501,14 +1502,7 @@
     });
 
     // ── Phone formatter (formato unificado: 123 45 67 89) ──
-    function formatPhone(input) {
-        let d = input.value.replace(/\D/g, '').slice(0, 9);
-        let f = d.slice(0, 3);
-        if (d.length > 3) f += ' ' + d.slice(3, 5);
-        if (d.length > 5) f += ' ' + d.slice(5, 7);
-        if (d.length > 7) f += ' ' + d.slice(7, 9);
-        input.value = f;
-    }
+    function formatPhone(input) { Telefono.escribiendo(input); }   // regla única: ui/JS_Telefono.html
 
     // sanitizeName() y sanitizeDni() vienen de ui/JS_Formato_Nombre (regla única, compartida con el resto de formularios)
 

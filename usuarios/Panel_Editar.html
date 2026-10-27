@@ -352,14 +352,7 @@ window.PanelEditar = {
       if (label) label.classList.toggle('floated', !!hasVal);
       if (inp.type === 'date') inp.classList.toggle('has-value', !!hasVal);
     }
-    function formatPhone(val) {
-      var d = val.replace(/\D/g, '').slice(0, 9);
-      var f = d.slice(0, 3);
-      if (d.length > 3) f += ' ' + d.slice(3, 5);
-      if (d.length > 5) f += ' ' + d.slice(5, 7);
-      if (d.length > 7) f += ' ' + d.slice(7, 9);
-      return f;
-    }
+    function formatPhone(val) { return Telefono.enVivo(val); }   // regla única: ui/JS_Telefono.html (al escribir)
     function byName(name) {
       return Array.prototype.filter.call(form.querySelectorAll('input'), function (el) { return el.name === name; });
     }
@@ -409,7 +402,7 @@ window.PanelEditar = {
       });
       ['Teléfono 1', 'Teléfono 2'].forEach(function (n) {
         byName(n).forEach(function (inp) {
-          inp.value = formatPhone(inp.value);
+          inp.value = Telefono.formato(inp.value);   // lo ya guardado se muestra tal cual (un valor raro no se recorta al abrir)
           inp.addEventListener('input', function () { inp.value = formatPhone(inp.value); });
         });
       });
