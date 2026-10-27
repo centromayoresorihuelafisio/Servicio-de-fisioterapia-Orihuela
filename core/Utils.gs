@@ -251,4 +251,12 @@ function calcularEdadDesdeFecha_(fechaNacimiento) {
   return edad;
 }
 
-
+/**
+ * Quita los emojis o símbolos que haya AL PRINCIPIO de un texto de etiqueta ("🟢 Activo" → "Activo", "🕰️ Antiguo paciente" →
+ * "Antiguo paciente"). Un texto que ya viene limpio se devuelve igual (con los espacios de los extremos recortados).
+ * Se usa para comparar Estado, Gravedad y Tipo de ingreso sin depender de si la celda aún lleva emoji.
+ */
+function textoSinEmoji_(valor) {
+  const s = String(valor === null || valor === undefined ? '' : valor).trim();
+  return s.replace(/^[^\p{L}\p{N}]+/u, '').trim() || s;
+}

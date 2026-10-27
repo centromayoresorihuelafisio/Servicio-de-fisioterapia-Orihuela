@@ -566,7 +566,7 @@
 
       function mostrarError(err) {
         document.getElementById('tablaWrap').innerHTML =
-          '<div class="estado-vacio">⚠️ No se pudo cargar la base de datos.<br>' + esc(err && err.message ? err.message : err) + '</div>';
+          '<div class="estado-vacio"><span class="material-symbols-outlined" style="display:block;font-size:28px;margin-bottom:.4rem;color:var(--md-error)">error</span>No se pudo cargar la base de datos.<br>' + esc(err && err.message ? err.message : err) + '</div>';
       }
 
       function normalizar(txt) {
@@ -1000,7 +1000,7 @@
           '<dt><kbd>/</kbd></dt><dd>Buscar</dd>' +
           '<dt><kbd>&uarr;</kbd> <kbd>&darr;</kbd></dt><dd>Moverse por la lista</dd>' +
           '<dt><kbd>Enter</kbd></dt><dd>Abrir ficha</dd>' +
-          '<dt><kbd>Esc</kbd></dt><dd>Cerrar ficha o menú</dd></dl>';
+          '<dt><kbd>Esc</kbd></dt><dd>Cerrar ficha o menú; después, vaciar la búsqueda</dd></dl>';
         var m = document.getElementById('menuFlotante');
         cerrarMenu(); m.innerHTML = ''; m.appendChild(d); m.classList.add('visible');
         var r = e.currentTarget.getBoundingClientRect();
@@ -1400,7 +1400,9 @@
         var t = document.createElement('div'), error = /^error|no se pudo|no se pudieron|bloqueado/i.test(m);
         t.className = 'toast-aviso' + (error ? ' error' : '');
         t.setAttribute('role', 'status');
-        t.textContent = m;
+        var tono = error ? 'error' : tonoAviso_(m);
+        if (tono) t.appendChild(iconoAviso_(tono));
+        t.appendChild(document.createTextNode(m));
         contenedorToasts.appendChild(t);
         setTimeout(function() { t.classList.add('saliendo'); setTimeout(function() { t.remove(); }, 260); }, error ? 6000 : 3800);
         return Promise.resolve(true);
@@ -1424,7 +1426,9 @@
           volverDeFormulario();
           return;
         }
-        if (fichaAbierta && !document.querySelector('.modal-overlay.visible')) cerrarFicha();
+        if (document.querySelector('.modal-overlay.visible')) return;
+        if (fichaAbierta) cerrarFicha();
+        else limpiarBusqueda();   // nada más que cerrar: Esc vacía la búsqueda
       });
 
       // Si otra pestaña actualiza un paciente (las páginas sueltas ?page=… avisan por localStorage al guardar),
@@ -1612,6 +1616,23 @@
       document.getElementById('inputBusqueda').addEventListener('input', function() {
         clearTimeout(temporizadorBusqueda);
         temporizadorBusqueda = setTimeout(render, 150);
+      });
+
+      // Esc vacía la búsqueda (render la repinta y guarda la vista). Devuelve true si había texto.
+      function limpiarBusqueda() {
+        var inp = document.getElementById('inputBusqueda');
+        clearTimeout(temporizadorBusqueda);
+        if (!inp.value) return false;
+        inp.value = '';
+        render();
+        return true;
+      }
+      // Con el cursor en la búsqueda: Esc la vacía y suelta el foco, sin cerrar la ficha que haya detrás.
+      document.getElementById('inputBusqueda').addEventListener('keydown', function(e) {
+        if (e.key !== 'Escape') return;
+        e.stopPropagation();
+        limpiarBusqueda();
+        this.blur();
       });
 
       var TEMAS = ['auto', 'oscuro', 'claro'], ICONOS_TEMA = { auto: 'contrast', oscuro: 'dark_mode', claro: 'light_mode' };

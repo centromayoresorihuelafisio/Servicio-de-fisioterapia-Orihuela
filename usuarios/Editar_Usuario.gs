@@ -104,6 +104,6 @@ function actualizarPaciente(updatedData, idPaciente) {
 
   historialRegistrar_(historialCambiosEnFila_(headers, filaAntesHistorial, newRowValues), 'Editar usuario');
 
-  ss.toast("Datos actualizados y guardados en la hoja.", "Éxito ✅", 4);
+  ss.toast("Datos actualizados y guardados en la hoja.", "Éxito", 4);
   return true;
 }

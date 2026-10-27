@@ -7,7 +7,7 @@ function configurarMensajeWhatsapp() {
   const currentWhatsapp = scriptProperties.getProperty(PROP_KEYS.WHATSAPP_MESSAGE) || 'Hola, soy Fabio...';
   
   const promptWhatsapp = ui.prompt(
-    '⚙️ Configurar: Mensaje de WhatsApp',
+    'Configurar: Mensaje de WhatsApp',
     'Introduce el nuevo texto base para los envíos de WhatsApp:\n\n' +
     'Actual: "' + currentWhatsapp + '"',
     ui.ButtonSet.OK_CANCEL
@@ -17,7 +17,7 @@ function configurarMensajeWhatsapp() {
     const nuevoMsj = promptWhatsapp.getResponseText().trim();
     if (nuevoMsj !== '') {
       scriptProperties.setProperty(PROP_KEYS.WHATSAPP_MESSAGE, nuevoMsj);
-      SpreadsheetApp.getActiveSpreadsheet().toast("✅ Mensaje de WhatsApp actualizado.", "Configuración");
+      SpreadsheetApp.getActiveSpreadsheet().toast("Mensaje de WhatsApp actualizado.", "Configuración");
     }
   }
 }

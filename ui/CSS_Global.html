@@ -32,3 +32,14 @@
         --font: 'Google Sans', 'Segoe UI', Arial, sans-serif;
         --transition: 150ms cubic-bezier(.2,0,0,1);
       }
+
+      /* Iconos de los avisos (sustituyen a los emojis de los mensajes; los pone tonoAviso_/iconoAviso_ de ui/JS_Modal_Deshacer) */
+      .aviso-icono { line-height: 1; flex: none; }
+      .aviso-icono.ok { color: var(--md-success); }
+      .aviso-icono.aviso { color: var(--md-warning); }
+      .aviso-icono.error { color: var(--md-error); }
+      .modal-mensaje .aviso-icono { display: block; font-size: 28px; margin-bottom: .4rem; }
+      .toast-aviso .aviso-icono { font-size: 18px; margin-right: .45rem; vertical-align: -4px; }
+      .toast-aviso .aviso-icono.ok { color: #81c995; }
+      .toast-aviso .aviso-icono.aviso { color: #fdd663; }
+      .toast-aviso .aviso-icono.error { color: #fff; }

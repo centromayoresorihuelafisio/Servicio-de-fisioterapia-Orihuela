@@ -144,8 +144,9 @@ const COLUMNAS_NUM = {
 const PANELES_BAJO_DEMANDA = true;
 
 /**
- * Estados de un usuario (columna "Estado" de la Maestra). FUENTE ÚNICA: el texto lleva emoji y debe
- * coincidir exactamente con lo que hay escrito en las celdas de la hoja.
+ * Estados de un usuario (columna "Estado" de la Maestra). FUENTE ÚNICA: el texto va SIN emoji (desde el
+ * 27-oct-2026) y debe coincidir con lo que hay escrito en las celdas de la hoja. Para comparar con valores
+ * que aún pudieran llevar emoji, usar textoSinEmoji_ (core/Utils.gs).
  * - Servidor: se usa directamente (ESTADOS_PACIENTE.ALTA, ...).
  * - Cliente (HTML): las páginas lo reciben con <script> generado por incluirEstados() (core/WebApp.gs),
  *   y los archivos de las vistas lo leen como ESTADOS_PACIENTE.
@@ -153,14 +154,35 @@ const PANELES_BAJO_DEMANDA = true;
  */
 const ESTADOS_PACIENTE = (function () {
   const e = {
-    ACTIVO: "🟢 Activo",
-    EN_ESPERA: "🟡 En espera",
-    ALTA: "✔️ Alta",
-    CONTACTARA: "🕐 Contactará",
-    NO_RESPONDE: "🚫 No responde"
+    ACTIVO: "Activo",
+    EN_ESPERA: "En espera",
+    ALTA: "Alta",
+    CONTACTARA: "Contactará",
+    NO_RESPONDE: "No responde"
   };
   e.LISTA_EDICION = [e.ACTIVO, e.EN_ESPERA, e.CONTACTARA, e.NO_RESPONDE, e.ALTA];
   e.LISTA_NUEVO = [e.ACTIVO, e.EN_ESPERA, e.CONTACTARA];
   e.DEFECTO_NUEVO = e.EN_ESPERA;
   return e;
+})();
+
+/**
+ * Gravedad (columna "Gravedad" de la Maestra). FUENTE ÚNICA, sin emoji. En el navegador la define incluirEstados()
+ * (core/WebApp.gs) igual que ESTADOS_PACIENTE. Los rangos de la puntuación de gravedad viven en los formularios.
+ */
+const GRAVEDAD_PACIENTE = (function () {
+  const g = { LEVE: "Leve", MODERADO: "Moderado", URGENTE: "Urgente" };
+  g.LISTA = [g.LEVE, g.MODERADO, g.URGENTE];
+  return g;
+})();
+
+/**
+ * Tipo de ingreso (columna "Tipo de Ingreso" de la Maestra). FUENTE ÚNICA, sin emoji; en el navegador, igual que la
+ * Gravedad. Al dar el alta la celda se vacía (usuarios/Alta.gs).
+ */
+const TIPOS_INGRESO = (function () {
+  const t = { VOLANTE: "Volante", DERIVACION_PROPIA: "Derivación propia", ANTIGUO: "Antiguo paciente" };
+  t.LISTA = [t.VOLANTE, t.DERIVACION_PROPIA, t.ANTIGUO];
+  t.DEFECTO = t.VOLANTE;
+  return t;
 })();

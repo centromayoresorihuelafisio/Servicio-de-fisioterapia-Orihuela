@@ -158,7 +158,7 @@ function actualizarEstadoPorIdDesdeCitasWeb_(idPaciente, nuevoEstado, origen) {
     if (!fila) return false;
     const celda = hoja.getRange(fila, COLUMNAS_NUM.MAESTRA.ESTADO);
     const antes = celda.getValue();
-    if (String(antes).trim() === String(nuevoEstado).trim()) return 'igual';   // ya tenía ese Estado: no se escribe nada
+    if (textoSinEmoji_(antes) === textoSinEmoji_(nuevoEstado)) return 'igual';   // ya tenía ese Estado: no se escribe nada
     celda.setValue(nuevoEstado);
     historialRegistrar_([{ id: idPaciente, campo: COLUMNAS.MAESTRA.ESTADO, antes: antes, despues: nuevoEstado }], origen);
     return 'cambiado';
@@ -286,8 +286,8 @@ function copiarVariasDesdeCitasWeb_(items, forzar) {
     }
     if (!copiadas) return { success: false, message: errores.length ? 'No se pudo copiar ninguna cita:\n' + errores.join('\n') : 'No hay ninguna cita que copiar.' };
 
-    let mensaje = copiadas === 1 ? '✅ Cita de ' + nombreUnico + ' copiada correctamente.' : '✅ ' + copiadas + ' citas copiadas correctamente.';
-    if (errores.length) mensaje += '\n⚠️ ' + errores.length + ' no se pudieron copiar:\n' + errores.join('\n');
+    let mensaje = copiadas === 1 ? 'Cita de ' + nombreUnico + ' copiada correctamente.' : copiadas + ' citas copiadas correctamente.';
+    if (errores.length) mensaje += '\n' + errores.length + ' no se pudieron copiar:\n' + errores.join('\n');
     return { success: true, message: mensaje, copiadas: copiadas, errores: errores.length };
   } catch (e) {
     Logger.log('Error en copiarVariasDesdeCitasWeb_: ' + e.message);
@@ -388,7 +388,7 @@ function guardarCitasMultiplesDesdeCitasWeb_(formData) {
     let message = 'Registro exitoso de **' + r.creadas.length + '** cita(s).';
     message += '<br>Estado de **' + p.nombre + '** actualizado a **' + ESTADOS_PACIENTE.ACTIVO + '** e Historia Clínica vinculada.';
     if (r.errores && r.errores.length) {
-      message += '<br>⚠️ ' + r.errores.length + ' hora(s) no se pudieron guardar: ' + r.errores.map(function (e) { return lista[e.indice].fechaISO + ' ' + lista[e.indice].hora + ' (' + e.message + ')'; }).join('; ');
+      message += '<br>' + r.errores.length + ' hora(s) no se pudieron guardar: ' + r.errores.map(function (e) { return lista[e.indice].fechaISO + ' ' + lista[e.indice].hora + ' (' + e.message + ')'; }).join('; ');
     }
     return { success: true, message: message, ingresoRegistrado: ingresoRegistrado };
   } catch (e) {

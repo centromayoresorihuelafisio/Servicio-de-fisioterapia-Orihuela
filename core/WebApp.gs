@@ -70,11 +70,14 @@ function incluirPanel(archivo, global) {
 }
 
 /**
- * Entrega a la página los estados de usuario de core/Config.gs (ESTADOS_PACIENTE) como variable global del navegador.
- * Se pone UNA vez por página, antes de ui/JS_Ficha y de los paneles que lo usan.
+ * Entrega a la página los estados, la gravedad y los tipos de ingreso de core/Config.gs (ESTADOS_PACIENTE,
+ * GRAVEDAD_PACIENTE, TIPOS_INGRESO) como variables globales del navegador. Se pone UNA vez por página, antes de
+ * ui/JS_Ficha y de los paneles que las usan.
  */
 function incluirEstados() {
-  return '<script>var ESTADOS_PACIENTE = ' + JSON.stringify(ESTADOS_PACIENTE) + ';</script>';
+  return '<script>var ESTADOS_PACIENTE = ' + JSON.stringify(ESTADOS_PACIENTE) + ';' +
+    ' var GRAVEDAD_PACIENTE = ' + JSON.stringify(GRAVEDAD_PACIENTE) + ';' +
+    ' var TIPOS_INGRESO = ' + JSON.stringify(TIPOS_INGRESO) + ';</script>';
 }
 
 /** Devuelve el HTML de un panel (estilos, plantilla y script) para que el navegador lo monte al abrirlo. */
@@ -106,12 +109,12 @@ function prepararContexto_(template, contexto) {
  *   https://script.google.com/macros/s/AAAA.../exec?page=nuevoPaciente
  */
 const PAGINAS_WEB = {
-  citas:         { archivo: 'agenda/Cita_Vista',              titulo: 'Agenda de Citas',   icono: '📅' },
-  nuevoPaciente: { archivo: 'usuarios/Anadir_Usuario_Vista',    titulo: 'Nuevo Usuario',     icono: '🧍' },
-  baseDatos:     { archivo: 'usuarios/BaseDatos_Vista',                 titulo: 'Base de Datos',     icono: '🗂️' },
-  agenda:        { archivo: 'agenda/Web_Vista',                    titulo: 'Agenda',            icono: '🗓️' },
-  valoraciones:  { archivo: 'valoraciones/Web_Vista',              titulo: 'Valoraciones',      icono: '📈' },
-  dashboard:     { archivo: 'dashboard/Web_Vista',                 titulo: 'Dashboard',         icono: '📊' }
+  citas:         { archivo: 'agenda/Cita_Vista',              titulo: 'Agenda de Citas',   icono: 'event' },
+  nuevoPaciente: { archivo: 'usuarios/Anadir_Usuario_Vista',    titulo: 'Nuevo Usuario',     icono: 'person_add' },
+  baseDatos:     { archivo: 'usuarios/BaseDatos_Vista',                 titulo: 'Base de Datos',     icono: 'folder_shared' },
+  agenda:        { archivo: 'agenda/Web_Vista',                    titulo: 'Agenda',            icono: 'calendar_month' },
+  valoraciones:  { archivo: 'valoraciones/Web_Vista',              titulo: 'Valoraciones',      icono: 'monitoring' },
+  dashboard:     { archivo: 'dashboard/Web_Vista',                 titulo: 'Dashboard',         icono: 'dashboard' }
 };
 
 function doGet(e) {
@@ -181,7 +184,7 @@ function construirIndiceWeb() {
   const enlaces = Object.keys(PAGINAS_WEB).map(key => {
     const p = PAGINAS_WEB[key];
     return `<a class="item" href="${baseUrl}?page=${key}" target="_top">
-              <span class="icono">${p.icono}</span>
+              <span class="icono material-symbols-outlined">${p.icono}</span>
               <span>${p.titulo}</span>
             </a>`;
   }).join('');
@@ -193,6 +196,7 @@ function construirIndiceWeb() {
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1">
       <title>Gestión Clínica</title>
+      <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL@20..48,300..700,0..1&display=block" rel="stylesheet">
       <style>
         body { font-family: system-ui, sans-serif; background:#f2f5f8; margin:0; padding:2rem 1rem; }
         h1 { font-size:1.25rem; text-align:center; margin-bottom:1.5rem; color:#1b1c1e; }
@@ -204,7 +208,7 @@ function construirIndiceWeb() {
           font-size:1rem; font-weight:500; box-shadow:0 1px 3px rgba(0,0,0,.06);
         }
         .item:active { background:#eaedf1; }
-        .icono { font-size:1.4rem; }
+        .icono { font-size:1.5rem; color:#2b5c75; }
       </style>
     </head>
     <body>

@@ -223,8 +223,15 @@ window.PanelEditar = {
     var btnVolver = q('.pe-volver'), btnConfirmar = q('.pe-confirmar');
 
     var OPCIONES_ESTADO    = ESTADOS_PACIENTE.LISTA_EDICION.slice();
-    var OPCIONES_GRAVEDAD  = ["🟢 Leve", "🟠 Moderado", "🔴 Urgente"];
-    var OPCIONES_INGRESO   = ["📄 Volante", "🔁 Derivación propia", "🕰️ Antiguo paciente"];
+    var OPCIONES_GRAVEDAD  = GRAVEDAD_PACIENTE.LISTA.slice();
+    var OPCIONES_INGRESO   = TIPOS_INGRESO.LISTA.slice();
+    // Una celda que aún llevara emoji ("🟢 Leve") se reconoce como su opción sin emoji ("Leve").
+    function sinEmojiTxt(t) { var s = String(t || '').trim(); return s.replace(/^[^\p{L}\p{N}]+/u, '').trim() || s; }
+    function opcionDe(val, opciones) {
+      var n = sinEmojiTxt(val).toLowerCase();
+      for (var i = 0; i < opciones.length; i++) if (sinEmojiTxt(opciones[i]).toLowerCase() === n) return opciones[i];
+      return val;
+    }
     var OPCIONES_PATOLOGIA = ["MS","MI","Dolor Crónico","Cervicalgia","Dorsalgia","Lumbalgia","Omalgia","Coxalgia","Gonalgia","Tendinopatía","Fascitis Plantar","Traumatismo","Caída","Fractura","Luxación","Esguince","Prótesis Hombro","Prótesis Rodilla","Estabilidad","Debilidad Muscular","Limitación Funcional","Alteración Marcha","Hernia Discal","Radiculopatía MS","Radiculopatía MI","Estenosis Medular","Parkinson","Esclerosis","Ictus","Linfedema","Cardiopatía","Enfermedad Respiratoria","Cáncer","Otro"];
     var SECCIONES = [
       { name: "Datos Personales",       fields: ["Nombre","DNI","Fecha nacimiento","Fecha inscripción"] },
@@ -323,9 +330,9 @@ window.PanelEditar = {
           var idSuffix = h.replace(/\s/g, "");
           var icon = iconFor(h);
           html += '<div><div class="field">';
-          if (h === "Estado")                     html += desplegableUnico(h, idSuffix, icon, val, OPCIONES_ESTADO);
-          else if (h === "Gravedad")              html += desplegableUnico(h, idSuffix, icon, val, OPCIONES_GRAVEDAD);
-          else if (h.indexOf("Ingreso") !== -1)   html += desplegableUnico(h, idSuffix, icon, val, OPCIONES_INGRESO);
+          if (h === "Estado")                     html += desplegableUnico(h, idSuffix, icon, opcionDe(val, OPCIONES_ESTADO), OPCIONES_ESTADO);
+          else if (h === "Gravedad")              html += desplegableUnico(h, idSuffix, icon, opcionDe(val, OPCIONES_GRAVEDAD), OPCIONES_GRAVEDAD);
+          else if (h.indexOf("Ingreso") !== -1)   html += desplegableUnico(h, idSuffix, icon, opcionDe(val, OPCIONES_INGRESO), OPCIONES_INGRESO);
           else if (h.indexOf("Patología") !== -1) html += desplegableMultiple(h, idSuffix, icon, val.toString().split(",").map(function (s) { return s.trim(); }));
           else                                    html += campoTexto(h, idSuffix, icon, val, isDate, isReadOnly);
           html += '</div></div>';

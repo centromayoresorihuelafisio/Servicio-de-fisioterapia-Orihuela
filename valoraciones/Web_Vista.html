@@ -524,6 +524,7 @@
           // Con el formulario abierto, Esc lo cierra (pidiendo confirmación si hay cambios) y vuelve a la ficha
           if (formularioActivo) { volverDeFormulario(); return; }
           if (pacienteSeleccionado) cerrarDetalle();
+          else limpiarBusqueda();   // nada más que cerrar: Esc vacía la búsqueda
           return;
         }
         var enCampo = /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName);
@@ -811,7 +812,9 @@
         var t = document.createElement('div'), error = /^error|no se pudo|no se pudieron|bloqueado/i.test(m);
         t.className = 'toast-aviso' + (error ? ' error' : '');
         t.setAttribute('role', 'status');
-        t.textContent = m;
+        var tono = error ? 'error' : tonoAviso_(m);
+        if (tono) t.appendChild(iconoAviso_(tono));
+        t.appendChild(document.createTextNode(m));
         contenedorToasts.appendChild(t);
         setTimeout(function() { t.classList.add('saliendo'); setTimeout(function() { t.remove(); }, 260); }, error ? 6000 : 3800);
         return Promise.resolve(true);
@@ -865,6 +868,23 @@
       document.getElementById('inputBusqueda').addEventListener('input', function() {
         clearTimeout(temporizadorBusqueda);
         temporizadorBusqueda = setTimeout(render, 150);
+      });
+
+      // Esc vacía la búsqueda. Devuelve true si había texto.
+      function limpiarBusqueda() {
+        var inp = document.getElementById('inputBusqueda');
+        clearTimeout(temporizadorBusqueda);
+        if (!inp.value) return false;
+        inp.value = '';
+        render();
+        return true;
+      }
+      // Con el cursor en la búsqueda: Esc la vacía y suelta el foco, sin cerrar el detalle que haya detrás.
+      document.getElementById('inputBusqueda').addEventListener('keydown', function(e) {
+        if (e.key !== 'Escape') return;
+        e.stopPropagation();
+        limpiarBusqueda();
+        this.blur();
       });
 
       // ---------- Tema: automático / oscuro / claro (compartido con las otras pestañas) ----------

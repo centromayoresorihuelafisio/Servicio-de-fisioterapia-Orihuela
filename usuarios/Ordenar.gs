@@ -45,6 +45,23 @@ function ordenarPacientes() {
   const now = new Date();
   const MS_POR_DIA = 1000 * 60 * 60 * 24;
 
+  // Las etiquetas se comparan sin emoji (textoSinEmoji_): vale igual para celdas antiguas ("🟢 Activo") y nuevas ("Activo").
+  const clave = (v) => textoSinEmoji_(v).toLowerCase();
+  const PUNTOS_ESTADO = {};
+  PUNTOS_ESTADO[clave(ESTADOS_PACIENTE.ACTIVO)] = 5000;
+  PUNTOS_ESTADO[clave(ESTADOS_PACIENTE.EN_ESPERA)] = 4000;
+  PUNTOS_ESTADO[clave(ESTADOS_PACIENTE.ALTA)] = 3000;
+  PUNTOS_ESTADO[clave(ESTADOS_PACIENTE.CONTACTARA)] = 2000;
+  PUNTOS_ESTADO[clave(ESTADOS_PACIENTE.NO_RESPONDE)] = 1000;
+  const PUNTOS_INGRESO = {};
+  PUNTOS_INGRESO[clave(TIPOS_INGRESO.VOLANTE)] = 200;
+  PUNTOS_INGRESO[clave(TIPOS_INGRESO.DERIVACION_PROPIA)] = 200;
+  PUNTOS_INGRESO[clave(TIPOS_INGRESO.ANTIGUO)] = 100;
+  const PUNTOS_GRAVEDAD = {};
+  PUNTOS_GRAVEDAD[clave(GRAVEDAD_PACIENTE.LEVE)] = 10;
+  PUNTOS_GRAVEDAD[clave(GRAVEDAD_PACIENTE.MODERADO)] = 20;
+  PUNTOS_GRAVEDAD[clave(GRAVEDAD_PACIENTE.URGENTE)] = 30;
+
   // Cálculo de scores en memoria; los guardamos ya en la propia matriz
   // `data` (columna 1) para no necesitar una escritura aparte.
   for (let i = 1; i < data.length; i++) {
@@ -56,32 +73,18 @@ function ordenarPacientes() {
       continue;
     }
 
-    const estado = estadoRaw.toString().trim();
-    const esAlta = estado === ESTADOS_PACIENTE.ALTA;
-    const ingreso = row[idxIngreso].toString().trim();
-    const gravedad = row[idxGravedad].toString().trim();
+    const estado = clave(estadoRaw);
+    const esAlta = estado === clave(ESTADOS_PACIENTE.ALTA);
+    const ingreso = clave(row[idxIngreso]);
+    const gravedad = clave(row[idxGravedad]);
     const fechaUlt = parseFecha(row[idxUltimaVisita]);
     const fechaIns = parseFecha(row[idxFechaInscripcion]);
 
     let score = 0;
 
-    switch (estado) {
-      case ESTADOS_PACIENTE.ACTIVO: score += 5000; break;
-      case ESTADOS_PACIENTE.EN_ESPERA: score += 4000; break;
-      case ESTADOS_PACIENTE.ALTA: score += 3000; break;
-      case ESTADOS_PACIENTE.CONTACTARA: score += 2000; break;
-      case ESTADOS_PACIENTE.NO_RESPONDE: score += 1000; break;
-    }
-
-    if (ingreso === "📄 Volante" || ingreso === "🔁 Derivación propia") {
-      score += 200;
-    } else if (ingreso === "🕰️ Antiguo paciente") {
-      score += 100;
-    }
-
-    if (gravedad === "🟢 Leve") score += 10;
-    if (gravedad === "🟠 Moderado") score += 20;
-    if (gravedad === "🔴 Urgente") score += 30;
+    score += PUNTOS_ESTADO[estado] || 0;
+    score += PUNTOS_INGRESO[ingreso] || 0;
+    score += PUNTOS_GRAVEDAD[gravedad] || 0;
 
     // Desempate por fechas:
     //  - Si NO está de alta y tiene fecha de inscripción: cuenta el tiempo
@@ -127,5 +130,5 @@ function ordenarPacientes() {
     sheet.getRange(2, idxHistoria + 1, numFilas, 1).setRichTextValues(newRichText);
   }
 
-  ss.toast("Usuarios ordenados correctamente", "✅ Completado", 6);
+  ss.toast("Usuarios ordenados correctamente", "Completado", 6);
 }

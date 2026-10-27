@@ -38,6 +38,7 @@
 }
 .pc .ms { font-family: 'Material Symbols Outlined'; font-weight: 400; font-style: normal; font-size: 20px; line-height: 1; letter-spacing: normal; text-transform: none; display: inline-block; white-space: nowrap; direction: ltr; font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20; user-select: none; flex-shrink: 0; color: var(--md-on-surface-med); }
 .pc .ms-sm { font-size: 16px; }
+.pc .pc-msg .pc-msg-ic { color: inherit; vertical-align: -5px; margin-right: .45rem; }
 .pc .pc-scroll { flex: 1; min-height: 0; overflow: auto; }
 
 /* ── Secciones ── */
@@ -269,8 +270,10 @@ window.PanelCita = {
     function setFieldValue(inputEl, value) { inputEl.value = value; checkInputValue(inputEl); }
 
     /* ── Mensajes ── */
-    function mostrarFeedback(message, isSuccess) {
-      msgBox.innerHTML = message;
+    // `icono`: nombre de un Material Symbol; sin él, un error lleva «error» y un acierto no lleva ninguno.
+    function mostrarFeedback(message, isSuccess, icono) {
+      if (icono === undefined) icono = isSuccess ? '' : 'error';
+      msgBox.innerHTML = (icono ? '<span class="ms pc-msg-ic">' + icono + '</span>' : '') + message;
       msgBox.className = 'pc-msg ' + (isSuccess ? 'success' : 'error');
       if (timerMsg) clearTimeout(timerMsg);
       if (isSuccess) timerMsg = setTimeout(function () { msgBox.className = 'pc-msg'; }, 6000);
@@ -464,11 +467,11 @@ window.PanelCita = {
           if (name && name !== 'HEADER_ROW' && name !== 'NOT_FOUND') {
             currentUserName = name; currentUserPhone = phone;
             setFieldValue(telefonoUsuarioInput, phone);
-            mostrarFeedback('Cita para: <strong></strong>', true);
+            mostrarFeedback('Cita para: <strong></strong>', true, 'person');
             msgBox.querySelector('strong').textContent = name;
           } else {
             currentUserName = '';
-            mostrarFeedback(name === 'HEADER_ROW' ? '🛑 Por favor, selecciona un paciente de la lista.' : 'Selecciona un paciente para registrar su cita.', false);
+            mostrarFeedback(name === 'HEADER_ROW' ? 'Por favor, selecciona un paciente de la lista.' : 'Selecciona un paciente para registrar su cita.', false);
           }
           inicial = { nombre: currentUserName, tel: telefonoUsuarioInput.value.trim() };
           updateSaveButtonState();
@@ -500,14 +503,14 @@ window.PanelCita = {
     function enviarCita() {
       if (!currentUserName) {
         q('.pc-f-paciente').classList.add('has-error');
-        mostrarFeedback('🛑 Selecciona un paciente válido desde la lista autocompletable.', false);
+        mostrarFeedback('Selecciona un paciente válido desde la lista autocompletable.', false);
         return;
       }
       toggleLoading(true);
       google.script.run
         .withSuccessHandler(function (res) {
           toggleLoading(false);
-          mostrarFeedback(res.success ? '✅ ' + res.message : '⚠️ ' + res.message, res.success);
+          mostrarFeedback(res.message, res.success, res.success ? (/no se pudieron guardar/.test(res.message) ? 'warning' : 'check_circle') : 'error');
           if (res.success) {
             setFieldValue(numSesionInput, '');
             setFieldValue(notasTextarea, '');

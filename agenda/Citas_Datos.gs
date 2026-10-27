@@ -490,8 +490,8 @@ function citasEliminar_(idsCita) {
       if (filas.indexOf(pos + 2) === -1) { filas.push(pos + 2); snapshots.push(c); }
     });
     filas.sort((a, b) => b - a).forEach(fila => ctx.hoja.deleteRow(fila));   // de abajo arriba para que no se muevan las pendientes
-    let message = snapshots.length === 1 ? '✅ Cita eliminada correctamente.' : '✅ ' + snapshots.length + ' citas eliminadas correctamente.';
-    if (errores.length) message += '\n⚠️ ' + errores.length + ' no se pudieron eliminar:\n' + errores.join('\n');
+    let message = snapshots.length === 1 ? 'Cita eliminada correctamente.' : snapshots.length + ' citas eliminadas correctamente.';
+    if (errores.length) message += '\n' + errores.length + ' no se pudieron eliminar:\n' + errores.join('\n');
     return { success: snapshots.length > 0, message: snapshots.length ? message : errores.join('\n'), eliminadas: snapshots.length, snapshots: snapshots };
   });
 }
@@ -512,7 +512,7 @@ function citasRestaurar_(snapshots) {
     });
     citasEscribirFilas_(ctx, aEscribir);
     let message = aEscribir.length ? 'Cita(s) restaurada(s) correctamente.' : 'No se pudo restaurar nada.';
-    if (errores.length) message += '\n⚠️ ' + errores.join('\n');
+    if (errores.length) message += '\n' + errores.join('\n');
     return { success: aEscribir.length > 0, message: message, restauradas: aEscribir.length };
   });
 }

@@ -77,7 +77,7 @@ function historialRegistrar_(cambios, origen) {
       const id = historialTexto_(c.id);
       if (!id) { Logger.log('Historial: cambio sin ID paciente (' + c.campo + '), no registrado.'); return; }
       const antes = historialTexto_(c.antes), despues = historialTexto_(c.despues);
-      if (antes === despues) return;
+      if (textoSinEmoji_(antes) === textoSinEmoji_(despues)) return;   // solo cambia el emoji (celdas antiguas): no es un cambio
       filas.push([id, ahora, c.campo, antes, despues, origen || '']);
     });
     if (!filas.length) return 0;
@@ -229,7 +229,7 @@ function verificarHistorialEstado() {
     columnas.forEach(c => {
       const actual = historialTexto_(datos[r][c.i]), u = ultimo[id + '|' + c.campo];
       if (!u && actual) problemas.push(historialTexto_(datos[r][iNombre]) + ' · ' + c.campo + ': sin historial (hoja: "' + actual + '")');
-      else if (u && u.valor !== actual) problemas.push(historialTexto_(datos[r][iNombre]) + ' · ' + c.campo + ': historial "' + u.valor + '" ≠ hoja "' + actual + '"');
+      else if (u && textoSinEmoji_(u.valor) !== textoSinEmoji_(actual)) problemas.push(historialTexto_(datos[r][iNombre]) + ' · ' + c.campo + ': historial "' + u.valor + '" ≠ hoja "' + actual + '"');
     });
   }
   const idsHuerfanos = Object.keys(idsConHistorial).filter(id => !idsMaestra[id]).length;

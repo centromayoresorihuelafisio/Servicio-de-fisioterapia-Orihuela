@@ -1,10 +1,35 @@
-// ---------- Modal propio (sustituye a alert()/confirm()) ----------
+// ---------- Icono de los avisos (sustituye a los emojis de los mensajes del servidor) ----------
+      // Deduce el tono por el TEXTO (la primera línea manda): 'error' (falló), 'ok' (hecho), 'aviso' (hecho, pero alguna
+      // parte falló: se nota en las líneas siguientes) o '' (mensaje neutro: sin icono).
+      var AVISO_MALO_ = /^error|no se pudo|no se pudieron|no se encontr|no se ha anotado|no se anot[oó]|no es una ficha|no es v[aá]lido|est[aá] ocupad|bloquead/i;
+      var AVISO_PARCIAL_ = /no se pudo|no se pudieron|no se encontr|no se ha anotado|no se anot[oó]|no es una ficha|no es v[aá]lido|est[aá] ocupad|ya existe|no existe|no tiene los datos/i;
+      var AVISO_BIEN_ = /correcta|correctamente|guardad|actualizad|restaurad|copiad|registrad|eliminad|liberad|cambiado/i;
+      function tonoAviso_(mensaje) {
+        var lineas = String(mensaje === null || mensaje === undefined ? '' : mensaje).split('\n').filter(function(l) { return l.trim(); });
+        if (!lineas.length) return '';
+        if (AVISO_MALO_.test(lineas[0])) return 'error';
+        if (!AVISO_BIEN_.test(lineas[0])) return '';
+        return lineas.slice(1).some(function(l) { return AVISO_PARCIAL_.test(l); }) ? 'aviso' : 'ok';
+      }
+      function iconoAviso_(tono) {
+        var s = document.createElement('span');
+        s.className = 'material-symbols-outlined aviso-icono ' + tono;
+        s.setAttribute('aria-hidden', 'true');
+        s.textContent = tono === 'error' ? 'error' : (tono === 'aviso' ? 'warning' : 'check_circle');
+        return s;
+      }
+
+      // ---------- Modal propio (sustituye a alert()/confirm()) ----------
       function mostrarDialogo(mensaje, conCancelar) {
         return new Promise(function(resolve) {
           var overlay = document.getElementById('modalOverlay');
           var btnCancelar = document.getElementById('modalBtnCancelar');
           var btnAceptar = document.getElementById('modalBtnAceptar');
-          document.getElementById('modalMensaje').textContent = mensaje;
+          var cajaMensaje = document.getElementById('modalMensaje');
+          cajaMensaje.textContent = '';
+          var tonoDialogo = conCancelar ? '' : tonoAviso_(mensaje);
+          if (tonoDialogo) cajaMensaje.appendChild(iconoAviso_(tonoDialogo));
+          cajaMensaje.appendChild(document.createTextNode(mensaje));
           btnCancelar.style.display = conCancelar ? 'inline-flex' : 'none';
           overlay.classList.add('visible');
 

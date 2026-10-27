@@ -462,6 +462,7 @@
     }
     #messageBox.success { background: var(--md-success-container); color: var(--md-success); border-left: 5px solid var(--md-success); }
     #messageBox.error { background: var(--md-error-container); color: var(--md-error); border-left: 5px solid var(--md-error); }
+    #messageBox .ms { color: inherit; vertical-align: -5px; margin-right: .5rem; }
 
     /* ── Animaciones M3 ── */
     @keyframes md-fade-down { from { opacity: 0; transform: translateY(-16px); } to { opacity: 1; transform: translateY(0); } }
@@ -693,9 +694,11 @@
     document.getElementById('badgeDate').textContent = new Date().toLocaleDateString('es-ES', { weekday:'short', day:'numeric', month:'short', year:'numeric' });
 
     // ── Mostrar feedback / alertas M3 ──
-    function mostrarFeedback(message, isSuccess) {
+    // `icono`: nombre de un Material Symbol; sin él, un error lleva «error» y un acierto no lleva ninguno.
+    function mostrarFeedback(message, isSuccess, icono) {
+      if (icono === undefined) icono = isSuccess ? '' : 'error';
       msgBox.style.display = 'block';
-      msgBox.innerHTML = message;
+      msgBox.innerHTML = (icono ? '<span class="ms">' + icono + '</span>' : '') + message;
       msgBox.className = isSuccess ? 'success' : 'error';
       
       // Auto-ocultar si todo fue exitoso
@@ -917,10 +920,10 @@
             currentUserName  = name;
             currentUserPhone = phone;
             setFieldValue(telefonoUsuarioInput, phone);
-            mostrarFeedback(`Cita para: <strong>${name}</strong>`, true);
+            mostrarFeedback(`Cita para: <strong>${name}</strong>`, true, 'person');
           } else {
             currentUserName = '';
-            const msg = name === 'HEADER_ROW' ? '🛑 Por favor, selecciona un paciente de la lista.' : 'Selecciona un paciente para registrar su cita.';
+            const msg = name === 'HEADER_ROW' ? 'Por favor, selecciona un paciente de la lista.' : 'Selecciona un paciente para registrar su cita.';
             mostrarFeedback(msg, false);
           }
           updateSaveButtonState();
@@ -958,7 +961,7 @@
       // Validaciones estéticas M3
       if (!currentUserName) { 
         document.getElementById('field-paciente').classList.add('has-error');
-        mostrarFeedback('🛑 Selecciona un paciente válido desde la lista autocompletable.', false); 
+        mostrarFeedback('Selecciona un paciente válido desde la lista autocompletable.', false); 
         return; 
       }
 
@@ -971,7 +974,7 @@
       google.script.run
         .withSuccessHandler(res => {
           toggleLoading(false);
-          mostrarFeedback(res.success ? `✅ ${res.message}` : `⚠️ ${res.message}`, res.success);
+          mostrarFeedback(res.message, res.success, res.success ? (/no se pudieron guardar/.test(res.message) ? 'warning' : 'check_circle') : 'error');
           if (res.success) { 
             setFieldValue(numSesionInput, ''); 
             setFieldValue(notasTextarea, ''); 

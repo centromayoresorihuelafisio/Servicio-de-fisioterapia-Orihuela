@@ -218,12 +218,12 @@ window.PanelNuevo = {
     opts = opts || {};
     var PATOLOGIAS = ["MS","MI","Dolor Crónico","Cervicalgia","Dorsalgia","Lumbalgia","Omalgia","Coxalgia","Gonalgia","Tendinopatía","Fascitis Plantar","Traumatismo","Caída","Fractura","Luxación","Esguince","Prótesis Hombro","Prótesis Rodilla","Estabilidad","Debilidad Muscular","Limitación Funcional","Alteración Marcha","Hernia Discal","Radiculopatía MS","Radiculopatía MI","Estenosis Medular","Parkinson","Esclerosis","Ictus","Linfedema","Cardiopatía","Enfermedad Respiratoria","Cáncer","Otro"];
     var SEVERITY_MAP = [
-      { label: '🟢 Leve', cls: 'leve', min: 0, max: 3 },
-      { label: '🟠 Moderado', cls: 'moderado', min: 4, max: 6 },
-      { label: '🔴 Urgente', cls: 'urgente', min: 7, max: 9 }
+      { label: GRAVEDAD_PACIENTE.LEVE, cls: 'leve', min: 0, max: 3 },
+      { label: GRAVEDAD_PACIENTE.MODERADO, cls: 'moderado', min: 4, max: 6 },
+      { label: GRAVEDAD_PACIENTE.URGENTE, cls: 'urgente', min: 7, max: 9 }
     ];
     var ESTADOS = ESTADOS_PACIENTE.LISTA_NUEVO.slice(), ESTADO_DEF = ESTADOS_PACIENTE.DEFECTO_NUEVO;
-    var INGRESOS = ["📄 Volante", "🔁 Derivación propia", "🕰️ Antiguo paciente"], INGRESO_DEF = "📄 Volante";
+    var INGRESOS = TIPOS_INGRESO.LISTA.slice(), INGRESO_DEF = TIPOS_INGRESO.DEFECTO;
 
     function hoyLocal() {
       var d = new Date(), m = String(d.getMonth() + 1).padStart(2, '0'), dd = String(d.getDate()).padStart(2, '0');
@@ -699,16 +699,16 @@ window.PanelNuevo = {
               google.script.run
                 .withSuccessHandler(function (r) {
                   guardando = false;
-                  if (r && r.success) console.log('✅ Historia clínica:', r.url);
+                  if (r && r.success) console.log('Historia clínica creada:', r.url);
                   else {
-                    console.error('❌', r && r.message);
+                    console.error('No se pudo crear la historia clínica:', r && r.message);
                     mostrarMsg('Usuario guardado, pero no se pudo crear la historia clínica: ' + ((r && r.message) || 'error desconocido') + ' Puedes crearla desde su ficha.', 'error');
                   }
                   avisarGuardado(r && r.success ? 300 : 3500);
                 })
                 .withFailureHandler(function (err) {
                   guardando = false;
-                  console.error('❌', err);
+                  console.error('No se pudo crear la historia clínica:', err);
                   mostrarMsg('Usuario guardado, pero no se pudo crear la historia clínica: ' + (err && err.message ? err.message : err) + ' Puedes crearla desde su ficha.', 'error');
                   avisarGuardado(3500);
                 })

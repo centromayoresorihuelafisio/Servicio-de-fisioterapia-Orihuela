@@ -69,7 +69,7 @@ function _ejecutarAltaEnFila(sheet, activeRow) {
 
   const estadoActual = estadoRange.getValue();
   const tipoIngresoAntes = tipoIngresoRange.getValue();   // para el historial (CONTEXTO.md, sección 11, paso 4)
-  if (estadoActual === ESTADOS_PACIENTE.ALTA) {
+  if (textoSinEmoji_(estadoActual) === ESTADOS_PACIENTE.ALTA) {
     return { success: false, message: "El usuario ya está dado de alta." };
   }
 
@@ -93,7 +93,7 @@ function _ejecutarAltaEnFila(sheet, activeRow) {
     ultimaVisitaMsg = "Fecha actualizada.";
   }
 
-  let finalMessage = "✅ Alta correcta.";
+  let finalMessage = "Alta correcta.";
   if (ultimaVisitaMsg) finalMessage += "\n" + ultimaVisitaMsg;
 
   if (isDocUpdatePossible) {
@@ -125,9 +125,9 @@ function _ejecutarAltaEnFila(sheet, activeRow) {
       // HC en la ficha web → la fecha de alta va al episodio abierto de "Episodios HC".
       finalMessage += "\n\n" + (hcEsFichaWeb_(docUrl)
         ? hcAltaEnHoja_(docUrl)
-        : "⚠️ El enlace de la Historia Clínica no es una ficha web (es un documento antiguo): la fecha de alta no se ha anotado en la HC.");
+        : "El enlace de la Historia Clínica no es una ficha web (es un documento antiguo): la fecha de alta no se ha anotado en la HC.");
     } else {
-      finalMessage += "\n\n⚠️ No se encontró una URL válida de Historia Clínica (hipervínculo) para actualizar.";
+      finalMessage += "\n\nNo se encontró una URL válida de Historia Clínica (hipervínculo) para actualizar.";
     }
   }
 

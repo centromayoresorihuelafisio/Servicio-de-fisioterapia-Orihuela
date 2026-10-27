@@ -1221,12 +1221,12 @@
 
           <!-- Tipo de ingreso convertido a dropdown MD3 custom de selección única -->
           <div class="field">
-            <input type="hidden" id="tipoIngreso" name="Tipo de Ingreso" value="📄 Volante">
+            <input type="hidden" id="tipoIngreso" name="Tipo de Ingreso" value="<?= TIPOS_INGRESO.DEFECTO ?>">
             <div class="multiselect" id="ms_tipoIngreso">
               <div class="ms-toggle has-value" id="toggle_tipoIngreso" tabindex="0" role="button" aria-haspopup="listbox" aria-expanded="false" aria-label="Seleccionar tipo de ingreso">
                 <div class="ms-leading"><span class="ms">login</span></div>
                 <span class="ms-label">Tipo de ingreso</span>
-                <span class="ms-display">📄 Volante</span>
+                <span class="ms-display"><?= TIPOS_INGRESO.DEFECTO ?></span>
                 <div class="ms-trailing"><span class="ms">expand_more</span></div>
               </div>
               <div class="ms-menu" id="menu_tipoIngreso" role="listbox"></div>
@@ -1465,9 +1465,9 @@
     const PATOLOGIAS = ["MS","MI","Dolor Crónico","Cervicalgia","Dorsalgia","Lumbalgia","Omalgia","Coxalgia","Gonalgia","Tendinopatía","Fascitis Plantar","Traumatismo","Caída","Fractura","Luxación","Esguince","Prótesis Hombro","Prótesis Rodilla","Estabilidad","Debilidad Muscular","Limitación Funcional","Alteración Marcha","Hernia Discal","Radiculopatía MS","Radiculopatía MI","Estenosis Medular","Parkinson","Esclerosis","Ictus","Linfedema","Cardiopatía","Enfermedad Respiratoria","Cáncer","Otro"];
 
     const SEVERITY_MAP = [
-      { label: '🟢 Leve',     cls: 'leve',     min: 0, max: 3 },
-      { label: '🟠 Moderado', cls: 'moderado', min: 4, max: 6 },
-      { label: '🔴 Urgente',  cls: 'urgente',  min: 7, max: 9 },
+      { label: <?!= JSON.stringify(GRAVEDAD_PACIENTE.LEVE) ?>,     cls: 'leve',     min: 0, max: 3 },
+      { label: <?!= JSON.stringify(GRAVEDAD_PACIENTE.MODERADO) ?>, cls: 'moderado', min: 4, max: 6 },
+      { label: <?!= JSON.stringify(GRAVEDAD_PACIENTE.URGENTE) ?>,  cls: 'urgente',  min: 7, max: 9 },
     ];
 
     // ── Normalizador global de texto para búsquedas (remueve acentos, mayúsculas y espacios innecesarios) ──
@@ -1724,7 +1724,7 @@
     buildMultiselect('menu1','toggle1','Patología 1','items1');
     buildMultiselect('menu2','toggle2','Patología 2','items2');
     buildSingleSelect('menu_estado', 'toggle_estado', 'estado', <?!= JSON.stringify(ESTADOS_PACIENTE.LISTA_NUEVO) ?>, <?!= JSON.stringify(ESTADOS_PACIENTE.DEFECTO_NUEVO) ?>);
-    buildSingleSelect('menu_tipoIngreso', 'toggle_tipoIngreso', 'tipoIngreso', ["📄 Volante", "🔁 Derivación propia", "🕰️ Antiguo paciente"], "📄 Volante");
+    buildSingleSelect('menu_tipoIngreso', 'toggle_tipoIngreso', 'tipoIngreso', <?!= JSON.stringify(TIPOS_INGRESO.LISTA) ?>, <?!= JSON.stringify(TIPOS_INGRESO.DEFECTO) ?>);
 
     // Manejador global para cerrar menús al hacer clic fuera de ellos
     document.addEventListener('click', (e) => {
@@ -1736,8 +1736,8 @@
     function generarHistoriaClinicaRegistroUsuario(datosPaciente) {
       if (typeof google !== 'undefined' && typeof google.script.run !== 'undefined') {
         google.script.run
-          .withSuccessHandler(r => { if(r.success) console.log("✅ Historia clínica:", r.url); else console.error("❌", r.message); })
-          .withFailureHandler(err => console.error("❌", err))
+          .withSuccessHandler(r => { if(r.success) console.log("Historia clínica creada:", r.url); else console.error("No se pudo crear la historia clínica:", r.message); })
+          .withFailureHandler(err => console.error("No se pudo crear la historia clínica:", err))
           .generarHistoriaClinicaRegistroUsuario(datosPaciente);
       }
     }
@@ -1868,8 +1868,8 @@
               // Resetea Estado y Tipo Ingreso
               document.getElementById('estado').value = <?!= JSON.stringify(ESTADOS_PACIENTE.DEFECTO_NUEVO) ?>;
               document.getElementById('toggle_estado').querySelector('.ms-display').textContent = <?!= JSON.stringify(ESTADOS_PACIENTE.DEFECTO_NUEVO) ?>;
-              document.getElementById('tipoIngreso').value = "📄 Volante";
-              document.getElementById('toggle_tipoIngreso').querySelector('.ms-display').textContent = "📄 Volante";
+              document.getElementById('tipoIngreso').value = <?!= JSON.stringify(TIPOS_INGRESO.DEFECTO) ?>;
+              document.getElementById('toggle_tipoIngreso').querySelector('.ms-display').textContent = <?!= JSON.stringify(TIPOS_INGRESO.DEFECTO) ?>;
 
               chip.className = 'sev-chip'; chip.textContent = 'Completa la evaluación';
               document.getElementById('severityRow').classList.remove('filled');
