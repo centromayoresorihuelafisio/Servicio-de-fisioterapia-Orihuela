@@ -13,6 +13,19 @@
   .gr-l3 { stroke: var(--md-purple); }  .gr-l4 { stroke: var(--md-error); }   .gr-l5 { stroke: var(--md-on-surface-low); }
   .gr-linea { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
   .gr-futuro { opacity: .35; }
+  .gr-area { stroke: none; opacity: .13; }   /* área suave bajo las líneas (la exportación la hereda: opacity y fill se incrustan) */
+  /* Animación de entrada, solo en pantalla y solo la primera vez que se dibuja cada gráfico: dibujar() añade .gr-entra al svg y se la quita
+     al terminar. paraExportar() dibuja con las mismas funciones pero nunca añade esa clase, así que un PNG no puede capturar una animación a medias. */
+  @keyframes gr-sube { from { transform: scaleY(0); } }
+  @keyframes gr-crece { from { transform: scaleX(0); } }
+  @keyframes gr-traza { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+  @keyframes gr-aparece { from { opacity: 0; } }
+  .gr-entra .gr-barra { transform-box: fill-box; transform-origin: 50% 100%; animation: gr-sube .6s cubic-bezier(.2, .7, .2, 1) backwards; animation-delay: calc(var(--k, 0) * 30ms); }
+  .gr-entra .gr-barraH { transform-box: fill-box; transform-origin: 0 50%; animation: gr-crece .6s cubic-bezier(.2, .7, .2, 1) backwards; animation-delay: calc(var(--k, 0) * 40ms); }
+  .gr-entra .gr-linea { stroke-dasharray: 1; animation: gr-traza 1s ease-out backwards; }
+  .gr-entra .gr-area { animation: gr-aparece .6s ease-out .35s backwards; }
+  .gr-entra circle, .gr-entra .gr-val { animation: gr-aparece .35s ease-out .6s backwards; }
+  @media (prefers-reduced-motion: reduce) { .gr-entra * { animation: none !important; } }
   .gr-leyenda { display: flex; flex-wrap: wrap; gap: .25rem .9rem; font-size: .76rem; color: var(--md-on-surface-med); margin-bottom: .4rem; }
   .gr-chip { display: inline-flex; align-items: center; gap: .35rem; }
   .gr-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
@@ -32,6 +45,7 @@
    * spec de 'barras' y 'lineas': { etiquetas: [..], titulos?: [..], series: [{nombre, valores: [n|null..], clase?: 0-5}], formato?: fn(n),
    *   max?: número (mínimo del eje), alto?: px, atenuar?: [bool..] (solo barras), vacio?: texto, anchoEtiqueta?: px }
    * spec de 'barrasH': { items: [{etiqueta, valor, clase?}], formato?: fn(n), vacio?: texto }
+   * La entrada animada (barras que crecen, líneas que se trazan) es solo de pantalla; ver el comentario del CSS.
    * Todo el texto se inserta con textContent (los nombres de usuarios nunca se interpretan como HTML).
    */
   window.Graficos = (function () {
@@ -109,7 +123,7 @@
           var v = serie.valores[i];
           if (v == null || !(v > 0)) return;
           var x = gx + k * (gw / ns) + (ns > 1 ? 1 : 0), h = g.ph * v / g.esc.max;
-          var r = el('rect', { x: x, y: g.y(v), width: bw, height: h, rx: Math.min(3, bw / 2), 'class': 'gr-s' + clase(serie, k) });
+          var r = el('rect', { x: x, y: g.y(v), width: bw, height: h, rx: Math.min(3, bw / 2), 'class': 'gr-barra gr-s' + clase(serie, k), style: '--k:' + Math.min(i, 20) });
           r.appendChild(el('title', null, titulo(spec, i, serie, v, g.fmt)));
           grupo.appendChild(r);
           if (ns === 1 && g.slot >= 34) grupo.appendChild(el('text', { x: x + bw / 2, y: g.y(v) - 4, 'text-anchor': 'middle', 'class': 'gr-val' }, g.fmt(v)));
@@ -130,7 +144,10 @@
           actual.push([g.m.l + g.slot * i + g.slot / 2, g.y(v), i, v]);
         });
         tramos.forEach(function (p) {
-          if (p.length > 1) g.s.appendChild(el('path', { d: 'M' + p.map(function (q) { return q[0].toFixed(1) + ' ' + q[1].toFixed(1); }).join(' L'), 'class': 'gr-linea gr-l' + c }));
+          if (p.length < 2) return;
+          var trazo = p.map(function (q) { return q[0].toFixed(1) + ' ' + q[1].toFixed(1); }).join(' L'), base = (g.m.t + g.ph).toFixed(1);
+          g.s.appendChild(el('path', { d: 'M' + p[0][0].toFixed(1) + ' ' + base + ' L' + trazo + ' L' + p[p.length - 1][0].toFixed(1) + ' ' + base + ' Z', 'class': 'gr-area gr-s' + c }));
+          g.s.appendChild(el('path', { d: 'M' + trazo, pathLength: 1, 'class': 'gr-linea gr-l' + c }));
         });
         tramos.forEach(function (p) {
           p.forEach(function (q) {
@@ -157,7 +174,7 @@
         s.appendChild(t);
         var w = it.valor > 0 ? Math.max(pw * it.valor / maxV, 2) : 0;
         if (w) {
-          var rc = el('rect', { x: etq, y: yy + 4, width: w, height: fila - 10, rx: 3, 'class': 'gr-s' + (it.clase != null ? it.clase : 0) });
+          var rc = el('rect', { x: etq, y: yy + 4, width: w, height: fila - 10, rx: 3, 'class': 'gr-barraH gr-s' + (it.clase != null ? it.clase : 0), style: '--k:' + Math.min(i, 20) });
           rc.appendChild(el('title', null, it.etiqueta + ': ' + fmt(it.valor)));
           s.appendChild(rc);
         }
@@ -166,14 +183,24 @@
     }
 
     var TIPOS = { barras: barras, lineas: lineas, barrasH: barrasH };
+    var SIN_MOVIMIENTO = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : { matches: false };
     function dibujar(cont) {
       var g = cont._gr;
       limpiar(cont);
       g.ancho = ancho(cont);
       TIPOS[g.tipo](cont, g.spec, g.ancho);
+      // Entrada animada solo la primera vez que el gráfico se ve con datos (no al cambiar filtros ni al redimensionar). «animationstart» solo
+      // salta cuando el gráfico se pinta de verdad: uno dibujado en una sección plegada espera a que se abra. 1,6 s después se quita la clase.
+      var sv = cont.querySelector('svg');
+      if (sv && !g.animado && !SIN_MOVIMIENTO.matches) {
+        sv.setAttribute('class', sv.getAttribute('class') + ' gr-entra');
+        sv.addEventListener('animationstart', function () {
+          setTimeout(function () { g.animado = true; sv.setAttribute('class', 'gr-svg'); }, 1600);
+        }, { once: true });
+      }
     }
     function montar(cont, tipo, spec) {
-      cont._gr = { tipo: tipo, spec: spec, ancho: 0 };
+      cont._gr = { tipo: tipo, spec: spec, ancho: 0, animado: !!(cont._gr && cont._gr.animado) };
       if (registro.indexOf(cont) === -1) registro.push(cont);
       dibujar(cont);
     }

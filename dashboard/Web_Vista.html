@@ -105,6 +105,8 @@
       .an-pista { fill: none; stroke: var(--t-pista); stroke-width: 6; }
       .an-valor { fill: none; stroke: var(--t-ring); stroke-width: 6; stroke-linecap: round; }
       .an-texto { fill: var(--t-fg); font-family: var(--font); font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; }
+      @keyframes an-llena { from { stroke-dashoffset: var(--c); } }
+      .anillo.anima .an-valor { animation: an-llena .9s cubic-bezier(.2, .7, .2, 1) backwards; animation-delay: calc(var(--i, 0) * 50ms); }
       .kpi.con-detalle:hover { transform: translateY(-2px); box-shadow: var(--sombra-hover); }
       .kpi.con-detalle:hover .kpi-link { text-decoration: underline; }
       @keyframes kpi-entra { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
@@ -194,6 +196,16 @@
       details.avanzado .tarjeta { background: var(--md-bg); }
       details.avanzado .kpi { background-color: var(--md-bg); }
       details.avanzado.t-azul, details.avanzado.t-verde { box-shadow: inset 3px 0 0 var(--t-ring); }
+      /* Gráficos de la evolución clínica con el verde de su sección (la serie 0 pasa a verde y la 1 a azul para que sigan siendo distintas; la exportación a PNG mantiene la paleta de siempre) */
+      details.avanzado.t-verde .gr-s0 { fill: var(--t-ring); }   details.avanzado.t-verde .gr-s1 { fill: var(--md-primary); }
+      details.avanzado.t-verde .gr-l0 { stroke: var(--t-ring); } details.avanzado.t-verde .gr-l1 { stroke: var(--md-primary); }
+      details.avanzado.t-verde .gr-b0 { background: var(--t-ring); } details.avanzado.t-verde .gr-b1 { background: var(--md-primary); }
+      /* Las secciones plegables se abren y cierran con transición de altura (navegadores recientes; en los demás se abren sin animar) */
+      @supports selector(::details-content) {
+        details.avanzado { interpolate-size: allow-keywords; }
+        details.avanzado::details-content { block-size: 0; overflow: hidden; transition: block-size .28s ease, content-visibility .28s allow-discrete; }
+        details.avanzado[open]::details-content { block-size: auto; }
+      }
       .btn-png { margin-left: auto; background: none; border: 0; border-radius: 50%; width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; color: var(--md-on-surface-med); cursor: pointer; }
       .btn-png:hover { background: var(--md-surface-variant); color: var(--md-primary); }
       .btn-png .material-symbols-outlined { font-size: 18px; }
@@ -227,6 +239,8 @@
         .sk { animation: none; }
         .kpi, details.avanzado > summary .chev { transition: none; }
         .kpi.con-detalle:hover { transform: none; }
+        .anillo.anima .an-valor { animation: none; }
+        details.avanzado::details-content { transition: none; }
         .girando .material-symbols-outlined { animation: pulso 1.2s ease-in-out infinite; }
       }
     </style>
@@ -487,7 +501,26 @@
         var v = parseFloat(String(texto).replace(/\./g, '').replace(',', '.'));
         return isNaN(v) ? null : Math.max(0, Math.min(100, v));
       }
-      function anillo(p, titulo) {
+      // Contador: del 0 al valor en ~0,75 s al aparecer la tarjeta (solo en la primera pintura). El texto final es siempre el original, tal cual lo formateó la tarjeta.
+      function contar(elem, final, retraso) {
+        var m = /\d[\d.]*(?:,\d+)?/.exec(final);
+        if (!m || REDUCE.matches) return;
+        var objetivo = parseFloat(m[0].replace(/\./g, '').replace(',', '.'));
+        if (!(objetivo > 0)) return;
+        var dec = m[0].indexOf(',') >= 0 ? m[0].length - m[0].indexOf(',') - 1 : 0;
+        var fmt = new Intl.NumberFormat('es-ES', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+        var pre = final.slice(0, m.index), suf = final.slice(m.index + m[0].length), t0 = null, dur = 750;
+        elem.textContent = pre + fmt.format(0) + suf;
+        var paso = function (t) {
+          if (t0 === null) t0 = t;
+          var k = Math.min(1, (t - t0) / dur);
+          elem.textContent = k >= 1 ? final : pre + fmt.format(objetivo * (1 - Math.pow(1 - k, 3))) + suf;
+          if (k < 1) requestAnimationFrame(paso);
+        };
+        setTimeout(function () { requestAnimationFrame(paso); }, retraso);
+        setTimeout(function () { elem.textContent = final; }, retraso + dur + 400);   // red de seguridad (pestaña en segundo plano)
+      }
+      function anillo(p, titulo, anim, retraso) {
         var NS = 'http://www.w3.org/2000/svg', R = 26, C = 2 * Math.PI * R;
         var s = document.createElementNS(NS, 'svg');
         s.setAttribute('viewBox', '0 0 64 64'); s.setAttribute('class', 'anillo'); s.setAttribute('role', 'img');
@@ -499,8 +532,14 @@
           s.appendChild(e);
         };
         dibujar('circle', { cx: 32, cy: 32, r: R, 'class': 'an-pista' });
-        if (p != null && p > 0) dibujar('circle', { cx: 32, cy: 32, r: R, 'class': 'an-valor', 'stroke-dasharray': C.toFixed(2), 'stroke-dashoffset': (C * (1 - p / 100)).toFixed(2), transform: 'rotate(-90 32 32)' });
+        if (p != null && p > 0) dibujar('circle', { cx: 32, cy: 32, r: R, 'class': 'an-valor', 'stroke-dasharray': C.toFixed(2), 'stroke-dashoffset': (C * (1 - p / 100)).toFixed(2), transform: 'rotate(-90 32 32)', style: '--c:' + C.toFixed(2) });
         dibujar('text', { x: 32, y: 32, 'text-anchor': 'middle', 'dominant-baseline': 'central', 'class': 'an-texto' }, p == null ? '—' : pc(p));
+        if (anim) {
+          s.setAttribute('class', 'anillo anima');
+          var arco = s.querySelector('.an-valor');
+          if (arco) arco.addEventListener('animationend', function () { s.setAttribute('class', 'anillo'); }, { once: true });   // sin la clase no se repite al replegar y abrir la sección
+          contar(s.querySelector('.an-texto'), p == null ? '—' : pc(p), retraso);
+        }
         return s;
       }
 
@@ -690,7 +729,7 @@
 
       function kpi(titulo, valor, sub, n, aviso) { kpiEn('kpis', titulo, valor, sub, n, aviso); }
       function kpiEn(destino, titulo, valor, sub, n, aviso, abre) {
-        var cont = $(destino), est = ESTILO_KPI[titulo] || {}, ev = evolucionKpi(titulo);
+        var cont = $(destino), est = ESTILO_KPI[titulo] || {}, ev = evolucionKpi(titulo), compacta = destino === 'kpisPart' || destino === 'kpisEval', retraso = Math.min(cont.children.length, 8) * 50 + 120;
         var a = hijo(cont, 'article', 'kpi' + (est.tono ? ' t-' + est.tono : '') + (abre ? ' con-detalle' : '') + (animar ? ' entra' : ''));
         a.style.setProperty('--i', Math.min(cont.children.length - 1, 8));
         if (animar) a.addEventListener('animationend', function () { a.classList.remove('entra'); }, { once: true });   // las tarjetas de secciones plegadas animan al abrirlas por primera vez, no cada vez
@@ -704,19 +743,24 @@
         if (ev) cab.appendChild(ev.chip);
         // Los avisos de datos excluidos van en un ⓘ ámbar con su número; el «n» se queda visible en la tarjeta.
         if (aviso) crearInfo(cab, aviso.split(' · '), { aviso: true, rotulo: 'Avisos sobre los datos de «' + titulo + '»' });
+        // Tarjetas principales: solo título, valor y gráfico; cómo se calcula (subtítulo y «n») va en el texto al pasar el ratón.
+        if (compacta) a.title = [sub, n].filter(Boolean).join('\n');
         if (est.pct) {
           // Porcentaje: el valor va en el centro de un anillo, con el subtítulo y el n al lado.
           var fila = hijo(a, 'div', 'kpi-fila');
-          fila.appendChild(anillo(pctDeTexto(valor), titulo));
-          var tx = hijo(fila, 'div', 'kpi-textos');
-          if (sub) hijo(tx, 'div', 'kpi-sub', sub);
-          hijo(tx, 'div', 'kpi-n', n);
+          fila.appendChild(anillo(pctDeTexto(valor), titulo, animar, retraso));
+          if (!compacta) {
+            var tx = hijo(fila, 'div', 'kpi-textos');
+            if (sub) hijo(tx, 'div', 'kpi-sub', sub);
+            hijo(tx, 'div', 'kpi-n', n);
+          }
           if (ev) a.appendChild(ev.barras);
         } else {
-          hijo(a, 'div', 'kpi-valor', valor);
-          if (sub) hijo(a, 'div', 'kpi-sub', sub);
+          var vv = hijo(a, 'div', 'kpi-valor', valor);
+          if (animar) contar(vv, valor, retraso);
+          if (!compacta && sub) hijo(a, 'div', 'kpi-sub', sub);
           if (ev) a.appendChild(ev.barras);
-          hijo(a, 'div', 'kpi-n', n);
+          if (!compacta) hijo(a, 'div', 'kpi-n', n);
         }
         if (abre) {
           var b = hijo(a, 'button', 'kpi-link', 'Ver detalle ›');
@@ -757,11 +801,11 @@
           fa.sinRegistrar ? plural(fa.sinRegistrar, 'cita pasada', 'citas pasadas') + ' sin registrar' : '', 'detAgenda');
 
         var pd = pctDe(d.mejoran, d.n), pf = pctDe(f.mejoran, f.n), pa = pctDe(a.mejoran, a.n);
-        uno(G2, 'Mejora del dolor', pd, pct(pd), '% de usuarios', d.n ? 'Mejora media del ' + pct(d.pctMejoraMedia) + ' (dolor ' + num(d.primera) + ' → ' + num(d.ultima) + ' sobre 10) · ' + d.mejoran + ' de ' + d.n + ' bajan' : 'Aún sin dos valoraciones que comparar',
+        uno(G2, 'Mejora del dolor', pd, pct(pd), '% de usuarios', d.n ? 'Mejora media del ' + pct(d.pctMejoraMedia) + ' · ' + d.mejoran + ' de ' + d.n + ' bajan' : 'Aún sin dos valoraciones que comparar',
           'n = ' + plural(d.n, 'usuario', 'usuarios') + ' con valoración inicial y última', d.sinDato ? d.sinDato + ' sin dolor en la primera o la última' : '', 'detClinica');
-        uno(G2, 'Usuarios que reducen analgésicos', pa, pct(pa), '% de usuarios', a.n ? 'Reducción media del ' + pct(a.pctMejoraMedia) + ' (nivel ' + num(a.primera) + ' → ' + num(a.ultima) + ' sobre 5) · ' + a.mejoran + ' reducen, ' + a.igual + ' igual, ' + a.empeoran + ' aumentan' : 'Aún sin dos valoraciones que comparar',
+        uno(G2, 'Usuarios que reducen analgésicos', pa, pct(pa), '% de usuarios', a.n ? 'Reducción media del ' + pct(a.pctMejoraMedia) + ' · ' + a.mejoran + ' reducen, ' + a.igual + ' igual, ' + a.empeoran + ' aumentan' : 'Aún sin dos valoraciones que comparar',
           'n = ' + plural(a.n, 'usuario', 'usuarios') + ' con analgésicos registrados', a.sinDato ? a.sinDato + ' sin analgésicos en la primera o la última' : '', 'detClinica');
-        uno(G2, 'Mejora de la capacidad funcional', pf, pct(pf), '% de usuarios', f.n ? 'Mejora media del ' + pct(f.pctMejoraMedia) + ' (función ' + num(f.primera) + ' → ' + num(f.ultima) + ' sobre 10) · ' + f.mejoran + ' de ' + f.n + ' suben' : 'Aún sin dos valoraciones que comparar',
+        uno(G2, 'Mejora de la capacidad funcional', pf, pct(pf), '% de usuarios', f.n ? 'Mejora media del ' + pct(f.pctMejoraMedia) + ' · ' + f.mejoran + ' de ' + f.n + ' suben' : 'Aún sin dos valoraciones que comparar',
           'n = ' + plural(f.n, 'usuario', 'usuarios') + ' con valoración inicial y última', f.sinDato ? f.sinDato + ' sin función en la primera o la última' : '', 'detClinica');
       }
 
@@ -910,9 +954,9 @@
         k('Usuarios que mejoran', pct(g.pctMejoran), g.mejoran + ' de ' + g.n + ' · el dolor baja o la función sube',
           'Calculado con ' + plural(g.n, 'usuario', 'usuarios') + ' con 2 o más valoraciones',
           avisos([e.sinComparar ? plural(e.sinComparar, 'usuario con una sola fecha', 'usuarios con una sola fecha') + ' (no se compara)' : '', g.sinDato ? g.sinDato + ' sin dolor ni función en la primera o la última' : '']));
-        k('Dolor (PEG)', firmado(d.cambio.media, ' pts'), d.n ? 'Primera ' + num(d.primera) + ' → última ' + num(d.ultima) + ' (0–10, menos es mejor)' : '',
+        k('Dolor (PEG)', firmado(d.cambio.media, ' pts'), d.n ? 'Escala 0–10, menos es mejor' : '',
           'n = ' + d.n + (d.n ? ' · ' + detalle(d) : ''), d.sinDato ? d.sinDato + ' sin dolor en la primera o la última' : '');
-        k('Función global', firmado(f.cambio.media, ' pts'), f.n ? 'Primera ' + num(f.primera) + ' → última ' + num(f.ultima) + ' (0–10, más es mejor)' : '',
+        k('Función global', firmado(f.cambio.media, ' pts'), f.n ? 'Escala 0–10, más es mejor' : '',
           'n = ' + f.n + (f.n ? ' · ' + detalle(f) : ''), f.sinDato ? f.sinDato + ' sin función en la primera o la última' : '');
         k('Reducen analgésicos', pct(a.n ? Math.round(a.mejoran / a.n * 1000) / 10 : null), a.n ? a.mejoran + ' reducen · ' + a.igual + ' igual · ' + a.empeoran + ' aumentan' : '',
           'n = ' + a.n + ' usuarios con analgésicos registrados en la primera y la última', a.sinDato ? a.sinDato + ' sin analgésicos registrados en la primera o la última' : '');
