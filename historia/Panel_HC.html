@@ -357,7 +357,7 @@ window.PanelHC = {
    *   idPaciente ID paciente (Maestra); se usa si no hay ID HC (la historia es la que lleva ese ID paciente)
    *   modo       'pagina' → página completa (HC_Vista); otro valor → panel lateral
    *   urlPagina  URL base de la página completa (…/exec?page=hc), para "Abrir en pestaña" e Imprimir
-   *   alCambiar  function(tipo): se llama al cerrar la hoja de Valoración/Cita/Editar si hubo cambios; tipo = 'valoracion' | 'cita' | 'usuario'
+   *   alCambiar  function(tipo): se llama al cerrar la hoja de Valoración/Cita/Editar si hubo cambios; tipo = 'valoracion' | 'cita' | 'usuario' | 'disponibilidad'
    *   acciones   false → no muestra los botones de Valoración / Dar cita / Editar / WhatsApp (en modo página nunca se muestran)
    * Devuelve { haCambiado(), alEscape(), cerrar() }
    */
@@ -794,7 +794,8 @@ window.PanelHC = {
             onCambio: function () { if (activa()) subCambio = true; } },
           window.ValoracionesCache ? window.ValoracionesCache.opcionesPanel(u.idPaciente) : {}));   // valoraciones ya precargadas: se abre al instante
       } else if (tipo === 'cita') {
-        sub = window.PanelCita.abrir(subHost, { paciente: u.nombre, onGuardado: function (m) { guardado(m, 'Cita registrada'); }, onCancelar: cancelar });
+        sub = window.PanelCita.abrir(subHost, { idPaciente: u.idPaciente || '', paciente: u.nombre, onGuardado: function (m) { guardado(m, 'Cita registrada'); }, onCancelar: cancelar,
+          alDisponibilidad: function () { if (opts.alCambiar) { try { opts.alCambiar('disponibilidad'); } catch (e3) { /* no crítico */ } } } });   // se aplicó una disponibilidad desde el formulario: la página recarga sus huecos
       } else {
         sub = window.PanelEditar.abrir(subHost, { idPaciente: u.idPaciente, onGuardado: function (m) { guardado(m, 'Cambios guardados'); }, onCancelar: cancelar });
       }

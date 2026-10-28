@@ -119,33 +119,21 @@ function intercambiarDesdeCitasWeb_(idA, idB) {
 // ============================================================================= Tanda 3: lo que crea citas
 
 /**
- * Usuario de la Maestra a partir de un NOMBRE (el desplegable de la Agenda y el formulario de Cita trabajan con nombres: su lista es
- * nombre → teléfono). La comparación ignora tildes y mayúsculas, como el resto del proyecto. Si el nombre no existe o es ambiguo (homónimos)
- * se rechaza con un mensaje claro: ya no se admiten nombres que no estén en la Maestra (la capa de citas exige un ID paciente).
+ * Usuario de la Maestra a partir de su ID paciente: la ÚNICA forma de elegir al usuario al crear citas (el selector de huecos y el
+ * formulario de Dar cita de la Agenda van por ID; con dos usuarios del mismo nombre no hay ambigüedad).
  * @return {{ok:true, idPaciente:string, nombre:string, telefono:string, hc:string}|{ok:false, message:string}}
  */
-function pacientePorNombreDesdeCitasWeb_(nombreBruto) {
-  const crudo = String(nombreBruto === null || nombreBruto === undefined ? '' : nombreBruto).trim();
-  if (!crudo) return { ok: false, message: 'Escribe el nombre del paciente.' };
-  const clave = function (x) { return normalizarTexto(x).replace(/\s+/g, ' '); };
-  const buscados = [clave(crudo), clave(normalizarNombreUsuario(crudo))];
+function pacientePorIdDesdeCitasWeb_(idBruto) {
+  const id = String(idBruto === null || idBruto === undefined ? '' : idBruto).trim();
+  if (!id) return { ok: false, message: 'Elige un usuario de la lista.' };
   const hoja = getSS().getSheetByName(SHEETS.MAESTRA);
   if (!hoja || hoja.getLastRow() < 2) return { ok: false, message: 'No se encontró la Base de Datos Maestra.' };
-  const cNom = obtenerIndiceColumnaPorNombre_(hoja, COLUMNAS.MAESTRA.NOMBRE), cId = obtenerIndiceColumnaPorNombre_(hoja, COLUMNAS.MAESTRA.ID_PACIENTE);
-  if (cNom === -1 || cId === -1) return { ok: false, message: 'Faltan las columnas "Nombre" o "ID paciente" en la Maestra.' };
-  const n = hoja.getLastRow() - 1;
-  const nombres = hoja.getRange(2, cNom + 1, n, 1).getValues(), ids = hoja.getRange(2, cId + 1, n, 1).getValues();
-  const coincidencias = [];
-  for (let i = 0; i < n; i++) {
-    const nom = String(nombres[i][0] || '').trim();
-    if (nom && buscados.indexOf(clave(nom)) !== -1) coincidencias.push({ nombre: nom, id: String(ids[i][0] || '').trim() });
-  }
-  if (!coincidencias.length) return { ok: false, message: 'No hay ningún usuario con ese nombre en la Base de Datos Maestra. Elige uno de la lista.' };
-  if (coincidencias.length > 1) return { ok: false, message: 'Hay ' + coincidencias.length + ' usuarios con ese nombre: no se puede saber a cuál te refieres.' };
-  const c = coincidencias[0];
-  if (!c.id) return { ok: false, message: 'Ese usuario no tiene ID paciente (ejecuta asignarIdsPaciente).' };
-  const u = agendaSemanaUsuariosPorId_([c.id])[c.id] || { nombre: c.nombre, telefono: '', hc: '' };
-  return { ok: true, idPaciente: c.id, nombre: u.nombre || c.nombre, telefono: u.telefono || '', hc: u.hc || '' };
+  const fila = filaMaestraPorId_(hoja, id);
+  if (!fila) return { ok: false, message: 'Ese usuario ya no está en la Base de Datos. Recarga la página.' };
+  const cNom = obtenerIndiceColumnaPorNombre_(hoja, COLUMNAS.MAESTRA.NOMBRE);
+  const nombre = cNom === -1 ? '' : String(hoja.getRange(fila, cNom + 1).getValue() || '').trim();
+  const u = agendaSemanaUsuariosPorId_([id])[id] || { nombre: nombre, telefono: '', hc: '' };
+  return { ok: true, idPaciente: id, nombre: u.nombre || nombre, telefono: u.telefono || '', hc: u.hc || '' };
 }
 
 /** Pone el Estado de un usuario (por ID paciente, no por nombre) y lo anota en el historial.
@@ -173,14 +161,15 @@ function actualizarEstadoPorIdDesdeCitasWeb_(idPaciente, nuevoEstado, origen) {
  * llega el ID de una cita, el hueco ya no está libre). Crea la cita con Sesión vacía (como antes: la Sesión se escribe a mano) y registra
  * el ingreso del episodio si es la primera cita. Pone el Estado del usuario en Activo (con historial, origen "Asignar hueco") y, si cambió,
  * reordena la Maestra, como hace el formulario de Cita (decisión del dueño, 21-oct-2026; la asignación vieja no lo hacía).
+ * El usuario va por su ID paciente (F5, 27-oct-2026; antes por nombre, con el problema de los homónimos).
  * Devuelve la misma forma que la vieja ({success, usuario, telefono, historiaClinica, ingresoRegistrado}) más `id` (de la cita nueva).
  */
-function asignarPacienteDesdeCitasWeb_(claveHueco, nombrePaciente) {
+function asignarPacienteDesdeCitasWeb_(claveHueco, idPaciente) {
   try {
     const clave = String(claveHueco === null || claveHueco === undefined ? '' : claveHueco).trim();
     const m = /^hueco (\d{4}-\d{2}-\d{2}) (\d{2}:\d{2})$/.exec(clave);
     if (!m) return { success: false, message: 'Ese hueco ya no está libre (alguien acaba de poner una cita).' };
-    const p = pacientePorNombreDesdeCitasWeb_(nombrePaciente);
+    const p = pacientePorIdDesdeCitasWeb_(idPaciente);
     if (!p.ok) return { success: false, message: p.message };
     const r = citasCrear_({ fechaISO: m[1], hora: m[2], idPaciente: p.idPaciente });
     if (!r.success) return r;
@@ -298,7 +287,7 @@ function copiarVariasDesdeCitasWeb_(items, forzar) {
 // ----------------------------------------------------------------------------- formulario de Cita (agenda/Cita.gs)
 
 /**
- * Semanas y huecos libres para el formulario de Cita (Panel_Cita.html y Cita_Vista.html), con la MISMA forma que daba la hoja vieja:
+ * Semanas y huecos libres para el formulario de Cita (Panel_Cita.html), con la MISMA forma que daba la hoja vieja:
  * { semanas: [{ label, dias: { 'dd/MM/yyyy': { label: 'Lunes dd/MM/yyyy', huecos: [{hora, value}] } } }], index }. Los huecos se calculan
  * (parrilla menos citas menos horas cerradas) y `value` es un JSON { date, time, fechaISO } que el formulario devuelve tal cual a
  * guardarCitasMultiples. Se ofrecen desde la semana de la cita más antigua (o la actual si no hay ninguna) hasta 40 semanas después de la
@@ -346,8 +335,8 @@ function obtenerSemanasYHuecosDesdeCitasWeb_() {
 }
 
 /**
- * Guarda las citas del formulario de Cita (una por hueco elegido). El paciente llega por NOMBRE (el formulario trabaja con la lista
- * nombre → teléfono) y se resuelve a su ID paciente; el teléfono que envía el formulario se ignora (se consulta en la Maestra). Sesión: si es un
+ * Guarda las citas del formulario de Cita (una por hueco elegido). El paciente llega por ID paciente (`idPaciente`; el nombre que
+ * envía el formulario es solo de referencia); el teléfono que envía el formulario se ignora (se consulta en la Maestra). Sesión: si es un
  * número, la primera hora lleva ese número y cada una siguiente +1; si es texto, todas llevan ese texto; vacía = sin Sesión. Después, igual que antes:
  * el usuario pasa a Activo (con historial), la fecha de la PRIMERA cita es el ingreso del episodio si aún no tiene, y se reordena la Maestra.
  * Si algún hueco no se pudo guardar (ocupado, cerrado) se avisa en el mensaje; los demás sí se guardan.
@@ -358,7 +347,8 @@ function guardarCitasMultiplesDesdeCitasWeb_(formData) {
     const huecosJson = datos.huecosJson;
     if (!huecosJson || huecosJson.length === 0) return { success: false, message: 'No se seleccionó ningún hueco.' };
 
-    const p = pacientePorNombreDesdeCitasWeb_(datos.nombreUsuario);
+    // El usuario va siempre por ID paciente (formulario de Dar cita, agenda/Panel_Cita.html); el nombre no se usa para localizarlo.
+    const p = pacientePorIdDesdeCitasWeb_(datos.idPaciente);
     if (!p.ok) return { success: false, message: p.message };
 
     const huecos = [];

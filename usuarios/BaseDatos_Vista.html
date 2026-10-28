@@ -525,6 +525,7 @@
     <?!= incluirPanel('valoraciones/Panel_Valoraciones', 'PanelValoraciones'); ?>
     <?!= incluirPanel('usuarios/Panel_Editar', 'PanelEditar'); ?>
     <?!= incluirPanel('agenda/Panel_Cita', 'PanelCita'); ?>
+    <?!= incluirPanel('agenda/Panel_Disponibilidad', 'PanelDisponibilidad'); ?>
     <?!= incluirPanel('usuarios/Panel_Nuevo', 'PanelNuevo'); ?>
     <?!= include('ui/JS_Formato_Nombre'); ?>
     <?!= include('ui/JS_Telefono'); ?>
@@ -946,6 +947,7 @@
               return;
             }
             mostrarAviso('Estado cambiado a ' + textoEstado(valor) + ' en ' + filas.length + (filas.length === 1 ? ' usuario.' : ' usuarios.'));
+            if (res.ordenado) cargar();   // el servidor reordenó la hoja: se recarga para ver el orden nuevo (la selección y la ficha se reanclan por ID)
           })
           .withFailureHandler(function(err) { cargar(); mostrarAviso('Error al cambiar el estado: ' + err); })
           .cambiarEstadoLoteWeb(filas.map(idDeFila), valor);
@@ -1037,7 +1039,7 @@
         cita: {
           titulo: 'Cita', aviso: 'Cita registrada', ancha: true,
           montar: function(cont, p, cb) {
-            return PanelCita.abrir(cont, { paciente: p['Nombre'] || '', onGuardado: cb.guardado, onCancelar: cb.cancelar });
+            return PanelCita.abrir(cont, { idPaciente: p['ID paciente'] || '', paciente: p['Nombre'] || '', onGuardado: cb.guardado, onCancelar: cb.cancelar });
           }
         },
         hc: {
@@ -1277,6 +1279,7 @@
             if (!res || !res.success) { revertir((res && res.message) || 'No se pudo cambiar el estado.'); return; }
             mostrarAviso('Estado cambiado a ' + textoEstado(valor) + '.');
             if (window.HCCache) HCCache.cambioDeUsuario();   // un usuario nuevo en Activo entra en la precarga de HC
+            if (res.ordenado) cargar();   // el servidor reordenó la hoja: se recarga para ver el orden nuevo (la ficha se reancla por ID)
           })
           .withFailureHandler(function(err) { revertir('Error al cambiar el estado: ' + err); })
           .cambiarEstadoPacienteWeb(idPaciente(p), valor);

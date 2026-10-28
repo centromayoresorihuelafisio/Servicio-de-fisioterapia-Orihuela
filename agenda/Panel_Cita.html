@@ -2,14 +2,20 @@
   agenda/Panel_Cita.html
   Formulario de Cita como módulo del panel lateral de la Base de Datos Web.
   Se incluye desde usuarios/BaseDatos_Vista con <?!= include('agenda/Panel_Cita'); ?>
-  API: PanelCita.abrir(contenedor, { paciente, onGuardado, onCancelar })
+  API: PanelCita.abrir(contenedor, { idPaciente, paciente, onGuardado, onCancelar, alDisponibilidad })
+    · idPaciente identifica al usuario (es lo que se envía al guardar); `paciente` (nombre) solo se usa para elegirlo si no llega el ID
+      y hay un único usuario con ese nombre.
+    · alDisponibilidad(res) → se llama cuando se aplica una disponibilidad desde el formulario (botón de la cabecera de «Agenda semanal»,
+      solo visible si la página incluye el módulo PanelDisponibilidad). El formulario ya ha vuelto a pedir los huecos por su cuenta; la
+      página solo necesita refrescar lo suyo (la Agenda recarga la semana).
   Devuelve { haCambiado(), alEscape() }:
-    · haCambiado() → true si hay horas elegidas, notas/sesión escritas o se ha cambiado el paciente.
-    · alEscape()   → cierra la lista de autocompletado o, si no, limpia las horas seleccionadas (como el Esc del
-                     formulario original); devuelve true si lo ha gestionado.
-  Origen: agenda/Cita_Vista.html (la página completa `citas`).
-  Usa las mismas funciones de servidor: obtenerListaPacientesWeb, obtenerSemanasYHuecos y guardarCitasMultiples
-  (agenda/Cita.gs). CSS acotado a .pc y basado en los tokens de la página (--md-*, respeta el tema oscuro).
+    · haCambiado() → true si hay horas elegidas, notas/sesión escritas, se ha cambiado el paciente o hay cambios de
+                     disponibilidad sin aplicar en la hoja abierta.
+    · alEscape()   → cierra la hoja de Disponibilidad si está abierta o, si no, la lista de autocompletado o, si no, limpia las
+                     horas seleccionadas (como el Esc del formulario original); devuelve true si lo ha gestionado.
+  Origen: la antigua página completa `citas` (agenda/Cita_Vista.html), ya retirada.
+  Funciones de servidor: obtenerUsuariosParaCitaWeb (lista de usuarios con ID, también homónimos), obtenerSemanasYHuecos y
+  guardarCitasMultiples (agenda/Cita.gs), que recibe `idPaciente`. CSS acotado a .pc y basado en los tokens de la página (--md-*, respeta el tema oscuro).
   Requiere ui/JS_Formato_Nombre en la página (sanitizeName).
   A menos de 480 px de ancho los días se abrevian (LUN, MAR…) para que quepan las cinco columnas; con el panel
   ancho (BaseDatos_Vista lo ensancha a 520 px en pantallas grandes) se ven completos y los botones de hora crecen.
@@ -89,6 +95,8 @@
 .pc .ac-menu.open { display: block; }
 .pc .ac-item { padding: .7rem 1rem; cursor: pointer; font-size: .875rem; color: var(--md-on-surface); display: flex; align-items: center; gap: .6rem; transition: background 150ms var(--pc-ease); }
 .pc .ac-item:hover { background: var(--md-primary-light); }
+.pc .ac-txt { display: flex; flex-direction: column; min-width: 0; }
+.pc .ac-sub { font-size: .75rem; color: var(--md-on-surface-med); }
 
 /* ── Semana ── */
 .pc .week-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; gap: .5rem; }
@@ -116,6 +124,17 @@
 .pc .pc-hint { margin-top: .9rem; font-size: .75rem; color: var(--md-on-surface-med); line-height: 1.5; }
 .pc .pc-hint kbd { background: var(--md-surface-variant); padding: .1rem .35rem; border-radius: 4px; border: 1px solid var(--md-outline); font-family: inherit; }
 .pc .pc-vacio { color: var(--md-on-surface-med); text-align: center; grid-column: 1 / -1; padding: 1.5rem 0; }
+
+/* ── Disponibilidad dentro del formulario: botón de la cabecera y hoja interna con flecha de volver ── */
+.pc .pc-disp { width: 32px; height: 32px; flex: none; }
+.pc .pc-disp[hidden] { display: none; }
+.pc .pc-disp .ms { font-size: 18px; }
+.pc .pc-hoja { position: absolute; inset: 0; z-index: 40; display: flex; flex-direction: column; background: var(--md-surface); }
+.pc .pc-hoja[hidden] { display: none; }
+.pc .pc-hoja-cab { flex: none; display: flex; align-items: center; gap: .6rem; padding: .55rem .9rem; border-bottom: 1px solid var(--md-outline); }
+.pc .pc-hoja-cab strong { font-size: .95rem; font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pc .pc-hoja-cuerpo { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
+.pc .pc-hoja-cuerpo > * { flex: 1 1 auto; min-height: 0; }
 
 /* ── Ripple ── */
 .pc .ripple-target { position: relative; overflow: hidden; }
@@ -185,7 +204,7 @@
     </div>
 
     <div class="card-section">
-      <div class="section-label"><span class="section-pill"><span class="ms ms-sm">calendar_month</span>Agenda semanal</span><div class="section-divider"></div></div>
+      <div class="section-label"><span class="section-pill"><span class="ms ms-sm">calendar_month</span>Agenda semanal</span><div class="section-divider"></div><button type="button" class="nav-btn pc-disp" hidden title="Disponibilidad: abrir o cerrar horas de la agenda" aria-label="Disponibilidad de la agenda"><span class="ms">event_busy</span></button></div>
 
       <div class="week-nav">
         <button type="button" class="nav-btn ripple-target pc-prev" disabled aria-label="Semana anterior"><span class="ms">chevron_left</span></button>
@@ -213,6 +232,14 @@
       <span class="ms pc-btn-icon">save</span><span class="pc-btn-texto">Registrar citas</span>
     </button>
   </div>
+
+  <div class="pc-hoja" hidden>
+    <div class="pc-hoja-cab">
+      <button type="button" class="nav-btn pc-hoja-volver" title="Volver al formulario (Esc)" aria-label="Volver al formulario"><span class="ms">arrow_back</span></button>
+      <strong>Disponibilidad</strong>
+    </div>
+    <div class="pc-hoja-cuerpo"></div>
+  </div>
 </div></template>
 
 <script>
@@ -229,14 +256,17 @@ window.PanelCita = {
     var msgBox = q('.pc-msg'), prevBtn = q('.pc-prev'), nextBtn = q('.pc-next');
     var numSesionInput = q('.pc-sesion'), notasTextarea = q('.pc-notas'), telefonoUsuarioInput = q('.pc-tel');
     var nombreUsuarioInput = q('.pc-nombre'), autocompleteList = q('.pc-ac');
+    var btnDisp = q('.pc-disp'), hojaDisp = q('.pc-hoja'), hojaDispCuerpo = q('.pc-hoja-cuerpo');
+    var dispHost = null, dispSub = null;   // hoja de Disponibilidad abierta (si la hay) y su controlador
 
     // Paciente ya elegido desde la Base de Datos Web. Vacío si no se pasa ninguno.
     var PACIENTE_PRESELECCIONADO = opts.paciente || '';
+    var ID_PRESELECCIONADO = opts.idPaciente || '';
 
     var semanasData = [], currentWeekIndex = 0, selectedHuecos = [];
-    var currentUserName = '', currentUserPhone = '';
-    var allPatientsList = [], allPatientsData = {};
-    var inicial = { nombre: '', tel: '' };   // para saber si se ha cambiado de paciente / teléfono
+    var currentUserId = '', currentUserName = '', currentUserPhone = '';   // el usuario elegido va por ID paciente; el nombre solo se muestra
+    var allPatientsList = [];   // [{ id, nombre, dni, tel1, tel2, estado }] en el orden de la Maestra (incluye homónimos)
+    var inicial = { id: '', nombre: '', tel: '' };   // para saber si se ha cambiado de paciente / teléfono
     var timerMsg = null;
 
     var EXCLUDED_TIMES = ["", "", "", "", "00:30"];
@@ -395,7 +425,7 @@ window.PanelCita = {
       return true;
     }
     function updateSaveButtonState() {
-      var valid = !!currentUserName && currentUserName !== 'NOT_FOUND' && currentUserName !== 'HEADER_ROW';
+      var valid = !!currentUserId;
       btnGuardar.disabled = !selectedHuecos.length || !valid;
       var c = selectedHuecos.length;
       btnText.textContent = c > 1 ? 'Registrar ' + c + ' citas' : c === 1 ? 'Registrar 1 cita' : 'Registrar citas';
@@ -409,12 +439,13 @@ window.PanelCita = {
       autocompleteList.innerHTML = '';
       return estabaAbierto;
     }
-    function renderPatientSelect(names, defaultName) {
-      allPatientsList = names;
+    function renderPatientSelect(usuarios, elegido) {
+      allPatientsList = usuarios;
       nombreUsuarioInput.disabled = false;
-      if (defaultName && defaultName !== 'NOT_FOUND' && defaultName !== 'HEADER_ROW') {
-        setFieldValue(nombreUsuarioInput, defaultName);
-        currentUserName = defaultName;
+      if (elegido) {
+        setFieldValue(nombreUsuarioInput, elegido.nombre);
+        currentUserId = elegido.id;
+        currentUserName = elegido.nombre;
       }
       updateSaveButtonState();
     }
@@ -422,19 +453,26 @@ window.PanelCita = {
       sanitizeName(this);
       var val = stripAccents(this.value.toLowerCase());
       autocompleteList.innerHTML = '';
+      currentUserId = '';
       currentUserName = '';
       if (!val) { autocompleteList.classList.remove('open'); updateSaveButtonState(); return; }
-      var filtered = allPatientsList.filter(function (n) { return stripAccents(n.toLowerCase()).indexOf(val) !== -1; });
+      var filtered = allPatientsList.filter(function (u) { return stripAccents(u.nombre.toLowerCase()).indexOf(val) !== -1; });
       autocompleteList.classList.toggle('open', filtered.length > 0);
-      filtered.forEach(function (name) {
+      filtered.forEach(function (u) {
+        var name = u.nombre;
         var item = document.createElement('div');
         item.className = 'ac-item';
-        item.innerHTML = '<span class="ms ms-sm">person</span> <span></span>';
-        item.lastElementChild.textContent = name;
+        // Teléfono y DNI bajo el nombre: así se distinguen dos usuarios que se llaman igual.
+        item.innerHTML = '<span class="ms ms-sm">person</span> <span class="ac-txt"><span class="ac-nom"></span><span class="ac-sub"></span></span>';
+        item.querySelector('.ac-nom').textContent = name;
+        var sub = [Telefono.formato(u.tel1 || u.tel2), u.dni].filter(Boolean).join(' · ');
+        var elSub = item.querySelector('.ac-sub');
+        if (sub) elSub.textContent = sub; else elSub.remove();
         item.addEventListener('click', function () {
           setFieldValue(nombreUsuarioInput, name);
+          currentUserId = u.id;
           currentUserName = name;
-          currentUserPhone = allPatientsData[name] || '';
+          currentUserPhone = u.tel1 || '';
           setFieldValue(telefonoUsuarioInput, Telefono.formato(currentUserPhone));
           setFieldValue(numSesionInput, '');
           setFieldValue(notasTextarea, '');
@@ -455,32 +493,41 @@ window.PanelCita = {
       setFieldValue(nombreUsuarioInput, '');
       nombreUsuarioInput.disabled = true;
       google.script.run
-        .withSuccessHandler(function (data) {
-          var name = data.name || 'NOT_FOUND', phone = data.phone || '';
-          allPatientsData = data.allPatientsData || {};
-          // Sin sesión de Sheets (Web App) no hay "fila activa": usamos el paciente de la ficha.
-          if (PACIENTE_PRESELECCIONADO && allPatientsData[PACIENTE_PRESELECCIONADO] !== undefined) {
-            name = PACIENTE_PRESELECCIONADO;
-            phone = allPatientsData[PACIENTE_PRESELECCIONADO];
+        .withSuccessHandler(function (res) {
+          if (!res || !res.success || !res.usuarios) {
+            nombreUsuarioInput.disabled = false;
+            mostrarFeedback('Error al cargar pacientes: ' + ((res && res.message) || 'sin datos'), false);
+            return;
           }
-          renderPatientSelect(Object.keys(allPatientsData), name);
-          if (name && name !== 'HEADER_ROW' && name !== 'NOT_FOUND') {
-            currentUserName = name; currentUserPhone = phone;
-            setFieldValue(telefonoUsuarioInput, Telefono.formato(phone));
+          var usuarios = res.usuarios, elegido = null;
+          // Paciente de la ficha: por ID. Sin ID, solo si hay un único usuario con ese nombre (con homónimos no se adivina cuál es).
+          if (ID_PRESELECCIONADO) {
+            elegido = usuarios.filter(function (u) { return u.id === ID_PRESELECCIONADO; })[0] || null;
+          } else if (PACIENTE_PRESELECCIONADO) {
+            var iguales = usuarios.filter(function (u) { return u.nombre === PACIENTE_PRESELECCIONADO; });
+            elegido = iguales.length === 1 ? iguales[0] : null;
+          }
+          renderPatientSelect(usuarios, elegido);
+          if (elegido) {
+            currentUserPhone = elegido.tel1 || '';
+            setFieldValue(telefonoUsuarioInput, Telefono.formato(currentUserPhone));
             mostrarFeedback('Cita para: <strong></strong>', true, 'person');
-            msgBox.querySelector('strong').textContent = name;
+            msgBox.querySelector('strong').textContent = elegido.nombre;
           } else {
+            currentUserId = '';
             currentUserName = '';
-            mostrarFeedback(name === 'HEADER_ROW' ? 'Por favor, selecciona un paciente de la lista.' : 'Selecciona un paciente para registrar su cita.', false);
+            mostrarFeedback(ID_PRESELECCIONADO || PACIENTE_PRESELECCIONADO
+              ? 'No se pudo identificar al usuario de la ficha (¿tiene ID paciente?). Elige uno de la lista.'
+              : 'Selecciona un paciente para registrar su cita.', false);
           }
-          inicial = { nombre: currentUserName, tel: telefonoUsuarioInput.value.trim() };
+          inicial = { id: currentUserId, nombre: currentUserName, tel: telefonoUsuarioInput.value.trim() };
           updateSaveButtonState();
         })
         .withFailureHandler(function (err) {
           nombreUsuarioInput.disabled = false;
           mostrarFeedback('Error al cargar pacientes: ' + (err && err.message ? err.message : err), false);
         })
-        .obtenerListaPacientesWeb();
+        .obtenerUsuariosParaCitaWeb();
     }
     function loadInitialData() {
       loadPatientData();
@@ -499,9 +546,110 @@ window.PanelCita = {
         .obtenerSemanasYHuecos();
     }
 
+    /* ── Disponibilidad (hoja interna) ── */
+    // Lunes ("yyyy-MM-dd") de una semana de `semanasData`: la primera de sus fechas ("dd/MM/yyyy"), ordenadas. '' si no hay fechas.
+    function lunesDeSemana(week) {
+      if (!week || !week.dias) return '';
+      var isos = Object.keys(week.dias).map(function (k) { var p = k.split('/'); return p[2] + '-' + p[1] + '-' + p[0]; }).sort();
+      return isos[0] || '';
+    }
+    function confirmarDescartar(texto) {
+      return typeof window.mostrarConfirm === 'function' ? window.mostrarConfirm(texto) : Promise.resolve(window.confirm(texto));
+    }
+    function desmontarDisponibilidad() {
+      try { if (dispSub && dispSub.cerrar) dispSub.cerrar(); } catch (e) { /* no crítico */ }
+      dispSub = null;
+      if (dispHost) { dispHost.remove(); dispHost = null; }   // fuera del documento: un panel que aún cargaba ya no se monta
+      hojaDisp.hidden = true;
+    }
+    // Cierra la hoja. Si hay cambios sin aplicar pregunta antes (salvo forzar === true). Devuelve una promesa con true si se cerró.
+    function cerrarDisponibilidad(forzar) {
+      if (!dispHost) return Promise.resolve(true);
+      var anfitrion = dispHost;
+      var antes = (forzar !== true && dispSub && dispSub.haCambiado && dispSub.haCambiado())
+        ? confirmarDescartar('Hay cambios de disponibilidad sin aplicar. ¿Quieres descartarlos?') : Promise.resolve(true);
+      return antes.then(function (ok) {
+        if (!ok) return false;
+        if (dispHost !== anfitrion) return true;   // otro cierre se adelantó
+        desmontarDisponibilidad();
+        if (!btnDisp.hidden) btnDisp.focus();
+        return true;
+      });
+    }
+    function abrirDisponibilidad() {
+      if (dispHost || !window.PanelDisponibilidad) return;
+      var host = document.createElement('div');
+      host.style.cssText = 'display:flex;flex-direction:column;min-height:0;height:100%';
+      hojaDispCuerpo.innerHTML = '';
+      hojaDispCuerpo.appendChild(host);
+      hojaDisp.hidden = false;
+      dispHost = host;
+      try {
+        dispSub = window.PanelDisponibilidad.abrir(host, {
+          semana: lunesDeSemana(semanasData[currentWeekIndex]),   // la semana que se está viendo en el formulario
+          obtener: function (desde, hasta) {
+            return new Promise(function (ok, ko) { google.script.run.withSuccessHandler(ok).withFailureHandler(ko).obtenerDisponibilidadWeb(desde, hasta); });
+          },
+          aplicar: function (datos) {
+            return new Promise(function (ok, ko) { google.script.run.withSuccessHandler(ok).withFailureHandler(ko).aplicarDisponibilidadWeb(datos); });
+          },
+          onAplicado: alAplicarDisponibilidad,
+          onCancelar: function () { cerrarDisponibilidad(); }
+        });
+      } catch (e) {
+        desmontarDisponibilidad();
+        mostrarFeedback('No se pudo abrir Disponibilidad: ' + (e && e.message ? e.message : e), false);
+        return;
+      }
+      q('.pc-hoja-volver').focus();
+    }
+    // Se aplicó una disponibilidad: se cierra la hoja, se vuelven a pedir los huecos y se avisa a la página.
+    function alAplicarDisponibilidad(res) {
+      cerrarDisponibilidad(true).then(recargarHuecos);
+      if (opts.alDisponibilidad) { try { opts.alDisponibilidad(res); } catch (e) { /* no crítico */ } }
+    }
+    // Vuelve a pedir semanas y huecos conservando paciente, notas, sesión y la semana que se veía; de la selección quita las horas que
+    // hayan quedado cerradas (con aviso).
+    function recargarHuecos() {
+      var lunesAntes = lunesDeSemana(semanasData[currentWeekIndex]);
+      btnGuardar.disabled = true;
+      currentWeekLabel.textContent = 'Actualizando agenda…';
+      google.script.run
+        .withSuccessHandler(function (res) {
+          if (!res || !res.semanas) {
+            renderWeek();
+            mostrarFeedback('Disponibilidad actualizada, pero no se pudo recargar la agenda. Cierra y vuelve a abrir el formulario.', false);
+            return;
+          }
+          semanasData = res.semanas;
+          var idx = -1;
+          for (var i = 0; i < semanasData.length; i++) { if (lunesAntes && lunesDeSemana(semanasData[i]) === lunesAntes) { idx = i; break; } }
+          currentWeekIndex = idx >= 0 ? idx : indiceSemanaInicial(semanasData, res.index);
+          var libres = {};
+          semanasData.forEach(function (w) {
+            if (w && w.dias) Object.keys(w.dias).forEach(function (k) { w.dias[k].huecos.forEach(function (h) { libres[h.value] = true; }); });
+          });
+          var antes = selectedHuecos.length;
+          selectedHuecos = selectedHuecos.filter(function (v) { return libres[v]; });
+          var quitadas = antes - selectedHuecos.length;
+          renderWeek();   // pinta con la selección ya filtrada y recalcula el botón de guardar
+          mostrarFeedback('Disponibilidad actualizada.' + (quitadas
+            ? ' Se ' + (quitadas === 1 ? 'quitó 1 hora' : 'quitaron ' + quitadas + ' horas') + ' de la selección: ya no ' + (quitadas === 1 ? 'está disponible' : 'están disponibles') + '.' : ''),
+            true, quitadas ? 'warning' : 'check_circle');
+        })
+        .withFailureHandler(function (err) {
+          renderWeek();
+          mostrarFeedback('Disponibilidad actualizada, pero no se pudo recargar la agenda: ' + (err && err.message ? err.message : err), false);
+        })
+        .obtenerSemanasYHuecos();
+    }
+    btnDisp.hidden = !window.PanelDisponibilidad;   // el botón solo existe si la página anfitriona incluye el módulo
+    btnDisp.addEventListener('click', abrirDisponibilidad);
+    q('.pc-hoja-volver').addEventListener('click', function () { cerrarDisponibilidad(); });
+
     /* ── Guardar ── */
     function enviarCita() {
-      if (!currentUserName) {
+      if (!currentUserId) {
         q('.pc-f-paciente').classList.add('has-error');
         mostrarFeedback('Selecciona un paciente válido desde la lista autocompletable.', false);
         return;
@@ -515,7 +663,7 @@ window.PanelCita = {
             setFieldValue(numSesionInput, '');
             setFieldValue(notasTextarea, '');
             selectedHuecos = [];
-            inicial = { nombre: currentUserName, tel: telefonoUsuarioInput.value.trim() }; // ya guardado: cerrar no debe pedir confirmación
+            inicial = { id: currentUserId, nombre: currentUserName, tel: telefonoUsuarioInput.value.trim() }; // ya guardado: cerrar no debe pedir confirmación
             btnGuardar.disabled = true;
             setTimeout(function () { if (opts.onGuardado) opts.onGuardado(); }, 1200);
           } else {
@@ -527,7 +675,8 @@ window.PanelCita = {
           mostrarFeedback('Error al registrar la cita: ' + (err && err.message ? err.message : err), false);
         })
         .guardarCitasMultiples({
-          nombreUsuario:   currentUserName,
+          idPaciente:      currentUserId,
+          nombreUsuario:   currentUserName,   // solo de referencia: el servidor localiza al usuario por idPaciente
           telefonoUsuario: telefonoUsuarioInput.value.trim(),
           huecosJson:      selectedHuecos,
           numSesion:       numSesionInput.value.trim(),
@@ -544,13 +693,16 @@ window.PanelCita = {
 
     return {
       haCambiado: function () {
-        return selectedHuecos.length > 0 ||
+        return (dispSub && dispSub.haCambiado ? !!dispSub.haCambiado() : false) ||
+               selectedHuecos.length > 0 ||
                numSesionInput.value.trim() !== '' ||
                notasTextarea.value.trim() !== '' ||
+               currentUserId !== inicial.id ||
                currentUserName !== inicial.nombre ||
                telefonoUsuarioInput.value.trim() !== inicial.tel;
       },
       alEscape: function () {
+        if (dispHost) { cerrarDisponibilidad(); return true; }   // Esc cierra primero la hoja de Disponibilidad
         if (cerrarAutocompletado()) return true;
         return deselectHueco();
       }
