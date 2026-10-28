@@ -3,7 +3,7 @@
 // «Plan del dashboard»). El cálculo vive en dashboard/Dashboard_Metricas.gs (funciones puras).
 //
 // Fase D1 (citas): obtenerDashboardCitasWeb(filtros) → ocupación, faltas y reincidentes ya agregados (nunca filas).
-// Fase D2 (pacientes y episodios): obtenerDashboardPacientesWeb(filtros) → lista y tiempo de espera, altas e inscripciones por
+// Fase D2 (usuarios y episodios): obtenerDashboardPacientesWeb(filtros) → lista y tiempo de espera, altas e inscripciones por
 // mes, duración del tratamiento y sesiones asistidas, ya agregados (nunca filas).
 // Fase D4 (evolución clínica): obtenerDashboardEvolucionWeb(filtros) → primera frente a última valoración (dolor, función, analgésicos).
 // Fase D3 (página): obtenerDashboardWeb(filtros, forzar) → D1 + D2 + D4 en una sola respuesta, con caché de 10 minutos por filtros.
@@ -15,7 +15,7 @@
 const DASH_CURSO_INICIO_ = '2026-09-01';
 const DASH_COL_PATOLOGIA_1_ = 'Patología 1';
 const DASH_COL_PATOLOGIA_2_ = 'Patología 2';
-// Mismo separador de varias patologías en una celda que usa la Base de Datos web (usuarios/BaseDatos_Vista).
+// Mismo separador de varias patologías en una celda que usa la pestaña Usuarios (usuarios/BaseDatos_Vista).
 const DASH_SEP_PATOLOGIA_ = /\s*(?:[,;\/|·+]|\r?\n)\s*/;
 
 function dashHoy_() { return Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd'); }
@@ -24,7 +24,7 @@ function dashNorm_(t) { return dashSinTildes_(t).replace(/\s+/g, ' '); }
 /** Celda de fecha (Date o texto dd/MM/yyyy o yyyy-MM-dd) → 'yyyy-MM-dd'; '' si no es una fecha válida. */
 function dashFechaISO_(v) { return dashFechaValida_(hcAISO_(v, Session.getScriptTimeZone())); }
 
-/** Gravedad escrita en la hoja → 'leve' | 'moderado' | 'urgente' | '' (misma regla que la Base de Datos web). */
+/** Gravedad escrita en la hoja → 'leve' | 'moderado' | 'urgente' | '' (misma regla que la pestaña Usuarios). */
 function dashClaseGravedad_(v) {
   const n = dashNorm_(v);
   return n.indexOf('leve') !== -1 ? 'leve' : n.indexOf('moderad') !== -1 ? 'moderado' : n.indexOf('urgent') !== -1 ? 'urgente' : '';
@@ -397,7 +397,7 @@ function dashClaveCache_(f) {
  *   Periodo por defecto: el curso completo de hoy (septiembre a julio).
  * @param {boolean=} forzar
  * @return {{success:boolean, message?:string, hoy?:string, curso?:{desde:string,hasta:string,etiqueta:string}, periodo?:Object,
- *   filtros?:Object, opciones?:Object, citas?:{ocupacion,faltas,atendidos,abandonos,reincidentes,diagnostico}, pacientes?:Object, clinica?:{evolucion,diagnostico}, estados?:{flujo,diagnostico},
+ *   filtros?:Object, opciones?:Object, citas?:{ocupacion,faltas,atendidos,abandonos,reincidentes,diagnostico}, usuarios?:Object, clinica?:{evolucion,diagnostico}, estados?:{flujo,diagnostico},
  *   generadoEn?:string, desdeCache?:boolean}}
  */
 function obtenerDashboardWeb(filtros, forzar) {

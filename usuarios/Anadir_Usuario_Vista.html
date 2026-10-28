@@ -1432,7 +1432,7 @@
       <div class="submit-section">
         <button title="Guardar el usuario nuevo" type="submit" id="submitButton" class="btn-primary ripple-host">
           <span class="ms">save</span>
-          Guardar Paciente
+          Guardar Usuario
         </button>
         <p class="submit-hint">Los campos marcados con <strong style="color:var(--md-primary)">*</strong> son obligatorios.</p>
       </div>
@@ -1839,7 +1839,7 @@
 
       const restore = () => {
         btn.disabled = false;
-        btn.innerHTML = `<span class="ms">save</span> Guardar Paciente`;
+        btn.innerHTML = `<span class="ms">save</span> Guardar Usuario`;
       };
 
       if (typeof google !== 'undefined' && typeof google.script.run !== 'undefined') {
@@ -1872,7 +1872,7 @@
             restore();
           })
           .withFailureHandler(err => {
-            msg.textContent = 'Error al guardar el paciente: ' + err.message;
+            msg.textContent = 'Error al guardar el usuario: ' + err.message;
             msg.className = 'error'; msg.style.display = 'block';
             restore();
           })

@@ -101,7 +101,7 @@ function asignarIdsPaciente() {
 
 function idPac_avisar_(ss, texto) {
   Logger.log(texto);
-  try { ss.toast(texto, 'IDs de paciente', 10); } catch (e) { /* sin interfaz */ }
+  try { ss.toast(texto, 'IDs de usuario', 10); } catch (e) { /* sin interfaz */ }
 }
 
 /** 1 = A, 27 = AA. */

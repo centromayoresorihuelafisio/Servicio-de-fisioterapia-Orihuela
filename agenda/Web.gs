@@ -87,7 +87,7 @@ function restaurarCitasWeb(snapshots) {
   }
 }
 
-/** Asigna un paciente a un hueco libre. `fila` es la clave del hueco ("hueco AAAA-MM-DD HH:mm"); el usuario va por su ID paciente. */
+/** Asigna un usuario a un hueco libre. `fila` es la clave del hueco ("hueco AAAA-MM-DD HH:mm"); el usuario va por su ID paciente. */
 function asignarPacienteHuecoWeb(fila, idPaciente) {
   try {
     return asignarPacienteDesdeCitasWeb_(fila, idPaciente);
@@ -135,7 +135,7 @@ function datosWhatsappLoteAgendaWeb(filas) {
   }
 }
 
-/** Da de alta al paciente de una cita. `fila` es el ID de la cita. */
+/** Da de alta al usuario de una cita. `fila` es el ID de la cita. */
 function darDeAltaPacienteParaAgendaWeb(fila) {
   try {
     return darDeAltaDesdeCitasWeb_(fila);

@@ -318,7 +318,7 @@ function citasCrear_(datos) {
     if (!v.ok) return citasError_(v.motivo);
 
     const idPaciente = citasTexto_(datos.idPaciente);
-    if (!idPaciente) return citasError_('Falta el ID del paciente.');
+    if (!idPaciente) return citasError_('Falta el ID del usuario.');
     const maestra = getSS().getSheetByName(SHEETS.MAESTRA);
     const fila = maestra ? mapaFilasMaestraPorId_(maestra)[idPaciente] : null;
     if (!fila) return citasError_('No existe ningún usuario con ese ID paciente.');
@@ -381,7 +381,7 @@ function citasCrearVarias_(lista, opciones) {
       const v = citasHuecoValido_(fechaISO, d.hora);
       if (!v.ok) { errores.push({ indice: indice, message: v.motivo }); return; }
       const idPaciente = citasTexto_(d.idPaciente);
-      if (!idPaciente) { errores.push({ indice: indice, message: 'Falta el ID del paciente.' }); return; }
+      if (!idPaciente) { errores.push({ indice: indice, message: 'Falta el ID del usuario.' }); return; }
       const fila = mapaMaestra[idPaciente];
       if (!fila) { errores.push({ indice: indice, message: 'No existe ningún usuario con ese ID paciente.' }); return; }
       let asistencia = ASISTENCIA_CITA.PENDIENTE;
@@ -436,7 +436,7 @@ function citasMover_(idCita, fechaISO, hora) {
   });
 }
 
-/** Intercambia la fecha y la hora de dos citas (cada una conserva su ID y su paciente). */
+/** Intercambia la fecha y la hora de dos citas (cada una conserva su ID y su usuario). */
 function citasIntercambiar_(idA, idB) {
   return citasOperar_('citasIntercambiar_', function (ctx, tz) {
     if (citasTexto_(idA) === citasTexto_(idB)) return { success: true, message: 'Misma cita, sin cambios.' };

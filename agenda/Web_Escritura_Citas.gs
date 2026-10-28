@@ -55,18 +55,18 @@ function restaurarDesdeCitasWeb_(snapshots) {
   return citasRestaurar_(snapshots);
 }
 
-/** Da de alta al paciente de la cita: por su ID paciente, sin buscar por nombre. */
+/** Da de alta al usuario de la cita: por su ID paciente, sin buscar por nombre. */
 function darDeAltaDesdeCitasWeb_(idCita) {
   const cita = citaPorIdDesdeCitasWeb_(idCita);
   if (!cita) return { success: false, message: 'La cita ya no existe (¿la ha cambiado otra persona?).' };
-  if (!cita.idPaciente) return { success: false, message: 'Esa cita no tiene un paciente enlazado (falta el ID paciente).' };
+  if (!cita.idPaciente) return { success: false, message: 'Esa cita no tiene un usuario enlazado (falta el ID paciente).' };
   return darDeAltaPacienteWeb(cita.idPaciente);
 }
 
 /**
  * Datos para el asistente de WhatsApp desde la Agenda: de cada cita se toma su ID paciente y se reutiliza
  * datosWhatsappMaestraWeb (usuarios/Whatsapp.gs), que devuelve la misma forma que el camino viejo
- * ({success, plantilla, items, duplicados}). Las citas sin paciente enlazado salen como elementos con error.
+ * ({success, plantilla, items, duplicados}). Las citas sin usuario enlazado salen como elementos con error.
  */
 function datosWhatsappLoteDesdeCitasWeb_(ids) {
   const todas = citasLeer_();
@@ -79,7 +79,7 @@ function datosWhatsappLoteDesdeCitasWeb_(ids) {
     const id = String(raw === null || raw === undefined ? '' : raw).trim();
     const c = id ? porId[id] : null;
     if (!c) { errores.push({ fila: '', nombre: '', primerNombre: '', telefono: '', error: 'La cita ya no existe.' }); return; }
-    if (!c.idPaciente) { errores.push({ fila: '', nombre: c.nombre || '', primerNombre: '', telefono: '', error: 'Esa cita no tiene un paciente enlazado.' }); return; }
+    if (!c.idPaciente) { errores.push({ fila: '', nombre: c.nombre || '', primerNombre: '', telefono: '', error: 'Esa cita no tiene un usuario enlazado.' }); return; }
     idsPaciente.push(c.idPaciente);
   });
 
@@ -92,7 +92,7 @@ function datosWhatsappLoteDesdeCitasWeb_(ids) {
 function generarUrlWhatsappDesdeCitasWeb_(idCita) {
   const cita = citaPorIdDesdeCitasWeb_(idCita);
   if (!cita) return { success: false, message: 'La cita ya no existe.' };
-  if (!cita.idPaciente) return { success: false, message: 'Esa cita no tiene un paciente enlazado.' };
+  if (!cita.idPaciente) return { success: false, message: 'Esa cita no tiene un usuario enlazado.' };
   return generarUrlWhatsappWeb(cita.idPaciente);
 }
 
@@ -101,7 +101,7 @@ function generarUrlWhatsappDesdeCitasWeb_(idCita) {
 /**
  * Mueve una cita a un hueco libre. `claveDestino` es la clave del hueco que da la lectura nueva
  * ("hueco AAAA-MM-DD HH:mm", agenda/Web_Semana_Citas.gs); la capa valida la parrilla, Disponibilidad y que esté libre.
- * La cita conserva su ID, su paciente, su Sesión y sus Notas (solo cambian fecha y hora).
+ * La cita conserva su ID, su usuario, su Sesión y sus Notas (solo cambian fecha y hora).
  */
 function moverDesdeCitasWeb_(idCita, claveDestino) {
   const clave = String(claveDestino === null || claveDestino === undefined ? '' : claveDestino).trim();
@@ -129,7 +129,7 @@ function pacientePorIdDesdeCitasWeb_(idBruto) {
   const hoja = getSS().getSheetByName(SHEETS.MAESTRA);
   if (!hoja || hoja.getLastRow() < 2) return { ok: false, message: 'No se encontró la Base de Datos Maestra.' };
   const fila = filaMaestraPorId_(hoja, id);
-  if (!fila) return { ok: false, message: 'Ese usuario ya no está en la Base de Datos. Recarga la página.' };
+  if (!fila) return { ok: false, message: 'Ese usuario ya no está en Usuarios. Recarga la página.' };
   const cNom = obtenerIndiceColumnaPorNombre_(hoja, COLUMNAS.MAESTRA.NOMBRE);
   const nombre = cNom === -1 ? '' : String(hoja.getRange(fila, cNom + 1).getValue() || '').trim();
   const u = agendaSemanaUsuariosPorId_([id])[id] || { nombre: nombre, telefono: '', hc: '' };
@@ -157,7 +157,7 @@ function actualizarEstadoPorIdDesdeCitasWeb_(idPaciente, nuevoEstado, origen) {
 }
 
 /**
- * Asigna un paciente a un hueco libre de la Agenda. `claveHueco` es la clave que da la lectura nueva ("hueco AAAA-MM-DD HH:mm"; si
+ * Asigna un usuario a un hueco libre de la Agenda. `claveHueco` es la clave que da la lectura nueva ("hueco AAAA-MM-DD HH:mm"; si
  * llega el ID de una cita, el hueco ya no está libre). Crea la cita con Sesión vacía (como antes: la Sesión se escribe a mano) y registra
  * el ingreso del episodio si es la primera cita. Pone el Estado del usuario en Activo (con historial, origen "Asignar hueco") y, si cambió,
  * reordena la Maestra, como hace el formulario de Cita (decisión del dueño, 21-oct-2026; la asignación vieja no lo hacía).
@@ -205,7 +205,7 @@ function copiaDestinosDesdeCitasWeb_(cita, doble) {
   } else {
     if (dia === 1 || dia === 2) saltos = [2, 5];
     else if (dia === 3 || dia === 4) saltos = [5, 2];
-    else return { error: 'Esta acción solo funciona con citas de lunes a jueves (pacientes de doble sesión semanal).' };
+    else return { error: 'Esta acción solo funciona con citas de lunes a jueves (usuarios de doble sesión semanal).' };
   }
   let sesionActual = typeof cita.sesion === 'number' && cita.sesion >= 1 ? cita.sesion : (parseInt(cita.sesion, 10) || 0);
   const destinos = [];
@@ -241,7 +241,7 @@ function copiarVariasDesdeCitasWeb_(items, forzar) {
       const origen = porId[id];
       if (!origen) { errores.push('Una cita ya no existe (¿la ha cambiado otra persona?).'); return; }
       const nombre = origen.nombre || 'Cita';
-      if (!origen.idPaciente) { errores.push(nombre + ': la cita no tiene un paciente enlazado (falta el ID paciente).'); return; }
+      if (!origen.idPaciente) { errores.push(nombre + ': la cita no tiene un usuario enlazado (falta el ID paciente).'); return; }
       const plan = copiaDestinosDesdeCitasWeb_(origen, !!item.doble);
       if (plan.error) { errores.push(nombre + ': ' + plan.error); return; }
       const propias = [];
@@ -335,7 +335,7 @@ function obtenerSemanasYHuecosDesdeCitasWeb_() {
 }
 
 /**
- * Guarda las citas del formulario de Cita (una por hueco elegido). El paciente llega por ID paciente (`idPaciente`; el nombre que
+ * Guarda las citas del formulario de Cita (una por hueco elegido). El usuario llega por ID paciente (`idPaciente`; el nombre que
  * envía el formulario es solo de referencia); el teléfono que envía el formulario se ignora (se consulta en la Maestra). Sesión: si es un
  * número, la primera hora lleva ese número y cada una siguiente +1; si es texto, todas llevan ese texto; vacía = sin Sesión. Después, igual que antes:
  * el usuario pasa a Activo (con historial), la fecha de la PRIMERA cita es el ingreso del episodio si aún no tiene, y se reordena la Maestra.

@@ -1,12 +1,12 @@
 // seleccionar uno, su historial completo para ver la evolución.
 //
-// La hoja "Valoraciones" tiene una fila por valoración (un paciente puede
+// La hoja "Valoraciones" tiene una fila por valoración (un usuario puede
 // tener varias a lo largo del tiempo: Inicial, Seguimiento, Final...), así
 // que aquí se agrupan por DNI (o por nombre, en las filas que aún no tienen DNI)
 // antes de servirlas a la Web App.
 
 /**
- * Devuelve todos los pacientes con al menos una valoración, cada uno con su
+ * Devuelve todos los usuarios con al menos una valoración, cada uno con su
  * valoración más reciente (para la tabla principal) y su historial completo
  * ordenado cronológicamente (para el detalle y la gráfica de evolución).
  */
@@ -114,7 +114,7 @@ function registroValoracion_(fila, i, C, tz) {
 
 /**
  * Historial de valoraciones de UN usuario, de la más antigua a la más reciente. Lo usa el panel lateral
- * de valoraciones del usuario (valoraciones/Panel_Valoraciones), abierto desde la ficha en Agenda, Base de Datos y HC.
+ * de valoraciones del usuario (valoraciones/Panel_Valoraciones), abierto desde la ficha en Agenda, Usuarios y HC.
  * Son del usuario las filas con ese ID paciente; ni el nombre ni el DNI intervienen.
  *
  * @param {string} idPaciente ID paciente del usuario (Maestra).
@@ -221,7 +221,7 @@ function actualizarValoracionWeb(datos) {
     if (!fecha) return { success: false, message: 'La fecha no es válida.' };
 
     const C = COLUMNAS_NUM.VALORACIONES;
-    // Nombre (columna C) se deja intacto a propósito: cambiar de paciente no
+    // Nombre (columna C) se deja intacto a propósito: cambiar de usuario no
     // es "corregir un dato", es reasignar la valoración a otra persona — si
     // hiciera falta, mejor borrar y crear una nueva desde el formulario.
     const filaDatos = [];
@@ -301,7 +301,7 @@ function restaurarValoracionWeb(datos) {
 
     if (!datos) return { success: false, message: 'No hay datos que restaurar.' };
     const paciente = pacienteMaestraPorId_(datos.idPaciente);
-    if (!paciente) return { success: false, message: 'El usuario ya no está en la Base de Datos: no se puede restaurar su valoración.' };
+    if (!paciente) return { success: false, message: 'El usuario ya no está en Usuarios: no se puede restaurar su valoración.' };
 
     const fechaObj = parsearFechaISO_(datos.fecha);
     if (!fechaObj) return { success: false, message: 'La fecha guardada no es válida.' };

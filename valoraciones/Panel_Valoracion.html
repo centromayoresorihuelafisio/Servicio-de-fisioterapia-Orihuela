@@ -469,7 +469,7 @@
 <!-- ══ Progress M3 ══ -->
   <div class="progress-wrap" role="progressbar" aria-label="Progreso del formulario" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" id="progressBar">
     <div class="progress-steps">
-      <div class="progress-step active" id="step1" title="Paciente"><span class="dot"></span><span>Paciente</span></div>
+      <div class="progress-step active" id="step1" title="Usuario"><span class="dot"></span><span>Usuario</span></div>
       <div class="progress-sep"></div>
       <div class="progress-step" id="step2" title="Dolor PEG"><span class="dot"></span><span>Dolor PEG</span></div>
       <div class="progress-sep"></div>
@@ -487,7 +487,7 @@
   <div class="card">
     <form id="valoracionForm" novalidate>
 
-      <!-- ── SECCIÓN 1: Datos del Paciente y Tipo de Valoración ── -->
+      <!-- ── SECCIÓN 1: Datos del Usuario y Tipo de Valoración ── -->
       <div class="card-section">
         
         <!-- Tipo de Valoración -->
@@ -536,7 +536,7 @@
             </div>
           </div>
 
-          <!-- DNI (Solo lectura): identifica al paciente aunque haya otro con el mismo nombre -->
+          <!-- DNI (Solo lectura): identifica al usuario aunque haya otro con el mismo nombre -->
           <div class="md-field">
             <div class="md-field-inner">
               <div class="leading-icon"><span class="ms">badge</span></div>
@@ -803,13 +803,13 @@ window.PanelValoracion = {
     var idSeleccionado = String(opts.idPaciente || '').trim();
 
     // ¿El usuario ha tocado algo? Solo cuentan eventos reales (isTrusted): los valores
-    // que rellena el propio código (paciente precargado, sliders iniciales) no marcan cambio.
+    // que rellena el propio código (usuario precargado, sliders iniciales) no marcan cambio.
     var tocado = false;
     pv.addEventListener('input',  function (e) { if (e.isTrusted) tocado = true; });
     pv.addEventListener('change', function (e) { if (e.isTrusted) tocado = true; });
 
     // ── Variables globales Autocompletado ──
-    let PACIENTES_LISTA = [];   // [{ id, nombre, telefono, dni }]: distingue a dos pacientes con el mismo nombre
+    let PACIENTES_LISTA = [];   // [{ id, nombre, telefono, dni }]: distingue a dos usuarios con el mismo nombre
     let currentUserName = "";
 
     const nombreUsuarioInput = $('nombreUsuario');
@@ -820,7 +820,7 @@ window.PanelValoracion = {
     /* ── Fecha ── */
     
 
-    /* ── Carga inicial de datos de pacientes y celda activa ── */
+    /* ── Carga inicial de datos de usuarios y celda activa ── */
     function __init() {
       initSlider('pegDolor',           'pegDolorValue',           'pegDolorLabel',           true);
       initSlider('pegActividad',       'pegActividadValue',       'pegActividadLabel',       true);
@@ -869,7 +869,7 @@ window.PanelValoracion = {
         // Mostrar siempre el nombre en mayúsculas en las sugerencias
         item.innerHTML = `<span class="ms ms-sm" style="margin-right:8px; vertical-align:middle; color:var(--md-primary)">person</span>`;
         item.appendChild(document.createTextNode(match.nombre.toUpperCase()));
-        // Si hay otro paciente con el mismo nombre, se añade el DNI (o el teléfono) para distinguirlos
+        // Si hay otro usuario con el mismo nombre, se añade el DNI (o el teléfono) para distinguirlos
         const repetido = PACIENTES_LISTA.filter(pc => pc.nombre.toUpperCase() === match.nombre.toUpperCase()).length > 1;
         if (repetido) {
           const extra = document.createElement('span');
@@ -1037,7 +1037,7 @@ window.PanelValoracion = {
 
     function buildSummary() {
       const items = [
-        { label: 'Paciente',       id: 'nombreUsuario',      type: 'text' },
+        { label: 'Usuario',       id: 'nombreUsuario',      type: 'text' },
         { label: 'PEG Dolor',      id: 'pegDolor',           type: 'pain' },
         { label: 'PEG Actividad',  id: 'pegActividad',       type: 'pain' },
         { label: 'PEG Vida',       id: 'pegVida',            type: 'pain' },
@@ -1079,7 +1079,7 @@ window.PanelValoracion = {
 
       // Validar si seleccionó del listado y coincide (o si viene pre-cargado es válido)
       if (!idSeleccionado || !currentUserName || nombreNormalizado !== currentUserName) {
-        showMessage('error', 'error', 'Por favor, busca y selecciona un paciente válido del listado.');
+        showMessage('error', 'error', 'Por favor, busca y selecciona un usuario válido del listado.');
         fieldNombre.classList.add('has-error');
         nombreUsuarioInput.focus();
         return;

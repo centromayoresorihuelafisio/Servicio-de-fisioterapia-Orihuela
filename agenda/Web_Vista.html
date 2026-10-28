@@ -336,7 +336,7 @@
       .modal-mensaje { font-size: .88rem; color: var(--ag-text); white-space: pre-line; line-height: 1.45; margin-bottom: 1.15rem; }
       .modal-botones { display: flex; justify-content: flex-end; gap: .5rem; }
 
-      /* Pestañas Agenda / Base de Datos / Valoraciones (enlaces con recarga,
+      /* Pestañas Agenda / Usuarios / Valoraciones (enlaces con recarga,
          porque las Web Apps de Apps Script no se pueden embeber en iframe) */
       nav.tabs-cambio {
         display: flex; gap: .25rem; flex-shrink: 0;
@@ -693,7 +693,7 @@
       .btn-fila.con-hc { color: var(--ag-accent); }
       .btn-fila.sin-hc .material-symbols-outlined { opacity: .35; }
 
-      /* ---------- Panel lateral (formulario de Valoración): misma estructura que la ficha de la Base de Datos ---------- */
+      /* ---------- Panel lateral (formulario de Valoración): misma estructura que la ficha de Usuarios ---------- */
       .ficha { position: fixed; top: 0; right: 0; bottom: 0; width: var(--ficha-w, 400px); max-width: 100%; z-index: 900; display: flex; flex-direction: column; background: var(--md-surface);
         border-left: 1px solid var(--md-outline); box-shadow: -6px 0 24px rgba(0,0,0,.08); transform: translateX(100%); visibility: hidden; transition: transform 160ms cubic-bezier(.2,0,0,1), visibility 0s 160ms; will-change: transform; }
       .ficha.abierta { transform: none; visibility: visible; transition-delay: 0s; }
@@ -1136,10 +1136,10 @@
   </head>
   <body>
     <nav class="tabs-cambio">
-      <a class="tab-cambio" title="Ir a la Base de Datos" href="<?= baseUrl ?>?page=baseDatos" target="_top"><span class="material-symbols-outlined">folder_shared</span>Base de Datos</a>
+      <a class="tab-cambio" title="Ir a Usuarios" href="<?= baseUrl ?>?page=baseDatos" target="_top"><span class="material-symbols-outlined">folder_shared</span>Usuarios</a>
       <a class="tab-cambio activo" title="Ir a la Agenda" href="<?= baseUrl ?>?page=agenda" target="_top"><span class="material-symbols-outlined">calendar_month</span>Agenda</a>
       <a class="tab-cambio" title="Ir a Valoraciones" href="<?= baseUrl ?>?page=valoraciones" target="_top"><span class="material-symbols-outlined">monitoring</span>Valoraciones</a>
-      <a class="tab-cambio" title="Ir al Dashboard" href="<?= baseUrl ?>?page=dashboard" target="_top"><span class="material-symbols-outlined">dashboard</span>Dashboard</a>
+      <a class="tab-cambio" title="Ir a Estadísticas" href="<?= baseUrl ?>?page=dashboard" target="_top"><span class="material-symbols-outlined">dashboard</span>Estadísticas</a>
     </nav>
     <header class="top" id="cabecera">
 
@@ -1605,7 +1605,7 @@
       }
 
 
-      // Mismo icono de WhatsApp que usa la Base de Datos.
+      // Mismo icono de WhatsApp que usa Usuarios.
       var SVG_WHATSAPP = '<svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 16 16" fill="currentColor">' +
         '<path d="M13.601 2.326A7.854 7.854 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.933 7.933 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.898 7.898 0 0 0 13.6 2.326zM7.994 14.521a6.573 6.573 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.557 6.557 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592zm3.615-4.934c-.197-.099-1.17-.578-1.353-.646-.182-.065-.315-.099-.445.099-.133.197-.513.646-.627.775-.114.133-.232.148-.43.05-.197-.1-.836-.308-1.592-.985-.59-.525-.985-1.175-1.103-1.372-.114-.198-.011-.304.088-.403.087-.088.197-.232.296-.346.1-.114.133-.198.198-.33.065-.134.034-.248-.015-.347-.05-.099-.445-1.076-.612-1.47-.16-.389-.323-.335-.445-.34-.114-.007-.247-.007-.38-.007a.729.729 0 0 0-.529.247c-.182.198-.691.677-.691 1.654 0 .977.71 1.916.81 2.049.098.133 1.394 2.132 3.383 2.992.47.205.84.326 1.129.418.475.152.904.129 1.246.08.38-.058 1.171-.48 1.338-.943.164-.464.164-.86.114-.943-.049-.084-.182-.133-.38-.232z"/></svg>';
 
@@ -2469,8 +2469,8 @@
       });
 
       // ---------- Panel lateral de Valoración (sustituye a la ventana emergente) ----------
-      // Igual que en la Base de Datos: el formulario vive en el panel (valoraciones/Panel_Valoracion) y devuelve un
-      // controlador con haCambiado(). El panel trabaja con el nombre del paciente, no con la fila ni con la semana
+      // Igual que en Usuarios: el formulario vive en el panel (valoraciones/Panel_Valoracion) y devuelve un
+      // controlador con haCambiado(). El panel trabaja con el nombre del usuario, no con la fila ni con la semana
       // mostrada, así que seguir navegando por la agenda (o el refresco automático) no lo afecta.
       var panelAbierto = false, panelClave = '', controladorPanel = null, timerLimpiarPanel = null;
 
@@ -2532,7 +2532,7 @@
       function abrirValoracionCita(idPaciente, nombre) {
         idPaciente = String(idPaciente || '').trim();
         nombre = (nombre || '').trim();
-        if (!idPaciente) { mostrarAviso('Esa cita no tiene paciente asignado.'); return; }
+        if (!idPaciente) { mostrarAviso('Esa cita no tiene usuario asignado.'); return; }
         var cita = CITAS.find(function(c) { return c['_idPaciente'] === idPaciente && c['Teléfono']; });
         var ficha = fichaDeMemoria(nombre);                                   // DNI y teléfono de la Maestra, si las fichas ya están cargadas
         var dniUsuario = ficha ? String(FichaUsuario.valor(ficha.paciente, ficha.headers, 'DNI') || '').trim() : '';
@@ -2555,7 +2555,7 @@
       function abrirCitaPanel(nombre, idPaciente) {
         nombre = (nombre || '').trim();
         idPaciente = String(idPaciente || '').trim();
-        if (!nombre) { mostrarAviso('Esa cita no tiene paciente asignado.'); return; }
+        if (!nombre) { mostrarAviso('Esa cita no tiene usuario asignado.'); return; }
         var clave = 'cita:' + (idPaciente || nombre);
         return abrirPanelLateral(clave, 'Dar cita · ' + nombre, true, function(cont) {
           return PanelCita.abrir(cont, {
@@ -2622,11 +2622,11 @@
         WhatsappDialogo.abrir('datosWhatsappLoteAgendaWeb', [fila], c ? c['Usuario'] : '');
       }
 
-      // Dar de alta al paciente de la cita (mismo proceso que el botón Alta de la Base de Datos).
+      // Dar de alta al usuario de la cita (mismo proceso que el botón Alta de Usuarios).
       async function manejarAltaFila(fila) {
         var cita = CITAS.find(function(c) { return c._fila == fila; });
         var nombre = cita ? (cita['Usuario'] || '') : '';
-        if (!nombre) { mostrarAviso('Esa fila no tiene paciente asignado.'); return; }
+        if (!nombre) { mostrarAviso('Esa fila no tiene usuario asignado.'); return; }
         var confirmado = await mostrarConfirm('¿Dar de alta a ' + nombre + '?');
         if (!confirmado) return;
 
@@ -3294,7 +3294,7 @@
       var AUTO_REFRESH_MS = 4000;
       setInterval(comprobarVersionAgenda, AUTO_REFRESH_MS);
 
-      // Si otra pestaña actualiza un paciente (las páginas sueltas ?page=… avisan por localStorage al guardar),
+      // Si otra pestaña actualiza un usuario (las páginas sueltas ?page=… avisan por localStorage al guardar),
       // la agenda se recarga salvo que haya una edición en línea en curso.
       window.addEventListener('storage', function(e) {
         if (e.key === 'pacienteActualizado') cargarFichas();   // los datos de la ficha pueden haber cambiado
@@ -3409,7 +3409,7 @@
       document.getElementById('btnRecordatorios').addEventListener('click', function() { abrirRecordatorios(); });
 
       // ---------- Ficha de usuario (panel lateral) ----------
-      // Cabecera, secciones y etiquetas: ui/JS_Ficha (FichaUsuario), el mismo componente que la ficha de la Base de Datos.
+      // Cabecera, secciones y etiquetas: ui/JS_Ficha (FichaUsuario), el mismo componente que la ficha de Usuarios.
       // Aquí solo está lo propio de la Agenda: cargar las fichas en memoria, qué acciones se ofrecen y qué hacen.
 
       // Fichas en memoria: se cargan TODAS de una vez en segundo plano (cargarFichas) y el panel se abre desde
@@ -3431,7 +3431,7 @@
           nombre: nombre,
           // «Valoración» (formulario) si el usuario no tiene ninguna; «Valoraciones» (su panel) si ya tiene
           acciones: ['whatsapp', 'hc', 'cita', ValoracionesCache.accion(res.paciente['ID paciente'])],
-          // "Otros datos" no repite la columna de prioridad (la primera) ni la Historia clínica, igual que la Base de Datos
+          // "Otros datos" no repite la columna de prioridad (la primera) ni la Historia clínica, igual que Usuarios
           excluir: [hs[0]].concat(hs.filter(function(h) { return String(h).toLowerCase().indexOf('historia') !== -1; }))
         });
       }
@@ -3468,7 +3468,7 @@
           .obtenerFichasUsuariosWeb();
       }
 
-      // ---------- Estado del usuario desde la ficha (chip pulsable, como en la Base de Datos) ----------
+      // ---------- Estado del usuario desde la ficha (chip pulsable, como en Usuarios) ----------
       function menuEstadoFicha(ancla) {
         var res = fichaAbierta && fichaDeMemoria(fichaAbierta.nombre);
         if (!res) return;
@@ -3493,7 +3493,7 @@
           .withSuccessHandler(function(r) {
             if (!r || !r.success) { revertir((r && r.message) || 'No se pudo cambiar el estado.'); cargarFichas(); return; }
             mostrarAviso('Estado cambiado a ' + FichaUsuario.textoEstado(valor) + '.');
-            // Avisa a las otras ventanas (Base de Datos, Valoraciones), igual que los formularios al guardar.
+            // Avisa a las otras ventanas (Usuarios, Valoraciones), igual que los formularios al guardar.
             try { localStorage.setItem('pacienteActualizado', JSON.stringify({ guardado: true, ts: Date.now() })); } catch (err) { /* sin almacenamiento: no es crítico */ }
             if (window.HCCache) HCCache.cambioDeUsuario();   // un usuario nuevo en Activo entra en la precarga de HC
             if (r.ordenado) cargarFichas();   // el servidor reordenó la Maestra: las fichas en memoria (y el orden de sus listas) se refrescan
@@ -3504,7 +3504,7 @@
       // Alta desde la ficha: usa la cita del usuario en la semana mostrada (mismo proceso que el botón Alta de la fila).
       function altaDesdeFicha(nombre) {
         var cita = CITAS.find(function(x) { return !x._hueco && x['Usuario'] === nombre; });
-        if (!cita) { mostrarAviso('Este usuario ya no tiene citas en la semana mostrada: da el alta desde la Base de Datos.'); return; }
+        if (!cita) { mostrarAviso('Este usuario ya no tiene citas en la semana mostrada: da el alta desde Usuarios.'); return; }
         manejarAltaFila(cita._fila);
       }
 

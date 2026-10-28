@@ -1,5 +1,5 @@
 <!--
-  ui/JS_Ficha.html - LOGICA de la FICHA DE USUARIO (panel lateral), compartida por la Base de Datos
+  ui/JS_Ficha.html - LOGICA de la FICHA DE USUARIO (panel lateral), compartida por Usuarios
   (usuarios/BaseDatos_Vista) y la Agenda (agenda/Web_Vista). Estilos: ui/CSS_Ficha.
 
   Se incluye con include('ui/JS_Ficha') con "!" (fuera de cualquier bloque de script), ANTES del script
@@ -14,7 +14,7 @@
     SVG_WHATSAPP              icono de WhatsApp (opcional)
 
   Uso:
-    FichaUsuario.pintar(contenedor, FichaUsuario.html(paciente, cabeceras, opciones));
+    FichaUsuario.pintar(contenedor, FichaUsuario.html(usuario, cabeceras, opciones));
     contenedor.addEventListener('click', function(e) { FichaUsuario.alClic(e, { cerrar, estado, accion }); });
   opciones: { nombre, acciones, pie, extraCabecera, excluir }  (ver FichaUsuario.html)
 -->

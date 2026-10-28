@@ -84,7 +84,7 @@ function procesarValoracion(data) {
 
     // 1. Usuario: el formulario envía SOLO su ID paciente; nombre, DNI y teléfono salen de la Maestra.
     const paciente = pacienteMaestraPorId_(data.idPaciente);
-    if (!paciente) throw new Error("No se encontró al usuario en la Base de Datos (ID paciente). Elígelo de la lista.");
+    if (!paciente) throw new Error("No se encontró al usuario en Usuarios (ID paciente). Elígelo de la lista.");
     const nombreFinal = normalizarFormatoNombre(paciente.nombre) || paciente.nombre;
     const dni = paciente.dni;
     const telefono = telefonoNormalizar_(paciente.telefono);   // solo dígitos (regla única, core/Utils.gs)

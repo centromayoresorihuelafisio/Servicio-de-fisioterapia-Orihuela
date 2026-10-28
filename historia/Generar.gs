@@ -1,19 +1,19 @@
 /**
- * Versión web-safe: genera la historia clínica del paciente de `fila`,
- * para usar desde el botón "Historia Clínica" de la Base de Datos Web.
+ * Versión web-safe: genera la historia clínica del usuario de `fila`,
+ * para usar desde el botón "Historia Clínica" de Usuarios.
  */
 function generarHistoriaClinicaWeb(idPaciente) {
   const ss = getSS();
   const sheet = ss.getSheetByName(SHEETS.MAESTRA);
   if (!sheet) return { success: false, message: "Error: La hoja 'Base de Datos Maestra' no existe." };
   const rowIndex = filaMaestraPorId_(sheet, idPaciente);   // por ID paciente: el número de fila cambia al reordenar
-  if (!rowIndex) return { success: false, message: "Ese usuario ya no está en la Base de Datos. Recarga la página." };
+  if (!rowIndex) return { success: false, message: "Ese usuario ya no está en Usuarios. Recarga la página." };
 
   return _generarHistoriaClinicaEnFila(sheet, rowIndex);
 }
 
 /**
- * Lógica compartida: crea la historia clínica (ficha web) del paciente de la fila indicada y
+ * Lógica compartida: crea la historia clínica (ficha web) del usuario de la fila indicada y
  * enlaza el resultado en la columna "Historia clínica" de esa fila.
  */
 function _generarHistoriaClinicaEnFila(sheet, rowIndex) {
@@ -24,7 +24,7 @@ function _generarHistoriaClinicaEnFila(sheet, rowIndex) {
   headers.forEach((header, index) => { patientData[header.toLowerCase()] = data[index]; });
 
   const nombre = patientData[COLUMNAS.MAESTRA.NOMBRE.toLowerCase()] || '';
-  if (!nombre) return { success: false, message: 'Esa fila no tiene un paciente válido.' };
+  if (!nombre) return { success: false, message: 'Esa fila no tiene un usuario válido.' };
 
   // --- VALIDACIÓN ANTI-DUPLICADOS ---
   // Si esta fila ya tiene una Historia Clínica enlazada, no generamos otra:

@@ -5,12 +5,12 @@
 
   Cada página puede definir antes:
     window.CONTEXTO_FORM = 'popup' | 'pestana'   (por defecto 'pestana')
-    window.BASE_URL_FORM = URL de despliegue de la Web App   (para volver a la Base de Datos en 'pestana')
+    window.BASE_URL_FORM = URL de despliegue de la Web App   (para volver a Usuarios en 'pestana')
 -->
 <script>
   var CIERRE_DEMORA_MS = 1500; // Lo subimos a 1.5 segundos por defecto para que se lea bien el mensaje
 
-  // Avisa a la Base de Datos Web para que se refresque.
+  // Avisa a Usuarios para que se refresque.
   function notificarGuardado(tipo, guardado) {
     var ok = (guardado === undefined) ? true : !!guardado;
     try {

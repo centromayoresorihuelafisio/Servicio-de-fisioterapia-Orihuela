@@ -1,10 +1,10 @@
 <!--
   usuarios/Panel_Nuevo.html
-  Formulario de Nuevo usuario como módulo del panel lateral de la Base de Datos Web (igual que Panel_Valoracion / Panel_Editar).
+  Formulario de Nuevo usuario como módulo del panel lateral de Usuarios (igual que Panel_Valoracion / Panel_Editar).
   Se incluye desde usuarios/BaseDatos_Vista con include('usuarios/Panel_Nuevo') en un scriptlet de impresion.
   API: PanelNuevo.abrir(contenedor, { onGuardado, onCancelar, onAbrirEditar, obtenerUsuarios })
   Devuelve { haCambiado(), alEscape(), cerrar() }:
-    · haCambiado() → true si hay datos sin guardar (la Base de Datos pregunta antes de descartar).
+    · haCambiado() → true si hay datos sin guardar (Usuarios pregunta antes de descartar).
     · alEscape()   → cierra primero una confirmación o un desplegable abierto; devuelve true si lo ha gestionado.
   Comportamiento:
     · El título y el botón de volver los pone el panel de la página (ficha-form-cab); aquí solo va el formulario.
@@ -712,7 +712,7 @@ window.PanelNuevo = {
         })
         .withFailureHandler(function (err) {
           guardando = false; ponerBotonGuardando(false);
-          mostrarMsg('Error al guardar el paciente: ' + (err && err.message ? err.message : err), 'error');
+          mostrarMsg('Error al guardar el usuario: ' + (err && err.message ? err.message : err), 'error');
         })
         .guardarPaciente(datos);
     }

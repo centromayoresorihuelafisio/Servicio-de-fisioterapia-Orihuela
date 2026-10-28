@@ -18,7 +18,7 @@ function prepararDatosFilaParaEdicion(sheet, rowIdx) {
 }
 
 /**
- * Lee la fila de un usuario de la Maestra para el panel lateral de edición de la Base de Datos Web
+ * Lee la fila de un usuario de la Maestra para el panel lateral de edición de Usuarios
  * (usuarios/Panel_Editar.html). Devuelve lo mismo que prepararDatosFilaParaEdicion(). El usuario se localiza por su
  * ID paciente, así que no hay riesgo de editar a otra persona si la hoja se ha reordenado.
  */
@@ -26,7 +26,7 @@ function obtenerDatosEdicionPaciente(idPaciente) {
   const sheet = getSS().getSheetByName(SHEETS.MAESTRA);
   if (!sheet) throw new Error('No se encontró la hoja "' + SHEETS.MAESTRA + '".');
   const fila = filaMaestraPorId_(sheet, idPaciente);
-  if (!fila) throw new Error('Ese usuario ya no está en la Base de Datos. Recarga la página.');
+  if (!fila) throw new Error('Ese usuario ya no está en Usuarios. Recarga la página.');
   return prepararDatosFilaParaEdicion(sheet, fila);
 }
 
@@ -38,7 +38,7 @@ function actualizarPaciente(updatedData, idPaciente) {
   const sheet = ss.getSheetByName(SHEETS.MAESTRA);
   // La fila se localiza por el ID paciente (no por un número de fila que pudo cambiar al reordenar).
   const rowIdx = filaMaestraPorId_(sheet, idPaciente);
-  if (!rowIdx) throw new Error('Ese usuario ya no está en la Base de Datos. No se ha guardado nada: recarga la página.');
+  if (!rowIdx) throw new Error('Ese usuario ya no está en Usuarios. No se ha guardado nada: recarga la página.');
   const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
 
   // Capturamos el Rich Text (hipervínculo) de "Historia clínica" ANTES de
@@ -55,7 +55,7 @@ function actualizarPaciente(updatedData, idPaciente) {
   const idxIdPaciente = headers.findIndex(h => h.toString().trim() === COLUMNAS.MAESTRA.ID_PACIENTE);
 
   const newRowValues = headers.map((header, index) => {
-    // Mantener valor original para Nº, ID de paciente e Historia Clínica (seguridad extra)
+    // Mantener valor original para Nº, ID de usuario e Historia Clínica (seguridad extra)
     if (index === 0 || index === idxIdPaciente || header.toLowerCase().includes("historia")) {
       return sheet.getRange(rowIdx, index + 1).getValue();
     }

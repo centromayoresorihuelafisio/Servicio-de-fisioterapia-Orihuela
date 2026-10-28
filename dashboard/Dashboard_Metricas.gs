@@ -327,7 +327,7 @@ function dashResumenEvolucion_(pares, mejoraSube) {
 }
 
 /**
- * Cálculo de D4. Las valoraciones llegan ya filtradas por usuario (Gravedad, Tipo de Ingreso, Patología), solo con ID de paciente y
+ * Cálculo de D4. Las valoraciones llegan ya filtradas por usuario (Gravedad, Tipo de Ingreso, Patología), solo con ID de usuario y
  * fecha válida, en el orden de la hoja.
  * @param {{valoraciones:Array<{idPaciente:string,fecha:string,dolor:?number,funcion:?number,analg:?number}>, desde:string, hasta:string}} e
  */

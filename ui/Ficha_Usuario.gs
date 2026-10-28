@@ -2,14 +2,14 @@
  * Ficha de usuario para el panel lateral de la Agenda web.
  *
  * RENDIMIENTO: antes cada clic en un nombre llamaba al servidor, que releía la
- * Base de Datos completa (con todas sus columnas y el rich text de Historia
+ * La Maestra completa (con todas sus columnas y el rich text de Historia
  * clínica) solo para devolver UNA ficha. Ahora el cliente (agenda/Web_Vista.html)
  * pide TODAS las fichas de una vez, en segundo plano, con obtenerFichasUsuariosWeb()
  * y abre el panel desde memoria. obtenerFichaUsuarioWeb() queda solo como
  * respaldo (usuario dado de alta después de la última carga, o carga aún en curso).
  *
  * El cliente puede pedir solo algunas columnas (parámetro `campos`). Hoy la ficha
- * muestra también "Otros datos" (como la de la Base de Datos), así que la Agenda las
+ * muestra también "Otros datos" (como la de Usuarios), así que la Agenda las
  * pide todas; sigue sin leerse el rich text de Historia clínica: el enlace a la
  * historia se abre desde la fila de la Agenda, no desde estos datos.
  *
@@ -89,7 +89,7 @@ function obtenerFichaUsuarioWeb(nombre, campos) {
 
     const colNombre = COLUMNAS.MAESTRA.NOMBRE;
     const paciente = bd.pacientes.filter(function(p) { return normalizarNombreFicha_(p[colNombre]) === objetivo; })[0];
-    if (!paciente) return { success: false, message: 'No se encontró a este usuario en la Base de Datos.' };
+    if (!paciente) return { success: false, message: 'No se encontró a este usuario en Usuarios.' };
 
     return { success: true, headers: bd.headers, paciente: paciente };
   } catch (e) {

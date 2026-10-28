@@ -81,7 +81,7 @@ function normalizarTexto(texto) {
 
 /**
  * Convierte un texto a formato MAYÚSCULA sin espacios sobrantes (Ej: "juan pérez" -> "JUAN PÉREZ").
- * Usada para normalizar nombres de pacientes antes de guardarlos.
+ * Usada para normalizar nombres de usuarios antes de guardarlos.
  * (No estaba duplicada, se traslada aquí desde "valoraciones/Guardar.gs" por coherencia;
  * puedes dejarla también donde estaba, JavaScript no se queja de que exista en ambos
  * sitios siempre que solo haya UNA definición de función con este nombre en todo el proyecto.)

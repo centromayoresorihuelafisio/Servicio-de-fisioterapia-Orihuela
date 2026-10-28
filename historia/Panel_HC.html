@@ -1,6 +1,6 @@
 <!--
   historia/Panel_HC.html
-  Historia clínica web como módulo del panel lateral (Base de Datos y Agenda) y como página completa (historia/HC_Vista.html).
+  Historia clínica web como módulo del panel lateral (Usuarios y Agenda) y como página completa (historia/HC_Vista.html).
   Se incluye con incluirPanel('historia/Panel_HC', 'PanelHC') (carga bajo demanda, ver ui/JS_Paneles_Diferidos).
   API: PanelHC.abrir(contenedor, { id, idPaciente, modo, urlPagina, volverUrl, alCargar, alCambiar, acciones })
   Funciones de la app dentro de la historia (solo en el panel lateral): Valoración, Dar cita, Editar y WhatsApp. Reutilizan
@@ -11,7 +11,7 @@
     · alEscape()   → true si estaba en modo "ampliar" y lo cierra; si no, false (el anfitrión cierra el panel).
     · cerrar()     → vuelca al servidor lo que esté pendiente de guardar.
   Servidor: historia/HC_Web.gs (obtenerHCWeb, guardarTextoHCWeb, guardarEpisodiosHCWeb).
-  Si la página incluye ui/JS_HC_Cache (Base de Datos y Agenda), la ficha se pinta al instante desde la caché de HC activas
+  Si la página incluye ui/JS_HC_Cache (Usuarios y Agenda), la ficha se pinta al instante desde la caché de HC activas
   y, si la entrada tiene más de un minuto, se refresca detrás (revalidar). Sin la caché (HC_Vista) carga del servidor como siempre. Usa los tokens --md-* de la página
   anfitriona (incluido el tema oscuro) y container queries (@container hc) para adaptarse al ancho del panel. Todo el CSS va bajo .hc.
   Este archivo se GENERA a partir del diseño aprobado: si se retoca, hacerlo directamente aquí.
@@ -437,7 +437,7 @@ window.PanelHC = {
     if (!v) return '';
     return '<div class="campo" title="' + titulo + '"><dt><svg class="i" viewBox="0 0 24 24">' + ICD[ic] + '</svg></dt><dd>' + esc(v) + (extra || '') + '</dd></div>';
   }
-  // Icono oficial de WhatsApp (el mismo de la Agenda y la Base de Datos).
+  // Icono oficial de WhatsApp (el mismo de la Agenda y Usuarios).
   var SVG_WA = '<svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 16 16" fill="currentColor">' +
         '<path d="M13.601 2.326A7.854 7.854 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.933 7.933 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.898 7.898 0 0 0 13.6 2.326zM7.994 14.521a6.573 6.573 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.557 6.557 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592zm3.615-4.934c-.197-.099-1.17-.578-1.353-.646-.182-.065-.315-.099-.445.099-.133.197-.513.646-.627.775-.114.133-.232.148-.43.05-.197-.1-.836-.308-1.592-.985-.59-.525-.985-1.175-1.103-1.372-.114-.198-.011-.304.088-.403.087-.088.197-.232.296-.346.1-.114.133-.198.198-.33.065-.134.034-.248-.015-.347-.05-.099-.445-1.076-.612-1.47-.16-.389-.323-.335-.445-.34-.114-.007-.247-.007-.38-.007a.729.729 0 0 0-.529.247c-.182.198-.691.677-.691 1.654 0 .977.71 1.916.81 2.049.098.133 1.394 2.132 3.383 2.992.47.205.84.326 1.129.418.475.152.904.129 1.246.08.38-.058 1.171-.48 1.338-.943.164-.464.164-.86.114-.943-.049-.084-.182-.133-.38-.232z"/></svg>';
   function acciones(tel, principal) {
@@ -538,13 +538,13 @@ window.PanelHC = {
     $('btnNuevo').style.display = (!episodios.length || ult.alta) ? 'inline-flex' : 'none';
   }
   function iniciarBotonesEpisodios() {
-    // Igual que en la Agenda y la Base de Datos: pide confirmación y llama a darDeAltaPacienteWeb (estado → Alta, cierra el episodio,
-    // pone la última visita y reordena la Base de Datos). La historia se queda abierta y se actualiza sola.
+    // Igual que en la Agenda y Usuarios: pide confirmación y llama a darDeAltaPacienteWeb (estado → Alta, cierra el episodio,
+    // pone la última visita y reordena Usuarios). La historia se queda abierta y se actualiza sola.
     $('btnAlta').onclick = function () {
       var btn = this, ult = episodios[episodios.length - 1], u = D.usuario;
       if (ult && ult.ingreso && hoyISO() < ult.ingreso) { avisoTemporal('El ingreso es posterior a hoy: corrige la fecha de ingreso antes de dar el alta.'); return; }
       if (epiContando) { avisoTemporal('Espera un momento: se están guardando los episodios.'); return; }
-      if (!u.idPaciente) { avisoTemporal('No se encuentra al usuario en la Base de Datos.'); return; }
+      if (!u.idPaciente) { avisoTemporal('No se encuentra al usuario en Usuarios.'); return; }
       confirmar('¿Dar de alta a ' + u.nombre + '?').then(function (ok) {
         if (!ok) return;
         var html = btn.innerHTML; btn.disabled = true; btn.textContent = 'Procesando…';
@@ -745,7 +745,7 @@ window.PanelHC = {
   /* ---------- funciones de la app dentro de la historia (hoja lateral) ---------- */
   // Valoración, Dar cita y Editar reutilizan los paneles de la app (PanelValoraciones / PanelCita / PanelEditar): se montan en una
   // hoja que se superpone a la historia, dentro de este mismo panel. WhatsApp abre el diálogo de la app (WhatsappDialogo).
-  // Solo en el panel lateral (Base de Datos y Agenda), no en la página completa; cada botón aparece solo si la página incluye ese módulo.
+  // Solo en el panel lateral (Usuarios y Agenda), no en la página completa; cada botón aparece solo si la página incluye ese módulo.
   var ACCIONES = { valoracion: ['PanelValoraciones', 'Valoraciones'], cita: ['PanelCita', 'Dar cita'], editar: ['PanelEditar', 'Editar'], whatsapp: ['WhatsappDialogo', ''] };
   var sub = null, subHost = null, subTipo = '', subCambio = false, subSeq = 0, waPrecargado = '';
   function aviso(t) { if (typeof window.mostrarAviso === 'function') window.mostrarAviso(t); else avisoTemporal(t); }
@@ -828,7 +828,7 @@ window.PanelHC = {
     });
   }
   root.addEventListener('click', function (e) { var b = e.target.closest('[data-acc]'); if (b && !b.hidden) accion(b.dataset.acc); });
-  root.addEventListener('mouseover', function (e) {   // como en la Base de Datos: se calientan los datos de WhatsApp al pasar el ratón
+  root.addEventListener('mouseover', function (e) {   // como en Usuarios: se calientan los datos de WhatsApp al pasar el ratón
     var b = e.target.closest('[data-acc="whatsapp"]');
     if (!b || !D || !D.usuario.idPaciente || waPrecargado === String(D.usuario.idPaciente) || !window.WhatsappDialogo || !window.WhatsappDialogo.precargar) return;
     waPrecargado = String(D.usuario.idPaciente);

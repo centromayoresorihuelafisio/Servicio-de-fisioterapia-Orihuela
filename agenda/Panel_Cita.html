@@ -1,6 +1,6 @@
 <!--
   agenda/Panel_Cita.html
-  Formulario de Cita como módulo del panel lateral de la Base de Datos Web.
+  Formulario de Cita como módulo del panel lateral de Usuarios.
   Se incluye desde usuarios/BaseDatos_Vista con <?!= include('agenda/Panel_Cita'); ?>
   API: PanelCita.abrir(contenedor, { idPaciente, paciente, onGuardado, onCancelar, alDisponibilidad })
     · idPaciente identifica al usuario (es lo que se envía al guardar); `paciente` (nombre) solo se usa para elegirlo si no llega el ID
@@ -9,7 +9,7 @@
       solo visible si la página incluye el módulo PanelDisponibilidad). El formulario ya ha vuelto a pedir los huecos por su cuenta; la
       página solo necesita refrescar lo suyo (la Agenda recarga la semana).
   Devuelve { haCambiado(), alEscape() }:
-    · haCambiado() → true si hay horas elegidas, notas/sesión escritas, se ha cambiado el paciente o hay cambios de
+    · haCambiado() → true si hay horas elegidas, notas/sesión escritas, se ha cambiado el usuario o hay cambios de
                      disponibilidad sin aplicar en la hoja abierta.
     · alEscape()   → cierra la hoja de Disponibilidad si está abierta o, si no, la lista de autocompletado o, si no, limpia las
                      horas seleccionadas (como el Esc del formulario original); devuelve true si lo ha gestionado.
@@ -166,13 +166,13 @@
   <div class="pc-scroll">
 
     <div class="card-section">
-      <div class="section-label"><span class="section-pill"><span class="ms ms-sm">person_search</span>Datos del paciente</span><div class="section-divider"></div></div>
+      <div class="section-label"><span class="section-pill"><span class="ms ms-sm">person_search</span>Datos del usuario</span><div class="section-divider"></div></div>
 
       <div class="md-field autocomplete-wrapper pc-f-paciente">
         <div class="md-field-inner">
           <div class="leading-icon"><span class="ms">person</span></div>
           <input type="text" id="pc-nombre" class="pc-nombre" placeholder=" " disabled autocomplete="off">
-          <label for="pc-nombre">Paciente</label>
+          <label for="pc-nombre">Usuario</label>
         </div>
         <div class="ac-menu pc-ac"></div>
       </div>
@@ -259,14 +259,14 @@ window.PanelCita = {
     var btnDisp = q('.pc-disp'), hojaDisp = q('.pc-hoja'), hojaDispCuerpo = q('.pc-hoja-cuerpo');
     var dispHost = null, dispSub = null;   // hoja de Disponibilidad abierta (si la hay) y su controlador
 
-    // Paciente ya elegido desde la Base de Datos Web. Vacío si no se pasa ninguno.
+    // Usuario ya elegido desde Usuarios. Vacío si no se pasa ninguno.
     var PACIENTE_PRESELECCIONADO = opts.paciente || '';
     var ID_PRESELECCIONADO = opts.idPaciente || '';
 
     var semanasData = [], currentWeekIndex = 0, selectedHuecos = [];
     var currentUserId = '', currentUserName = '', currentUserPhone = '';   // el usuario elegido va por ID paciente; el nombre solo se muestra
     var allPatientsList = [];   // [{ id, nombre, dni, tel1, tel2, estado }] en el orden de la Maestra (incluye homónimos)
-    var inicial = { id: '', nombre: '', tel: '' };   // para saber si se ha cambiado de paciente / teléfono
+    var inicial = { id: '', nombre: '', tel: '' };   // para saber si se ha cambiado de usuario / teléfono
     var timerMsg = null;
 
     var EXCLUDED_TIMES = ["", "", "", "", "00:30"];
@@ -477,7 +477,7 @@ window.PanelCita = {
           setFieldValue(numSesionInput, '');
           setFieldValue(notasTextarea, '');
           q('.pc-f-paciente').classList.remove('has-error');
-          mostrarFeedback('Paciente asignado: <strong></strong>', true);
+          mostrarFeedback('Usuario asignado: <strong></strong>', true);
           msgBox.querySelector('strong').textContent = name;
           cerrarAutocompletado();
           updateSaveButtonState();
@@ -496,11 +496,11 @@ window.PanelCita = {
         .withSuccessHandler(function (res) {
           if (!res || !res.success || !res.usuarios) {
             nombreUsuarioInput.disabled = false;
-            mostrarFeedback('Error al cargar pacientes: ' + ((res && res.message) || 'sin datos'), false);
+            mostrarFeedback('Error al cargar usuarios: ' + ((res && res.message) || 'sin datos'), false);
             return;
           }
           var usuarios = res.usuarios, elegido = null;
-          // Paciente de la ficha: por ID. Sin ID, solo si hay un único usuario con ese nombre (con homónimos no se adivina cuál es).
+          // Usuario de la ficha: por ID. Sin ID, solo si hay un único usuario con ese nombre (con homónimos no se adivina cuál es).
           if (ID_PRESELECCIONADO) {
             elegido = usuarios.filter(function (u) { return u.id === ID_PRESELECCIONADO; })[0] || null;
           } else if (PACIENTE_PRESELECCIONADO) {
@@ -518,14 +518,14 @@ window.PanelCita = {
             currentUserName = '';
             mostrarFeedback(ID_PRESELECCIONADO || PACIENTE_PRESELECCIONADO
               ? 'No se pudo identificar al usuario de la ficha (¿tiene ID paciente?). Elige uno de la lista.'
-              : 'Selecciona un paciente para registrar su cita.', false);
+              : 'Selecciona un usuario para registrar su cita.', false);
           }
           inicial = { id: currentUserId, nombre: currentUserName, tel: telefonoUsuarioInput.value.trim() };
           updateSaveButtonState();
         })
         .withFailureHandler(function (err) {
           nombreUsuarioInput.disabled = false;
-          mostrarFeedback('Error al cargar pacientes: ' + (err && err.message ? err.message : err), false);
+          mostrarFeedback('Error al cargar usuarios: ' + (err && err.message ? err.message : err), false);
         })
         .obtenerUsuariosParaCitaWeb();
     }
@@ -608,7 +608,7 @@ window.PanelCita = {
       cerrarDisponibilidad(true).then(recargarHuecos);
       if (opts.alDisponibilidad) { try { opts.alDisponibilidad(res); } catch (e) { /* no crítico */ } }
     }
-    // Vuelve a pedir semanas y huecos conservando paciente, notas, sesión y la semana que se veía; de la selección quita las horas que
+    // Vuelve a pedir semanas y huecos conservando usuario, notas, sesión y la semana que se veía; de la selección quita las horas que
     // hayan quedado cerradas (con aviso).
     function recargarHuecos() {
       var lunesAntes = lunesDeSemana(semanasData[currentWeekIndex]);
@@ -651,7 +651,7 @@ window.PanelCita = {
     function enviarCita() {
       if (!currentUserId) {
         q('.pc-f-paciente').classList.add('has-error');
-        mostrarFeedback('Selecciona un paciente válido desde la lista autocompletable.', false);
+        mostrarFeedback('Selecciona un usuario válido desde la lista autocompletable.', false);
         return;
       }
       toggleLoading(true);

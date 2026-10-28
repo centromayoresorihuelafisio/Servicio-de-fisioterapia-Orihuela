@@ -1,6 +1,6 @@
 /**
- * Versión web-safe: genera la URL de WhatsApp para el paciente de `fila`,
- * para usar desde el botón "WhatsApp" de la Base de Datos Web. Devuelve la
+ * Versión web-safe: genera la URL de WhatsApp para el usuario de `fila`,
+ * para usar desde el botón "WhatsApp" de Usuarios. Devuelve la
  * URL y el cliente hace window.open con ella.
  */
 function generarUrlWhatsappWeb(idPaciente) {
@@ -44,7 +44,7 @@ function _primerNombreWhatsapp_(nombreCompleto) {
 }
 
 /**
- * Datos para el asistente de WhatsApp desde la Base de Datos Web. Recibe IDs de paciente (no filas ni nombres: con
+ * Datos para el asistente de WhatsApp desde Usuarios. Recibe IDs de usuario (no filas ni nombres: con
  * homónimos, buscar el teléfono por nombre escribiría a otra persona) y devuelve lo mismo que datosWhatsappLoteAgendaWeb
  * (Web.gs): la plantilla cruda con {{nombre}} y, por usuario, nombre, primer nombre y teléfono ya con prefijo (o el
  * error que impide escribirle). `fila` va solo como información (etiqueta si no hubiera nombre).

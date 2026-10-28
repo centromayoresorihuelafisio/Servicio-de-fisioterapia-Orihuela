@@ -1,12 +1,12 @@
 <!--
-  Asistente de WhatsApp compartido por la Agenda y la Base de Datos.
+  Asistente de WhatsApp compartido por la Agenda y Usuarios.
   Se incluye con <?!= include('usuarios/Whatsapp_Dialogo'); ?> y expone:
     WhatsappDialogo.abrir(funcionServidor, filas, nombreOpcional)
     WhatsappDialogo.precargar(funcionServidor, filas)   // calienta los datos (p. ej. al pasar el ratón por el botón)
   `funcionServidor` es una función de Apps Script que recibe las filas y devuelve
   { success, plantilla, items:[{fila, nombre, primerNombre, telefono, error}], duplicados }:
     - Agenda:         'datosWhatsappLoteAgendaWeb'
-    - Base de Datos:  'datosWhatsappMaestraWeb'
+    - Usuarios:  'datosWhatsappMaestraWeb'
   Con 1 usuario muestra el mensaje para revisarlo; con varios, recorre uno a uno.
 -->
 <style>

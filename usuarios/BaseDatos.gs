@@ -1,11 +1,11 @@
-// la base de datos sin abrir la hoja de cálculo. La edición de cada paciente
+// la base de datos sin abrir la hoja de cálculo. La edición de cada usuario
 // se hace desde ahí mismo, en el panel lateral (usuarios/Panel_Editar.html, por ID paciente).
 // ================================================================================
 
 /**
  * Devuelve todas las filas de la Maestra (todas las columnas, tal cual están
  * en la hoja) para renderizar la tabla completa en la Web App.
- * Cada paciente incluye `_fila`: el número de fila real en la hoja, necesario
+ * Cada usuario incluye `_fila`: el número de fila real en la hoja, necesario
  * como referencia de la tabla (selección, orden). Para actuar sobre un usuario el cliente envía su "ID paciente", nunca `_fila`.
  */
 function obtenerBaseDatosCompletaWeb() {
@@ -39,10 +39,10 @@ function obtenerBaseDatosCompletaWeb() {
     const colNacimiento = headers.indexOf(COLUMNAS.MAESTRA.FECHA_NACIMIENTO);
 
     // OPTIMIZACIÓN DE RENDIMIENTO: antes se pedía getRichTextValues() de TODO
-    // el rango (todas las columnas, todos los pacientes) solo para leer el
+    // el rango (todas las columnas, todos los usuarios) solo para leer el
     // enlace de UNA columna (Historia Clínica) — el mismo patrón que hacía
     // lenta la Agenda al principio. Con muchas columnas de ficha por
-    // paciente, eso son muchas más celdas de las que realmente hacen falta.
+    // usuario, eso son muchas más celdas de las que realmente hacen falta.
     // Ahora se pide solo la columna de Historia Clínica.
     let richTextHC = null;
     if (colHC !== -1) {
@@ -95,7 +95,7 @@ function eliminarPacienteWeb(idPaciente) {
     if (!sheet) return { success: false, message: `No se encontró la hoja "${SHEETS.MAESTRA}".` };
 
     const fila = filaMaestraPorId_(sheet, idPaciente);
-    if (!fila) return { success: false, message: 'Ese usuario ya no está en la Base de Datos. Recarga la página.' };
+    if (!fila) return { success: false, message: 'Ese usuario ya no está en Usuarios. Recarga la página.' };
 
     sheet.deleteRow(fila);
     return { success: true, message: 'Usuario eliminado correctamente.' };
@@ -135,7 +135,7 @@ function restaurarPacienteWeb(datosPaciente) {
 
     // Idempotente: si ese ID paciente ya está en la Maestra (p. ej. se pulsó Deshacer dos veces), no se duplica la fila.
     if (filaMaestraPorId_(sheet, datosPaciente[COLUMNAS.MAESTRA.ID_PACIENTE])) {
-      return { success: true, message: 'Ese usuario ya estaba en la Base de Datos.' };
+      return { success: true, message: 'Ese usuario ya estaba en Usuarios.' };
     }
 
     const lastCol = sheet.getLastColumn();
@@ -177,7 +177,7 @@ function fechaTextoADate_(valor) {
 }
 
 /**
- * Cambia solo el Estado de un usuario (menú de estado en línea de la Base de Datos Web).
+ * Cambia solo el Estado de un usuario (menú de estado en línea de Usuarios).
  * "Alta" se rechaza aquí a propósito: tiene su propio flujo (darDeAltaPacienteWeb) que
  * actualiza también fechas, tipo de ingreso y la Historia Clínica.
  * El usuario se localiza por su ID paciente: no depende del número de fila (que cambia al ordenar) ni del nombre.
@@ -203,7 +203,7 @@ function cambiarEstadoPacienteSinOrden_(idPaciente, nuevoEstado) {
 
     const rowIdx = filaMaestraPorId_(sheet, idPaciente);
     const estado = (nuevoEstado === null || nuevoEstado === undefined) ? '' : String(nuevoEstado).trim();
-    if (!rowIdx) return { success: false, message: 'Ese usuario ya no está en la Base de Datos. Recarga la página.' };
+    if (!rowIdx) return { success: false, message: 'Ese usuario ya no está en Usuarios. Recarga la página.' };
     if (!estado || estado.length > 60) return { success: false, message: 'Estado no válido.' };
     if (/(^|[^a-záéíóúñ])alta([^a-záéíóúñ]|$)/i.test(estado)) {
       return { success: false, message: 'Para dar de alta usa el botón "Alta": actualiza también fechas e Historia Clínica.' };
@@ -231,7 +231,7 @@ function cambiarEstadoPacienteSinOrden_(idPaciente, nuevoEstado) {
 
 /**
  * Cambia el Estado de varios usuarios a la vez (barra de acciones en lote de
- * la Base de Datos Web). "Alta" se rechaza aquí: el cliente ya evita
+ * Usuarios). "Alta" se rechaza aquí: el cliente ya evita
  * enviarla, pero se comprueba también en el servidor por si acaso.
  */
 function cambiarEstadoLoteWeb(idsPaciente, nuevoEstado) {
@@ -267,7 +267,7 @@ function cambiarEstadoLoteSinOrden_(idsPaciente, nuevoEstado) {
     const mapa = mapaFilasMaestraPorId_(sheet);
     const ids = Array.from(new Set(idsPaciente.map(id => String(id || '').trim()).filter(Boolean)));
     const filasValidas = ids.map(id => mapa[id]).filter(Boolean);
-    if (!filasValidas.length) return { success: false, message: 'Esos usuarios ya no están en la Base de Datos. Recarga la página.' };
+    if (!filasValidas.length) return { success: false, message: 'Esos usuarios ya no están en Usuarios. Recarga la página.' };
 
     // Estado anterior de cada usuario (una sola lectura de la columna), para el historial.
     const estadosAntes = sheet.getRange(1, colEstado + 1, sheet.getLastRow(), 1).getValues();   // índice = nº de fila - 1
@@ -279,7 +279,7 @@ function cambiarEstadoLoteSinOrden_(idsPaciente, nuevoEstado) {
 
     SpreadsheetApp.flush();
     const faltan = ids.length - filasValidas.length;
-    return { success: true, _cambios: cambios, message: 'Estado actualizado en ' + filasValidas.length + (filasValidas.length === 1 ? ' usuario.' : ' usuarios.') + (faltan ? ' (' + faltan + ' ya no estaba' + (faltan === 1 ? '' : 'n') + ' en la Base de Datos.)' : '') };
+    return { success: true, _cambios: cambios, message: 'Estado actualizado en ' + filasValidas.length + (filasValidas.length === 1 ? ' usuario.' : ' usuarios.') + (faltan ? ' (' + faltan + ' ya no estaba' + (faltan === 1 ? '' : 'n') + ' en Usuarios.)' : '') };
   } catch (e) {
     Logger.log('Error en cambiarEstadoLoteWeb: ' + e.message);
     return { success: false, message: e.message };

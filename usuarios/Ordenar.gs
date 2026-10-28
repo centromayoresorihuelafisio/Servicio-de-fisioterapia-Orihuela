@@ -16,7 +16,7 @@ function ordenarPacientes() {
   const data = range.getValues();
   const richTextData = range.getRichTextValues();
 
-  if (data.length <= 1) return { success: true, message: 'No hay datos de pacientes para ordenar.' };
+  if (data.length <= 1) return { success: true, message: 'No hay datos de usuarios para ordenar.' };
 
   // Encabezados normalizados (minúsculas y sin acentos) para que "Última
   // visita" y "Ultima visita" se reconozcan igual.

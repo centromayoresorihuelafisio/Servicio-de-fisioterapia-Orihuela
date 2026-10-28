@@ -138,7 +138,7 @@ function _nombresParecidos_(a, b) {
 }
 
 /**
- * Guarda los datos del paciente recibidos del formulario HTML en la hoja de cálculo.
+ * Guarda los datos del usuario recibidos del formulario HTML en la hoja de cálculo.
  */
 function guardarPaciente(datos) {
   Logger.log('*** INICIO DE LA FUNCIÓN guardarPaciente ***');
@@ -246,7 +246,7 @@ function guardarPaciente(datos) {
     if (idPacienteNuevo) historialRegistrar_(historialCambiosEnFila_(encabezados, null, nuevaFila), 'Nuevo usuario');
 
     // --- NUEVA LÓGICA: ORDENACIÓN AUTOMÁTICA ---
-    // Llamamos a la función de ordenación para que el nuevo paciente 
+    // Llamamos a la función de ordenación para que el nuevo usuario 
     // se posicione inmediatamente según su prioridad (puntuación en columna A)
     if (typeof ordenarPacientes === "function") {
       ordenarPacientes();
@@ -278,17 +278,17 @@ function guardarPaciente(datos) {
     }
 
     Logger.log('Fila añadida correctamente a la hoja en la fila ' + filaVacia);
-    return { success: true, message: "Paciente guardado correctamente." + avisoContacto, idPaciente: idPacienteNuevo }; // Devuelve un objeto de éxito
+    return { success: true, message: "Usuario guardado correctamente." + avisoContacto, idPaciente: idPacienteNuevo }; // Devuelve un objeto de éxito
   } catch (e) {
     Logger.log('ERROR al añadir la fila: ' + e.message);
-    return { success: false, message: 'Error al guardar el paciente: ' + e.message }; // Devuelve un objeto de error
+    return { success: false, message: 'Error al guardar el usuario: ' + e.message }; // Devuelve un objeto de error
   }
 }
 
 /**
  * Crea un contacto en Google Contacts utilizando el servicio avanzado People API v1.
- * * @param {string} nombre El nombre del paciente.
- * @param {string} telefono El teléfono del paciente.
+ * * @param {string} nombre El nombre del usuario.
+ * @param {string} telefono El teléfono del usuario.
  * @return {{success: boolean, message: string}} Antes esta función no
  *   devolvía nada (siempre undefined), así que sincronizarContactosGoogle()
  *   nunca podía saber si había funcionado o no — ver Sincronizar contactos
@@ -331,7 +331,7 @@ function crearContactoGoogle(nombre, telefono) {
 
 
 /**
- * Crea la historia clínica (ficha web) del paciente recién registrado a través del formulario HTML.
+ * Crea la historia clínica (ficha web) del usuario recién registrado a través del formulario HTML.
  * No depende de la selección manual de filas en la hoja de cálculo: localiza al usuario por su ID paciente.
  * @param {Object} patientData - Datos del formulario enviados desde el frontend (con `idPaciente`).
  * @return {Object} Respuesta con el estado de la operación y la URL de la ficha.

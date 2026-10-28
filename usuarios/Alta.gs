@@ -1,13 +1,13 @@
 /**
- * Versión web-safe: da de alta al paciente de `fila`, para usar desde el
- * botón "Dar de Alta" de la Base de Datos Web.
+ * Versión web-safe: da de alta al usuario de `fila`, para usar desde el
+ * botón "Dar de Alta" de Usuarios.
  */
 function darDeAltaPacienteWeb(idPaciente) {
   const ss = getSS();
   const sheet = ss.getSheetByName(SHEETS.MAESTRA);
   if (!sheet) return { success: false, message: "No se encontró la hoja 'Base de Datos Maestra'." };
   const rowIdx = filaMaestraPorId_(sheet, idPaciente);   // por ID paciente: el número de fila cambia al reordenar
-  if (!rowIdx) return { success: false, message: "Ese usuario ya no está en la Base de Datos. Recarga la página." };
+  if (!rowIdx) return { success: false, message: "Ese usuario ya no está en Usuarios. Recarga la página." };
 
   const resultado = _ejecutarAltaEnFila(sheet, rowIdx);
   if (resultado.success) ordenarPacientes();

@@ -101,7 +101,7 @@ function obtenerHCWeb(idHC, idPaciente) {
     const idPUsuario = idx !== -1 ? String(filasHC[idx][iIdP] || '').trim() : idPaciente;
     let filaM = hcFilaMaestraPorIdPaciente_(maestra, idPUsuario);
     if (!filaM && idHC) filaM = hcLocalizarUsuarioPorId_(h, maestra, idHC);
-    if (!filaM) return { success: false, message: 'No se encontró al usuario en la Base de Datos.' };
+    if (!filaM) return { success: false, message: 'No se encontró al usuario en Usuarios.' };
 
     // --- datos personales (una fila de la Maestra)
     const cab = maestra.getRange(1, 1, 1, maestra.getLastColumn()).getValues()[0].map(function (x) { return String(x).trim().toLowerCase(); });
@@ -244,7 +244,7 @@ function hcContarAsistencia_(usuario, desdeISO, tz) {
 /**
  * Las historias clínicas de TODOS los usuarios en estado Activo, en una sola llamada, con exactamente el mismo
  * formato que devuelve obtenerHCWeb para cada una. La usa ui/JS_HC_Cache.html para precargarlas en segundo plano
- * (Base de Datos y Agenda) y que la ficha se abra al instante.
+ * (Usuarios y Agenda) y que la ficha se abra al instante.
  *
  * Cada hoja (Maestra, Historias Clínicas, Episodios HC, Valoraciones, Agenda) se lee UNA sola vez, en vez de una vez
  * por usuario. Es SOLO LECTURA: no escribe nada. Si un usuario falla, se salta y el resto sigue.
@@ -507,7 +507,7 @@ function hcLocalizarUsuarioPorId_(h, maestra, idHC) {
 /**
  * Crea una HC nueva (sin Doc): una fila en "Historias Clínicas" y un episodio abierto SIN fecha de ingreso.
  * Fechas por episodio: inscripción (se añade al usuario a la base de datos, vive en la Maestra) ≠ ingreso (el
- * paciente recibe su primera cita) ≠ alta. El ingreso nace vacío y lo rellena hcRegistrarPrimeraCita_ con la
+ * usuario recibe su primera cita) ≠ alta. El ingreso nace vacío y lo rellena hcRegistrarPrimeraCita_ con la
  * fecha de la primera cita; NUNCA se copia de la inscripción.
  * @param {string} nombre
  * @param {string=} ingresoISO 'yyyy-MM-dd'. Normalmente se omite (ingreso vacío); solo para altas con ingreso ya conocido.
@@ -537,7 +537,7 @@ function hcCrearHC_(nombre, ingresoISO, idPaciente) {
 }
 
 /**
- * Primera cita de un paciente: si su episodio abierto (sin alta) tiene el Ingreso vacío, lo rellena con la fecha
+ * Primera cita de un usuario: si su episodio abierto (sin alta) tiene el Ingreso vacío, lo rellena con la fecha
  * de esa cita. Si el episodio ya empezó (tiene ingreso), o no hay episodio abierto (p. ej. todos con alta), no hace
  * nada. Es "de mejor esfuerzo": nunca lanza error ni impide guardar la cita.
  * @param {string} url Enlace de la Historia clínica del usuario (el de la Maestra / la Agenda)

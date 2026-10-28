@@ -2,14 +2,14 @@
 
 Gestión del servicio de fisioterapia con **Google Sheets + Google Apps Script**: base de datos de usuarios, agenda de citas (hoja plana "Citas"), valoraciones e historias clínicas (fichas web en hojas, sin Docs). Este repositorio es la copia de seguridad del código.
 
-Se usa como **Web App** (`doGet`): Agenda, Base de Datos y Valoraciones como pestañas de una aplicación web, de uso personal. La hoja es solo la base de datos: no tiene menús ni diálogos.
+Se usa como **Web App** (`doGet`): Agenda, Usuarios y Valoraciones como pestañas de una aplicación web, de uso personal. La hoja es solo la base de datos: no tiene menús ni diálogos.
 
 ## Estructura del proyecto
 
 | Carpeta | Contenido |
 |---|---|
 | `core/` | Base común: `Config.gs` (nombres de hojas, columnas, claves de propiedades e interruptor de paneles), `Utils.gs` (funciones compartidas), `PanelAdmin.gs` y `WebApp.gs` (router de la Web App) |
-| `usuarios/` | Alta, edición, búsqueda y ordenación de usuarios; Base de Datos web; WhatsApp; sincronización con Contactos de Google |
+| `usuarios/` | Alta, edición, búsqueda y ordenación de usuarios; pestaña Usuarios; WhatsApp; sincronización con Contactos de Google |
 | `agenda/` | Capa de datos de la hoja "Citas" (`Citas_Datos.gs`), vista web de la Agenda, formulario de cita, disponibilidad y recordatorios |
 | `valoraciones/` | Formulario de valoración y vista web de evolución |
 | `historia/` | Historia clínica como ficha web (`HC_Web.gs`, `Panel_HC.html`, `HC_Vista.html`) y creación de HC (`Generar.gs`) |
@@ -20,11 +20,11 @@ Convención de archivos: `X.gs` es la lógica del servidor y `X_Vista.html` (o `
 
 ## Web App
 
-El router está en `core/WebApp.gs` y sirve cada página según `?page=`. Sin parámetro abre la Base de Datos.
+El router está en `core/WebApp.gs` y sirve cada página según `?page=`. Sin parámetro abre Usuarios.
 
 | `?page=` | Página |
 |---|---|
-| `baseDatos` (por defecto) | Base de Datos |
+| `baseDatos` (por defecto) | Usuarios |
 | `agenda` | Agenda |
 | `valoraciones` | Valoraciones |
 | `citas` | Formulario de citas |

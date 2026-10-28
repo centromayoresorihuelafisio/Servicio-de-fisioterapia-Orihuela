@@ -16,7 +16,7 @@
       html, body { height: 100%; }
       body { font-family: var(--font); background: var(--md-bg); color: var(--md-on-surface); display: flex; flex-direction: column; font-size: 13px; }
 
-      /* ===== Tema claro / oscuro (mismos tokens y misma clave 'temaApp' que Base de Datos y Agenda) ===== */
+      /* ===== Tema claro / oscuro (mismos tokens y misma clave 'temaApp' que Usuarios y Agenda) ===== */
       :root, :root[data-tema="claro"] { color-scheme: light; --md-texto-secundario: #45494f; --on-warn: #6b4300; --on-err: #9c2a1f; --on-purple: #5a2596; }
       :root[data-tema="oscuro"] { --md-texto-secundario: #c7cdd8; --on-warn: #f6d58a; --on-err: #f7c5c2; --on-purple: #dcc3fb; }
       @media (prefers-color-scheme: dark) { :root:not([data-tema]) { --md-texto-secundario: #c7cdd8; --on-warn: #f6d58a; --on-err: #f7c5c2; --on-purple: #dcc3fb;
@@ -216,10 +216,10 @@
   </head>
   <body>
     <nav class="tabs-cambio">
-      <a class="tab-cambio" title="Ir a la Base de Datos" href="<?= baseUrl ?>?page=baseDatos" target="_top"><span class="material-symbols-outlined">folder_shared</span>Base de Datos</a>
+      <a class="tab-cambio" title="Ir a Usuarios" href="<?= baseUrl ?>?page=baseDatos" target="_top"><span class="material-symbols-outlined">folder_shared</span>Usuarios</a>
       <a class="tab-cambio" title="Ir a la Agenda" href="<?= baseUrl ?>?page=agenda" target="_top"><span class="material-symbols-outlined">calendar_month</span>Agenda</a>
       <a class="tab-cambio activo" title="Ir a Valoraciones" href="<?= baseUrl ?>?page=valoraciones" target="_top"><span class="material-symbols-outlined">monitoring</span>Valoraciones</a>
-      <a class="tab-cambio" title="Ir al Dashboard" href="<?= baseUrl ?>?page=dashboard" target="_top"><span class="material-symbols-outlined">dashboard</span>Dashboard</a>
+      <a class="tab-cambio" title="Ir a Estadísticas" href="<?= baseUrl ?>?page=dashboard" target="_top"><span class="material-symbols-outlined">dashboard</span>Estadísticas</a>
     </nav>
     <header class="top">
       <h1><span class="material-symbols-outlined">monitoring</span> Valoraciones <span class="contador" id="contador"></span></h1>
@@ -312,7 +312,7 @@
 
     <script>
       var PACIENTES = [];
-      var pacienteSeleccionado = null; // clave del paciente (p.clave = su ID paciente) o null
+      var pacienteSeleccionado = null; // clave del usuario (p.clave = su ID paciente) o null
       var metricaActual = 'funcionGlobal';
       var filaEnEdicion = null;
       var idEnEdicion = null, fechaEnEdicion = null; // para que el servidor compruebe que la fila sigue siendo la misma
@@ -370,7 +370,7 @@
             PACIENTES = res.pacientes || [];
             if (res.sinId) mostrarAviso(res.sinId + (res.sinId === 1 ? ' valoración no tiene' : ' valoraciones no tienen') + ' ID de usuario y no se muestra(n). Ejecuta asignarIdPacienteEnValoraciones.');
             render();
-            // Si había un paciente con el ficha abierta, se refresca con los datos nuevos (o se cierra si ya no existe).
+            // Si había un usuario con el ficha abierta, se refresca con los datos nuevos (o se cierra si ya no existe).
             renderFicha();
           })
           .withFailureHandler(function(err) { ocupado(-1); mostrarError(err); })
@@ -536,7 +536,7 @@
       function pacienteActual() {
         return PACIENTES.find(function(x) { return x.clave === pacienteSeleccionado; }) || null;
       }
-      // Antes de cualquier acción que destruiría el formulario abierto (otro paciente, cerrar la ficha…): si hay
+      // Antes de cualquier acción que destruiría el formulario abierto (otro usuario, cerrar la ficha…): si hay
       // cambios sin guardar pregunta; si se acepta, el formulario queda descartado.
       function hayCambiosSinGuardar() {
         return !!(formularioActivo && controladorForm && controladorForm.haCambiado && controladorForm.haCambiado());
@@ -801,7 +801,7 @@
       document.getElementById('btnDeshacer').addEventListener('click', ejecutarDeshacer);
 
       // ---------- Avisos ligeros (toasts): sustituyen al modal salvo textos largos o multilínea ----------
-      // Se define DESPUÉS del include para sustituir al mostrarAviso() de JS_Modal_Deshacer, igual que en Base de Datos y Agenda.
+      // Se define DESPUÉS del include para sustituir al mostrarAviso() de JS_Modal_Deshacer, igual que en Usuarios y Agenda.
       var contenedorToasts = (function() { var d = document.createElement('div'); d.className = 'toasts'; document.body.appendChild(d); return d; })();
       function mostrarAviso(mensaje) {
         var m = (mensaje === null || mensaje === undefined) ? '' : String(mensaje);
@@ -818,10 +818,10 @@
       }
 
       // ---------- Nueva Valoración (formulario en la ficha lateral) ----------
-      // El formulario (valoraciones/Panel_Valoracion) se monta dentro de la ficha, con el paciente seleccionado si lo hay.
+      // El formulario (valoraciones/Panel_Valoracion) se monta dentro de la ficha, con el usuario seleccionado si lo hay.
       async function abrirFormularioValoracion() {
         var clave = pacienteSeleccionado || '';
-        if (formularioActivo && formularioNombre === clave) return;   // ya está abierto para este paciente
+        if (formularioActivo && formularioNombre === clave) return;   // ya está abierto para este usuario
         if (!(await descartarFormularioSiProcede())) return;
         var p = clave ? pacienteActual() : null, nombre = p ? p.nombre : '', el = document.getElementById('ficha');
         formularioActivo = true; formularioNombre = clave; controladorForm = null;
@@ -854,8 +854,8 @@
         if (e.target.closest('[data-form="volver"]')) volverDeFormulario();
       });
 
-      // Si otra ventana actualiza un paciente (las páginas sueltas ?page=… avisan por localStorage al guardar) o
-      // guarda una valoración desde el panel lateral (Agenda, Base de Datos…), la tabla se recarga.
+      // Si otra ventana actualiza un usuario (las páginas sueltas ?page=… avisan por localStorage al guardar) o
+      // guarda una valoración desde el panel lateral (Agenda, Usuarios…), la tabla se recarga.
       window.addEventListener('storage', function(e) {
         if (e.key === 'pacienteActualizado' || e.key === 'valoracionesActualizadas') cargar();
       });

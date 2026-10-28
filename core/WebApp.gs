@@ -109,15 +109,15 @@ function prepararContexto_(template, contexto) {
  */
 const PAGINAS_WEB = {
   nuevoPaciente: { archivo: 'usuarios/Anadir_Usuario_Vista',    titulo: 'Nuevo Usuario',     icono: 'person_add' },
-  baseDatos:     { archivo: 'usuarios/BaseDatos_Vista',                 titulo: 'Base de Datos',     icono: 'folder_shared' },
+  baseDatos:     { archivo: 'usuarios/BaseDatos_Vista',                 titulo: 'Usuarios',     icono: 'folder_shared' },
   agenda:        { archivo: 'agenda/Web_Vista',                    titulo: 'Agenda',            icono: 'calendar_month' },
   valoraciones:  { archivo: 'valoraciones/Web_Vista',              titulo: 'Valoraciones',      icono: 'monitoring' },
-  dashboard:     { archivo: 'dashboard/Web_Vista',                 titulo: 'Dashboard',         icono: 'dashboard' }
+  dashboard:     { archivo: 'dashboard/Web_Vista',                 titulo: 'Estadísticas',         icono: 'dashboard' }
 };
 
 function doGet(e) {
-  // Sin ?page= → directamente Base de Datos (el índice de navegación ya no
-  // hace falta ahora que Agenda, Base de Datos y Valoraciones son pestañas
+  // Sin ?page= → directamente Usuarios (el índice de navegación ya no
+  // hace falta ahora que Agenda, Usuarios y Valoraciones son pestañas
   // entre las que se puede saltar, y el resto de formularios se abren desde
   // botones dentro de ellas).
   const page = (e && e.parameter && e.parameter.page) || 'baseDatos';
@@ -134,7 +134,7 @@ function doGet(e) {
     return construirIndiceWeb(); // parámetro desconocido → volvemos al índice
   }
 
-  // BaseDatosWeb, AgendaWeb, ValoracionesWeb y el Dashboard necesitan la URL absoluta de
+  // BaseDatosWeb, AgendaWeb, ValoracionesWeb y Estadísticas necesitan la URL absoluta de
   // despliegue para abrir ventanas emergentes propias (editar, valoración...)
   // y para los enlaces de las pestañas — un href relativo no resuelve bien
   // dentro del iframe en el que Google sirve la Web App.
@@ -146,8 +146,8 @@ function doGet(e) {
       .addMetaTag('viewport', 'width=device-width, initial-scale=1');
   }
 
-  // 'citas' acepta un paciente ya elegido desde la tabla de
-  // la Base de Datos (?paciente=NOMBRE), para no tener que volver a buscarlo.
+  // 'citas' acepta un usuario ya elegido desde la tabla de
+  // Usuarios (?paciente=NOMBRE), para no tener que volver a buscarlo.
   if (page === 'citas') {
     const template = HtmlService.createTemplateFromFile(config.archivo);
     template.pacientePreseleccionado = e.parameter.paciente || '';

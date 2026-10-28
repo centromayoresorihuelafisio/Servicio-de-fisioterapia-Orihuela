@@ -1,10 +1,10 @@
 <!--
   usuarios/Panel_Editar.html
-  Formulario de edición de usuario como módulo del panel lateral de la Base de Datos Web.
+  Formulario de edición de usuario como módulo del panel lateral de Usuarios.
   Se incluye desde usuarios/BaseDatos_Vista con <?!= include('usuarios/Panel_Editar'); ?>
   API: PanelEditar.abrir(contenedor, { idPaciente, onGuardado, onCancelar })
   Devuelve { haCambiado(), alEscape() }:
-    · haCambiado() → true si hay cambios sin guardar (la Base de Datos pregunta antes de descartar).
+    · haCambiado() → true si hay cambios sin guardar (Usuarios pregunta antes de descartar).
     · alEscape()   → cierra primero un desplegable abierto; devuelve true si lo ha gestionado.
   El formulario se construye en el navegador con los datos de obtenerDatosEdicionPaciente(), el CSS va acotado
   a .pe y usa los tokens de la página (--md-*, así que respeta el tema oscuro), y la revisión de cambios es una

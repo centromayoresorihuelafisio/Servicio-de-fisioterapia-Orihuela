@@ -1,5 +1,5 @@
 /**
- * Coteja los pacientes de la base de datos con los contactos de Google
+ * Coteja los usuarios de la base de datos con los contactos de Google
  * y añade aquellos nombres que no existan previamente.
  */
 function sincronizarContactosGoogle() {
@@ -32,7 +32,7 @@ function sincronizarContactosGoogle() {
 
   const ultimaFila = hoja.getLastRow();
   if (ultimaFila < 2) {
-    ss.toast("No hay pacientes registrados en la base de datos para sincronizar.", "Sincronización", 5);
+    ss.toast("No hay usuarios registrados en la base de datos para sincronizar.", "Sincronización", 5);
     return;
   }
 
@@ -92,7 +92,7 @@ function sincronizarContactosGoogle() {
   }
 
   // Notificación del resultado final de la sincronización
-  let mensajeFinal = `Sincronización finalizada.\n• Nuevos contactos creados: ${creadosCount}\n• Pacientes ya existentes omitidos: ${omitidosCount}`;
+  let mensajeFinal = `Sincronización finalizada.\n• Nuevos contactos creados: ${creadosCount}\n• Usuarios ya existentes omitidos: ${omitidosCount}`;
   if (errores.length > 0) {
     mensajeFinal += `\n• Errores: ${errores.length}`;
     Logger.log('Errores al sincronizar contactos:\n' + errores.map(e => e.nombre + ': ' + e.message).join('\n'));
@@ -158,9 +158,9 @@ function obtenerTodosLosContactosGoogle() {
 }
 
 /**
- * Evalúa si un paciente ya existe en el conjunto de datos de Google Contacts.
- * * @param {string} nombre El nombre del paciente a verificar.
- * @param {string} telefono El teléfono del paciente a verificar.
+ * Evalúa si un usuario ya existe en el conjunto de datos de Google Contacts.
+ * * @param {string} nombre El nombre del usuario a verificar.
+ * @param {string} telefono El teléfono del usuario a verificar.
  * @param {Array<Object>} listaGoogle Lista de contactos estructurados de Google.
  * @return {boolean} True si ya existe un contacto equivalente, false en caso contrario.
  */

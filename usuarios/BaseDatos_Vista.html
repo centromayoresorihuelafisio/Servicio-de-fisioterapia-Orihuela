@@ -3,7 +3,7 @@
   <head>
     <base target="_top">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Base de Datos</title>
+    <title>Usuarios</title>
 
     <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600&family=Roboto+Mono:wght@400;500&family=Material+Symbols+Outlined:opsz,wght,FILL@20..48,300..700,0..1&display=swap" rel="stylesheet">
 
@@ -202,7 +202,7 @@
       }
       .modal-botones { display: flex; justify-content: flex-end; gap: .5rem; }
 
-      /* Pestañas para alternar entre Agenda y Base de Datos. Son enlaces
+      /* Pestañas para alternar entre Agenda y Usuarios. Son enlaces
          normales (navegación con recarga) porque las Web Apps de Apps
          Script no se pueden embeber en un iframe (Google lo bloquea). */
       nav.tabs-cambio {
@@ -444,13 +444,13 @@
   </head>
   <body>
     <nav class="tabs-cambio">
-      <a class="tab-cambio activo" title="Ir a la Base de Datos" href="<?= baseUrl ?>?page=baseDatos" target="_top"><span class="material-symbols-outlined">folder_shared</span>Base de Datos</a>
+      <a class="tab-cambio activo" title="Ir a Usuarios" href="<?= baseUrl ?>?page=baseDatos" target="_top"><span class="material-symbols-outlined">folder_shared</span>Usuarios</a>
       <a class="tab-cambio" title="Ir a la Agenda" href="<?= baseUrl ?>?page=agenda" target="_top"><span class="material-symbols-outlined">calendar_month</span>Agenda</a>
       <a class="tab-cambio" title="Ir a Valoraciones" href="<?= baseUrl ?>?page=valoraciones" target="_top"><span class="material-symbols-outlined">monitoring</span>Valoraciones</a>
-      <a class="tab-cambio" title="Ir al Dashboard" href="<?= baseUrl ?>?page=dashboard" target="_top"><span class="material-symbols-outlined">dashboard</span>Dashboard</a>
+      <a class="tab-cambio" title="Ir a Estadísticas" href="<?= baseUrl ?>?page=dashboard" target="_top"><span class="material-symbols-outlined">dashboard</span>Estadísticas</a>
     </nav>
     <header class="top">
-      <h1><span class="material-symbols-outlined">folder_shared</span> Base de Datos <span class="contador" id="contador"></span></h1>
+      <h1><span class="material-symbols-outlined">folder_shared</span> Usuarios <span class="contador" id="contador"></span></h1>
 
       <div class="barra-herramientas">
         <button class="btn-toolbar icono-solo" id="btnOrdenar" title="Ordenar usuarios por prioridad (se aplica solo casi siempre, esto es solo para forzarlo)">
@@ -1097,7 +1097,7 @@
           cancelar: function() { if (formularioActivo && formularioFila === fila) volverDeFormulario(); }
         });
       }
-      // Nuevo usuario en el panel lateral (usuarios/Panel_Nuevo). No hay paciente: se cierra la ficha que hubiera abierta y el
+      // Nuevo usuario en el panel lateral (usuarios/Panel_Nuevo). No hay usuario: se cierra la ficha que hubiera abierta y el
       // formulario ocupa el panel. Al guardar, la hoja se reordena por prioridad, así que se recarga la tabla entera.
       var FILA_NUEVO = 'nuevo';
       async function abrirPanelNuevo() {
@@ -1107,7 +1107,7 @@
         }
         if (!(await descartarFormularioSiProcede())) return;
         formularioActivo = false; controladorForm = null;
-        quitarSeleccion();                                                   // sin paciente seleccionado (cierra la ficha)
+        quitarSeleccion();                                                   // sin usuario seleccionado (cierra la ficha)
         var el = document.getElementById('ficha');
         fichaAbierta = false; formularioActivo = true; formularioFila = FILA_NUEVO;
         document.body.classList.add('con-ficha');
@@ -1323,7 +1323,7 @@
 
       function renderFicha() {
         var el = document.getElementById('ficha'), p = pacienteSeleccionado, abierta = fichaAbierta && !!p;
-        // Nuevo usuario: el panel está abierto sin ningún paciente seleccionado; se mantiene hasta que se elija otra fila
+        // Nuevo usuario: el panel está abierto sin ningún usuario seleccionado; se mantiene hasta que se elija otra fila
         // (entonces cae en la regla de más abajo y se descarta, como los demás formularios).
         if (formularioActivo && formularioFila === FILA_NUEVO && !abierta) {
           document.body.classList.add('con-ficha');
@@ -1426,7 +1426,7 @@
         if (menuItems) { var ancla = menuAncla; cerrarMenu(); if (ancla && document.contains(ancla) && ancla.focus) ancla.focus(); return; }
         if (formularioActivo) {
           if (document.querySelector('.modal-overlay.visible')) return;
-          // primero lo que el formulario tenga abierto (desplegables, lista de pacientes, horas elegidas…)
+          // primero lo que el formulario tenga abierto (desplegables, lista de usuarios, horas elegidas…)
           if (controladorForm && controladorForm.alEscape && controladorForm.alEscape()) return;
           volverDeFormulario();
           return;
@@ -1436,7 +1436,7 @@
         else limpiarBusqueda();   // nada más que cerrar: Esc vacía la búsqueda
       });
 
-      // Si otra pestaña actualiza un paciente (las páginas sueltas ?page=… avisan por localStorage al guardar),
+      // Si otra pestaña actualiza un usuario (las páginas sueltas ?page=… avisan por localStorage al guardar),
       // la tabla se recarga. Los formularios de esta página ya no usan ventanas emergentes.
       window.addEventListener('storage', function(e) {
         if (e.key === 'pacienteActualizado') cargar();
