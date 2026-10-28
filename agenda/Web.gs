@@ -87,12 +87,30 @@ function restaurarCitasWeb(snapshots) {
   }
 }
 
-/** Asigna un paciente a un hueco libre. `fila` es la clave del hueco ("hueco AAAA-MM-DD HH:mm"). */
-function asignarPacienteHuecoWeb(fila, nombrePaciente) {
+/** Asigna un paciente a un hueco libre. `fila` es la clave del hueco ("hueco AAAA-MM-DD HH:mm"); el usuario va por su ID paciente. */
+function asignarPacienteHuecoWeb(fila, idPaciente) {
   try {
-    return asignarPacienteDesdeCitasWeb_(fila, nombrePaciente);
+    return asignarPacienteDesdeCitasWeb_(fila, idPaciente);
   } catch (e) {
     Logger.log('Error en asignarPacienteHuecoWeb: ' + e.message);
+    return { success: false, message: e.message };
+  }
+}
+
+/**
+ * Lista ligera de usuarios para el selector de huecos de la Agenda (id, nombre, DNI, teléfonos y estado, en el orden de la Maestra).
+ * Es el RESPALDO: normalmente la lista llega con las fichas (`obtenerFichasUsuariosWeb`, que ya lee la Maestra entera); esta
+ * función solo se llama si se abre el selector antes de que lleguen. Una sola lectura de la Maestra, solo las columnas necesarias.
+ */
+function obtenerUsuariosParaCitaWeb() {
+  try {
+    const C = COLUMNAS.MAESTRA;
+    const bd = leerMaestraParaFicha_([C.ID_PACIENTE, C.DNI, C.TELEFONO_1, C.TELEFONO_2, C.ESTADO]);
+    if (bd.error) return { success: false, message: bd.error };
+    const r = usuariosParaSelectorDesdeMaestra_(bd.pacientes);
+    return { success: true, usuarios: r.usuarios, sinId: r.sinId };
+  } catch (e) {
+    Logger.log('Error en obtenerUsuariosParaCitaWeb: ' + e.message);
     return { success: false, message: e.message };
   }
 }

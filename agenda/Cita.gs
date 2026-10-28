@@ -1,5 +1,5 @@
 /**
- * Semanas, días y huecos libres para el formulario de Cita (agenda/Panel_Cita.html y agenda/Cita_Vista.html).
+ * Semanas, días y huecos libres para el formulario de Cita (agenda/Panel_Cita.html).
  * Los huecos se calculan desde la tabla "Citas" (agenda/Web_Escritura_Citas.gs). Si falla, devuelve el aviso dentro de `semanas`
  * para que el formulario lo muestre.
  */

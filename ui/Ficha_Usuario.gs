@@ -36,11 +36,41 @@ function obtenerFichasUsuariosWeb(campos) {
       if (clave && !Object.prototype.hasOwnProperty.call(fichas, clave)) fichas[clave] = p;
     });
 
-    return { success: true, headers: bd.headers, fichas: fichas, generado: Date.now() };
+    const respuesta = { success: true, headers: bd.headers, fichas: fichas, generado: Date.now() };
+    // Sin lista de columnas (la Agenda) se añade también la lista de TODOS los usuarios para el selector de huecos
+    // (agenda/Web_Vista.html → SelectorUsuario). `fichas` se indexa por nombre y descarta a los homónimos; esta lista no.
+    if (!(campos && campos.length)) respuesta.usuarios = usuariosParaSelectorDesdeMaestra_(bd.pacientes).usuarios;
+    return respuesta;
   } catch (e) {
     Logger.log('Error en obtenerFichasUsuariosWeb: ' + e.message);
     return { success: false, message: e.message };
   }
+}
+
+/**
+ * Lista ligera de usuarios para el selector de huecos de la Agenda, en el MISMO orden que la Maestra (prioridad: activos y en
+ * espera primero). Recibe las filas que devuelve leerMaestraParaFicha_ (con ID paciente, Nombre, DNI, teléfonos y Estado).
+ * Un usuario sin ID paciente no se puede asignar (la capa de citas lo exige): no entra en la lista y se cuenta en `sinId`.
+ * Teléfonos en su forma de guardado (telefonoNormalizar_); el cliente los muestra con Telefono.formato. Estado sin emoji.
+ * @return {{usuarios: Array<{id:string, nombre:string, dni:string, tel1:string, tel2:string, estado:string}>, sinId:number}}
+ */
+function usuariosParaSelectorDesdeMaestra_(pacientes) {
+  const C = COLUMNAS.MAESTRA;
+  const t = function(v) { return String(v === null || v === undefined ? '' : v).trim(); };
+  const usuarios = [];
+  let sinId = 0;
+  (pacientes || []).forEach(function(p) {
+    const nombre = t(p[C.NOMBRE]);
+    if (!nombre) return;
+    const id = t(p[C.ID_PACIENTE]);
+    if (!id) { sinId++; return; }
+    usuarios.push({
+      id: id, nombre: nombre, dni: t(p[C.DNI]),
+      tel1: telefonoNormalizar_(p[C.TELEFONO_1]), tel2: telefonoNormalizar_(p[C.TELEFONO_2]),
+      estado: textoSinEmoji_(p[C.ESTADO])
+    });
+  });
+  return { usuarios: usuarios, sinId: sinId };
 }
 
 /**

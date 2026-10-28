@@ -110,7 +110,17 @@ function actualizarPaciente(updatedData, idPaciente) {
     sheet.getRange(rowIdx, idxHistoria + 1).setRichTextValue(richTextHistoria);
   }
 
-  historialRegistrar_(historialCambiosEnFila_(headers, filaAntesHistorial, newRowValues), 'Editar usuario');
+  const cambiosHistorial = historialCambiosEnFila_(headers, filaAntesHistorial, newRowValues);
+  historialRegistrar_(cambiosHistorial, 'Editar usuario');
+
+  // Reordenar solo si cambió algo que cuenta en la puntuación: Estado, Tipo de ingreso y Gravedad (ya van en cambiosHistorial)
+  // o una de las dos fechas (Fecha de inscripción, Última visita), que se comparan aquí porque no están en el historial.
+  // La Última visita se busca igual que en ordenarPacientes (sin acentos y por "contiene"), porque no está en COLUMNAS.
+  const normCab = (h) => h.toString().trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const idxFechas = [headers.indexOf(COLUMNAS.MAESTRA.FECHA_INSCRIPCION), headers.findIndex(h => normCab(h).includes("ultima visita"))].filter(i => i !== -1);
+  const claveFecha = (v) => { const d = parseFecha(v); return d ? d.getTime() : String(v === null || v === undefined ? '' : v).trim(); };
+  const fechasCambian = idxFechas.some(i => claveFecha(filaAntesHistorial[i]) !== claveFecha(newRowValues[i]));
+  ordenarPacientesSiProcede_(cambiosHistorial, fechasCambian);
 
   ss.toast("Datos actualizados y guardados en la hoja.", "Éxito", 4);
   return true;

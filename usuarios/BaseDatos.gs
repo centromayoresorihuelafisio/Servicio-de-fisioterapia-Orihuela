@@ -152,7 +152,9 @@ function restaurarPacienteWeb(datosPaciente) {
     sheet.insertRowBefore(fila);
     sheet.getRange(fila, 1, 1, valores.length).setValues([valores]);
 
-    return { success: true, message: 'Usuario restaurado correctamente.' };
+    // Su puntuación pudo quedar obsoleta mientras estuvo eliminado: se reordena siempre (la fila volvió a su posición antigua).
+    const orden = ordenarPacientesSiProcede_([], true);
+    return { success: true, ordenado: orden.ordenado === true, message: 'Usuario restaurado correctamente.' };
   } catch (e) {
     Logger.log('Error en restaurarPacienteWeb: ' + e.message);
     return { success: false, message: e.message };
@@ -181,6 +183,17 @@ function fechaTextoADate_(valor) {
  * El usuario se localiza por su ID paciente: no depende del número de fila (que cambia al ordenar) ni del nombre.
  */
 function cambiarEstadoPacienteWeb(idPaciente, nuevoEstado) {
+  const r = cambiarEstadoPacienteSinOrden_(idPaciente, nuevoEstado);   // el bloqueo ya está liberado al volver
+  if (r.success && r._cambios) {
+    const orden = ordenarPacientesSiProcede_(r._cambios);
+    r.ordenado = orden.ordenado === true;
+  }
+  delete r._cambios;
+  return r;
+}
+
+/** Cuerpo de cambiarEstadoPacienteWeb: cambia el Estado dentro del bloqueo. Devuelve además `_cambios` (para decidir si reordenar). */
+function cambiarEstadoPacienteSinOrden_(idPaciente, nuevoEstado) {
   const lock = LockService.getScriptLock();
   try {
     lock.waitLock(10000);
@@ -207,7 +220,7 @@ function cambiarEstadoPacienteWeb(idPaciente, nuevoEstado) {
     // Historial (CONTEXTO.md, sección 11, paso 4): todo cambio de Estado pasa por historialRegistrar_.
     historialRegistrar_([{ id: idPaciente, campo: COLUMNAS.MAESTRA.ESTADO, antes: estadoAntes, despues: estado }], 'Cambio de estado');
     SpreadsheetApp.flush();
-    return { success: true, message: 'Estado actualizado.' };
+    return { success: true, message: 'Estado actualizado.', _cambios: [{ id: idPaciente, campo: COLUMNAS.MAESTRA.ESTADO, antes: estadoAntes, despues: estado }] };
   } catch (e) {
     Logger.log('Error en cambiarEstadoPacienteWeb: ' + e.message);
     return { success: false, message: e.message };
@@ -222,6 +235,17 @@ function cambiarEstadoPacienteWeb(idPaciente, nuevoEstado) {
  * enviarla, pero se comprueba también en el servidor por si acaso.
  */
 function cambiarEstadoLoteWeb(idsPaciente, nuevoEstado) {
+  const r = cambiarEstadoLoteSinOrden_(idsPaciente, nuevoEstado);   // el bloqueo ya está liberado al volver
+  if (r.success && r._cambios) {
+    const orden = ordenarPacientesSiProcede_(r._cambios);
+    r.ordenado = orden.ordenado === true;
+  }
+  delete r._cambios;
+  return r;
+}
+
+/** Cuerpo de cambiarEstadoLoteWeb: cambia el Estado dentro del bloqueo. Devuelve además `_cambios` (para decidir si reordenar). */
+function cambiarEstadoLoteSinOrden_(idsPaciente, nuevoEstado) {
   const estado = (nuevoEstado === null || nuevoEstado === undefined) ? '' : String(nuevoEstado).trim();
   if (!estado || estado.length > 60) return { success: false, message: 'Estado no válido.' };
   if (/(^|[^a-záéíóúñ])alta([^a-záéíóúñ]|$)/i.test(estado)) {
@@ -255,7 +279,7 @@ function cambiarEstadoLoteWeb(idsPaciente, nuevoEstado) {
 
     SpreadsheetApp.flush();
     const faltan = ids.length - filasValidas.length;
-    return { success: true, message: 'Estado actualizado en ' + filasValidas.length + (filasValidas.length === 1 ? ' usuario.' : ' usuarios.') + (faltan ? ' (' + faltan + ' ya no estaba' + (faltan === 1 ? '' : 'n') + ' en la Base de Datos.)' : '') };
+    return { success: true, _cambios: cambios, message: 'Estado actualizado en ' + filasValidas.length + (filasValidas.length === 1 ? ' usuario.' : ' usuarios.') + (faltan ? ' (' + faltan + ' ya no estaba' + (faltan === 1 ? '' : 'n') + ' en la Base de Datos.)' : '') };
   } catch (e) {
     Logger.log('Error en cambiarEstadoLoteWeb: ' + e.message);
     return { success: false, message: e.message };

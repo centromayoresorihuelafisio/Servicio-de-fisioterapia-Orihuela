@@ -1,6 +1,14 @@
+/**
+ * Reordena la Maestra por prioridad (Estado, Tipo de ingreso, Gravedad y tiempo de espera). Devuelve { success, message }
+ * (antes devolvía undefined y avisaba con ss.toast, que en la web no se ve).
+ * Quien edite un campo que cuenta en la puntuación sin pasar por aquí debe llamar a ordenarPacientesSiProcede_ DESPUÉS de
+ * soltar su LockService (no se sabe si el bloqueo admite reentrada). Solo se pueden dejar sin reordenar los cambios que no
+ * tocan Estado, Tipo de ingreso, Gravedad, Fecha de inscripción ni Última visita.
+ */
 function ordenarPacientes() {
   const ss = getSS();
   const sheet = ss.getSheetByName(SHEETS.MAESTRA);
+  if (!sheet) return { success: false, message: 'No se encontró la hoja "' + SHEETS.MAESTRA + '".' };
 
   // Obtención de datos masiva, incluyendo el Rich Text (imprescindible para
   // no perder el hipervínculo de "Historia clínica" al reordenar filas).
@@ -8,10 +16,7 @@ function ordenarPacientes() {
   const data = range.getValues();
   const richTextData = range.getRichTextValues();
 
-  if (data.length <= 1) {
-    ss.toast("No hay datos de pacientes para ordenar.", "Aviso", 5);
-    return;
-  }
+  if (data.length <= 1) return { success: true, message: 'No hay datos de pacientes para ordenar.' };
 
   // Encabezados normalizados (minúsculas y sin acentos) para que "Última
   // visita" y "Ultima visita" se reconozcan igual.
@@ -38,8 +43,7 @@ function ordenarPacientes() {
 
   if (idxEstado === -1 || idxIngreso === -1 || idxGravedad === -1 || idxUltimaVisita === -1 || idxFechaInscripcion === -1) {
     Logger.log("No se encontraron todas las columnas necesarias");
-    ss.toast("Error de configuración: revisa los encabezados.", "Error", 8);
-    return;
+    return { success: false, message: 'Error de configuración: revisa los encabezados de la Maestra.' };
   }
 
   const now = new Date();
@@ -130,5 +134,25 @@ function ordenarPacientes() {
     sheet.getRange(2, idxHistoria + 1, numFilas, 1).setRichTextValues(newRichText);
   }
 
-  ss.toast("Usuarios ordenados correctamente", "Completado", 6);
+  return { success: true, message: 'Usuarios ordenados correctamente.' };
+}
+
+/**
+ * Reordena SOLO si hay un cambio real en algo que cuenta en la puntuación, para no reescribir la hoja entera al editar,
+ * por ejemplo, un teléfono. `cambios` son los { id, campo, antes, despues } de historialCambiosEnFila_ (Estado, Tipo de
+ * ingreso y Gravedad; se comparan sin emoji, así "🟢 Activo" → "Activo" no cuenta como cambio). `inscripcionCambio` es
+ * true si cambió la Fecha de inscripción, que no está en el historial y se compara aparte.
+ * Devuelve { success, ordenado, message }; nunca lanza (si falla el reordenado, el guardado que lo llamó ya está hecho).
+ */
+function ordenarPacientesSiProcede_(cambios, inscripcionCambio) {
+  const clave = (v) => textoSinEmoji_(v).toLowerCase();
+  const hay = inscripcionCambio === true || (cambios || []).some(c => c && clave(c.antes) !== clave(c.despues));
+  if (!hay) return { success: true, ordenado: false, message: 'No hizo falta reordenar.' };
+  try {
+    const r = ordenarPacientes();
+    return { success: r.success !== false, ordenado: r.success !== false, message: r.message };
+  } catch (e) {
+    Logger.log('ordenarPacientesSiProcede_: ' + e.message);
+    return { success: false, ordenado: false, message: e.message };
+  }
 }

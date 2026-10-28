@@ -105,11 +105,9 @@ function prepararContexto_(template, contexto) {
  *
  * Ejemplos de URL:
  *   https://script.google.com/macros/s/AAAA.../exec                → índice
- *   https://script.google.com/macros/s/AAAA.../exec?page=citas
  *   https://script.google.com/macros/s/AAAA.../exec?page=nuevoPaciente
  */
 const PAGINAS_WEB = {
-  citas:         { archivo: 'agenda/Cita_Vista',              titulo: 'Agenda de Citas',   icono: 'event' },
   nuevoPaciente: { archivo: 'usuarios/Anadir_Usuario_Vista',    titulo: 'Nuevo Usuario',     icono: 'person_add' },
   baseDatos:     { archivo: 'usuarios/BaseDatos_Vista',                 titulo: 'Base de Datos',     icono: 'folder_shared' },
   agenda:        { archivo: 'agenda/Web_Vista',                    titulo: 'Agenda',            icono: 'calendar_month' },
@@ -220,44 +218,4 @@ function construirIndiceWeb() {
   return HtmlService.createHtmlOutput(html)
     .setTitle('Gestión Clínica')
     .addMetaTag('viewport', 'width=device-width, initial-scale=1');
-}
-
-/**
- * Lista de pacientes (nombre -> teléfono) para el autocompletado de los formularios de Cita
- * y de la Agenda.
- */
-function obtenerListaPacientesWeb() {
-  const HOJA_MAESTRA = SHEETS.MAESTRA;
-  const COLUMNA_NOMBRE = COLUMNAS_NUM.MAESTRA.NOMBRE;   // Columna B
-  const COLUMNA_TELEFONO = COLUMNAS_NUM.MAESTRA.TELEFONO; // Columna D
-
-  try {
-    const ss = getSS();
-    const sheet = ss.getSheetByName(HOJA_MAESTRA);
-    if (!sheet) {
-      return { allPatientsData: {}, error: `No se encontró la hoja "${HOJA_MAESTRA}".` };
-    }
-
-    const lastRow = sheet.getLastRow();
-    const allPatientsData = {};
-
-    if (lastRow > 1) {
-      const allData = sheet
-        .getRange(2, COLUMNA_NOMBRE, lastRow - 1, COLUMNA_TELEFONO - COLUMNA_NOMBRE + 1)
-        .getValues();
-
-      allData.forEach(row => {
-        const name = row[0] ? row[0].toString().trim() : '';
-        const phone = row[COLUMNA_TELEFONO - COLUMNA_NOMBRE]
-          ? row[COLUMNA_TELEFONO - COLUMNA_NOMBRE].toString().trim()
-          : '';
-        if (name) allPatientsData[name] = phone;
-      });
-    }
-
-    return { allPatientsData: allPatientsData };
-  } catch (e) {
-    Logger.log("Error en obtenerListaPacientesWeb: " + e.message);
-    return { allPatientsData: {}, error: e.message };
-  }
 }
