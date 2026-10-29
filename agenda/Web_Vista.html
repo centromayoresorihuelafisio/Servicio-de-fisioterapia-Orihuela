@@ -52,8 +52,6 @@
         --ag-warning-border:#f0c14b;
         --ag-warning-text:  #6d5320;
         --ag-warning-hover: #fdecc0;
-        --ag-toast-bg:      #323232;
-        --ag-toast-action:  #8ab4f8;
         --ag-overlay:       rgba(32,33,36,.5);
         --ag-t:             150ms ease;
         --alto-thead:       36px;
@@ -74,7 +72,6 @@
       nav.tabs-cambio a.tab-cambio:focus-visible, td a.link-hc:focus-visible {
         outline: 2px solid var(--ag-accent); outline-offset: 2px;
       }
-      .toast-deshacer button:focus-visible { outline: 2px solid var(--ag-toast-action); outline-offset: 2px; }
       .buscador:focus-within, .selector-semana:focus-within { box-shadow: 0 0 0 2px var(--ag-accent); }
 
       /* ---------- Cabecera ---------- */
@@ -141,20 +138,7 @@
       .buscador input::placeholder { color: var(--ag-text-low); }
       .buscador .material-symbols-outlined { color: var(--ag-text-low); font-size: 18px; }
 
-      /* ---------- Toast de deshacer ---------- */
-      .toast-deshacer {
-        position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%);
-        background: var(--ag-toast-bg); color: #fff; padding: .65rem 1rem; border-radius: 10px;
-        display: flex; align-items: center; gap: 1rem; font-size: .82rem;
-        box-shadow: 0 4px 16px rgba(0,0,0,.25); z-index: var(--z-toast);
-        opacity: 0; pointer-events: none; transition: opacity 200ms ease;
-      }
-      .toast-deshacer.visible { opacity: 1; pointer-events: auto; }
-      .toast-deshacer button {
-        background: none; border: none; color: var(--ag-toast-action); font-weight: 700; font-size: .82rem;
-        cursor: pointer; font-family: var(--font); padding: 0; letter-spacing: .02em;
-      }
-      .toast-deshacer button:hover { text-decoration: underline; }
+      /* ---------- Toast de deshacer: definido en ui/CSS_Global (V3) ---------- */
 
       /* ---------- Tabla ---------- */
       .tabla-wrap { flex: 1; overflow: auto; background: var(--ag-surface); }
@@ -323,18 +307,7 @@
       .esq-flex { flex: 1; }
       @keyframes destello { from { background-position: 200% 0; } to { background-position: -200% 0; } }
 
-      /* ---------- Modal propio ---------- */
-      .modal-overlay {
-        display: none; position: fixed; inset: 0; background: var(--ag-overlay);
-        align-items: center; justify-content: center; z-index: var(--z-modal); padding: 1rem;
-      }
-      .modal-overlay.visible { display: flex; }
-      .modal-box {
-        background: var(--ag-surface); border-radius: 14px; padding: 1.25rem 1.5rem;
-        max-width: 360px; width: 100%; box-shadow: 0 4px 20px rgba(0,0,0,.25);
-      }
-      .modal-mensaje { font-size: .88rem; color: var(--ag-text); white-space: pre-line; line-height: 1.45; margin-bottom: 1.15rem; }
-      .modal-botones { display: flex; justify-content: flex-end; gap: .5rem; }
+      /* ---------- Modal propio: definido en ui/CSS_Global (V3) ---------- */
 
       /* Pestañas Agenda / Usuarios / Valoraciones (enlaces con recarga,
          porque las Web Apps de Apps Script no se pueden embeber en iframe) */
@@ -620,7 +593,7 @@
         --ag-tinte-par:rgba(138,180,248,.05);--ag-tinte-hover:rgba(138,180,248,.10);--ag-tinte-sel:rgba(138,180,248,.20);--ag-tinte-dia:rgba(138,180,248,.10);
         --ag-tinte-hoy:rgba(138,180,248,.22);--ag-tinte-manana:rgba(138,180,248,.035);--ag-tinte-tarde:rgba(240,190,80,.10);--ag-day-bg:#232830;
         --ag-ok-bar:#5bb37d;--ag-mal-bar:#e57f78;--ag-aviso-bar:#e8b95a;--ag-error:#f2b8b5;--ag-error-bg:#3b1f1e;
-        --ag-warning-bg:#3a3120;--ag-warning-border:#6b5a2a;--ag-warning-text:#f0d894;--ag-warning-hover:#4a3f26;--ag-toast-bg:#2d3038;--ag-overlay:rgba(0,0,0,.6);
+        --ag-warning-bg:#3a3120;--ag-warning-border:#6b5a2a;--ag-warning-text:#f0d894;--ag-warning-hover:#4a3f26;--ag-overlay:rgba(0,0,0,.6);
         --ag-ctl:#262b33;--ag-ctl-border:#3a404b;--ag-ctl-hover:#2c323b;--ag-th:#232830;--ag-pill:rgba(0,0,0,.28);--ag-drop:#1f2b3d;
         --chip-ok:#7fd39b;--chip-mal:#f2a19b;--chip-aviso:#f0c66a;--chip-neutro:#b8bfcd;--av-bg:26%;--av-fg:82%;color-scheme:dark; } }
       :root[data-tema="oscuro"] {
@@ -629,7 +602,7 @@
         --ag-tinte-par:rgba(138,180,248,.05);--ag-tinte-hover:rgba(138,180,248,.10);--ag-tinte-sel:rgba(138,180,248,.20);--ag-tinte-dia:rgba(138,180,248,.10);
         --ag-tinte-hoy:rgba(138,180,248,.22);--ag-tinte-manana:rgba(138,180,248,.035);--ag-tinte-tarde:rgba(240,190,80,.10);--ag-day-bg:#232830;
         --ag-ok-bar:#5bb37d;--ag-mal-bar:#e57f78;--ag-aviso-bar:#e8b95a;--ag-error:#f2b8b5;--ag-error-bg:#3b1f1e;
-        --ag-warning-bg:#3a3120;--ag-warning-border:#6b5a2a;--ag-warning-text:#f0d894;--ag-warning-hover:#4a3f26;--ag-toast-bg:#2d3038;--ag-overlay:rgba(0,0,0,.6);
+        --ag-warning-bg:#3a3120;--ag-warning-border:#6b5a2a;--ag-warning-text:#f0d894;--ag-warning-hover:#4a3f26;--ag-overlay:rgba(0,0,0,.6);
         --ag-ctl:#262b33;--ag-ctl-border:#3a404b;--ag-ctl-hover:#2c323b;--ag-th:#232830;--ag-pill:rgba(0,0,0,.28);--ag-drop:#1f2b3d;
         --chip-ok:#7fd39b;--chip-mal:#f2a19b;--chip-aviso:#f0c66a;--chip-neutro:#b8bfcd;--av-bg:26%;--av-fg:82%;color-scheme:dark; }
       .btn-toolbar, .chip-filtro { border-color: var(--ag-ctl-border); }
@@ -640,11 +613,7 @@
       .dia-stats, .dia-hoy { background: var(--ag-pill); }
       .esq-barra { background: linear-gradient(90deg, var(--ag-ctl) 25%, var(--ag-line) 50%, var(--ag-ctl) 75%); background-size: 200% 100%; }
 
-      .toasts { position: fixed; left: 50%; bottom: 78px; transform: translateX(-50%); display: flex; flex-direction: column; gap: .4rem; align-items: center; z-index: calc(var(--z-toast) + 1); pointer-events: none; }
-      .toast-aviso { background: var(--ag-toast-bg); color: #fff; padding: .6rem 1rem; border-radius: 10px; font-size: .82rem; box-shadow: 0 4px 16px rgba(0,0,0,.25); max-width: min(92vw, 460px); animation: entra-toast .2s ease; transition: opacity .25s, transform .25s; }
-      .toast-aviso.error { background: #8c1d18; }
-      .toast-aviso.saliendo { opacity: 0; transform: translateY(6px); }
-      @keyframes entra-toast { from { opacity: 0; transform: translateY(8px); } }
+      /* .toasts y .toast-aviso: definidos en ui/CSS_Global (V3) */
 
       .avatar { width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center;
         font-size: .68rem; font-weight: 700; letter-spacing: .02em; background: hsl(var(--h) 55% var(--av-bg)); color: hsl(var(--h) 45% var(--av-fg)); }

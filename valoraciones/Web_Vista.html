@@ -177,26 +177,15 @@
       }
 
       /* ===== Avisos, modales, progreso ===== */
-      .toast-deshacer { position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%); background: #323232; color: #fff; padding: .65rem 1rem; border-radius: 10px; display: flex; align-items: center; gap: 1rem; font-size: .82rem; box-shadow: 0 4px 16px rgba(0,0,0,.25); z-index: var(--z-toast); opacity: 0; visibility: hidden; pointer-events: none; transition: opacity 200ms ease, visibility 0s 200ms; }
-      .toast-deshacer.visible { opacity: 1; visibility: visible; pointer-events: auto; transition: opacity 200ms ease; }
-      .toast-deshacer button { background: none; border: none; color: #8ab4f8; font-weight: 700; font-size: .82rem; cursor: pointer; padding: 0; letter-spacing: .02em; }
-      .toast-deshacer button:hover { text-decoration: underline; }
-      .toasts { position: fixed; left: 50%; bottom: 78px; transform: translateX(-50%); display: flex; flex-direction: column; gap: .4rem; align-items: center; z-index: calc(var(--z-toast) + 1); pointer-events: none; }
-      .toast-aviso { background: #323232; color: #fff; padding: .6rem 1rem; border-radius: 10px; font-size: .82rem; box-shadow: 0 4px 16px rgba(0,0,0,.25); max-width: min(92vw, 460px); animation: entra-toast .2s ease; transition: opacity .25s, transform .25s; }
-      .toast-aviso.error { background: #8c1d18; }
-      .toast-aviso.saliendo { opacity: 0; transform: translateY(6px); }
-      @keyframes entra-toast { from { opacity: 0; transform: translateY(8px); } }
+      /* .toast-deshacer, .toasts y .toast-aviso: definidos en ui/CSS_Global (V3) */
       .barra-progreso { position: fixed; top: 0; left: 0; right: 0; height: 3px; z-index: var(--z-max); opacity: 0; pointer-events: none; transition: opacity 150ms; background: linear-gradient(90deg, transparent, var(--md-primary), transparent); background-size: 40% 100%; background-repeat: no-repeat; }
       body.ocupado .barra-progreso { opacity: 1; animation: barrido 1s linear infinite; }
       @keyframes barrido { from { background-position: -40% 0; } to { background-position: 140% 0; } }
 
-      .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(32,33,36,.5); align-items: center; justify-content: center; z-index: var(--z-modal); padding: 1rem; }
-      .modal-overlay.visible { display: flex; }
-      .modal-box { background: var(--md-surface); border-radius: 14px; padding: 1.25rem 1.5rem; max-width: 360px; width: 100%; box-shadow: 0 4px 20px rgba(0,0,0,.25); }
+      /* .modal-overlay, .modal-box, .modal-mensaje, .modal-botones: definidos en ui/CSS_Global (V3); aqui solo lo propio del cuadro ancho de edicion */
       .modal-box.modal-box-ancho { max-width: 520px; max-height: 90vh; overflow: auto; }
       .modal-titulo { font-size: 1rem; font-weight: 600; margin-bottom: 1rem; }
-      .modal-mensaje { font-size: .88rem; color: var(--md-on-surface); white-space: pre-line; line-height: 1.45; margin-bottom: 1.15rem; }
-      .modal-botones { display: flex; justify-content: flex-end; gap: .5rem; margin-top: 1.1rem; }
+      .modal-box-ancho .modal-botones { margin-top: 1.1rem; }
       .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .7rem .9rem; }
       .form-grid label { font-size: .76rem; color: var(--md-on-surface-med); font-weight: 500; display: flex; flex-direction: column; gap: .25rem; }
       .form-grid label.campo-ancho { grid-column: 1 / -1; }

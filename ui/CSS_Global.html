@@ -245,6 +245,47 @@
         background-size: 200% 100%; animation: md-brillo 1.6s linear infinite;
       }
 
+      /* --- Avisos y dialogos (V3): UNICA definicion para Usuarios, Agenda y Valoraciones. Seccion 9.5 del sistema. --- */
+      :root {
+        --md-toast-action: #8ab4f8;   /* enlace DESHACER: siempre sobre el fondo oscuro del aviso */
+        --md-toast-error:  #8c1d18;   /* fondo del aviso de error */
+      }
+      .toast-deshacer {
+        position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%);
+        background: var(--md-toast-bg); color: var(--md-toast-fg); padding: .65rem 1rem; border-radius: var(--md-shape-sm);
+        display: flex; align-items: center; gap: 1rem; font-size: var(--fs-sm);
+        box-shadow: var(--md-elev-3); z-index: var(--z-toast);
+        opacity: 0; visibility: hidden; pointer-events: none; transition: opacity var(--dur-2) ease, visibility 0s var(--dur-2);
+      }
+      .toast-deshacer.visible { opacity: 1; visibility: visible; pointer-events: auto; transition: opacity var(--dur-2) ease; }
+      .toast-deshacer button {
+        background: none; border: none; color: var(--md-toast-action); font-weight: 700; font-size: var(--fs-sm);
+        cursor: pointer; font-family: var(--font); padding: 0; letter-spacing: .02em;
+      }
+      .toast-deshacer button:hover { text-decoration: underline; }
+      .toast-deshacer button:focus-visible { outline: 2px solid var(--md-toast-action); outline-offset: 2px; }
+      .toasts { position: fixed; left: 50%; bottom: 78px; transform: translateX(-50%); display: flex; flex-direction: column; gap: .4rem; align-items: center; z-index: calc(var(--z-toast) + 1); pointer-events: none; }
+      .toast-aviso {
+        background: var(--md-toast-bg); color: var(--md-toast-fg); padding: .6rem 1rem; border-radius: var(--md-shape-sm);
+        font-size: var(--fs-sm); box-shadow: var(--md-elev-3); max-width: min(92vw, 460px);
+        animation: md-entra var(--dur-2) ease; transition: opacity var(--dur-3), transform var(--dur-3);
+      }
+      .toast-aviso.error { background: var(--md-toast-error); color: #fff; }
+      .toast-aviso.saliendo { opacity: 0; transform: translateY(6px); }
+
+      .modal-overlay {
+        display: none; position: fixed; inset: 0; background: var(--md-scrim);
+        align-items: center; justify-content: center; z-index: var(--z-modal); padding: 1rem;
+      }
+      .modal-overlay.visible { display: flex; }
+      .modal-box {
+        background: var(--md-surface); color: var(--md-on-surface); border-radius: var(--md-shape-lg); padding: 24px;
+        max-width: 400px; width: 100%; box-sizing: border-box; box-shadow: var(--md-elev-3);
+        animation: md-entra var(--dur-2) ease;
+      }
+      .modal-mensaje { font-size: var(--fs-md); color: var(--md-on-surface); white-space: pre-line; line-height: 1.45; margin: 0 0 1.5rem; }
+      .modal-botones { display: flex; justify-content: flex-end; gap: 8px; }
+
       /* --- Reducir movimiento (V2): una sola llave. Las cuatro duraciones pasan a casi 0 y todo lo que
              usa --dur-* lo respeta. El girador sigue girando (es informacion), mas despacio. --- */
       @media (prefers-reduced-motion: reduce) {
