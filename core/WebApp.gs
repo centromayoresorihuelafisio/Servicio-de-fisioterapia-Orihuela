@@ -105,10 +105,9 @@ function prepararContexto_(template, contexto) {
  *
  * Ejemplos de URL:
  *   https://script.google.com/macros/s/AAAA.../exec                → índice
- *   https://script.google.com/macros/s/AAAA.../exec?page=nuevoPaciente
+ *   https://script.google.com/macros/s/AAAA.../exec?page=agenda
  */
 const PAGINAS_WEB = {
-  nuevoPaciente: { archivo: 'usuarios/Anadir_Usuario_Vista',    titulo: 'Nuevo Usuario',     icono: 'person_add' },
   baseDatos:     { archivo: 'usuarios/BaseDatos_Vista',                 titulo: 'Usuarios',     icono: 'folder_shared' },
   agenda:        { archivo: 'agenda/Web_Vista',                    titulo: 'Agenda',            icono: 'calendar_month' },
   valoraciones:  { archivo: 'valoraciones/Web_Vista',              titulo: 'Valoraciones',      icono: 'monitoring' },
@@ -151,15 +150,6 @@ function doGet(e) {
   if (page === 'citas') {
     const template = HtmlService.createTemplateFromFile(config.archivo);
     template.pacientePreseleccionado = e.parameter.paciente || '';
-    prepararContexto_(template, contexto);
-    return template.evaluate()
-      .setTitle(config.titulo)
-      .addMetaTag('viewport', 'width=device-width, initial-scale=1');
-  }
-
-  // 'nuevoPaciente' se sirve como plantilla para poder incluir el cierre unificado.
-  if (page === 'nuevoPaciente') {
-    const template = HtmlService.createTemplateFromFile(config.archivo);
     prepararContexto_(template, contexto);
     return template.evaluate()
       .setTitle(config.titulo)

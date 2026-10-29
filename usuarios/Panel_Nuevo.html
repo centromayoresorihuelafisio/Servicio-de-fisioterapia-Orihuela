@@ -20,14 +20,9 @@
 -->
 <style>
 .nu {
-  --nu-radius: 12px;
-  --nu-elev-2: 0 3px 6px rgba(43,92,117,.12), 0 2px 8px rgba(43,92,117,.08);
-  --nu-elev-3: 0 8px 16px rgba(43,92,117,.16), 0 4px 12px rgba(43,92,117,.08);
-  --nu-ease: cubic-bezier(.3,0,0,1);
-  --nu-warn: var(--on-warn, #8a5d1a);
   position: relative; display: flex; flex-direction: column; height: 100%; min-height: 0;
   background: var(--md-surface); color: var(--md-on-surface);
-  font-family: var(--font); font-size: 14px;
+  font-family: var(--font); font-size: var(--fs-md);
 }
 
 .nu .ms { font-family: 'Material Symbols Outlined'; font-weight: 400; font-style: normal; font-size: 20px; line-height: 1; letter-spacing: normal; text-transform: none; display: inline-block; white-space: nowrap; direction: ltr; font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20; user-select: none; flex-shrink: 0; color: var(--md-on-surface-med); }
@@ -39,100 +34,74 @@
 .nu .card-section { padding: 1.1rem 1.25rem 1.3rem; border-bottom: 1px solid var(--md-outline); }
 .nu .card-section:last-child { border-bottom: none; }
 .nu .section-label { display: flex; align-items: center; gap: .6rem; margin-bottom: 1.1rem; }
-.nu .section-pill { display: inline-flex; align-items: center; gap: .375rem; font-size: .6875rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--md-primary-dark); background: var(--md-primary-light); padding: .35rem .875rem .35rem .75rem; border-radius: 999px; }
+.nu .section-pill { display: inline-flex; align-items: center; gap: .375rem; font-size: var(--fs-2xs); font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--md-primary-dark); background: var(--md-primary-light); padding: .35rem .875rem .35rem .75rem; border-radius: var(--md-shape-full); }
 .nu .section-pill .ms { font-size: 15px; color: var(--md-primary); }
 .nu .section-divider { flex: 1; height: 1px; background: var(--md-outline); }
 .nu .grid-2 { display: grid; grid-template-columns: 1fr; gap: 1.1rem 1rem; align-items: start; }
 .nu .span-2 { grid-column: 1 / -1; }
-.nu .nu-msg { flex: none; display: none; padding: .7rem 1.25rem; font-size: .8125rem; font-weight: 500; }
+.nu .nu-msg { flex: none; display: none; padding: .7rem 1.25rem; font-size: var(--fs-sm); font-weight: 500; }
 .nu .nu-msg.success { display: block; background: var(--md-success-bg); color: var(--md-success); }
 .nu .nu-msg.error { display: block; background: var(--md-error-bg); color: var(--md-error); }
-.nu .nu-pie { flex: none; display: flex; align-items: center; justify-content: space-between; gap: .75rem; padding: .75rem 1.1rem; border-top: 1px solid var(--md-outline); background: var(--md-surface); }
-.nu .nu-pie .hint { font-size: .72rem; color: var(--md-on-surface-med); }
-.nu .nu-pie .hint b { color: var(--md-primary); }
-.nu .nu-pie .botones { display: flex; gap: .5rem; margin-left: auto; }
+.nu .nu-pie { flex: none; display: flex; align-items: center; justify-content: flex-end; gap: .75rem; padding: .75rem 1.1rem; border-top: 1px solid var(--md-outline); background: var(--md-surface); }
 .nu .nu-pie .hint { display: none; }
+.nu .nu-pie .botones { display: flex; gap: .5rem; margin-left: auto; }
 
-/* ── Campos outlined con etiqueta flotante ── */
-.nu .md-field { position: relative; display: flex; flex-direction: column; }
-.nu .md-field-inner { position: relative; display: flex; align-items: center; }
-.nu .md-field-inner .leading-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); pointer-events: none; z-index: 2; }
-.nu .md-field label {
-  position: absolute; left: 44px; top: 50%; transform: translateY(-50%); font-size: .9375rem; font-weight: 400; color: var(--md-on-surface-med);
-  pointer-events: none; background: var(--md-surface); padding: 0 6px; z-index: 2; white-space: nowrap; max-width: calc(100% - 52px); overflow: hidden; text-overflow: ellipsis;
-  transition: top 220ms var(--nu-ease), font-size 220ms var(--nu-ease), color 220ms var(--nu-ease), left 220ms var(--nu-ease);
-}
-.nu .md-field label .req { color: var(--md-primary); margin-left: 2px; }
-.nu .md-field.has-value label, .nu .md-field:focus-within label,
-.nu .md-field input:not(:placeholder-shown) ~ label, .nu .md-field textarea:not(:placeholder-shown) ~ label {
-  top: 0; left: 12px; font-size: .75rem; font-weight: 500; color: var(--md-on-surface-med);
-}
-.nu .md-field:focus-within label { color: var(--md-primary); }
-.nu .md-field input, .nu .md-field textarea {
-  width: 100%; height: 52px; padding: 0 14px 0 44px; border: 1.5px solid var(--md-outline); border-radius: var(--nu-radius); background: transparent;
-  color: var(--md-on-surface); font-family: var(--font); font-size: .9375rem; outline: none; color-scheme: light dark;
-  transition: border-color 200ms var(--nu-ease), box-shadow 200ms var(--nu-ease);
-}
-.nu .md-field input[type="date"]:not(:focus) { color: transparent; }
-.nu .md-field.has-value input[type="date"], .nu .md-field input[type="date"]:focus { color: var(--md-on-surface); }
-.nu .md-field input::placeholder, .nu .md-field textarea::placeholder { opacity: 0; }
-.nu .md-field input:hover, .nu .md-field textarea:hover { border-color: var(--md-on-surface-med); }
-.nu .md-field input:focus, .nu .md-field textarea:focus { border-color: var(--md-primary); border-width: 2px; box-shadow: 0 0 0 3px rgba(43,92,117,.14); padding-left: 43px; }
-.nu .md-field:focus-within .leading-icon .ms { color: var(--md-primary); }
-.nu .md-field textarea { height: auto; min-height: 96px; padding-top: 18px; padding-bottom: 12px; resize: vertical; }
-.nu .md-field.is-textarea label { top: 24px; }
-.nu .md-field.is-textarea.has-value label, .nu .md-field.is-textarea:focus-within label { top: 0; }
-.nu .md-field.is-textarea .leading-icon { top: 24px; transform: none; }
-.nu .support-text { font-size: .75rem; color: var(--md-error); padding: 4px 0 0 14px; min-height: 0; display: none; }
-.nu .md-field.has-error .support-text { display: block; }
-.nu .md-field.has-error input, .nu .md-field.has-error textarea { border-color: var(--md-error); border-width: 2px; box-shadow: none; }
-.nu .md-field.has-error label, .nu .md-field.has-error:focus-within label, .nu .md-field.has-error .leading-icon .ms { color: var(--md-error) !important; }
+/* ── Campos de texto: .md-campo de CSS_Global; aqui solo lo propio del panel ── */
+.nu .md-campo__etiqueta { max-width: calc(100% - 52px); overflow: hidden; text-overflow: ellipsis; }
+.nu .md-campo__etiqueta .req { color: var(--md-primary); margin-left: 2px; }
+.nu .md-campo.has-value .md-campo__etiqueta { top: 0; font-size: var(--fs-xs); }   /* para la fecha (el navegador siempre muestra algo): lo marca el JavaScript */
+.nu .md-campo input[type="date"].md-campo__control:not(:focus) { color: transparent; }
+.nu .md-campo.has-value input[type="date"].md-campo__control, .nu .md-campo input[type="date"].md-campo__control:focus { color: var(--md-on-surface); }
+.nu .md-campo:focus-within .md-campo__icono { color: var(--md-primary); }
+.nu .md-campo--error .md-campo__icono { color: var(--md-error); }
+.nu .md-campo__ayuda { display: none; margin-top: 4px; }
+.nu .md-campo--error .md-campo__ayuda { display: block; }
 
-/* ── Desplegables ── */
+/* ── Desplegables: mismo aspecto que .md-campo ── */
 .nu .multiselect { position: relative; }
 .nu .ms-toggle {
-  width: 100%; min-height: 52px; padding: 0 44px 0 44px; border: 1.5px solid var(--md-outline); border-radius: var(--nu-radius); background: transparent; cursor: pointer;
-  display: flex; align-items: center; position: relative; font-size: .9375rem; color: var(--md-on-surface); user-select: none; outline: none;
-  transition: border-color 200ms var(--nu-ease), box-shadow 200ms var(--nu-ease);
+  width: 100%; min-height: 52px; box-sizing: border-box; padding: 0 44px; border: 1.5px solid var(--md-outline-strong); border-radius: var(--md-shape-md); background: transparent; cursor: pointer;
+  display: flex; align-items: center; position: relative; font-size: var(--fs-field); color: var(--md-on-surface); user-select: none; outline: none;
+  transition: border-color var(--dur-2) var(--ease), box-shadow var(--dur-2) var(--ease);
 }
-.nu .ms-toggle:hover { border-color: var(--md-on-surface-med); }
-.nu .ms-toggle.open, .nu .ms-toggle:focus-visible { border-color: var(--md-primary); border-width: 2px; padding-left: 43px; box-shadow: 0 0 0 3px rgba(43,92,117,.14); }
-.nu .ms-leading { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); display: flex; }
+.nu .ms-toggle:hover:not(.open) { border-color: var(--md-on-surface); }
+.nu .ms-toggle.open, .nu .ms-toggle:focus-visible { border-color: var(--md-primary); box-shadow: inset 0 0 0 .5px var(--md-primary); }
+.nu .ms-leading { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); display: flex; }
 .nu .ms-trailing { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); display: flex; }
-.nu .ms-trailing .ms { transition: transform 200ms ease; }
+.nu .ms-trailing .ms { transition: transform var(--dur-2) var(--ease); }
 .nu .ms-toggle.open .ms-trailing .ms { transform: rotate(180deg); color: var(--md-primary); }
 .nu .ms-toggle.open .ms-leading .ms { color: var(--md-primary); }
 .nu .ms-label {
-  position: absolute; left: 44px; top: 50%; transform: translateY(-50%); font-size: .9375rem; color: var(--md-on-surface-med); background: var(--md-surface); padding: 0 6px; z-index: 1; white-space: nowrap; pointer-events: none;
-  transition: top 220ms var(--nu-ease), font-size 220ms var(--nu-ease), color 220ms var(--nu-ease), left 220ms var(--nu-ease);
+  position: absolute; left: 44px; top: 50%; transform: translateY(-50%); font-size: var(--fs-field); color: var(--md-on-surface-med); background: var(--md-surface); padding: 0 4px; margin-left: -4px; z-index: var(--z-base); white-space: nowrap; pointer-events: none;
+  transition: top var(--dur-3) var(--ease), font-size var(--dur-3) var(--ease), color var(--dur-2) var(--ease);
 }
-.nu .ms-toggle.open .ms-label, .nu .ms-toggle.has-value .ms-label, .nu .ms-toggle:focus-visible .ms-label { top: 0; left: 12px; font-size: .75rem; font-weight: 500; }
+.nu .ms-toggle.open .ms-label, .nu .ms-toggle.has-value .ms-label, .nu .ms-toggle:focus-visible .ms-label { top: 0; font-size: var(--fs-xs); }
 .nu .ms-toggle.open .ms-label { color: var(--md-primary); }
 .nu .ms-display { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .nu .ms-toggle:not(.has-value) .ms-display { opacity: 0; }
-.nu .ms-menu { position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 30; background: var(--md-surface); border: 1px solid var(--md-outline); border-radius: var(--nu-radius); box-shadow: var(--nu-elev-3); display: none; overflow: hidden; }
-.nu .ms-menu.open { display: block; }
+.nu .ms-menu { position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: var(--z-sticky); background: var(--md-surface); border: 1px solid var(--md-outline); border-radius: var(--md-shape-md); box-shadow: var(--md-elev-3); display: none; overflow: hidden; }
+.nu .ms-menu.open { display: block; animation: md-entra var(--dur-2) var(--ease) both; }
 .nu .ms-search-wrap { display: flex; align-items: center; gap: .5rem; padding: .6rem .85rem .5rem; border-bottom: 1px solid var(--md-outline); }
-.nu .ms-search-input { flex: 1; border: none; background: transparent; font-family: var(--font); font-size: .875rem; color: var(--md-on-surface); outline: none; padding: .125rem 0; }
+.nu .ms-search-input { flex: 1; border: none; background: transparent; font-family: var(--font); font-size: var(--fs-md); color: var(--md-on-surface); outline: none; padding: .125rem 0; }
 .nu .ms-items-wrap { max-height: 200px; overflow-y: auto; }
-.nu .ms-item { display: flex; align-items: center; gap: .75rem; padding: .7rem 1rem; cursor: pointer; font-size: .875rem; color: var(--md-on-surface); }
+.nu .ms-item { display: flex; align-items: center; gap: .75rem; padding: .7rem 1rem; cursor: pointer; font-size: var(--fs-md); color: var(--md-on-surface); }
 .nu .ms-item:hover { background: var(--md-primary-light); }
 .nu .ms-item:has(input:checked), .nu .ms-item.selected { background: var(--md-primary-container); font-weight: 500; }
 .nu .ms-item input[type="checkbox"] { width: 17px; height: 17px; accent-color: var(--md-primary); cursor: pointer; flex-shrink: 0; margin: 0; }
 .nu .ms-item-hidden { display: none !important; }
-.nu .ms-vacio { padding: .8rem 1rem; font-size: .8125rem; color: var(--md-on-surface-med); display: none; }
+.nu .ms-vacio { padding: .8rem 1rem; font-size: var(--fs-sm); color: var(--md-on-surface-med); display: none; }
 
 /* ── Evaluación de gravedad ── */
 .nu .gravedad-grid { display: grid; grid-template-columns: 1fr; gap: .75rem; }
-.nu .grav-card { background: var(--md-bg); border: 1px solid var(--md-outline); border-radius: var(--nu-radius); padding: .85rem 1rem; transition: border-color 160ms var(--nu-ease), background 160ms var(--nu-ease); }
+.nu .grav-card { background: var(--md-bg); border: 1px solid var(--md-outline); border-radius: var(--md-shape-md); padding: .85rem 1rem; transition: border-color var(--dur-2) var(--ease), background-color var(--dur-2) var(--ease); }
 .nu .grav-card:has(input:checked) { border-color: var(--md-primary); background: var(--md-surface); }
 .nu .grav-card.has-error { border-color: var(--md-error); }
-.nu .grav-question { font-size: .8125rem; font-weight: 500; margin-bottom: .65rem; line-height: 1.35; }
+.nu .grav-question { font-size: var(--fs-sm); font-weight: 500; margin-bottom: .65rem; line-height: 1.35; }
 .nu .radio-row { display: flex; gap: .5rem; }
 .nu .radio-pill {
-  position: relative; flex: 1; display: flex; align-items: center; justify-content: center; gap: .35rem; padding: .45rem .6rem; min-height: 36px; border-radius: 999px; border: 1.5px solid var(--md-outline);
-  cursor: pointer; font-size: .8125rem; font-weight: 500; color: var(--md-on-surface-med); background: var(--md-surface); user-select: none; overflow: hidden;
-  transition: background 160ms var(--nu-ease), border-color 160ms var(--nu-ease), color 160ms var(--nu-ease);
+  position: relative; flex: 1; display: flex; align-items: center; justify-content: center; gap: .35rem; padding: .45rem .6rem; min-height: 36px; border-radius: var(--md-shape-full); border: 1.5px solid var(--md-outline-strong);
+  cursor: pointer; font-size: var(--fs-sm); font-weight: 500; color: var(--md-on-surface-med); background: var(--md-surface); user-select: none; overflow: hidden;
+  transition: background-color var(--dur-2) var(--ease), border-color var(--dur-2) var(--ease), color var(--dur-2) var(--ease);
 }
 .nu .radio-pill input { position: absolute; opacity: 0; pointer-events: none; }
 .nu .radio-pill:has(input:focus-visible) { outline: 2px solid var(--md-primary); outline-offset: 2px; }
@@ -142,72 +111,52 @@
 .nu .radio-pill.yes:has(input:checked) .ms { color: var(--md-success); }
 .nu .radio-pill.no:has(input:checked) { background: var(--md-error-bg); border-color: transparent; color: var(--md-error); }
 .nu .radio-pill.no:has(input:checked) .ms { color: var(--md-error); }
-.nu .severity-row { display: flex; align-items: center; gap: 1rem; padding: .9rem 1.1rem; margin-top: 1rem; background: var(--md-bg); border: 1px solid var(--md-outline); border-radius: var(--nu-radius); transition: border-color 160ms var(--nu-ease); }
+.nu .severity-row { display: flex; align-items: center; gap: 1rem; padding: .9rem 1.1rem; margin-top: 1rem; background: var(--md-bg); border: 1px solid var(--md-outline); border-radius: var(--md-shape-md); transition: border-color var(--dur-2) var(--ease); }
 .nu .severity-row.filled { border-color: var(--md-primary); background: var(--md-surface); }
-.nu .sev-label { font-size: .8125rem; font-weight: 500; color: var(--md-on-surface-med); white-space: nowrap; }
-.nu .sev-chip { display: inline-flex; align-items: center; font-size: .875rem; font-weight: 500; color: var(--md-on-surface-med); background: var(--md-surface-variant); padding: .35rem 1rem; border-radius: 999px; }
+.nu .sev-label { font-size: var(--fs-sm); font-weight: 500; color: var(--md-on-surface-med); white-space: nowrap; }
+.nu .sev-chip { display: inline-flex; align-items: center; font-size: var(--fs-md); font-weight: 500; color: var(--md-on-surface-med); background: var(--md-surface-variant); padding: .35rem 1rem; border-radius: var(--md-shape-full); }
 .nu .sev-chip.leve { background: var(--md-success-bg); color: var(--md-success); }
-.nu .sev-chip.moderado { background: var(--md-warning-bg); color: var(--nu-warn); }
+.nu .sev-chip.moderado { background: var(--md-warning-bg); color: var(--md-warning-text); }
 .nu .sev-chip.urgente { background: var(--md-error-bg); color: var(--md-error); }
 
 /* ── Interruptores ── */
-.nu .toggle-field { position: relative; display: flex; align-items: center; gap: .9rem; padding: .85rem 1rem; background: var(--md-bg); border: 1px solid var(--md-outline); border-radius: var(--nu-radius); cursor: pointer; user-select: none; transition: border-color 160ms var(--nu-ease), background 160ms var(--nu-ease); }
+.nu .toggle-field { position: relative; display: flex; align-items: center; gap: .9rem; padding: .85rem 1rem; background: var(--md-bg); border: 1px solid var(--md-outline); border-radius: var(--md-shape-md); cursor: pointer; user-select: none; transition: border-color var(--dur-2) var(--ease), background-color var(--dur-2) var(--ease); }
 .nu .toggle-field input { position: absolute; opacity: 0; pointer-events: none; }
 .nu .toggle-field:has(input:focus-visible) { outline: 2px solid var(--md-primary); outline-offset: 2px; }
 .nu .toggle-field:has(input:checked) { border-color: var(--md-primary); background: var(--md-surface); }
-.nu .toggle-icon { width: 38px; height: 38px; background: var(--md-primary-light); border-radius: 10px; display: grid; place-items: center; flex-shrink: 0; }
+.nu .toggle-icon { width: 38px; height: 38px; background: var(--md-primary-light); border-radius: var(--md-shape-sm); display: grid; place-items: center; flex-shrink: 0; }
 .nu .toggle-icon .ms { color: var(--md-primary); }
 .nu .toggle-text { flex: 1; min-width: 0; }
-.nu .toggle-text strong { display: block; font-size: .875rem; font-weight: 500; }
-.nu .toggle-text span { display: block; font-size: .75rem; color: var(--md-on-surface-med); margin-top: 1px; }
-.nu .toggle-track { position: relative; width: 44px; height: 26px; background: var(--md-surface-variant); border: 2px solid var(--md-outline); border-radius: 999px; flex-shrink: 0; transition: background 160ms var(--nu-ease), border-color 160ms var(--nu-ease); }
-.nu .toggle-thumb { position: absolute; top: 50%; left: 3px; transform: translateY(-50%); width: 14px; height: 14px; background: var(--md-outline); border-radius: 50%; transition: left 200ms var(--nu-ease), width 160ms var(--nu-ease), height 160ms var(--nu-ease), background 160ms var(--nu-ease); }
+.nu .toggle-text strong { display: block; font-size: var(--fs-md); font-weight: 500; }
+.nu .toggle-text span { display: block; font-size: var(--fs-xs); color: var(--md-on-surface-med); margin-top: 1px; }
+.nu .toggle-track { position: relative; width: 44px; height: 26px; background: var(--md-surface-variant); border: 2px solid var(--md-outline-strong); border-radius: var(--md-shape-full); flex-shrink: 0; transition: background-color var(--dur-2) var(--ease), border-color var(--dur-2) var(--ease); }
+.nu .toggle-thumb { position: absolute; top: 50%; left: 3px; transform: translateY(-50%); width: 14px; height: 14px; background: var(--md-outline-strong); border-radius: 50%; transition: left var(--dur-2) var(--ease), width var(--dur-2) var(--ease), height var(--dur-2) var(--ease), background-color var(--dur-2) var(--ease); }
 .nu .toggle-field:has(input:checked) .toggle-track { background: var(--md-primary); border-color: var(--md-primary); }
 .nu .toggle-field:has(input:checked) .toggle-thumb { background: var(--md-on-primary); width: 18px; height: 18px; left: 19px; }
 
-/* ── Botones ── */
-.nu .btn { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; padding: 0 1.4rem; height: 40px; border-radius: 999px; font-family: var(--font); font-size: .875rem; font-weight: 600; cursor: pointer; border: none; transition: filter 150ms var(--nu-ease), background 150ms var(--nu-ease); }
-.nu .btn .ms { font-size: 18px; color: inherit; }
-.nu .btn-primary { background: var(--md-primary-container); color: var(--md-primary-dark); }
-.nu .btn-primary:hover:not(:disabled) { filter: brightness(.97); }
-.nu .btn-ghost { background: transparent; color: var(--md-primary); border: 1px solid var(--md-outline); font-weight: 500; }
-.nu .btn-ghost:hover:not(:disabled) { background: var(--md-primary-light); }
-.nu .btn:disabled { background: rgba(128,134,139,.2); color: var(--md-on-surface-low); cursor: not-allowed; border-color: transparent; }
-.nu .btn:focus-visible { outline: 2px solid var(--md-primary); outline-offset: 2px; }
-.nu .spinner { animation: nu-spin .8s linear infinite; }
-@keyframes nu-spin { to { transform: rotate(360deg); } }
-
-/* ── Confirmación interna (descartar / posible duplicado) ── */
-.nu .nu-conf { position: absolute; inset: 0; z-index: 60; display: none; align-items: center; justify-content: center; padding: 1.5rem; background: rgba(20,28,34,.45); }
-.nu .nu-conf.visible { display: flex; }
-.nu .nu-conf-caja { width: min(380px, 100%); background: var(--md-surface); border-radius: 16px; box-shadow: var(--nu-elev-3); padding: 1.25rem 1.35rem 1rem; }
-.nu .nu-conf-caja p { white-space: pre-line; line-height: 1.5; font-size: .9rem; }
-.nu .nu-conf-botones { display: flex; justify-content: flex-end; gap: .5rem; margin-top: 1.1rem; }
-
-/* ── Aviso de posible usuario ya existente (lista de coincidencias) ── */
-.nu .nu-dupcapa { position: absolute; inset: 0; z-index: 60; display: none; align-items: center; justify-content: center; padding: 1.5rem; background: rgba(20,28,34,.45); }
-.nu .nu-dupcapa.visible { display: flex; }
-.nu .nu-dup-caja { width: min(420px, 100%); max-height: 100%; display: flex; flex-direction: column; background: var(--md-surface); border-radius: 16px; box-shadow: var(--nu-elev-3); padding: 1.25rem 1.35rem 1rem; }
-.nu .nu-dup-tit { font-weight: 600; font-size: 1rem; }
-.nu .nu-dup-sub { margin-top: .35rem; color: var(--md-on-surface-med); font-size: .85rem; line-height: 1.45; }
+/* ── Confirmacion y aviso de posible duplicado: el dialogo comun (.modal-overlay / .modal-box de CSS_Global) ── */
+.nu .nu-conf .modal-mensaje { margin-bottom: 1.25rem; }
+.nu .nu-dup-caja { max-width: 420px; max-height: 100%; display: flex; flex-direction: column; }
+.nu .nu-dup-tit { font-weight: 600; font-size: var(--fs-title); }
+.nu .nu-dup-sub { margin: .35rem 0 0; color: var(--md-on-surface-med); font-size: var(--fs-md); line-height: 1.45; }
 .nu .nu-dup-lista { margin-top: .9rem; display: flex; flex-direction: column; gap: .5rem; overflow-y: auto; min-height: 0; }
-.nu .nu-dup-item { display: flex; align-items: center; gap: .75rem; padding: .6rem .7rem; border: 1px solid var(--md-outline); border-radius: 12px; }
+.nu .nu-dup-item { display: flex; align-items: center; gap: .75rem; padding: .6rem .7rem; border: 1px solid var(--md-outline); border-radius: var(--md-shape-md); }
 .nu .nu-dup-datos { flex: 1; min-width: 0; }
-.nu .nu-dup-nombre { font-weight: 600; font-size: .9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.nu .nu-dup-meta { margin-top: .15rem; font-size: .78rem; color: var(--md-on-surface-med); }
+.nu .nu-dup-nombre { font-weight: 600; font-size: var(--fs-md); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nu .nu-dup-meta { margin-top: .15rem; font-size: var(--fs-xs); color: var(--md-on-surface-med); }
 .nu .nu-dup-motivos { margin-top: .3rem; display: flex; flex-wrap: wrap; gap: .3rem; }
-.nu .nu-dup-motivos span { font-size: .7rem; font-weight: 600; padding: .1rem .5rem; border-radius: 999px; background: var(--md-primary-light); color: var(--md-primary); }
-.nu .nu-dup-mas { font-size: .8rem; color: var(--md-on-surface-med); padding: .1rem .2rem; }
-.nu .nu-dup-pie { display: flex; justify-content: flex-end; gap: .5rem; margin-top: 1.1rem; flex-wrap: wrap; }
+.nu .nu-dup-motivos span { font-size: var(--fs-2xs); font-weight: 600; padding: .1rem .5rem; border-radius: var(--md-shape-full); background: var(--md-primary-light); color: var(--md-primary-dark); }
+.nu .nu-dup-mas { font-size: var(--fs-sm); color: var(--md-on-surface-med); padding: .1rem .2rem; }
+.nu .nu-dup-pie { margin-top: 1.1rem; flex-wrap: wrap; }
 
 /* ── Aviso en línea bajo un campo: ya existe un usuario con ese dato (una sola línea, para no ocupar alto) ── */
-.nu .nu-aviso { display: none; align-items: center; gap: .4rem; margin: 4px 0 0 14px; padding: .15rem .3rem .15rem .5rem; min-height: 28px; border-radius: 8px; border-left: 3px solid var(--md-warning); background: var(--md-warning-bg); color: var(--md-on-surface); font-size: .75rem; line-height: 1.3; }
+.nu .nu-aviso { display: none; align-items: center; gap: .4rem; margin: 4px 0 0 14px; padding: .15rem .3rem .15rem .5rem; min-height: 28px; border-radius: var(--md-shape-sm); border-left: 3px solid var(--md-warning); background: var(--md-warning-bg); color: var(--md-on-surface); font-size: var(--fs-xs); line-height: 1.3; }
 .nu .nu-aviso.visible { display: flex; }
-.nu .nu-aviso > .ms { font-size: 16px; color: var(--md-warning); flex: none; }
+.nu .nu-aviso > .ms { font-size: 16px; color: var(--md-warning-text); flex: none; }
 .nu .nu-aviso-txt { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .nu .nu-aviso-nom { font-weight: 600; }
 .nu .nu-aviso-mas { flex: none; color: var(--md-on-surface-med); font-weight: 600; }
-.nu .nu-aviso-btn { flex: none; border: 0; background: transparent; color: var(--md-primary); font: inherit; font-weight: 600; cursor: pointer; padding: .15rem .4rem; border-radius: 6px; }
+.nu .nu-aviso-btn { flex: none; border: 0; background: transparent; color: var(--md-primary); font: inherit; font-weight: 600; cursor: pointer; padding: .15rem .4rem; border-radius: var(--md-shape-xs); }
 .nu .nu-aviso-btn:hover { background: var(--md-primary-light); }
 
 </style>
@@ -231,14 +180,13 @@ window.PanelNuevo = {
     }
     function campo(id, icono, etiqueta, opciones) {
       opciones = opciones || {};
-      return '<div class="md-field' + (opciones.textarea ? ' is-textarea' : '') + (opciones.span ? ' span-2' : '') + '">' +
-        '<div class="md-field-inner">' +
-          '<div class="leading-icon"><span class="ms">' + icono + '</span></div>' +
-          (opciones.textarea
-            ? '<textarea id="nu-' + id + '" name="' + opciones.name + '" rows="3" placeholder=" "></textarea>'
-            : '<input type="' + (opciones.type || 'text') + '" id="nu-' + id + '" name="' + opciones.name + '" placeholder=" "' + (opciones.inputmode ? ' inputmode="' + opciones.inputmode + '"' : '') + ' autocomplete="off">') +
-          '<label for="nu-' + id + '">' + etiqueta + (opciones.req ? '<span class="req">*</span>' : '') + '</label>' +
-        '</div><span class="support-text"></span></div>';
+      return '<div class="md-campo md-campo--icono' + (opciones.span ? ' span-2' : '') + '">' +
+        '<span class="ms md-campo__icono">' + icono + '</span>' +
+        (opciones.textarea
+          ? '<textarea class="md-campo__control" id="nu-' + id + '" name="' + opciones.name + '" rows="3" placeholder=" "></textarea>'
+          : '<input class="md-campo__control" type="' + (opciones.type || 'text') + '" id="nu-' + id + '" name="' + opciones.name + '" placeholder=" "' + (opciones.inputmode ? ' inputmode="' + opciones.inputmode + '"' : '') + ' autocomplete="off">') +
+        '<label class="md-campo__etiqueta" for="nu-' + id + '">' + etiqueta + (opciones.req ? '<span class="req">*</span>' : '') + '</label>' +
+        '<p class="md-campo__ayuda"></p></div>';
     }
     function desplegable(id, icono, etiqueta, valorIni, conBuscador) {
       return '<div class="multiselect" id="nu-ms-' + id + '">' +
@@ -303,16 +251,16 @@ window.PanelNuevo = {
       '</form></div>' +
       '<div class="nu-msg" role="alert"></div>' +
       '<div class="nu-pie"><span class="hint">Los campos con <b>*</b> son obligatorios.</span>' +
-        '<div class="botones"><button title="Cerrar sin guardar" type="button" class="btn btn-ghost nu-cancelar">Cancelar</button>' +
-        '<button title="Guardar el usuario nuevo" type="button" class="btn btn-primary nu-guardar"><span class="ms">save</span>Guardar usuario</button></div></div>' +
-      '<div class="nu-conf" role="alertdialog" aria-modal="true"><div class="nu-conf-caja"><p></p><div class="nu-conf-botones">' +
-        '<button type="button" class="btn btn-ghost nu-conf-no"></button><button type="button" class="btn btn-primary nu-conf-si"></button></div></div></div>' +
-      '<div class="nu-dupcapa" role="alertdialog" aria-modal="true"><div class="nu-dup-caja">' +
+        '<div class="botones"><button title="Cerrar sin guardar" type="button" class="md-btn md-btn--text nu-cancelar">Cancelar</button>' +
+        '<button title="Guardar el usuario nuevo" type="button" class="md-btn md-btn--tonal nu-guardar"><span class="ms">save</span>Guardar usuario</button></div></div>' +
+      '<div class="nu-conf modal-overlay" role="alertdialog" aria-modal="true"><div class="modal-box"><p class="modal-mensaje"></p><div class="modal-botones">' +
+        '<button type="button" class="md-btn md-btn--text nu-conf-no"></button><button type="button" class="md-btn md-btn--tonal nu-conf-si"></button></div></div></div>' +
+      '<div class="nu-dupcapa modal-overlay" role="alertdialog" aria-modal="true"><div class="modal-box nu-dup-caja">' +
         '<div class="nu-dup-tit">Puede que este usuario ya exista</div>' +
         '<p class="nu-dup-sub">Hay usuarios en la base de datos que coinciden. Si es el mismo, abre su ficha para editarlo en vez de crear otro.</p>' +
         '<div class="nu-dup-lista"></div>' +
-        '<div class="nu-dup-pie"><button type="button" class="btn btn-ghost nu-dup-volver">Seguir editando</button>' +
-          '<button type="button" class="btn btn-ghost nu-dup-nuevo">Es otro usuario: guardar</button></div></div></div>';
+        '<div class="nu-dup-pie modal-botones"><button type="button" class="md-btn md-btn--text nu-dup-volver">Seguir editando</button>' +
+          '<button type="button" class="md-btn md-btn--text nu-dup-nuevo">Es otro usuario: guardar</button></div></div></div>';
     host.appendChild(dlg);
 
     function q(sel) { return dlg.querySelector(sel); }
@@ -323,24 +271,24 @@ window.PanelNuevo = {
 
     /* ── Campos de texto ── */
     function sync(el) {
-      var f = el.closest('.md-field');
+      var f = el.closest('.md-campo');
       if (f) f.classList.toggle('has-value', el.value.trim() !== '');
     }
     function formatPhone(input) { Telefono.escribiendo(input); }   // regla única: ui/JS_Telefono.html
     function setError(el, texto) {
-      var f = el.closest('.md-field'); if (!f) return;
-      f.classList.add('has-error');
-      f.querySelector('.support-text').textContent = texto;
+      var f = el.closest('.md-campo'); if (!f) return;
+      f.classList.add('md-campo--error');
+      f.querySelector('.md-campo__ayuda').textContent = texto;
       el.setAttribute('aria-invalid', 'true');
     }
     function clearError(el) {
-      var f = el.closest('.md-field'); if (!f) return;
-      f.classList.remove('has-error');
+      var f = el.closest('.md-campo'); if (!f) return;
+      f.classList.remove('md-campo--error');
       el.removeAttribute('aria-invalid');
     }
     var iNombre = q('#nu-nombre'), iDni = q('#nu-dni'), iFi = q('#nu-fi'), iFn = q('#nu-fn'), iTel1 = q('#nu-tel1'), iTel2 = q('#nu-tel2');
     iFi.value = hoyLocal();
-    qa('.md-field input, .md-field textarea').forEach(function (el) {
+    qa('.md-campo input, .md-campo textarea').forEach(function (el) {
       sync(el);
       el.addEventListener('input', function () { sync(el); clearError(el); });
       el.addEventListener('change', function () { sync(el); clearError(el); });
@@ -357,7 +305,7 @@ window.PanelNuevo = {
     iDni.addEventListener('input', function () { var m = mensajeLetraDni(); if (m) setError(iDni, m); else clearError(iDni); });
     iTel1.addEventListener('input', function () { formatPhone(iTel1); });
     iTel2.addEventListener('input', function () { formatPhone(iTel2); });
-    qa('.md-field input:not([type="date"])').forEach(function (el) {
+    qa('.md-campo input:not([type="date"])').forEach(function (el) {
       el.addEventListener('keydown', function (e) { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); enviar(); } });
     });
 
@@ -492,7 +440,7 @@ window.PanelNuevo = {
           var mot = document.createElement('div'); mot.className = 'nu-dup-motivos';
           (c.motivos || []).forEach(function (m) { var s = document.createElement('span'); s.textContent = ETIQUETA_MOTIVO[m] || m; mot.appendChild(s); });
           datos.appendChild(nom); datos.appendChild(meta); datos.appendChild(mot);
-          var btn = document.createElement('button'); btn.type = 'button'; btn.className = 'btn btn-primary'; btn.title = 'Abrir su ficha para editarla';
+          var btn = document.createElement('button'); btn.type = 'button'; btn.className = 'md-btn md-btn--tonal'; btn.title = 'Abrir su ficha para editarla';
           btn.innerHTML = '<span class="ms">edit</span>Editar';
           btn.addEventListener('click', function () { cerrarDuplicado({ accion: 'editar', fila: c.fila }); });
           item.appendChild(datos); item.appendChild(btn); dupLista.appendChild(item);
@@ -569,7 +517,7 @@ window.PanelNuevo = {
     // Una sola línea para no ocupar alto en el panel lateral: enseña la coincidencia más fiable; si hay más, "+N" (el texto flotante y
     // la capa que sale al guardar las listan todas).
     function pintarAviso(input, tipo, res) {
-      var campoEl = input.closest('.md-field'), a = campoEl.querySelector('.nu-aviso');
+      var campoEl = input.closest('.md-campo'), a = campoEl.querySelector('.nu-aviso');
       if (!a) { a = document.createElement('div'); a.className = 'nu-aviso'; a.setAttribute('role', 'status'); campoEl.appendChild(a); }
       a.textContent = '';
       if (!res.total) { a.classList.remove('visible'); return; }
@@ -624,8 +572,9 @@ window.PanelNuevo = {
     function mostrarMsg(texto, tipo) { msg.textContent = texto; msg.className = 'nu-msg ' + tipo; }
     function ocultarMsg() { msg.className = 'nu-msg'; msg.textContent = ''; }
     function ponerBotonGuardando(si) {
-      btnGuardar.disabled = si; btnCancelar.disabled = si;
-      btnGuardar.innerHTML = si ? '<span class="ms spinner">refresh</span>Guardando…' : '<span class="ms">save</span>Guardar usuario';
+      btnCancelar.disabled = si;
+      if (si) { btnGuardar.setAttribute('aria-busy', 'true'); btnGuardar.textContent = 'Guardando…'; }   // aria-busy: girador y sin clics (no pasa a gris)
+      else { btnGuardar.removeAttribute('aria-busy'); btnGuardar.innerHTML = '<span class="ms">save</span>Guardar usuario'; }
     }
     function recogerDatos() {
       var fd = new FormData(form), datos = {};
@@ -646,7 +595,7 @@ window.PanelNuevo = {
       if (!iFi.value) { setError(iFi, 'La fecha de inscripción es obligatoria.'); errores = true; }
       var msgDni = mensajeLetraDni();
       if (msgDni) { setError(iDni, msgDni); errores = true; }
-      if (errores) { var primero = q('.md-field.has-error input'); if (primero) primero.focus(); return; }
+      if (errores) { var primero = q('.md-campo--error input'); if (primero) primero.focus(); return; }
       if (!gravedadCompleta()) {
         qa('.grav-card').forEach(function (c) { if (!c.querySelector('input:checked')) c.classList.add('has-error'); });
         mostrarMsg('Por favor, completa todas las preguntas de evaluación de gravedad.', 'error');
@@ -675,7 +624,7 @@ window.PanelNuevo = {
           if (res && res.success) {
             guardado = true;
             mostrarMsg(res.message || 'Usuario guardado correctamente.', 'success');
-            btnGuardar.disabled = true; btnCancelar.disabled = true;
+            btnGuardar.removeAttribute('aria-busy'); btnGuardar.disabled = true; btnCancelar.disabled = true;
             btnGuardar.innerHTML = '<span class="ms">check_circle</span>Guardado';
             var avisarGuardado = function (retraso) {
               setTimeout(function () { if (!cerrado && opts.onGuardado) opts.onGuardado(res.message || 'Usuario guardado'); }, retraso);

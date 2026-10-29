@@ -28,7 +28,6 @@ El router está en `core/WebApp.gs` y sirve cada página según `?page=`. Sin pa
 | `agenda` | Agenda |
 | `valoraciones` | Valoraciones |
 | `citas` | Formulario de citas |
-| `nuevoPaciente` | Añadir usuario |
 | `valoracion` | Formulario de valoración |
 | `hc&id=ID_HC` | Historia clínica (ficha web) |
 

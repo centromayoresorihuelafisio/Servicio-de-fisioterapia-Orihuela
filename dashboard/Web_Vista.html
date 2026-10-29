@@ -21,16 +21,7 @@
       html, body { height: 100%; }
       body { font-family: var(--font); background: var(--md-bg); color: var(--md-on-surface); display: flex; flex-direction: column; font-size: 13px; }
 
-      /* ===== Tema claro / oscuro (mismos tokens y misma clave 'temaApp' que Usuarios y Agenda) ===== */
-      :root, :root[data-tema="claro"] { color-scheme: light; --md-texto-secundario: #45494f; --on-warn: #6b4300; --on-err: #9c2a1f; --on-purple: #5a2596; }
-      :root[data-tema="oscuro"] { --md-texto-secundario: #c7cdd8; --on-warn: #f6d58a; --on-err: #f7c5c2; --on-purple: #dcc3fb; }
-      @media (prefers-color-scheme: dark) { :root:not([data-tema]) { --md-texto-secundario: #c7cdd8; --on-warn: #f6d58a; --on-err: #f7c5c2; --on-purple: #dcc3fb;
-        --md-primary:#8ab4f8;--md-primary-dark:#c2e7ff;--md-primary-light:#1f3a5a;--md-primary-container:#274a72;--md-on-primary:#0b2544;
-        --md-success:#7fd39b;--md-success-bg:#173a24;--md-error:#f2b8b5;--md-error-bg:#3b1f1e;--md-warning:#f0c66a;--md-warning-bg:#3a3120;--md-purple:#c9a6f7;--md-purple-bg:#2f2440;
-        --md-bg:#121418;--md-surface:#1b1e24;--md-surface-variant:#242830;--md-outline:#333944;--md-on-surface:#e6e8ee;--md-on-surface-med:#aab1c0;--md-on-surface-low:#7f8797;--tabs-bg:#1b2733;color-scheme:dark; } }
-      :root[data-tema="oscuro"] { --md-primary:#8ab4f8;--md-primary-dark:#c2e7ff;--md-primary-light:#1f3a5a;--md-primary-container:#274a72;--md-on-primary:#0b2544;
-        --md-success:#7fd39b;--md-success-bg:#173a24;--md-error:#f2b8b5;--md-error-bg:#3b1f1e;--md-warning:#f0c66a;--md-warning-bg:#3a3120;--md-purple:#c9a6f7;--md-purple-bg:#2f2440;
-        --md-bg:#121418;--md-surface:#1b1e24;--md-surface-variant:#242830;--md-outline:#333944;--md-on-surface:#e6e8ee;--md-on-surface-med:#aab1c0;--md-on-surface-low:#7f8797;--tabs-bg:#1b2733;color-scheme:dark; }
+      /* Tema claro / oscuro: los tokens --md-* se definen una sola vez en ui/CSS_Global (con light-dark()) */
 
 
       /* ===== Tonos con significado: azul = participación, verde = evaluación clínica, ámbar = requiere atención =====
@@ -65,7 +56,7 @@
 
 
       /* ===== Cabecera y controles ===== */
-      header.top { background: var(--md-surface); border-bottom: 1px solid var(--md-outline); padding: .75rem 1rem; flex-shrink: 0; box-shadow: 0 1px 4px rgba(32,33,36,.08); position: relative; z-index: 5; }
+      header.top { background: var(--md-surface); border-bottom: 1px solid var(--md-outline); padding: .75rem 1rem; flex-shrink: 0; box-shadow: 0 1px 4px rgba(32,33,36,.08); position: relative; z-index: var(--z-sticky); }
       header.top h1 { font-size: 1.05rem; font-weight: 600; display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; margin-bottom: .6rem; }
       h1 .material-symbols-outlined { font-size: 22px; color: var(--md-primary); }
       header.top .contador { font-size: .78rem; color: var(--md-on-surface-med); font-weight: 400; }
@@ -139,10 +130,10 @@
       .info-btn.aviso:hover, .info-btn.aviso[aria-expanded="true"] { color: var(--on-warn); filter: brightness(.96); background: var(--md-warning-bg); }
       .info-n { font-size: .7rem; font-weight: 700; }
       .info-btn.etiqueta { padding: .15rem .65rem .15rem .35rem; }
-      .info-pop { position: absolute; top: 100%; left: 0; z-index: 30; width: max-content; max-width: min(320px, 80vw); padding-top: 6px; }
+      .info-pop { position: absolute; top: 100%; left: 0; z-index: calc(var(--z-popover) + 1); width: max-content; max-width: min(320px, 80vw); padding-top: 6px; }
       .info-caja { background: var(--md-surface); color: var(--md-on-surface); border: 1px solid var(--md-outline); border-radius: 10px; box-shadow: var(--sombra-hover); padding: .55rem .7rem; font-size: .78rem; font-weight: 400; line-height: 1.4; text-align: left; letter-spacing: 0; }
       .info-caja div + div { margin-top: .35rem; }
-      .kpi.info-abierto, .tarjeta.info-abierto { position: relative; z-index: 6; }
+      .kpi.info-abierto, .tarjeta.info-abierto { position: relative; z-index: calc(var(--z-sticky) + 1); }
       .sec-cab { display: flex; align-items: center; gap: .4rem; margin: 1.2rem .15rem .15rem; }
       .sec-cab .seccion { margin: 0; }
       .info-fila { margin: 0 0 .5rem; }
@@ -210,7 +201,7 @@
       .btn-png:hover { background: var(--md-surface-variant); color: var(--md-primary); }
       .btn-png .material-symbols-outlined { font-size: 18px; }
       .menu-exportar { position: relative; }
-      .menu { position: absolute; top: calc(100% + 4px); right: 0; z-index: 20; min-width: 270px; background: var(--md-surface); border: 1px solid var(--md-outline); border-radius: 12px; box-shadow: 0 4px 16px rgba(32,33,36,.18); padding: .3rem; display: flex; flex-direction: column; }
+      .menu { position: absolute; top: calc(100% + 4px); right: 0; z-index: var(--z-popover); min-width: 270px; background: var(--md-surface); border: 1px solid var(--md-outline); border-radius: 12px; box-shadow: 0 4px 16px rgba(32,33,36,.18); padding: .3rem; display: flex; flex-direction: column; }
       .menu button { display: flex; align-items: center; gap: .55rem; text-align: left; background: none; border: 0; border-radius: 8px; padding: .5rem .7rem; font-size: .82rem; color: var(--md-on-surface); cursor: pointer; }
       .menu button:hover { background: var(--md-surface-variant); }
       .menu button:disabled { opacity: .5; cursor: progress; }

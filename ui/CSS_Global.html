@@ -1,29 +1,38 @@
 :root {
-        --md-primary:          #2b5c75;
-        --md-primary-dark:     #1d3f52;
-        --md-primary-light:    #e0f1fc;
-        --md-primary-container:#c9e4f5;
-        --md-on-primary:       #ffffff;
+        /* ===== Color: cada variable se define UNA vez con light-dark(claro, oscuro) (fase V2, 28-oct-2026) =====
+           Elige el valor segun el color-scheme de la pagina (claro / oscuro / auto, selector data-tema, clave temaApp).
+           Marca: azul de Google. Los valores oscuros son los que las paginas ya repetian cada una en su bloque. */
+        --md-primary:          light-dark(#0b57d0, #8ab4f8);
+        --md-primary-dark:     light-dark(#004a77, #c2e7ff);
+        --md-primary-light:    light-dark(#e8f0fe, #1f3a5a);
+        --md-primary-container:light-dark(#c2e7ff, #274a72);
+        --md-on-primary:       light-dark(#ffffff, #0b2544);
 
-        --md-success:          #137333;
-        --md-success-bg:       #e6f4ea;
-        --md-error:            #c5221f;
-        --md-error-bg:         #fce8e6;
-        --md-warning:          #f29900;
-        --md-warning-bg:       #fef7e0;
-        --md-purple:           #8430ce;
-        --md-purple-bg:        #f3e8fd;
+        --md-success:          light-dark(#137333, #7fd39b);
+        --md-success-bg:       light-dark(#e6f4ea, #173a24);
+        --md-error:            light-dark(#c5221f, #f2b8b5);
+        --md-error-bg:         light-dark(#fce8e6, #3b1f1e);
+        --md-warning:          light-dark(#f29900, #f0c66a);
+        --md-warning-bg:       light-dark(#fef7e0, #3a3120);
+        --md-purple:           light-dark(#8430ce, #c9a6f7);
+        --md-purple-bg:        light-dark(#f3e8fd, #2f2440);
 
-        --md-bg:               #f8f9fa;
-        --md-surface:          #ffffff;
-        --md-surface-variant:  #f1f3f4;
-        --md-outline:          #dadce0;
+        --md-bg:               light-dark(#f8f9fa, #121418);
+        --md-surface:          light-dark(#ffffff, #1b1e24);
+        --md-surface-variant:  light-dark(#f1f3f4, #242830);
+        --md-outline:          light-dark(#dadce0, #333944);
 
-        --md-on-surface:       #202124;
-        --md-on-surface-med:   #5f6368;
-        --md-on-surface-low:   #80868b;
+        --md-on-surface:       light-dark(#202124, #e6e8ee);
+        --md-on-surface-med:   light-dark(#5f6368, #aab1c0);
+        --md-on-surface-low:   light-dark(#80868b, #7f8797);
 
-        --tabs-bg:             #e7eff6;
+        --tabs-bg:             light-dark(#e7eff6, #1b2733);
+
+        /* Nombres heredados de las paginas (se retiran en la fase V7) */
+        --md-texto-secundario: light-dark(#45494f, #c7cdd8);
+        --on-warn:             light-dark(#6b4300, #f6d58a);
+        --on-err:              light-dark(#9c2a1f, #f7c5c2);
+        --on-purple:           light-dark(#5a2596, #dcc3fb);
 
         --radius-sm: 4px;
         --radius-md: 8px;
@@ -31,6 +40,19 @@
 
         --font: 'Google Sans', 'Segoe UI', Arial, sans-serif;
         --transition: 150ms cubic-bezier(.2,0,0,1);
+      }
+
+      /* Tema: auto sigue al sistema; el selector de cada pagina pone data-tema="claro" u "oscuro".
+         Al imprimir siempre claro (un fondo oscuro con letra clara no se imprime bien). */
+      :root { color-scheme: light dark; }
+      :root[data-tema="claro"] { color-scheme: light; }
+      :root[data-tema="oscuro"] { color-scheme: dark; }
+      @media print { :root, :root[data-tema] { color-scheme: light; } }
+
+      /* Foco con teclado: una sola regla para toda la app. :where() le da especificidad 0, asi que
+         cualquier regla propia de un control sigue mandando sobre ella. */
+      :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+        outline: 2px solid var(--md-primary); outline-offset: 2px;
       }
 
       /* Iconos de los avisos (sustituyen a los emojis de los mensajes; los pone tonoAviso_/iconoAviso_ de ui/JS_Modal_Deshacer) */
@@ -43,3 +65,190 @@
       .toast-aviso .aviso-icono.ok { color: #81c995; }
       .toast-aviso .aviso-icono.aviso { color: #fdd663; }
       .toast-aviso .aviso-icono.error { color: #fff; }
+      /* ============================================================================
+         SISTEMA DE DISENO (fase V1, 28-oct-2026). Referencia: docs/diseno/SISTEMA_DE_DISENO.md
+         Ninguna pagina usa todavia estos componentes (se van migrando en las fases V3 a V6).
+         Los colores con light-dark() eligen claro u oscuro segun el color-scheme
+         de la pagina (claro / oscuro / auto).
+         ============================================================================ */
+      :root {
+        /* --- Color nuevo --- */
+        --md-outline-strong: light-dark(#80868b, #6b7480);   /* borde de campos y controles (el --md-outline de arriba queda para separadores) */
+        --md-warning-text:   light-dark(#8a5d1a, #f0c66a);   /* texto de aviso (el --md-warning de arriba es solo relleno e iconos) */
+        --md-scrim:          light-dark(rgba(32,33,36,.50), rgba(0,0,0,.60));
+        --md-toast-bg:       light-dark(#323232, #2d3038);
+        --md-toast-fg:       light-dark(#ffffff, #e6e8ee);
+
+        /* --- Tipografia --- */
+        --font-mono: ui-monospace, 'SF Mono', Consolas, monospace;
+        --fs-2xs:   .6875rem;  /* 11 px  insignias */
+        --fs-xs:    .75rem;    /* 12 px  ayuda, errores de campo */
+        --fs-sm:    .8125rem;  /* 13 px  secundario, chips, avisos */
+        --fs-md:    .875rem;   /* 14 px  cuerpo, botones, celdas */
+        --fs-field: .9375rem;  /* 15 px  valor dentro de un campo */
+        --fs-lg:    1rem;      /* 16 px  destacado */
+        --fs-title: 1.125rem;  /* 18 px  titulo de formulario o dialogo */
+        --fs-h:     1.375rem;  /* 22 px  titulo de pagina */
+        --fs-kpi:   1.75rem;   /* 28 px  cifras grandes */
+
+        /* --- Forma --- */
+        --md-shape-xs:   4px;
+        --md-shape-sm:   8px;
+        --md-shape-md:   12px;
+        --md-shape-lg:   16px;
+        --md-shape-xl:   28px;
+        --md-shape-full: 999px;
+
+        /* --- Elevacion (grises neutros) --- */
+        --md-elev-0: none;
+        --md-elev-1: 0 1px 2px rgba(60,64,67,.30), 0 1px 3px 1px rgba(60,64,67,.15);
+        --md-elev-2: 0 1px 2px rgba(60,64,67,.30), 0 2px 6px 2px rgba(60,64,67,.15);
+        --md-elev-3: 0 4px 8px 3px rgba(60,64,67,.15), 0 1px 3px rgba(60,64,67,.30);
+
+        /* --- Movimiento --- */
+        --dur-1: 100ms;
+        --dur-2: 180ms;
+        --dur-3: 280ms;
+        --dur-4: 450ms;
+        --ease:     cubic-bezier(.2, 0, 0, 1);
+        --ease-out: cubic-bezier(.4, 0, 1, 1);
+
+        /* --- Capas: nunca se escribe un numero en z-index, siempre una de estas --- */
+        --z-base:    1;
+        --z-sticky:  10;
+        --z-panel:   30;
+        --z-popover: 200;
+        --z-modal:   1000;
+        --z-toast:   1100;
+        --z-max:     1200;
+      }
+
+      @keyframes md-spin   { to { transform: rotate(360deg); } }
+      @keyframes md-entra  { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+      @keyframes md-brillo { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+
+      /* --- Girador de carga (sustituira a pc-spin, pe-spin, nu-spin, pv-spin y spin) --- */
+      .md-girador {
+        display: inline-block; flex: none; box-sizing: border-box;
+        width: 20px; height: 20px; border-radius: 50%;
+        border: 2px solid color-mix(in srgb, var(--md-primary) 25%, transparent);
+        border-top-color: var(--md-primary);
+        animation: md-spin .8s linear infinite;
+      }
+
+      /* --- Boton: una base y cinco variantes. Pasar el raton y pulsar = capa del color del texto al 8 % y 12 % --- */
+      .md-btn {
+        position: relative; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+        box-sizing: border-box; height: 40px; padding: 0 20px;
+        border: 1px solid transparent; border-radius: var(--md-shape-full);
+        background: transparent; color: var(--md-primary);
+        font-family: var(--font); font-size: var(--fs-md); font-weight: 600; line-height: 1; letter-spacing: .01em;
+        white-space: nowrap; cursor: pointer; user-select: none; -webkit-tap-highlight-color: transparent;
+        transition: border-color var(--dur-1) var(--ease);
+      }
+      .md-btn::after {
+        content: ""; position: absolute; inset: 0; border-radius: inherit;
+        background: currentColor; opacity: 0; pointer-events: none;
+        transition: opacity var(--dur-1) var(--ease);
+      }
+      .md-btn:hover:not(:disabled)::after  { opacity: .08; }
+      .md-btn:active:not(:disabled)::after { opacity: .12; }
+      .md-btn .material-symbols-outlined { font-size: 18px; }
+      .md-btn:disabled { opacity: .38; cursor: default; pointer-events: none; }
+      .md-btn[aria-busy="true"] { pointer-events: none; }
+      .md-btn[aria-busy="true"]::before {
+        content: ""; flex: none; box-sizing: border-box; width: 16px; height: 16px; border-radius: 50%;
+        border: 2px solid color-mix(in srgb, currentColor 25%, transparent); border-top-color: currentColor;
+        animation: md-spin .8s linear infinite;
+      }
+      .md-btn--tonal   { background: var(--md-primary-container); color: var(--md-primary-dark); }   /* la accion principal: maximo uno por formulario */
+      .md-btn--outline { border-color: var(--md-outline-strong); color: var(--md-primary); }
+      .md-btn--text    { padding: 0 12px; color: var(--md-primary); }
+      .md-btn--danger  { background: var(--md-error-bg); color: var(--md-error); }
+      .md-btn--icon    { width: 40px; padding: 0; color: var(--md-on-surface-med); }
+      .md-btn--icon .material-symbols-outlined { font-size: 20px; }
+
+      /* --- Campo de texto: contorno, etiqueta flotante, icono opcional a la izquierda ---
+         Marcado:  <div class="md-campo md-campo--icono">
+                     <span class="material-symbols-outlined md-campo__icono">person</span>
+                     <input class="md-campo__control" id="x" placeholder=" ">
+                     <label class="md-campo__etiqueta" for="x">Nombre</label>
+                     <p class="md-campo__ayuda">Texto de ayuda o de error</p>
+                   </div>
+         El control va ANTES que la etiqueta (asi la etiqueta sube con :focus y con valor). Con una lista
+         desplegable (select) la etiqueta queda siempre arriba. Variante md-campo--compacto: 40 px y
+         etiqueta fija encima. --md-campo-fondo es el fondo de la etiqueta flotante (por defecto, el de la tarjeta). */
+      .md-campo { position: relative; display: block; }
+      .md-campo__control {
+        display: block; width: 100%; box-sizing: border-box; height: 52px; padding: 0 14px;
+        border: 1.5px solid var(--md-outline-strong); border-radius: var(--md-shape-md);
+        background: transparent; color: var(--md-on-surface);
+        font-family: var(--font); font-size: var(--fs-field); line-height: 1.4;
+        outline: none; appearance: none; -webkit-appearance: none;
+        transition: border-color var(--dur-2) var(--ease), box-shadow var(--dur-2) var(--ease);
+      }
+      textarea.md-campo__control { height: auto; min-height: 88px; padding-top: 18px; padding-bottom: 12px; resize: vertical; }
+      .md-campo--icono .md-campo__control { padding-left: 44px; }
+      .md-campo__icono {
+        position: absolute; left: 12px; top: 26px; transform: translateY(-50%); z-index: var(--z-base);
+        font-size: 20px; color: var(--md-on-surface-med); pointer-events: none;
+      }
+      .md-campo__etiqueta {
+        position: absolute; left: 14px; top: 26px; transform: translateY(-50%); z-index: var(--z-base);
+        padding: 0 4px; margin-left: -4px; background: var(--md-campo-fondo, var(--md-surface));
+        color: var(--md-on-surface-med); font-size: var(--fs-field); line-height: 1.2;
+        pointer-events: none; white-space: nowrap;
+        transition: top var(--dur-3) var(--ease), font-size var(--dur-3) var(--ease), color var(--dur-2) var(--ease);
+      }
+      .md-campo--icono .md-campo__etiqueta { left: 44px; }
+      .md-campo__control:focus ~ .md-campo__etiqueta,
+      .md-campo__control:not(:placeholder-shown) ~ .md-campo__etiqueta,
+      select.md-campo__control ~ .md-campo__etiqueta { top: 0; font-size: var(--fs-xs); }
+      .md-campo__control:hover:not(:disabled):not(:focus) { border-color: var(--md-on-surface); }
+      .md-campo__control:focus { border-color: var(--md-primary); box-shadow: inset 0 0 0 .5px var(--md-primary); }
+      .md-campo__control:focus ~ .md-campo__etiqueta { color: var(--md-primary); }
+      .md-campo__control:disabled { background: var(--md-surface-variant); color: var(--md-on-surface-low); }
+      .md-campo__ayuda { margin: 4px 14px 0; font-size: var(--fs-xs); line-height: 1.3; color: var(--md-on-surface-med); }
+      .md-campo--error .md-campo__control,
+      .md-campo--error .md-campo__control:hover:not(:disabled) { border-color: var(--md-error); }
+      .md-campo--error .md-campo__control:focus { box-shadow: inset 0 0 0 .5px var(--md-error); }
+      .md-campo--error .md-campo__etiqueta,
+      .md-campo--error .md-campo__control:focus ~ .md-campo__etiqueta,
+      .md-campo--error .md-campo__ayuda { color: var(--md-error); }
+      .md-campo--compacto { display: flex; flex-direction: column; }
+      .md-campo--compacto .md-campo__control { height: 40px; }
+      .md-campo--compacto .md-campo__etiqueta {
+        position: static; transform: none; order: -1; margin: 0 0 4px; padding: 0; background: none;
+        font-size: var(--fs-xs); font-weight: 600; color: var(--md-on-surface-med); pointer-events: auto;
+      }
+      .md-campo--compacto .md-campo__control:focus ~ .md-campo__etiqueta { color: var(--md-primary); }
+
+      /* --- Chip: 32 px. Seleccionado = fondo del contenedor primario y marca delante (no solo color) --- */
+      .md-chip {
+        display: inline-flex; align-items: center; gap: 6px; box-sizing: border-box; height: 32px; padding: 0 12px;
+        border: 1px solid var(--md-outline-strong); border-radius: var(--md-shape-full);
+        background: transparent; color: var(--md-on-surface);
+        font-family: var(--font); font-size: var(--fs-sm); font-weight: 500; line-height: 1;
+        white-space: nowrap; cursor: pointer; user-select: none;
+        transition: background-color var(--dur-1) var(--ease), border-color var(--dur-1) var(--ease);
+      }
+      .md-chip:hover { background: color-mix(in srgb, currentColor 8%, transparent); }
+      .md-chip--sel, .md-chip[aria-pressed="true"] {
+        background: var(--md-primary-container); border-color: transparent; color: var(--md-primary-dark);
+      }
+      .md-chip--sel::before, .md-chip[aria-pressed="true"]::before { content: "\2713"; font-weight: 600; }
+
+      /* --- Esqueleto de carga (se generaliza el de Estadisticas) --- */
+      .md-esqueleto {
+        display: block; min-height: 1em; border-radius: var(--md-shape-sm);
+        background: linear-gradient(90deg, var(--md-surface-variant) 25%, color-mix(in srgb, var(--md-surface-variant) 55%, var(--md-surface)) 50%, var(--md-surface-variant) 75%);
+        background-size: 200% 100%; animation: md-brillo 1.6s linear infinite;
+      }
+
+      /* --- Reducir movimiento (V2): una sola llave. Las cuatro duraciones pasan a casi 0 y todo lo que
+             usa --dur-* lo respeta. El girador sigue girando (es informacion), mas despacio. --- */
+      @media (prefers-reduced-motion: reduce) {
+        :root { --dur-1: .01ms; --dur-2: .01ms; --dur-3: .01ms; --dur-4: .01ms; }
+        .md-girador, .md-btn[aria-busy="true"]::before { animation-duration: 1.6s; }
+        .md-esqueleto { animation: none; }
+      }

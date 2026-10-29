@@ -11,27 +11,13 @@
   la misma que se abre como panel lateral en Usuarios y en la Agenda. Aquí se usa en modo "pagina" (botón volver).
   Con &imprimir=1 abre el diálogo de impresión en cuanto carga la historia.
 -->
+<link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<script>
+  // Tema guardado (misma clave 'temaApp' que el resto de pestañas), aplicado antes de pintar para que no parpadee.
+  try { var t0 = localStorage.getItem('temaApp'); if (t0 === 'oscuro' || t0 === 'claro') document.documentElement.setAttribute('data-tema', t0); } catch (err) { /* sin almacenamiento */ }
+</script>
 <style>
-  :root{
-    --md-primary:#2b5c75; --md-primary-dark:#1d3f52; --md-primary-light:#e0f1fc; --md-primary-container:#c9e4f5;
-    --md-on-primary:#fff;
-    --md-bg:#f4f7fa; --md-surface:#fff; --md-surface-variant:#eef2f5; --md-outline:#dadce0;
-    --md-on-surface:#202124; --md-on-surface-med:#5f6368; --md-on-surface-low:#80868b;
-    --md-success:#137333; --md-success-bg:#e6f4ea; --md-error:#c5221f; --md-error-bg:#fce8e6;
-    --md-warning:#a15c00; --md-warning-bg:#fef7e0; --md-purple:#8430ce; --md-purple-bg:#f3e8fd;
-    --e1:0 1px 2px rgba(32,33,36,.08),0 1px 3px rgba(32,33,36,.06);
-    --ease:cubic-bezier(.2,0,0,1);
-  }
-  @media (prefers-color-scheme:dark){
-    :root{
-      --md-primary:#8fc7ea; --md-primary-dark:#cfe8f7; --md-primary-light:#1c3040; --md-primary-container:#27475a; --md-on-primary:#0e2433;
-      --md-bg:#101417; --md-surface:#1a1f24; --md-surface-variant:#262d34; --md-outline:#3a434c;
-      --md-on-surface:#e8eaed; --md-on-surface-med:#b0b6bd; --md-on-surface-low:#8a9097;
-      --md-success:#81c995; --md-success-bg:#16301f; --md-error:#f28b82; --md-error-bg:#3a1c1a;
-      --md-warning:#fdd663; --md-warning-bg:#33290f; --md-purple:#d7aefb; --md-purple-bg:#2b1d3a;
-      --e1:0 1px 2px rgba(0,0,0,.4);
-    }
-  }
+<?!= include('ui/CSS_Global'); ?>
   html,body{margin:0;height:100%}
   body{overflow:hidden}
   #host{height:100vh;height:100dvh}
