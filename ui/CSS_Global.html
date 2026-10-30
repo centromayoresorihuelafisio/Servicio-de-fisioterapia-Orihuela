@@ -218,7 +218,9 @@
       .md-campo--icono .md-campo__etiqueta { left: 44px; }
       .md-campo__control:focus ~ .md-campo__etiqueta,
       .md-campo__control:not(:placeholder-shown) ~ .md-campo__etiqueta,
-      select.md-campo__control ~ .md-campo__etiqueta { top: 0; font-size: var(--fs-xs); }
+      select.md-campo__control ~ .md-campo__etiqueta,
+      input[type="date"].md-campo__control ~ .md-campo__etiqueta,
+      input[type="time"].md-campo__control ~ .md-campo__etiqueta { top: 0; font-size: var(--fs-xs); }   /* lista, fecha y hora: la etiqueta siempre arriba, para que se vea «dd/mm/aaaa» */
       .md-campo__control:hover:not(:disabled):not(:focus) { border-color: var(--md-on-surface); }
       .md-campo__control:focus { border-color: var(--md-primary); box-shadow: inset 0 0 0 .5px var(--md-primary); }
       .md-campo__control:focus ~ .md-campo__etiqueta { color: var(--md-primary); }

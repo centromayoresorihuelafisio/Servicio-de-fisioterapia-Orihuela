@@ -9,14 +9,18 @@
       · borrar → muestra el botón "Borrar" (por defecto sí).
       · marcas → opcional: festivo (número en rojo), tipos (puntos de color: 'evento', 'reunion', ...) y texto (tooltip del día).
     SelectorFecha.cerrar()  → cierra el calendario si está abierto.
-  Teclado: clic o Alt+↓ / F4 en el campo lo abren; dentro, flechas = día/semana, RePág/AvPág = mes (Mayús = año), Esc cierra.
+  Funciones (las mismas que el calendario del navegador): flechas para ir de mes en mes; «Hoy» y «Borrar» abajo; pulsar el
+  nombre del mes abre los 12 meses del año (con flechas de año en año) y pulsar el año abre los años de 12 en 12.
+  Teclado: clic o Alt+↓ / F4 en el campo lo abren; dentro, flechas = día/semana, RePág/AvPág = mes (Mayús = año);
+  Esc vuelve de años a meses y de meses a días, y en los días cierra. Se puede seguir escribiendo la fecha en el campo.
+  Se aplica solo a todos los <input type="date"> de la página (data-sf="no" para dejar el del navegador).
   Colores: variables globales de ui/CSS_Global (--md-*), así que respeta el tema oscuro. El foco con teclado lo da la regla global.
 -->
 <style>
 input.sf-input { cursor: pointer; }
 input.sf-input::-webkit-calendar-picker-indicator { display: none; }
 .sf-pop {
-  position: fixed; top: 0; left: 0; z-index: var(--z-popover); width: 292px; box-sizing: border-box; padding: .8rem .85rem .6rem;
+  position: fixed; top: 0; left: 0; z-index: var(--z-max);   /* por encima también de los cuadros de diálogo, desde los que se abre */ width: 292px; box-sizing: border-box; padding: .8rem .85rem .6rem;
   background: var(--md-surface); color: var(--md-on-surface); border: 1px solid var(--md-outline); border-radius: var(--md-shape-lg);
   box-shadow: var(--md-elev-2);
   font-family: var(--font); font-size: var(--fs-md);
@@ -24,6 +28,18 @@ input.sf-input::-webkit-calendar-picker-indicator { display: none; }
 }
 .sf-cab { display: flex; align-items: center; justify-content: space-between; margin-bottom: .4rem; }
 .sf-cab b { font-size: var(--fs-field); font-weight: 600; text-transform: capitalize; }
+/* Título que abre la vista de meses / años */
+.sf-tit { display: inline-flex; align-items: center; gap: 2px; border: none; background: none; cursor: pointer; padding: .25rem .4rem .25rem .7rem; border-radius: var(--md-shape-full);
+  font: inherit; font-size: var(--fs-field); font-weight: 600; color: var(--md-on-surface); text-transform: capitalize; transition: background-color var(--dur-1) var(--ease); }
+.sf-tit:hover { background: var(--md-primary-light); color: var(--md-primary-dark); }
+.sf-tit svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+/* Vistas de meses y de años: 3 columnas x 4 filas */
+.sf-grid-m { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; padding: .3rem 0 .4rem; }
+.sf-m { height: 40px; border: none; background: none; border-radius: var(--md-shape-full); cursor: pointer; padding: 0;
+  font: inherit; font-size: var(--fs-sm); color: var(--md-on-surface); text-transform: capitalize; transition: background-color var(--dur-1) var(--ease); }
+.sf-m:hover { background: var(--md-primary-light); }
+.sf-m.hoy { font-weight: 700; box-shadow: inset 0 0 0 1.5px var(--md-primary); }
+.sf-m.sel, .sf-m.sel:hover { background: var(--md-primary); color: var(--md-on-primary); font-weight: 700; }
 .sf-nav { border: none; background: none; cursor: pointer; width: 32px; height: 32px; border-radius: 50%; color: var(--md-on-surface-med); display: inline-flex; align-items: center; justify-content: center; padding: 0; transition: background-color var(--dur-1) var(--ease); }
 .sf-nav:hover { background: var(--md-primary-light); color: var(--md-primary-dark); }
 .sf-nav svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
@@ -66,13 +82,52 @@ window.SelectorFecha = (function () {
   var CHEV_IZQ = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>';
   var CHEV_DER = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>';
 
+  var CHEV_ABA = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10l5 5 5-5"/></svg>';
+  var MESES_CORTOS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+
+  // Cabecera común a las tres vistas: flecha atrás · título (botón) · flecha adelante
+  function cabecera(atras, tituloAtras, centro, adelante, tituloAdelante) {
+    return '<div class="sf-cab"><button type="button" class="sf-nav" data-sf="' + atras + '" title="' + tituloAtras + '" aria-label="' + tituloAtras + '">' + CHEV_IZQ + '</button>' +
+      centro + '<button type="button" class="sf-nav" data-sf="' + adelante + '" title="' + tituloAdelante + '" aria-label="' + tituloAdelante + '">' + CHEV_DER + '</button></div>';
+  }
+  function pie(st) {
+    return '<div class="sf-pie"><button type="button" class="sf-txt" data-sf="hoy" title="Elegir la fecha de hoy">Hoy</button>' +
+      (st.opts.borrar === false ? '' : '<button type="button" class="sf-txt" data-sf="borrar" title="Dejar el campo vacío">Borrar</button>') + '</div>';
+  }
+
+  // Tres vistas, como el calendario del navegador: 'dias' (por defecto), 'meses' (12 meses de un año) y 'anios' (12 años).
+  // Pulsar el título del mes abre los meses; pulsar el año abre los años; elegir vuelve a la vista anterior.
   function pintar(st) {
     var pop = st.pop, activo = document.activeElement, queFoco = null;
-    if (activo && pop.contains(activo)) queFoco = activo.hasAttribute('data-iso') ? '[data-iso="' + activo.getAttribute('data-iso') + '"]' : (activo.hasAttribute('data-sf') ? '[data-sf="' + activo.getAttribute('data-sf') + '"]' : null);
+    if (activo && pop.contains(activo)) {
+      var attr = ['data-iso', 'data-sf', 'data-mes', 'data-anio'].filter(function (a) { return activo.hasAttribute(a); })[0];
+      if (attr) queFoco = '[' + attr + '="' + activo.getAttribute(attr) + '"]';
+    }
+    var hoyD = new Date(), sel = parse(st.input.value), h;
+    if (st.vista === 'meses') {
+      h = cabecera('ya-1', 'Año anterior', '<button type="button" class="sf-tit" data-sf="vista-anios" title="Elegir el año">' + st.y + CHEV_ABA + '</button>', 'ya1', 'Año siguiente') + '<div class="sf-grid-m">';
+      MESES_CORTOS.forEach(function (n, i) {
+        var cls = 'sf-m' + (st.y === hoyD.getFullYear() && i === hoyD.getMonth() ? ' hoy' : '') + (sel && st.y === sel.getFullYear() && i === sel.getMonth() ? ' sel' : '');
+        h += '<button type="button" class="' + cls + '" data-mes="' + i + '" aria-label="' + MESES[i] + ' de ' + st.y + '">' + n + '</button>';
+      });
+      pop.innerHTML = h + '</div>' + pie(st);
+    } else if (st.vista === 'anios') {
+      h = cabecera('yb-12', 'Años anteriores', '<b>' + st.anioBase + ' – ' + (st.anioBase + 11) + '</b>', 'yb12', 'Años siguientes') + '<div class="sf-grid-m">';
+      for (var a = st.anioBase; a < st.anioBase + 12; a++) {
+        var c = 'sf-m' + (a === hoyD.getFullYear() ? ' hoy' : '') + (sel && a === sel.getFullYear() ? ' sel' : '');
+        h += '<button type="button" class="' + c + '" data-anio="' + a + '">' + a + '</button>';
+      }
+      pop.innerHTML = h + '</div>' + pie(st);
+    } else {
+      pintarDias(st);
+    }
+    if (queFoco) { var el = pop.querySelector(queFoco); if (el) el.focus({ preventScroll: true }); }
+  }
+
+  function pintarDias(st) {
+    var pop = st.pop;
     var offset = (new Date(st.y, st.m, 1).getDay() + 6) % 7, hoy = iso(new Date()), sel = st.input.value;
-    var h = '<div class="sf-cab"><button type="button" class="sf-nav" data-sf="-1" title="Mes anterior" aria-label="Mes anterior">' + CHEV_IZQ + '</button>' +
-      '<b>' + MESES[st.m] + ' ' + st.y + '</b>' +
-      '<button type="button" class="sf-nav" data-sf="1" title="Mes siguiente" aria-label="Mes siguiente">' + CHEV_DER + '</button></div><div class="sf-grid">';
+    var h = cabecera('-1', 'Mes anterior', '<button type="button" class="sf-tit" data-sf="vista-meses" title="Elegir mes y año">' + MESES[st.m] + ' ' + st.y + CHEV_ABA + '</button>', '1', 'Mes siguiente') + '<div class="sf-grid">';
     DOW.forEach(function (d) { h += '<span class="sf-dow">' + d + '</span>'; });
     for (var i = 0; i < 42; i++) {
       var d = new Date(st.y, st.m, 1 - offset + i), di = iso(d), mk = (st.opts.marcas && st.opts.marcas(di)) || {};
@@ -81,10 +136,7 @@ window.SelectorFecha = (function () {
         (mk.texto ? ' title="' + esc(mk.texto) + '"' : '') + '><span>' + d.getDate() + '</span>' +
         (mk.tipos && mk.tipos.length ? '<i class="sf-pts">' + mk.tipos.map(function (t) { return '<b class="sf-pt sf-pt-' + esc(t) + '"></b>'; }).join('') + '</i>' : '') + '</button>';
     }
-    h += '</div><div class="sf-pie"><button type="button" class="sf-txt" data-sf="hoy" title="Elegir la fecha de hoy">Hoy</button>' +
-      (st.opts.borrar === false ? '' : '<button type="button" class="sf-txt" data-sf="borrar" title="Dejar el campo vacío">Borrar</button>') + '</div>';
-    pop.innerHTML = h;
-    if (queFoco) { var el = pop.querySelector(queFoco); if (el) el.focus({ preventScroll: true }); }
+    pop.innerHTML = h + '</div>' + pie(st);
   }
 
   function colocar(st) {
@@ -96,7 +148,7 @@ window.SelectorFecha = (function () {
   }
 
   function enfocarDia(st) { var b = st.pop.querySelector('[data-iso="' + st.foco + '"]'); if (b) b.focus({ preventScroll: true }); }
-  function irA(st, d, conFoco) { st.y = d.getFullYear(); st.m = d.getMonth(); st.foco = iso(d); pintar(st); if (conFoco) enfocarDia(st); }
+  function irA(st, d, conFoco) { st.vista = 'dias'; st.y = d.getFullYear(); st.m = d.getMonth(); st.foco = iso(d); pintar(st); if (conFoco) enfocarDia(st); }
 
   function cerrar(devolverFoco) {
     var st = abierto; if (!st) return;
@@ -126,18 +178,31 @@ window.SelectorFecha = (function () {
     base = new Date(base.getFullYear(), base.getMonth(), base.getDate());
     var pop = document.createElement('div');
     pop.className = 'sf-pop'; pop.setAttribute('role', 'dialog'); pop.setAttribute('aria-label', 'Elegir fecha');
-    var st = { input: input, opts: opts, pop: pop, y: base.getFullYear(), m: base.getMonth(), foco: iso(base) };
+    var st = { input: input, opts: opts, pop: pop, y: base.getFullYear(), m: base.getMonth(), foco: iso(base), vista: 'dias', anioBase: 0 };
     document.body.appendChild(pop);
     abierto = st;
     pintar(st); colocar(st);
 
+    // Cambia de vista (o de año / bloque de años) y vuelve a colocar el calendario, porque su alto cambia
+    function repintar(foco) { pintar(st); colocar(st); if (foco) { var el = pop.querySelector(foco); if (el) el.focus({ preventScroll: true }); } }
     pop.addEventListener('click', function (e) {
-      var b = e.target.closest('[data-iso]'), a = e.target.closest('[data-sf]');
+      var b = e.target.closest('[data-iso]'), mes = e.target.closest('[data-mes]'), anio = e.target.closest('[data-anio]'), a = e.target.closest('[data-sf]');
       if (b) { elegir(st, b.getAttribute('data-iso')); return; }
+      if (mes) {   // mes elegido: vuelve a los días de ese mes, conservando el día si existe
+        st.m = +mes.getAttribute('data-mes'); st.vista = 'dias';
+        var dia = (parse(st.foco) || new Date(st.y, st.m, 1)).getDate();
+        st.foco = iso(new Date(st.y, st.m, Math.min(dia, new Date(st.y, st.m + 1, 0).getDate())));
+        repintar('[data-iso="' + st.foco + '"]'); return;
+      }
+      if (anio) { st.y = +anio.getAttribute('data-anio'); st.vista = 'meses'; repintar('[data-mes="' + st.m + '"]'); return; }
       if (!a) return;
       var k = a.getAttribute('data-sf');
       if (k === 'hoy') elegir(st, iso(new Date()));
       else if (k === 'borrar') elegir(st, '');
+      else if (k === 'vista-meses') { st.vista = 'meses'; repintar('[data-mes="' + st.m + '"]'); }
+      else if (k === 'vista-anios') { st.vista = 'anios'; st.anioBase = st.y - (st.y % 12); repintar('[data-anio="' + st.y + '"]'); }
+      else if (k === 'ya-1' || k === 'ya1') { st.y += (k === 'ya1' ? 1 : -1); repintar(); }
+      else if (k === 'yb-12' || k === 'yb12') { st.anioBase += (k === 'yb12' ? 12 : -12); repintar(); }
       else { var d = sumarMeses(parse(st.foco) || new Date(st.y, st.m, 1), +k); st.y = d.getFullYear(); st.m = d.getMonth(); st.foco = iso(d); pintar(st); }
     });
     pop.addEventListener('keydown', function (e) {
@@ -161,6 +226,9 @@ window.SelectorFecha = (function () {
     st.onTecla = function (e) {
       if (e.key !== 'Escape') return;
       e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
+      // en la vista de meses o de años, Esc vuelve un paso atrás; en la de días, cierra
+      if (st.vista === 'anios') { st.vista = 'meses'; pintar(st); colocar(st); return; }
+      if (st.vista === 'meses') { st.vista = 'dias'; pintar(st); colocar(st); enfocarDia(st); return; }
       cerrar(true);
     };
     st.onFoco = function (e) { if (!pop.contains(e.target) && e.target !== input) cerrar(false); };
@@ -174,9 +242,12 @@ window.SelectorFecha = (function () {
     if (conFoco) enfocarDia(st);
   }
 
+  // Las opciones se guardan en el campo: así una llamada explícita (p. ej. la Agenda con sus marcas) puede
+  // completar las de un campo que ya enlazó el modo automático.
   function enlazar(input, opts) {
-    if (!input || input._sf) return;
-    input._sf = true; opts = opts || {};
+    if (!input) return;
+    if (input._sf) { if (opts) for (var k in opts) input._sfOpts[k] = opts[k]; return; }
+    input._sf = true; opts = input._sfOpts = opts || {};
     input.classList.add('sf-input');
     // mousedown/click: se evita el selector nativo y se abre este; el campo conserva el foco para poder teclear la fecha.
     input.addEventListener('mousedown', function (e) {
@@ -194,9 +265,25 @@ window.SelectorFecha = (function () {
     input.addEventListener('input', function () {
       if (!abierto || abierto.input !== input) return;
       var d = parse(input.value);
-      if (d) { abierto.y = d.getFullYear(); abierto.m = d.getMonth(); abierto.foco = iso(d); pintar(abierto); colocar(abierto); }
+      if (d) { abierto.vista = 'dias'; abierto.y = d.getFullYear(); abierto.m = d.getMonth(); abierto.foco = iso(d); pintar(abierto); colocar(abierto); }
     });
   }
+
+  // Modo automático: TODO campo de fecha de la página (también los que aparecen después, al abrir paneles y
+  // formularios) usa este calendario en lugar del del navegador, para que se vea igual en toda la app.
+  // Un campo puede quedarse con el nativo poniéndole data-sf="no".
+  function enlazarTodos(raiz) {
+    if (!raiz || !raiz.querySelectorAll) return;
+    if (raiz.matches && raiz.matches('input[type="date"]:not([data-sf="no"])')) enlazar(raiz);
+    raiz.querySelectorAll('input[type="date"]:not([data-sf="no"])').forEach(function (i) { enlazar(i); });
+  }
+  function arrancar() {
+    enlazarTodos(document.body);
+    new MutationObserver(function (cambios) {
+      cambios.forEach(function (c) { c.addedNodes.forEach(function (n) { if (n.nodeType === 1) enlazarTodos(n); }); });
+    }).observe(document.body, { childList: true, subtree: true });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', arrancar); else setTimeout(arrancar, 0);
 
   return { enlazar: enlazar, cerrar: function () { cerrar(false); } };
 })();

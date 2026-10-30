@@ -146,7 +146,7 @@
 
   <section class="gv-sec">
     <h2>Campos</h2>
-    <p>Campo estándar (52 px, etiqueta flotante, icono opcional) y compacto (40 px, etiqueta fija encima). Pulsa Tab para ver el foco.</p>
+    <p>Campo estándar (52 px, etiqueta flotante, icono opcional) y compacto (40 px, etiqueta fija encima). Pulsa Tab para ver el foco. En los campos de fecha y hora la etiqueta va siempre arriba, para que se vea «dd/mm/aaaa». Todo campo de fecha abre el calendario de la app (ui/JS_Selector_Fecha): flechas de mes en mes, «Hoy» y «Borrar», y pulsando el nombre del mes se eligen mes y año rápidamente. Pruébalo en «Fecha de nacimiento» y en «Fecha (compacto)».</p>
     <div class="gv-rejilla">
       <div class="md-campo md-campo--icono">
         <span class="material-symbols-outlined md-campo__icono" aria-hidden="true">person</span>
@@ -163,6 +163,11 @@
         <input class="md-campo__control" id="gv-c3" placeholder=" " value="12345678">
         <label class="md-campo__etiqueta" for="gv-c3">DNI (con error)</label>
         <p class="md-campo__ayuda">Falta la letra del DNI</p>
+      </div>
+      <div class="md-campo md-campo--icono">
+        <span class="material-symbols-outlined md-campo__icono" aria-hidden="true">cake</span>
+        <input type="date" class="md-campo__control" id="gv-c7" placeholder=" " value="1958-06-26">
+        <label class="md-campo__etiqueta" for="gv-c7">Fecha de nacimiento</label>
       </div>
       <div class="md-campo">
         <input class="md-campo__control" id="gv-c4" placeholder=" " value="No se puede editar" disabled>
@@ -249,5 +254,6 @@ Se podrá deshacer durante unos segundos.</p>
     marcar();
   })();
 </script>
+<?!= include('ui/JS_Selector_Fecha'); ?>
 </body>
 </html>
