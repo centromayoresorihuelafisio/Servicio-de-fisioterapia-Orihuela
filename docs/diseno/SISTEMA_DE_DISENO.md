@@ -219,7 +219,8 @@ Se mueven de las tres páginas a `CSS_Global` y de ahí los usan todos (resuelve
 
 - **Aviso emergente** (`.toast-aviso`): fondo `--md-toast-bg`, texto `--md-toast-fg`, esquina `--md-shape-sm`, `--fs-sm`, sombra `--md-elev-3`, abajo y centrado, `z-index: var(--z-toast)`. Entra con `md-entra`. Los iconos `ok / aviso / error` siguen saliendo de `tonoAviso_` / `iconoAviso_` (se conserva).
 - **Diálogo** (`.modal-overlay` + `.modal-box`): velo `--md-scrim`, caja `--md-surface`, esquina `--md-shape-lg`, relleno 24 px, ancho máximo 400 px, `--md-elev-3`, `z-index: var(--z-modal)`. Título `--fs-title`, texto `--fs-md`, botones a la derecha (`.md-btn--text` + `.md-btn--tonal`, o `.md-btn--danger` si destruye datos). Esc cierra. Foco inicial en el botón menos destructivo.
-- **Confirmación dentro de un panel** (lo que hoy son `.nu-conf`, `.pvs-conf`, `*-dup` y el mensaje de Cita): usa el mismo diálogo. No se vuelven a crear variantes.
+- **Confirmación dentro de un panel** (lo que hoy son `.nu-conf`, `.pvs-conf` y `*-dup`): usa el mismo diálogo. No se vuelven a crear variantes.
+- **Excepción decidida por el dueño (30-oct-2026)**: el mensaje de Dar cita (`mostrarFeedback`, franja fija encima del pie) se conserva tal cual, con colores y letra del sistema, para que los errores sigan a la vista mientras se eligen horas.
 
 ### 9.6 Panel de formulario (cabecera, cuerpo, pie)
 

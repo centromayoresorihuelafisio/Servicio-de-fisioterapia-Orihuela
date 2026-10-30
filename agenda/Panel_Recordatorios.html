@@ -110,7 +110,7 @@
       </div>
       <div class="rcp-acciones">
         <button title="Dejar de editar este recordatorio" type="button" class="md-btn md-btn--text rcp-cancelar" hidden>Cancelar edición</button>
-        <button title="Guardar el recordatorio" type="button" class="md-btn md-btn--tonal rcp-guardar"><span class="material-symbols-outlined">add</span><span class="rcp-guardar-txt">Añadir</span></button>
+        <button title="Guardar el recordatorio" type="button" class="md-btn md-btn--tonal rcp-guardar"><span class="material-symbols-outlined">add</span><span class="rcp-guardar-txt">Añadir recordatorio</span></button>
       </div>
       <div class="rcp-msg" role="status" aria-live="polite"></div>
     </section>
@@ -183,7 +183,7 @@ window.PanelRecordatorios = {
       editandoId = null;
       inTexto.value = ''; inHora.value = '';
       inFecha.value = fecha === undefined ? hoy() : fecha;
-      txtGuardar.textContent = 'Añadir';
+      txtGuardar.textContent = 'Añadir recordatorio';
       btnGuardar.querySelector('.material-symbols-outlined').textContent = 'add';
       btnCancelar.hidden = true;
       firmaInicial = firma();

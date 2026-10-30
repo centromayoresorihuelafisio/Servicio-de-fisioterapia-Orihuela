@@ -144,7 +144,7 @@ window.PanelDisponibilidad = (function () {
             '<p class="dsp-resumen" aria-live="polite"></p>' +
             '<p class="dsp-msg" role="alert"></p>' +
           '</div>' +
-          '<div class="dsp-pie"><button type="button" class="md-btn md-btn--text dsp-cancelar">Cancelar</button><button type="button" class="md-btn md-btn--tonal dsp-aplicar">Aplicar</button></div>' +
+          '<div class="dsp-pie"><button type="button" class="md-btn md-btn--text dsp-cancelar">Cancelar</button><button type="button" class="md-btn md-btn--tonal dsp-aplicar">Aplicar disponibilidad</button></div>' +
         '</div>';
 
       var raiz = host.querySelector('.dsp');
@@ -205,7 +205,7 @@ window.PanelDisponibilidad = (function () {
             (mixto ? '<span class="aviso">Algunos de esos días tienen ahora un horario distinto: se sustituirá por este.</span>' : '') + avisoDias() + avisoCitas();
         }
         btnAplicar.disabled = guardando || (cargando && !solo) || !(solo || valido());
-        btnAplicar.textContent = guardando ? 'Guardando…' : 'Aplicar';
+        btnAplicar.textContent = guardando ? 'Guardando…' : 'Aplicar disponibilidad';
         btnCancelar.disabled = guardando;
       }
 

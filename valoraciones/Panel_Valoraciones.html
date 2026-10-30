@@ -24,104 +24,97 @@
                                    Guardar / cancelar vuelve al panel (no se sale de él).
 
   onCambio(): se llama tras añadir, editar o eliminar una valoración desde el panel (opcional).
-  Usa los colores de ui/CSS_Global (--md-*) y todo su CSS va acotado a .pvs.
+  Todo su CSS va acotado a .pvs; colores, letra, esquinas, sombras y tiempos salen de ui/CSS_Global, sin valores de respaldo
+  (botones .md-btn, campos .md-campo--compacto; el foco con teclado lo da la regla global).
 -->
 <style>
-  .pvs { position: relative; display: flex; flex-direction: column; min-height: 0; height: 100%; font-family: var(--font, system-ui, sans-serif); font-size: 13px; color: var(--md-on-surface, #1f1f1f); }
+  .pvs { position: relative; display: flex; flex-direction: column; min-height: 0; height: 100%; font-family: var(--font); font-size: var(--fs-sm); color: var(--md-on-surface); }
   .pvs *, .pvs *::before, .pvs *::after { box-sizing: border-box; }
   .pvs button { font-family: inherit; }
   .pvs .ms { font-family: 'Material Symbols Outlined'; font-weight: 400; font-style: normal; font-size: 18px; line-height: 1; letter-spacing: normal; text-transform: none; display: inline-block; white-space: nowrap; direction: ltr; flex-shrink: 0; user-select: none; }
+  .pvs .md-btn--icon .ms { font-size: 20px; }
   .pvs.ocupado { cursor: progress; }
   .pvs.ocupado button { pointer-events: none; opacity: .6; }
 
-  .pvs-estado { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .8rem; padding: 2rem 1rem; text-align: center; color: var(--md-on-surface-med, #5f6368); }
+  .pvs-estado { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .8rem; padding: 2rem 1rem; text-align: center; color: var(--md-on-surface-med); }
 
   /* Cabecera de la lista: resumen, valores actuales y acciones */
-  .pvs-sub { padding: .2rem 1.2rem .7rem; font-size: .78rem; color: var(--md-on-surface-med, #5f6368); }
+  .pvs-sub { padding: .2rem 1.2rem .7rem; font-size: var(--fs-xs); color: var(--md-on-surface-med); }
   .pvs-kpis { display: flex; gap: .6rem; padding: 0 1.2rem .8rem; }
-  .pvs-kpi { flex: 1; background: var(--md-surface-variant, #eef1f6); border-radius: 12px; padding: .6rem .8rem; }
-  .pvs-kpi-etq { font-size: .66rem; text-transform: uppercase; letter-spacing: .06em; color: var(--md-on-surface-low, #80868b); font-weight: 600; margin-bottom: .35rem; }
+  .pvs-kpi { flex: 1; background: var(--md-surface-variant); border-radius: var(--md-shape-md); padding: .6rem .8rem; }
+  .pvs-kpi-etq { font-size: var(--fs-2xs); text-transform: uppercase; letter-spacing: .06em; color: var(--md-on-surface-low); font-weight: 600; margin-bottom: .35rem; }
   .pvs-kpi-val { display: flex; align-items: center; gap: .6rem; }
-  .pvs-kpi-val .pvs-sev { font-size: .95rem; padding: .15rem .7rem; }
-  .pvs-acciones { display: flex; flex-wrap: wrap; gap: .4rem; padding: 0 1.2rem .9rem; border-bottom: 1px solid var(--md-outline, #dadce0); }
-  .pvs-acc { display: inline-flex; align-items: center; gap: .3rem; border: 1px solid var(--md-outline, #dadce0); background: var(--md-surface, #fff); border-radius: 999px; padding: .35rem .8rem; font-size: .78rem; font-weight: 500; cursor: pointer; color: var(--md-on-surface, #1f1f1f); }
-  .pvs-acc:hover { background: var(--md-surface-variant, #eef1f6); }
-  .pvs-acc.primario { background: var(--md-primary-container, #c2e7ff); border-color: transparent; color: var(--md-primary-dark, #0842a0); }
-  .pvs-acc .ms { font-size: 17px; }
-  .pvs button:focus-visible, .pvs input:focus-visible, .pvs select:focus-visible, .pvs textarea:focus-visible { outline: 2px solid var(--md-primary, #0b57d0); outline-offset: 2px; }
+  .pvs-kpi-val .pvs-sev { font-size: var(--fs-field); padding: .15rem .7rem; }
+  .pvs-acciones { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 1.2rem .9rem; border-bottom: 1px solid var(--md-outline); }
 
   .pvs-cuerpo { flex: 1; min-height: 0; overflow: auto; padding: .4rem 1.2rem 1.4rem; }
-  .pvs-sec { padding: .8rem 0; border-bottom: 1px solid var(--md-outline, #dadce0); }
+  .pvs-sec { padding: .8rem 0; border-bottom: 1px solid var(--md-outline); }
   .pvs-sec:last-child { border-bottom: none; }
-  .pvs-sec h3 { font-size: .66rem; text-transform: uppercase; letter-spacing: .06em; color: var(--md-on-surface-low, #80868b); font-weight: 600; margin: 0 0 .55rem; }
-  .pvs-vacio { color: var(--md-on-surface-low, #80868b); font-size: .84rem; }
+  .pvs-sec h3 { font-size: var(--fs-2xs); text-transform: uppercase; letter-spacing: .06em; color: var(--md-on-surface-low); font-weight: 600; margin: 0 0 .55rem; }
+  .pvs-vacio { color: var(--md-on-surface-low); font-size: var(--fs-sm); }
 
   /* Pastillas de severidad (mismos colores que la página Valoraciones) */
-  .pvs-sev { display: inline-block; font-size: .76rem; font-weight: 600; padding: .1rem .6rem; border-radius: 999px; white-space: nowrap; font-variant-numeric: tabular-nums; }
-  .pvs-sev.sev-ok    { background: var(--md-success-bg, #e6f4ea); color: var(--md-success, #146c2e); }
-  .pvs-sev.sev-medio { background: var(--md-warning-bg, #fef1d6); color: var(--on-warn, #6b4300); }
-  .pvs-sev.sev-alto  { background: var(--md-error-bg, #f9dddb);   color: var(--on-err, #9c2a1f); }
-  .pvs-sev.sev-vacio { background: var(--md-surface-variant, #eef1f6); color: var(--md-on-surface-low, #80868b); }
-  .pvs-delta { display: inline-flex; align-items: center; font-size: .78rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .pvs-sev { display: inline-block; font-size: var(--fs-xs); font-weight: 600; padding: .1rem .6rem; border-radius: var(--md-shape-full); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .pvs-sev.sev-ok    { background: var(--md-success-bg); color: var(--md-success); }
+  .pvs-sev.sev-medio { background: var(--md-warning-bg); color: var(--md-warning-text); }
+  .pvs-sev.sev-alto  { background: var(--md-error-bg);   color: var(--md-error); }
+  .pvs-sev.sev-vacio { background: var(--md-surface-variant); color: var(--md-on-surface-low); }
+  .pvs-delta { display: inline-flex; align-items: center; font-size: var(--fs-xs); font-weight: 700; font-variant-numeric: tabular-nums; }
   .pvs-delta .ms { font-size: 15px; }
-  .pvs-delta.mejora { color: var(--md-success, #146c2e); } .pvs-delta.empeora { color: var(--md-error, #b3261e); } .pvs-delta.igual { color: var(--md-on-surface-low, #80868b); }
-  .pvs-tipo { font-size: .7rem; font-weight: 600; padding: .1rem .55rem; border-radius: 999px; background: var(--md-surface-variant, #eef1f6); color: var(--md-on-surface-med, #5f6368); }
-  .pvs-tipo.inicial { background: var(--md-purple-bg, #f1e4fd); color: var(--on-purple, #5a2596); }
-  .pvs-tipo.seguimiento { background: var(--md-primary-light, #d3e3fd); color: var(--md-primary-dark, #0842a0); }
-  .pvs-tipo.final { background: var(--md-success-bg, #e6f4ea); color: var(--md-success, #146c2e); }
+  .pvs-delta.mejora { color: var(--md-success); } .pvs-delta.empeora { color: var(--md-error); } .pvs-delta.igual { color: var(--md-on-surface-low); }
+  .pvs-tipo { font-size: var(--fs-2xs); font-weight: 600; padding: .1rem .55rem; border-radius: var(--md-shape-full); background: var(--md-surface-variant); color: var(--md-on-surface-med); }
+  .pvs-tipo.inicial { background: var(--md-purple-bg); color: var(--md-purple); }
+  .pvs-tipo.seguimiento { background: var(--md-primary-light); color: var(--md-primary-dark); }
+  .pvs-tipo.final { background: var(--md-success-bg); color: var(--md-success); }
 
   /* Gráfica de evolución */
   .pvs-chips { display: flex; flex-wrap: wrap; gap: .3rem; margin-bottom: .6rem; }
-  .pvs-chip { border: 1px solid var(--md-outline, #dadce0); background: var(--md-surface, #fff); color: var(--md-on-surface-med, #5f6368); border-radius: 999px; padding: .2rem .7rem; font-size: .74rem; font-weight: 600; cursor: pointer; }
-  .pvs-chip:hover { background: var(--md-surface-variant, #eef1f6); }
-  .pvs-chip.activo { background: var(--md-primary-container, #c2e7ff); border-color: transparent; color: var(--md-primary-dark, #0842a0); }
+  .pvs-chip { border: 1px solid var(--md-outline-strong); background: transparent; color: var(--md-on-surface-med); border-radius: var(--md-shape-full); padding: .2rem .7rem; font-size: var(--fs-xs); font-weight: 600; cursor: pointer; transition: background-color var(--dur-1) var(--ease); }
+  .pvs-chip:hover { background: var(--md-surface-variant); }
+  .pvs-chip.activo { background: var(--md-primary-container); border-color: transparent; color: var(--md-primary-dark); }
   .pvs-grafica { display: block; width: 100%; height: auto; }
-  .pvs-g-linea { stroke: var(--md-primary, #0b57d0); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
-  .pvs-g-area { fill: var(--md-primary, #0b57d0); fill-opacity: .1; }
-  .pvs-g-guia { stroke: var(--md-outline, #dadce0); stroke-width: 1; stroke-dasharray: 2,3; }
-  .pvs-g-etq { font-size: 11px; fill: var(--md-on-surface-low, #80868b); font-family: var(--font, system-ui, sans-serif); }
-  .pvs-g-valor { font-size: 11px; font-weight: 700; fill: var(--md-on-surface, #1f1f1f); font-family: var(--font, system-ui, sans-serif); }
-  .pvs-g-punto { stroke: var(--md-surface, #fff); stroke-width: 2; }
-  .pvs-g-punto.sev-ok { fill: var(--md-success, #146c2e); } .pvs-g-punto.sev-medio { fill: var(--md-warning, #b06000); } .pvs-g-punto.sev-alto { fill: var(--md-error, #b3261e); }
+  .pvs-g-linea { stroke: var(--md-primary); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
+  .pvs-g-area { fill: var(--md-primary); fill-opacity: .1; }
+  .pvs-g-guia { stroke: var(--md-outline); stroke-width: 1; stroke-dasharray: 2,3; }
+  .pvs-g-etq { font-size: var(--fs-2xs); fill: var(--md-on-surface-low); font-family: var(--font); }
+  .pvs-g-valor { font-size: var(--fs-2xs); font-weight: 700; fill: var(--md-on-surface); font-family: var(--font); }
+  .pvs-g-punto { stroke: var(--md-surface); stroke-width: 2; }
+  .pvs-g-punto.sev-ok { fill: var(--md-success); } .pvs-g-punto.sev-medio { fill: var(--md-warning); } .pvs-g-punto.sev-alto { fill: var(--md-error); }
 
   /* Historial */
-  .pvs-hist { border: 1px solid var(--md-outline, #dadce0); border-radius: 14px; padding: .65rem .8rem; margin-bottom: .55rem; }
-  .pvs-hist:hover { background: var(--md-surface-variant, #eef1f6); }
+  .pvs-hist { border: 1px solid var(--md-outline); border-radius: var(--md-shape-md); padding: .65rem .8rem; margin-bottom: .55rem; transition: background-color var(--dur-1) var(--ease); }
+  .pvs-hist:hover { background: var(--md-surface-variant); }
   .pvs-hist-cab { display: flex; align-items: center; gap: .5rem; margin-bottom: .5rem; }
-  .pvs-hist-fecha { font-size: .86rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .pvs-hist-fecha { font-size: var(--fs-md); font-weight: 600; font-variant-numeric: tabular-nums; }
   .pvs-esp { flex: 1; }
-  .pvs-ico { border: none; background: none; cursor: pointer; width: 28px; height: 28px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; color: var(--md-on-surface-med, #5f6368); }
-  .pvs-ico:hover { background: var(--md-outline, #dadce0); }
-  .pvs-ico.peligro:hover { color: var(--md-error, #b3261e); }
+  .pvs-ico { border: none; background: none; cursor: pointer; width: 28px; height: 28px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; color: var(--md-on-surface-med); transition: background-color var(--dur-1) var(--ease), color var(--dur-1) var(--ease); }
+  .pvs-ico:hover { background: var(--md-outline); }
+  .pvs-ico.peligro:hover { color: var(--md-error); }
   .pvs-vals { display: grid; grid-template-columns: repeat(4, 1fr); gap: .45rem .5rem; }
   .pvs-mv { display: flex; flex-direction: column; gap: .15rem; align-items: flex-start; }
-  .pvs-mv-etq { font-size: .62rem; text-transform: uppercase; letter-spacing: .04em; color: var(--md-on-surface-low, #80868b); font-weight: 600; }
-  .pvs-notas { margin-top: .5rem; font-size: .8rem; color: var(--md-on-surface-med, #5f6368); overflow-wrap: anywhere; white-space: pre-wrap; }
-  .pvs-conf { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; margin-top: .6rem; padding: .5rem .6rem; border-radius: 10px; background: var(--md-error-bg, #f9dddb); color: var(--on-err, #9c2a1f); font-weight: 600; }
+  .pvs-mv-etq { font-size: var(--fs-2xs); text-transform: uppercase; letter-spacing: .04em; color: var(--md-on-surface-low); font-weight: 600; }
+  .pvs-notas { margin-top: .5rem; font-size: var(--fs-sm); color: var(--md-on-surface-med); overflow-wrap: anywhere; white-space: pre-wrap; }
+  /* Confirmar el borrado dentro de la tarjeta (se mantiene en su sitio; botones del sistema) */
+  .pvs-conf { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: .6rem; padding: .5rem .6rem; border-radius: var(--md-shape-sm); background: var(--md-error-bg); color: var(--md-error); font-weight: 600; }
   .pvs-conf span { flex: 1; min-width: 9rem; }
-  .pvs-btn { border: 1px solid var(--md-outline, #dadce0); background: var(--md-surface, #fff); color: var(--md-on-surface, #1f1f1f); border-radius: 999px; padding: .35rem .9rem; font-size: .78rem; font-weight: 600; cursor: pointer; }
-  .pvs-btn:hover { background: var(--md-surface-variant, #eef1f6); }
-  .pvs-btn.primario { background: var(--md-primary, #0b57d0); border-color: transparent; color: var(--md-on-primary, #fff); }
-  .pvs-btn.primario:hover { filter: brightness(1.08); }
-  .pvs-btn.peligro { background: var(--md-error, #b3261e); border-color: transparent; color: #fff; }
 
   /* Sub-vistas (nueva valoración / editar) dentro del panel */
-  .pvs-vista-cab { flex: none; display: flex; align-items: center; gap: .5rem; padding: .55rem .8rem; border-bottom: 1px solid var(--md-outline, #dadce0); }
-  .pvs-vista-cab .pvs-ico { width: 34px; height: 34px; }
-  .pvs-vista-tit { flex: 1; min-width: 0; font-size: .9rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pvs-vista-cab { flex: none; display: flex; align-items: center; gap: .5rem; padding: .55rem .8rem; border-bottom: 1px solid var(--md-outline); }
+  .pvs-vista-tit { flex: 1; min-width: 0; font-size: var(--fs-md); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .pvs-form-host { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
   .pvs-form-host > * { flex: 1 1 auto; min-height: 0; }
   .pvs-edit { flex: 1; min-height: 0; overflow: auto; padding: 1rem 1.2rem; display: grid; grid-template-columns: 1fr 1fr; gap: .8rem; align-content: start; }
-  .pvs-edit label { display: flex; flex-direction: column; gap: .25rem; font-size: .72rem; font-weight: 600; color: var(--md-on-surface-med, #5f6368); }
-  .pvs-edit label.ancho { grid-column: 1 / -1; }
-  .pvs-edit input, .pvs-edit select, .pvs-edit textarea { font: inherit; font-size: .88rem; font-weight: 400; color: var(--md-on-surface, #1f1f1f); background: var(--md-surface, #fff); border: 1px solid var(--md-outline, #dadce0); border-radius: 8px; padding: .45rem .6rem; width: 100%; }
-  .pvs-edit textarea { resize: vertical; min-height: 3.2rem; }
-  .pvs-pie { flex: none; display: flex; justify-content: flex-end; gap: .5rem; padding: .7rem 1.2rem; border-top: 1px solid var(--md-outline, #dadce0); }
+  .pvs-edit .ancho { grid-column: 1 / -1; }
+  .pvs-edit textarea.md-campo__control { min-height: 3.2rem; padding-top: 10px; }
+  .pvs-edit select.md-campo__control { padding-right: 36px; cursor: pointer; }
+  .pvs-edit .pvs-flecha { position: absolute; right: 10px; bottom: 10px; font-size: 20px; color: var(--md-on-surface-med); pointer-events: none; }
+  .pvs-pie { flex: none; display: flex; justify-content: flex-end; gap: 8px; padding: .7rem 1.2rem; border-top: 1px solid var(--md-outline); }
 
-  /* Aviso «Valoración eliminada · Deshacer» */
-  .pvs-undo { position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); z-index: 5; display: flex; align-items: center; gap: 1rem; background: #323232; color: #fff; padding: .6rem 1rem; border-radius: 10px; font-size: .82rem; box-shadow: 0 4px 16px rgba(0,0,0,.25); white-space: nowrap; }
-  .pvs-undo button { background: none; border: none; color: #8ab4f8; font-weight: 700; font-size: .82rem; cursor: pointer; padding: 0; }
+  /* Aviso «Valoración eliminada · Deshacer» (mismo aspecto que el aviso de la página) */
+  .pvs-undo { position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); z-index: var(--z-sticky); display: flex; align-items: center; gap: 1rem; background: var(--md-toast-bg); color: var(--md-toast-fg); padding: .6rem 1rem; border-radius: var(--md-shape-sm); font-size: var(--fs-sm); box-shadow: var(--md-elev-3); white-space: nowrap; animation: md-entra var(--dur-2) var(--ease); }
+  .pvs-undo button { background: none; border: none; color: var(--md-toast-action); font-weight: 700; font-size: var(--fs-sm); cursor: pointer; padding: 0; }
   .pvs-undo button:hover { text-decoration: underline; }
+  .pvs-undo button:focus-visible { outline-color: var(--md-toast-action); }
   @media (max-width: 420px) { .pvs-edit { grid-template-columns: 1fr; } .pvs-vals { grid-template-columns: repeat(3, 1fr); } }
 </style>
 <script>
@@ -237,14 +230,14 @@ window.PanelValoraciones = {
         '<button type="button" class="pvs-ico peligro" data-act="eliminar" data-fila="' + r._fila + '" title="Eliminar valoración" aria-label="Eliminar valoración">' + ms('delete') + '</button></div>' +
         '<div class="pvs-vals">' + ORDEN_MINI.map(function (k) { return '<div class="pvs-mv"><span class="pvs-mv-etq">' + ETQ_CORTA[k] + '</span>' + pastilla(r[k], k) + '</div>'; }).join('') + '</div>' +
         (r.notas ? '<div class="pvs-notas">' + esc(r.notas) + '</div>' : '') +
-        (conf ? '<div class="pvs-conf" role="alert"><span>¿Eliminar esta valoración?</span><button type="button" class="pvs-btn" data-act="eliminar-no">Cancelar</button><button type="button" class="pvs-btn peligro" data-act="eliminar-ok" data-fila="' + r._fila + '">Eliminar</button></div>' : '') +
+        (conf ? '<div class="pvs-conf" role="alert"><span>¿Eliminar esta valoración?</span><button type="button" class="md-btn md-btn--text" data-act="eliminar-no">Cancelar</button><button type="button" class="md-btn md-btn--danger" data-act="eliminar-ok" data-fila="' + r._fila + '">Eliminar</button></div>' : '') +
         '</article>';
     }
 
     function htmlLista() {
       var h = S.historial, tel = telefono;
-      var accNueva = '<button type="button" class="pvs-acc primario" data-act="nueva" title="Nueva valoración de este usuario">' + ms('assignment') + 'Nueva valoración</button>';
-      var accTel = tel ? '<button type="button" class="pvs-acc" data-act="copiar-tel" title="Copiar el teléfono">' + ms('content_copy') + 'Copiar teléfono</button>' : '';
+      var accNueva = '<button type="button" class="md-btn md-btn--tonal" data-act="nueva" title="Nueva valoración de este usuario">' + ms('assignment') + 'Nueva valoración</button>';
+      var accTel = tel ? '<button type="button" class="md-btn md-btn--outline" data-act="copiar-tel" title="Copiar el teléfono">' + ms('content_copy') + 'Copiar teléfono</button>' : '';
       if (!h.length) {
         return '<div class="pvs-sub">' + (dni ? esc(dni) + ' · ' : '') + (tel ? esc(formatearTel(tel)) + ' · ' : '') + 'Sin valoraciones</div>' +
           '<div class="pvs-acciones">' + accNueva + accTel + '</div><div class="pvs-cuerpo"><p class="pvs-vacio">Este usuario ya no tiene valoraciones. Puedes añadir una nueva.</p></div>';
@@ -262,20 +255,22 @@ window.PanelValoraciones = {
     }
 
     function htmlCab(titulo) {
-      return '<div class="pvs-vista-cab"><button type="button" class="pvs-ico" data-act="volver" title="Volver a las valoraciones (Esc)" aria-label="Volver a las valoraciones">' + ms('arrow_back') + '</button><div class="pvs-vista-tit">' + esc(titulo) + '</div></div>';
+      return '<div class="pvs-vista-cab"><button type="button" class="md-btn md-btn--icon" data-act="volver" title="Volver a las valoraciones (Esc)" aria-label="Volver a las valoraciones">' + ms('arrow_back') + '</button><div class="pvs-vista-tit">' + esc(titulo) + '</div></div>';
     }
 
     function htmlEditar() {
-      var r = S.edit, num = function (c) { var v = r[c.id]; return '<label>' + c.etq + '<input type="number" id="pvs-e-' + c.id + '" min="0" max="' + c.max + '" step="' + c.paso + '" value="' + (v === null || v === undefined ? '' : v) + '"></label>'; };
+      // Campo compacto del sistema: el control va antes que la etiqueta (la etiqueta se coloca encima con CSS)
+      var campo = function (etq, control, ancho) { return '<label class="md-campo md-campo--compacto' + (ancho ? ' ancho' : '') + '">' + control + '<span class="md-campo__etiqueta">' + etq + '</span></label>'; };
+      var r = S.edit, num = function (c) { var v = r[c.id]; return campo(c.etq, '<input type="number" class="md-campo__control" id="pvs-e-' + c.id + '" min="0" max="' + c.max + '" step="' + c.paso + '" value="' + (v === null || v === undefined ? '' : v) + '">'); };
       return htmlCab('Editar valoración · ' + fechaCorta(r.fecha)) +
         '<div class="pvs-edit">' +
-          '<label>Fecha<input type="date" id="pvs-e-fecha" value="' + esc(r.fecha || '') + '"></label>' +
-          '<label>Tipo<select id="pvs-e-tipo">' + ['Inicial', 'Seguimiento', 'Final'].map(function (t) { return '<option value="' + t + '"' + ((r.tipo || 'Inicial') === t ? ' selected' : '') + '>' + t + '</option>'; }).join('') + '</select></label>' +
-          '<label class="ancho">Teléfono<input type="text" id="pvs-e-telefono" value="' + esc(r.telefono || '') + '"></label>' +
+          campo('Fecha', '<input type="date" class="md-campo__control" id="pvs-e-fecha" value="' + esc(r.fecha || '') + '">') +
+          campo('Tipo', '<select class="md-campo__control" id="pvs-e-tipo">' + ['Inicial', 'Seguimiento', 'Final'].map(function (t) { return '<option value="' + t + '"' + ((r.tipo || 'Inicial') === t ? ' selected' : '') + '>' + t + '</option>'; }).join('') + '</select>' + ms('expand_more').replace('class="ms"', 'class="ms pvs-flecha"')) +
+          campo('Teléfono', '<input type="text" class="md-campo__control" id="pvs-e-telefono" value="' + esc(r.telefono || '') + '">', true) +
           CAMPOS_EDICION.map(num).join('') +
-          '<label class="ancho">Notas<textarea id="pvs-e-notas" rows="2">' + esc(r.notas || '') + '</textarea></label>' +
+          campo('Notas', '<textarea class="md-campo__control" id="pvs-e-notas" rows="2">' + esc(r.notas || '') + '</textarea>', true) +
         '</div>' +
-        '<div class="pvs-pie"><button type="button" class="pvs-btn" data-act="volver">Cancelar</button><button type="button" class="pvs-btn primario" data-act="guardar-edicion" title="Guardar los cambios de la valoración">Guardar</button></div>';
+        '<div class="pvs-pie"><button type="button" class="md-btn md-btn--text" data-act="volver">Cancelar</button><button type="button" class="md-btn md-btn--tonal" data-act="guardar-edicion" title="Guardar los cambios de la valoración">Guardar cambios</button></div>';
     }
 
     function pintar() {
@@ -285,7 +280,7 @@ window.PanelValoraciones = {
       if (S.vista === 'cargando') {
         root.innerHTML = '<div class="pvs-estado">Cargando valoraciones…</div>';
       } else if (S.vista === 'error') {
-        root.innerHTML = '<div class="pvs-estado"><div>No se pudieron cargar las valoraciones.' + (S.msg ? '<br><small>' + esc(S.msg) + '</small>' : '') + '</div><button type="button" class="pvs-btn" data-act="reintentar">Reintentar</button></div>';
+        root.innerHTML = '<div class="pvs-estado"><div>No se pudieron cargar las valoraciones.' + (S.msg ? '<br><small>' + esc(S.msg) + '</small>' : '') + '</div><button type="button" class="md-btn md-btn--outline" data-act="reintentar">Reintentar</button></div>';
       } else if (S.vista === 'lista') {
         root.innerHTML = htmlLista();
         cuerpo = root.querySelector('.pvs-cuerpo');

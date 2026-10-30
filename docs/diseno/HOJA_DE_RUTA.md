@@ -1,6 +1,6 @@
 # Hoja de ruta: unificar la apariencia visual (trazada el 28-oct-2026)
 
-**Estado (29-oct-2026): V0 a V4 HECHAS y comprobadas por el dueño. V5 (formularios de Agenda) hecha en código, pendiente de que el dueño la compruebe.**
+**Estado (30-oct-2026): V0 a V5 HECHAS y comprobadas por el dueño. V6 en curso en tres tandas: tanda 1 (ficha y lista de valoraciones) comprobada; tanda 2 (formulario de Valoración) hecha en código, pendiente de comprobar.**
 
 Documentos hermanos, todos en `docs/diseno/` (no se suben con `clasp push`, igual que `CONTEXTO.md`):
 - `AUDITORIA.md`: qué está distinto hoy y por qué importa (códigos `I-01`…`I-24`).
@@ -197,7 +197,7 @@ El orden no es arbitrario: **primero los cimientos y las páginas** (porque los 
 
 ---
 
-### V5 · Formularios de Agenda — HECHO en código (29-oct-2026; pendiente de que el dueño lo compruebe)
+### V5 · Formularios de Agenda — HECHO (29-oct-2026; comprobado por el dueño el 30-oct-2026)
 
 **Objetivo**: Dar cita, Disponibilidad y Recordatorios, los selectores y el diálogo de WhatsApp.
 
@@ -220,7 +220,9 @@ El orden no es arbitrario: **primero los cimientos y las páginas** (porque los 
 
 ---
 
-### V6 · Valoración, Historia clínica y ficha — PENDIENTE
+### V6 · Valoración, Historia clínica y ficha — EN CURSO (tanda 1 comprobada; tanda 2 hecha en código el 30-oct-2026)
+
+**Tandas** (para que el dueño compruebe por partes): 1) `ui/CSS_Ficha` + `Panel_Valoraciones`; 2) `Panel_Valoracion`; 3) `Panel_HC` (los SVG, de dos en dos).
 
 **Objetivo**: deshacer la isla de Valoración y alinear la HC y la ficha.
 
@@ -332,8 +334,8 @@ Para una revisión rápida de 5 minutos tras cada fase: puntos 1, 2, 4 y 8 en Us
 | V2 | HECHO | 29-oct-2026 | Comprobado por el dueño (29-oct-2026). **Queda para V7**: reglas oscuras sueltas por elemento (`prefers-color-scheme` en Usuarios 1, Agenda 1, Valoraciones 2), alias `--ag-*` restantes, z-index locales 1–4 y los de `Panel_HC`. La barra de selección de la Agenda queda por debajo de los diálogos |
 | V3 | HECHO | 29-oct-2026 | Comprobado por el dueño (29-oct-2026). **Queda para V6**: en Valoraciones siguen `.modal-box-ancho`, `.modal-titulo` y el margen de botones del cuadro de edición |
 | V4 | HECHO | 29-oct-2026 | Comprobado por el dueño (29-oct-2026). Retirados `?page=nuevoPaciente` y `usuarios/Anadir_Usuario_Vista.html` (con visto bueno del dueño para `core/WebApp.gs`) |
-| V5 | HECHO en código | 29-oct-2026 | Pendiente de comprobación del dueño. Comprobación automática: sin `pc-ripple`, `--pc-*`, `--wl-*`, `--sf-*` ni hexadecimales, `rgba`, `cubic-bezier`, milisegundos o `z-index` numéricos en los cinco archivos; `node --check` de cada `<script>` correcto; saltos de línea conservados. Colores de recordatorio en `--md-data-*` (`CSS_Global`). **Queda para V7**: `--rc-c`/`--rc-bg` (los lee `agenda/Web_Vista`) y los `--ag-*` del selector de usuario. **Pendiente de decidir por el dueño**: rótulos «Aplicar» / «Añadir» frente a «Aplicar disponibilidad» / «Añadir recordatorio» (los pone el JavaScript) y si el mensaje interno de Dar cita (`mostrarFeedback`) pasa al aviso emergente común (cambia el comportamiento) |
-| V6 | PENDIENTE | | |
+| V5 | HECHO | 29-oct-2026 | Comprobado por el dueño (30-oct-2026). Comprobación automática: sin `pc-ripple`, `--pc-*`, `--wl-*`, `--sf-*` ni hexadecimales, `rgba`, `cubic-bezier`, milisegundos o `z-index` numéricos en los cinco archivos; `node --check` de cada `<script>` correcto; saltos de línea conservados. Colores de recordatorio en `--md-data-*` (`CSS_Global`). **Queda para V7**: `--rc-c`/`--rc-bg` (los lee `agenda/Web_Vista`) y los `--ag-*` del selector de usuario. **Decisiones del dueño (30-oct-2026)**: rótulos «Aplicar disponibilidad» y «Añadir recordatorio» (cambiados también en el JavaScript); el mensaje interno de Dar cita (`mostrarFeedback`) se queda como franja fija y no pasa al aviso emergente común (excepción a 9.5) |
+| V6 | EN CURSO | 30-oct-2026 | Tanda 2 (`Panel_Valoracion`) hecha en código, pendiente de comprobación: borrada la paleta `.pv` (46 variables, causa de I-02); 0 hexadecimales, `rgba`, `@keyframes`, `scale(`, `cubic-bezier`, milisegundos o `z-index` numéricos; todas las variables que usa existen en `CSS_Global`; `node --check` correcto. Correspondencia: `--md-outline` local (borde fuerte) → `--md-outline-strong`; `--md-outline-variant` → `--md-outline`; `--md-surface-container-highest` (líneas y pistas) → `--md-outline`; el resto de `--md-surface-container-*` → `--md-surface-variant` o `--md-surface`. `--md-pain-*` / `--md-analg-*` como alias en `CSS_Global`. **Queda**: los campos `.md-field` y los tamaños de letra en `rem` del formulario no se han pasado a `.md-campo` / `--fs-*` (V7 si se quiere). Tanda 1 (`CSS_Ficha`, `Panel_Valoraciones`) comprobada por el dueño (30-oct-2026): 0 hexadecimales y 0 `rgba` en los dos archivos; `node --check` correcto. Los tres tonos de `CSS_Ficha` pasan a `--md-warning-text`, `--md-error` y `--md-purple` (ya existía en `CSS_Global`; no hizo falta `--md-data-*`). La confirmación de borrar de `Panel_Valoraciones` (`.pvs-conf`) sigue dentro de la tarjeta, con `.md-btn--text` + `.md-btn--danger`, en lugar de pasar al cuadro emergente (mismo criterio que la franja de Dar cita). Tandas 2 y 3 pendientes |
 | V7 | PENDIENTE | | |
 
 Al terminar cada fase, su estado pasa a «HECHO (fecha)» y se retira el detalle de cómo se hizo (vive en `git log`); se conservan las decisiones del dueño.
