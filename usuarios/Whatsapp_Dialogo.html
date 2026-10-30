@@ -10,97 +10,67 @@
   Con 1 usuario muestra el mensaje para revisarlo; con varios, recorre uno a uno.
 -->
 <style>
+  /* Colores, esquinas, sombras y tiempos: variables de ui/CSS_Global. Botones .md-btn; el foco con teclado lo da la regla global. */
   #dlgWl {
-    --wl-surface: var(--ag-surface, var(--md-surface, #ffffff));
-    --wl-surface-2: var(--ag-page, var(--md-surface-variant, #f8fafd));
-    --wl-line: var(--ag-line, var(--md-outline, #e3e8ef));
-    --wl-text: var(--ag-text, var(--md-on-surface, #1f2430));
-    --wl-text-med: var(--ag-text-med, var(--md-on-surface-med, #586074));
-    --wl-text-low: var(--ag-text-low, var(--md-on-surface-low, #8a93a6));
-    --wl-accent: var(--ag-accent, var(--md-primary, #0b57d0));
-    --wl-accent-soft: var(--ag-accent-soft, var(--md-primary-light, rgba(194,231,255,.55)));
-    --wl-accent-dark: var(--ag-accent-dark, var(--md-primary-dark, #004a77));
-    --wl-container: var(--ag-container, var(--md-primary-container, #c2e7ff));
-    --wl-error: var(--ag-error, var(--md-error, #b3261e));
-    --wl-error-bg: var(--ag-error-bg, var(--md-error-bg, #fdecea));
-    --wl-overlay: var(--ag-overlay, rgba(32,33,36,.5));
-    --wl-sombra: rgba(31,36,48,.16);
-    margin: auto; border: none; border-radius: 20px; padding: 0; width: min(580px, 94vw); max-height: 90vh; overflow: hidden;
-    background: var(--wl-surface); color: var(--wl-text); box-shadow: 0 16px 48px rgba(0,0,0,.30);
+    margin: auto; border: none; border-radius: var(--md-shape-lg); padding: 0; width: min(580px, 94vw); max-height: 90vh; overflow: hidden;
+    background: var(--md-surface); color: var(--md-on-surface); box-shadow: var(--md-elev-3); font-family: var(--font);
   }
-  #dlgWl::backdrop { background: var(--wl-overlay); }
-  #dlgWl[open] { display: flex; flex-direction: column; }
+  #dlgWl::backdrop { background: var(--md-scrim); }
+  #dlgWl[open] { display: flex; flex-direction: column; animation: md-entra var(--dur-3) var(--ease); }
   #dlgWl [hidden] { display: none !important; }
   #dlgWl button, #dlgWl textarea { font-family: inherit; }
 
   .wl-cab { display: flex; align-items: center; gap: .8rem; padding: 1.1rem 1.25rem .8rem; }
   .wl-avatar { width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center;
-    background: var(--wl-accent-soft); color: var(--wl-accent-dark); font-weight: 700; font-size: .95rem; }
+    background: var(--md-primary-light); color: var(--md-primary-dark); font-weight: 700; font-size: var(--fs-field); }
   .wl-cab-txt { flex: 1; min-width: 0; }
-  .wl-cab-txt h2 { margin: 0; font-size: 1.02rem; font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .wl-sub { font-size: .8rem; color: var(--wl-text-med); margin-top: 2px; }
-  .wl-x { border: none; background: transparent; color: var(--wl-text-med); font-size: 1.5rem; line-height: 1; cursor: pointer; padding: .15rem .6rem; border-radius: 10px;
-    transition: background-color 160ms ease, color 160ms ease; }
-  .wl-x:hover { background: var(--wl-accent-soft); color: var(--wl-accent-dark); }
+  .wl-cab-txt h2 { margin: 0; font-size: var(--fs-title); font-weight: 600; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .wl-sub { font-size: var(--fs-sm); color: var(--md-on-surface-med); margin-top: 2px; }
 
-  .wl-nota { margin: 0 1.25rem .8rem; font-size: .82rem; color: var(--wl-text-med); }
-  .wl-nota.error { color: var(--wl-error); background: var(--wl-error-bg); padding: .5rem .75rem; border-radius: 10px; }
+  .wl-nota { margin: 0 1.25rem .8rem; font-size: var(--fs-sm); color: var(--md-on-surface-med); }
+  .wl-nota.error { color: var(--md-error); background: var(--md-error-bg); padding: .5rem .75rem; border-radius: var(--md-shape-sm); }
   /* El padding superior evita que el borde de la píldora seleccionada quede recortado por el desplazamiento del cuerpo. */
   .wl-cuerpo { padding: .4rem 1.25rem 1rem; overflow-y: auto; }
 
   .wl-esq { padding: .4rem 1.25rem 1.2rem; display: grid; gap: .6rem; }
-  .wl-esq span { display: block; height: 14px; border-radius: 7px; background: linear-gradient(90deg, var(--wl-surface-2) 25%, var(--wl-line) 50%, var(--wl-surface-2) 75%); background-size: 200% 100%; animation: wl-brillo 1.2s linear infinite; }
-  .wl-esq span:nth-child(1) { width: 35%; } .wl-esq span:nth-child(2) { height: 76px; border-radius: 14px; } .wl-esq span:nth-child(3) { width: 55%; }
-  @keyframes wl-brillo { to { background-position: -200% 0; } }
+  .wl-esq span { height: 14px; }
+  .wl-esq span:nth-child(1) { width: 35%; } .wl-esq span:nth-child(2) { height: 76px; border-radius: var(--md-shape-md); } .wl-esq span:nth-child(3) { width: 55%; }
 
   .wl-chips { display: flex; flex-wrap: wrap; gap: .35rem; margin: 0 -2px .9rem; padding: 3px 2px; }
-  .wl-chip { border: 1px solid var(--wl-line); background: var(--wl-surface); color: var(--wl-text); border-radius: 999px; padding: .2rem .7rem; font-size: .78rem; cursor: pointer;
-    transition: transform 160ms ease, box-shadow 160ms ease, background-color 160ms ease; }
-  .wl-chip:hover { background: var(--wl-accent-soft); transform: translateY(-1px); box-shadow: 0 2px 6px var(--wl-sombra); }
-  .wl-chip.actual { border-color: var(--wl-accent); box-shadow: 0 0 0 1px var(--wl-accent); }
-  .wl-chip.abierto { background: rgba(37,211,102,.14); border-color: rgba(37,211,102,.45); color: #1fa855; }
-  .wl-chip.omitido { color: var(--wl-text-low); }
-  .wl-chip.error { background: var(--wl-error-bg); border-color: transparent; color: var(--wl-error); }
+  .wl-chip { border: 1px solid var(--md-outline-strong); background: transparent; color: var(--md-on-surface); border-radius: var(--md-shape-full); padding: .2rem .7rem; font-size: var(--fs-xs); cursor: pointer;
+    transition: background-color var(--dur-1) var(--ease), border-color var(--dur-1) var(--ease); }
+  .wl-chip:hover { background-image: linear-gradient(color-mix(in srgb, currentColor 8%, transparent), color-mix(in srgb, currentColor 8%, transparent)); }
+  .wl-chip.actual { border-color: var(--md-primary); box-shadow: inset 0 0 0 1px var(--md-primary); }
+  .wl-chip.abierto { background-color: var(--md-success-bg); border-color: var(--md-success); color: var(--md-success); }
+  .wl-chip.omitido { color: var(--md-on-surface-low); }
+  .wl-chip.error { background-color: var(--md-error-bg); border-color: transparent; color: var(--md-error); }
 
   .wl-fila-msj { display: flex; justify-content: space-between; align-items: center; gap: .75rem; margin-bottom: .35rem; }
-  .wl-etq { display: block; font-size: .75rem; font-weight: 600; color: var(--wl-text-med); margin: 0; }
+  .wl-etq { display: block; font-size: var(--fs-xs); font-weight: 600; color: var(--md-on-surface-med); margin: 0; }
   .wl-acc-msj { display: flex; align-items: center; gap: .4rem; }
-  .wl-link { border: none; background: transparent; color: var(--wl-accent); font-size: .76rem; cursor: pointer; padding: 0; white-space: nowrap; }
+  .wl-link { border: none; background: transparent; color: var(--md-primary); font-size: var(--fs-xs); cursor: pointer; padding: 0; white-space: nowrap; }
   .wl-link:hover { text-decoration: underline; }
-  .wl-icono { width: 30px; height: 30px; border-radius: 50%; border: none; background: transparent; color: var(--wl-text-med); cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
-    transition: transform 160ms ease, box-shadow 160ms ease, background-color 160ms ease, color 160ms ease; }
-  .wl-icono:hover { background: var(--wl-accent-soft); color: var(--wl-accent-dark); transform: translateY(-1px); box-shadow: 0 2px 6px var(--wl-sombra); }
-  .wl-icono[aria-expanded="true"] { background: var(--wl-accent-soft); color: var(--wl-accent-dark); }
-  .wl-campo { width: 100%; box-sizing: border-box; border: 1px solid var(--wl-line); border-radius: 14px; padding: .65rem .85rem; font-size: .9rem; line-height: 1.45;
-    color: var(--wl-text); background: var(--wl-surface-2); resize: vertical; transition: border-color 160ms ease, box-shadow 160ms ease, background-color 160ms ease; }
-  .wl-campo:focus { outline: none; border-color: var(--wl-accent); box-shadow: 0 0 0 1px var(--wl-accent); background: var(--wl-surface); }
-  .wl-plantilla { margin-top: .8rem; border: 1px solid var(--wl-line); border-radius: 14px; padding: .65rem .85rem .8rem; animation: wl-aparece 180ms ease; }
+  .wl-icono { width: 30px; height: 30px; border-radius: 50%; border: none; background: transparent; color: var(--md-on-surface-med); cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
+    transition: background-color var(--dur-1) var(--ease), color var(--dur-1) var(--ease); }
+  .wl-icono:hover, .wl-icono[aria-expanded="true"] { background: var(--md-primary-light); color: var(--md-primary-dark); }
+  /* Mensaje y plantilla: el campo estándar (.md-campo__control) con la etiqueta fija encima */
+  #dlgWl textarea.md-campo__control { min-height: 0; padding: 12px 14px; line-height: 1.45; }
+  .wl-plantilla { margin-top: .8rem; border: 1px solid var(--md-outline); border-radius: var(--md-shape-md); padding: .65rem .85rem .8rem; animation: md-entra var(--dur-2) var(--ease); }
   .wl-plantilla .wl-etq { margin-bottom: .2rem; }
-  .wl-ayuda { margin: 0 0 .5rem; font-size: .76rem; color: var(--wl-text-low); }
-  @keyframes wl-aparece { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+  .wl-ayuda { margin: 0 0 .5rem; font-size: var(--fs-xs); color: var(--md-on-surface-low); }
 
-  .wl-pie { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: .5rem; padding: .8rem 1.25rem 1.1rem; border-top: 1px solid var(--wl-line); }
+  .wl-pie { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; padding: .8rem 1.25rem 1.1rem; border-top: 1px solid var(--md-outline); }
   /* Interruptor Web / escritorio: la pastilla se desliza de una opción a la otra. */
-  .wl-seg { position: relative; display: inline-grid; grid-template-columns: 1fr 1fr; padding: 3px; border-radius: 999px; background: var(--wl-surface-2); border: 1px solid var(--wl-line); margin-right: auto; }
-  .wl-seg::before { content: ''; position: absolute; top: 3px; bottom: 3px; left: 3px; width: calc((100% - 6px) / 2); border-radius: 999px; background: var(--wl-container);
-    box-shadow: 0 1px 3px rgba(0,0,0,.18); transition: transform 240ms cubic-bezier(.4, 0, .2, 1); }
+  .wl-seg { position: relative; display: inline-grid; grid-template-columns: 1fr 1fr; padding: 3px; border-radius: var(--md-shape-full); background: var(--md-surface-variant); border: 1px solid var(--md-outline); margin-right: auto; }
+  .wl-seg::before { content: ''; position: absolute; top: 3px; bottom: 3px; left: 3px; width: calc((100% - 6px) / 2); border-radius: var(--md-shape-full); background: var(--md-primary-container);
+    box-shadow: var(--md-elev-1); transition: transform var(--dur-3) var(--ease); }
   .wl-seg[data-modo="escritorio"]::before { transform: translateX(100%); }
-  .wl-seg button { position: relative; z-index: 1; border: none; background: transparent; color: var(--wl-text-med); font-size: .76rem; font-weight: 600; padding: .34rem .85rem;
-    border-radius: 999px; cursor: pointer; white-space: nowrap; text-align: center; transition: color 200ms ease; }
-  .wl-seg button[aria-checked="true"] { color: var(--wl-accent-dark); }
-  .wl-btn { display: inline-flex; align-items: center; gap: .45rem; border: 1px solid var(--wl-line); background: var(--wl-surface); color: var(--wl-text); border-radius: 999px;
-    padding: .5rem 1.05rem; font-size: .85rem; font-weight: 600; cursor: pointer; text-decoration: none;
-    transition: transform 160ms ease, box-shadow 160ms ease, background-color 160ms ease, color 160ms ease, border-color 160ms ease, filter 160ms ease; }
-  .wl-btn:hover { background: var(--wl-accent-soft); transform: translateY(-1px); box-shadow: 0 3px 10px var(--wl-sombra); }
-  .wl-btn:active { transform: translateY(0); box-shadow: 0 1px 2px var(--wl-sombra); }
-  .wl-btn.primario { background: var(--wl-container); border-color: var(--wl-container); color: var(--wl-accent-dark); }
-  .wl-btn.primario:hover { filter: brightness(.96); }
-  .wl-btn.omitir:hover { background: var(--wl-error-bg); color: var(--wl-error); border-color: transparent; }
-  .wl-btn:focus-visible, .wl-seg button:focus-visible, .wl-chip:focus-visible, .wl-x:focus-visible, .wl-icono:focus-visible { outline: 2px solid var(--wl-accent); outline-offset: 2px; }
+  .wl-seg button { position: relative; z-index: var(--z-base); border: none; background: transparent; color: var(--md-on-surface-med); font-size: var(--fs-xs); font-weight: 600; padding: .34rem .85rem;
+    border-radius: var(--md-shape-full); cursor: pointer; white-space: nowrap; text-align: center; transition: color var(--dur-2) var(--ease); }
+  .wl-seg button[aria-checked="true"] { color: var(--md-primary-dark); }
 
-  .wl-resumen { font-size: .9rem; line-height: 1.5; }
-  .wl-resumen ul { margin: .4rem 0 .9rem; padding-left: 1.1rem; color: var(--wl-error); font-size: .82rem; }
-  @media (prefers-reduced-motion: reduce) { #dlgWl *, #dlgWl *::before { transition: none !important; animation: none !important; } }
+  .wl-resumen { font-size: var(--fs-md); line-height: 1.5; }
+  .wl-resumen ul { margin: .4rem 0 .9rem; padding-left: 1.1rem; color: var(--md-error); font-size: var(--fs-sm); }
 </style>
 
 <dialog id="dlgWl" aria-labelledby="wlTitulo">
@@ -110,10 +80,10 @@
       <h2 id="wlTitulo">WhatsApp</h2>
       <div class="wl-sub" id="wlSub" hidden></div>
     </div>
-    <button type="button" class="wl-x" id="wlCerrar" title="Cerrar" aria-label="Cerrar">&times;</button>
+    <button type="button" class="md-btn md-btn--icon" id="wlCerrar" title="Cerrar" aria-label="Cerrar"><span class="material-symbols-outlined" aria-hidden="true">close</span></button>
   </div>
   <p class="wl-nota" id="wlNota" hidden></p>
-  <div class="wl-esq" id="wlEsq" hidden aria-hidden="true"><span></span><span></span><span></span></div>
+  <div class="wl-esq" id="wlEsq" hidden aria-hidden="true"><span class="md-esqueleto"></span><span class="md-esqueleto"></span><span class="md-esqueleto"></span></div>
   <div class="wl-cuerpo" id="wlLote" hidden>
     <div class="wl-chips" id="wlChips" hidden></div>
     <div id="wlEdicion">
@@ -124,11 +94,11 @@
           <button type="button" class="wl-icono" id="wlBtnPlantilla" title="Editar mensaje de plantilla" aria-label="Editar mensaje de plantilla" aria-expanded="false" aria-controls="wlPlantillaWrap"><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg></button>
         </div>
       </div>
-      <textarea class="wl-campo" id="wlMensaje" rows="4"></textarea>
+      <textarea class="md-campo__control" id="wlMensaje" rows="4"></textarea>
       <div class="wl-plantilla" id="wlPlantillaWrap" hidden>
         <label class="wl-etq" for="wlPlantilla">Mensaje de plantilla</label>
         <p class="wl-ayuda" id="wlAyuda"></p>
-        <textarea class="wl-campo" id="wlPlantilla" rows="3"></textarea>
+        <textarea class="md-campo__control" id="wlPlantilla" rows="3"></textarea>
       </div>
     </div>
     <div class="wl-resumen" id="wlResumen" hidden></div>
@@ -138,8 +108,8 @@
       <button type="button" role="radio" id="wlModoWeb" aria-checked="true">WhatsApp Web</button>
       <button type="button" role="radio" id="wlModoEsc" aria-checked="false">App de escritorio</button>
     </div>
-    <button type="button" class="wl-btn omitir" id="wlOmitir" hidden>Omitir</button>
-    <a class="wl-btn primario" id="wlAbrir" target="_blank" rel="noopener" role="button" tabindex="0"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" aria-hidden="true" viewBox="0 0 16 16" fill="currentColor"><path d="M13.601 2.326A7.854 7.854 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.933 7.933 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.898 7.898 0 0 0 13.6 2.326zM7.994 14.521a6.573 6.573 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.557 6.557 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592zm3.615-4.934c-.197-.099-1.17-.578-1.353-.646-.182-.065-.315-.099-.445.099-.133.197-.513.646-.627.775-.114.133-.232.148-.43.05-.197-.1-.836-.308-1.592-.985-.59-.525-.985-1.175-1.103-1.372-.114-.198-.011-.304.088-.403.087-.088.197-.232.296-.346.1-.114.133-.198.198-.33.065-.134.034-.248-.015-.347-.05-.099-.445-1.076-.612-1.47-.16-.389-.323-.335-.445-.34-.114-.007-.247-.007-.38-.007a.729.729 0 0 0-.529.247c-.182.198-.691.677-.691 1.654 0 .977.71 1.916.81 2.049.098.133 1.394 2.132 3.383 2.992.47.205.84.326 1.129.418.475.152.904.129 1.246.08.38-.058 1.171-.48 1.338-.943.164-.464.164-.86.114-.943-.049-.084-.182-.133-.38-.232z"/></svg> Abrir WhatsApp</a>
+    <button type="button" class="md-btn md-btn--text" id="wlOmitir" hidden>Omitir</button>
+    <a class="md-btn md-btn--tonal" id="wlAbrir" target="_blank" rel="noopener" role="button" tabindex="0"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" aria-hidden="true" viewBox="0 0 16 16" fill="currentColor"><path d="M13.601 2.326A7.854 7.854 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.933 7.933 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.898 7.898 0 0 0 13.6 2.326zM7.994 14.521a6.573 6.573 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.557 6.557 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592zm3.615-4.934c-.197-.099-1.17-.578-1.353-.646-.182-.065-.315-.099-.445.099-.133.197-.513.646-.627.775-.114.133-.232.148-.43.05-.197-.1-.836-.308-1.592-.985-.59-.525-.985-1.175-1.103-1.372-.114-.198-.011-.304.088-.403.087-.088.197-.232.296-.346.1-.114.133-.198.198-.33.065-.134.034-.248-.015-.347-.05-.099-.445-1.076-.612-1.47-.16-.389-.323-.335-.445-.34-.114-.007-.247-.007-.38-.007a.729.729 0 0 0-.529.247c-.182.198-.691.677-.691 1.654 0 .977.71 1.916.81 2.049.098.133 1.394 2.132 3.383 2.992.47.205.84.326 1.129.418.475.152.904.129 1.246.08.38-.058 1.171-.48 1.338-.943.164-.464.164-.86.114-.943-.049-.084-.182-.133-.38-.232z"/></svg> Abrir WhatsApp</a>
   </div>
 </dialog>
 
@@ -294,7 +264,7 @@ var WhatsappDialogo = (function() {
     }
     var cerrar = document.createElement('button');
     cerrar.type = 'button';
-    cerrar.className = 'wl-btn primario';
+    cerrar.className = 'md-btn md-btn--tonal';
     cerrar.textContent = 'Cerrar';
     cerrar.addEventListener('click', function() { dlg.close(); });
     r.appendChild(cerrar);

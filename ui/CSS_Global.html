@@ -79,6 +79,13 @@
         --md-toast-bg:       light-dark(#323232, #2d3038);
         --md-toast-fg:       light-dark(#ffffff, #e6e8ee);
 
+        /* --- Colores de datos (V5): tipos de recordatorio. Son datos, no marca; mismo valor en los dos temas --- */
+        --md-data-llamar:  #3b82f6;
+        --md-data-reunion: #8b5cf6;
+        --md-data-evento:  #14a38b;
+        --md-data-nota:    #e0a000;
+        --md-data-festivo: #e5484d;
+
         /* --- Tipografia --- */
         --font-mono: ui-monospace, 'SF Mono', Consolas, monospace;
         --fs-2xs:   .6875rem;  /* 11 px  insignias */
@@ -154,6 +161,8 @@
       .md-btn:hover:not(:disabled)::after  { opacity: .08; }
       .md-btn:active:not(:disabled)::after { opacity: .12; }
       .md-btn .material-symbols-outlined { font-size: 18px; }
+      a.md-btn { text-decoration: none; }
+      .md-btn[hidden] { display: none; }   /* el display de .md-btn anularia el atributo hidden */
       .md-btn:disabled { opacity: .38; cursor: default; pointer-events: none; }
       .md-btn[aria-busy="true"] { pointer-events: none; }
       .md-btn[aria-busy="true"]::before {

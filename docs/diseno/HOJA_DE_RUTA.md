@@ -1,6 +1,6 @@
 # Hoja de ruta: unificar la apariencia visual (trazada el 28-oct-2026)
 
-**Estado (29-oct-2026): V0 a V4 HECHAS. V1, V2 y V4 comprobadas por el dueño; V3 pendiente de comprobar (su zip no se había copiado al proyecto; copiado el 29-oct-2026). Siguiente: V5 (formularios de Agenda), tras comprobar V3.**
+**Estado (29-oct-2026): V0 a V4 HECHAS y comprobadas por el dueño. V5 (formularios de Agenda) hecha en código, pendiente de que el dueño la compruebe.**
 
 Documentos hermanos, todos en `docs/diseno/` (no se suben con `clasp push`, igual que `CONTEXTO.md`):
 - `AUDITORIA.md`: qué está distinto hoy y por qué importa (códigos `I-01`…`I-24`).
@@ -155,7 +155,7 @@ El orden no es arbitrario: **primero los cimientos y las páginas** (porque los 
 
 ---
 
-### V3 · Avisos y diálogos compartidos — HECHO en código (29-oct-2026; pendiente de que el dueño lo compruebe)
+### V3 · Avisos y diálogos compartidos — HECHO (29-oct-2026; comprobado por el dueño el 29-oct-2026)
 
 **Objetivo**: un solo aviso emergente y un solo cuadro de confirmación para toda la app (I-19).
 
@@ -197,7 +197,7 @@ El orden no es arbitrario: **primero los cimientos y las páginas** (porque los 
 
 ---
 
-### V5 · Formularios de Agenda — PENDIENTE
+### V5 · Formularios de Agenda — HECHO en código (29-oct-2026; pendiente de que el dueño lo compruebe)
 
 **Objetivo**: Dar cita, Disponibilidad y Recordatorios, los selectores y el diálogo de WhatsApp.
 
@@ -330,9 +330,9 @@ Para una revisión rápida de 5 minutos tras cada fase: puntos 1, 2, 4 y 8 en Us
 | V0 | HECHO | 28-oct-2026 | 7 decisiones registradas (D-V1 = azul `#0b57d0`; D-V2 = `#8ab4f8`). Commit «Antes de V1» hecho |
 | V1 | HECHO | 28-oct-2026 | Comprobado por el dueño (29-oct-2026) |
 | V2 | HECHO | 29-oct-2026 | Comprobado por el dueño (29-oct-2026). **Queda para V7**: reglas oscuras sueltas por elemento (`prefers-color-scheme` en Usuarios 1, Agenda 1, Valoraciones 2), alias `--ag-*` restantes, z-index locales 1–4 y los de `Panel_HC`. La barra de selección de la Agenda queda por debajo de los diálogos |
-| V3 | HECHO en código | 29-oct-2026 | Pendiente de comprobación del dueño (el zip se copió al proyecto el 29-oct-2026 por la tarde). **Queda para V6**: en Valoraciones siguen `.modal-box-ancho`, `.modal-titulo` y el margen de botones del cuadro de edición |
+| V3 | HECHO | 29-oct-2026 | Comprobado por el dueño (29-oct-2026). **Queda para V6**: en Valoraciones siguen `.modal-box-ancho`, `.modal-titulo` y el margen de botones del cuadro de edición |
 | V4 | HECHO | 29-oct-2026 | Comprobado por el dueño (29-oct-2026). Retirados `?page=nuevoPaciente` y `usuarios/Anadir_Usuario_Vista.html` (con visto bueno del dueño para `core/WebApp.gs`) |
-| V5 | PENDIENTE | | |
+| V5 | HECHO en código | 29-oct-2026 | Pendiente de comprobación del dueño. Comprobación automática: sin `pc-ripple`, `--pc-*`, `--wl-*`, `--sf-*` ni hexadecimales, `rgba`, `cubic-bezier`, milisegundos o `z-index` numéricos en los cinco archivos; `node --check` de cada `<script>` correcto; saltos de línea conservados. Colores de recordatorio en `--md-data-*` (`CSS_Global`). **Queda para V7**: `--rc-c`/`--rc-bg` (los lee `agenda/Web_Vista`) y los `--ag-*` del selector de usuario. **Pendiente de decidir por el dueño**: rótulos «Aplicar» / «Añadir» frente a «Aplicar disponibilidad» / «Añadir recordatorio» (los pone el JavaScript) y si el mensaje interno de Dar cita (`mostrarFeedback`) pasa al aviso emergente común (cambia el comportamiento) |
 | V6 | PENDIENTE | | |
 | V7 | PENDIENTE | | |
 

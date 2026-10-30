@@ -10,19 +10,21 @@
     · confirmar(msg) → promesa booleana para confirmar el borrado (mostrarConfirm de la página)
     · onActualizado(lista) → se llama tras cada cambio con la lista COMPLETA devuelta por el servidor
   Devuelve { haCambiado(), alEscape(), actualizar(lista), editar(id), nuevo(fecha) }.
-  Servidor: agenda/Recordatorios.gs. Estilos acotados a .rcp y basados en los tokens --md-* (como Panel_Cita).
+  Servidor: agenda/Recordatorios.gs. Estilos acotados a .rcp; colores, esquinas y tiempos salen de ui/CSS_Global
+  (botones .md-btn, campos .md-campo--compacto; el foco con teclado lo da la regla global).
   Las clases .rc-t-* (color por tipo) son globales: la página las usa también para las etiquetas de la agenda.
+  --rc-c y --rc-bg se conservan solo porque las lee agenda/Web_Vista (se retiran en V7); su valor sale de --md-data-*.
 -->
 <style>
 /* Color por tipo: lo usan el panel y las etiquetas de la agenda */
-.rc-t-llamar  { --rc-c: #3b82f6; --rc-bg: rgba(59,130,246,.14); }
-.rc-t-reunion { --rc-c: #8b5cf6; --rc-bg: rgba(139,92,246,.15); }
-.rc-t-evento  { --rc-c: #14a38b; --rc-bg: rgba(20,163,139,.15); }
-.rc-t-nota    { --rc-c: #e0a000; --rc-bg: rgba(240,165,0,.20); }
-.rc-t-festivo { --rc-c: #e5484d; --rc-bg: rgba(229,72,77,.15); }
+.rc-t-llamar  { --rc-c: var(--md-data-llamar);  --rc-bg: color-mix(in srgb, var(--md-data-llamar) 14%, transparent); }
+.rc-t-reunion { --rc-c: var(--md-data-reunion); --rc-bg: color-mix(in srgb, var(--md-data-reunion) 15%, transparent); }
+.rc-t-evento  { --rc-c: var(--md-data-evento);  --rc-bg: color-mix(in srgb, var(--md-data-evento) 15%, transparent); }
+.rc-t-nota    { --rc-c: var(--md-data-nota);    --rc-bg: color-mix(in srgb, var(--md-data-nota) 20%, transparent); }
+.rc-t-festivo { --rc-c: var(--md-data-festivo); --rc-bg: color-mix(in srgb, var(--md-data-festivo) 15%, transparent); }
 .rcp-item.festivo .rcp-check { visibility: hidden; }
 
-.rcp { display: flex; flex-direction: column; height: 100%; min-height: 0; font-family: var(--font); font-size: 14px; color: var(--md-on-surface); background: var(--md-surface); }
+.rcp { display: flex; flex-direction: column; height: 100%; min-height: 0; font-family: var(--font); font-size: var(--fs-md); color: var(--md-on-surface); background: var(--md-surface); }
 .rcp .material-symbols-outlined { font-size: 20px; }
 .rcp-scroll { flex: 1; min-height: 0; overflow: auto; }
 
@@ -30,69 +32,55 @@
 .rcp-form { display: flex; flex-direction: column; gap: .8rem; padding: 1rem 1.1rem 1.1rem; border-bottom: 1px solid var(--md-outline); }
 .rcp-tipos { display: flex; flex-wrap: wrap; gap: .35rem; }
 .rcp-tipo {
-  display: inline-flex; align-items: center; gap: .3rem; padding: .3rem .8rem .3rem .55rem; border-radius: 999px; cursor: pointer;
-  border: 1px solid var(--md-outline); background: var(--md-surface); color: var(--md-on-surface-med);
-  font-family: var(--font); font-size: .8rem; font-weight: 600; transition: all 150ms;
+  display: inline-flex; align-items: center; gap: .3rem; box-sizing: border-box; height: 32px; padding: 0 .8rem 0 .55rem; border-radius: var(--md-shape-full); cursor: pointer;
+  border: 1px solid var(--md-outline-strong); background: transparent; color: var(--md-on-surface-med);
+  font-family: var(--font); font-size: var(--fs-sm); font-weight: 600;
+  transition: background-color var(--dur-1) var(--ease), border-color var(--dur-1) var(--ease);
 }
 .rcp-tipo .material-symbols-outlined { font-size: 18px; color: var(--rc-c); }
-.rcp-tipo:hover { background: var(--md-surface-variant); }
+.rcp-tipo:hover { background: color-mix(in srgb, currentColor 8%, transparent); }
 .rcp-tipo.activo { background: var(--rc-bg); border-color: var(--rc-c); color: var(--md-on-surface); }
-.rcp input[type=text], .rcp input[type=date], .rcp input[type=time] {
-  width: 100%; padding: .65rem .8rem; border: 1.5px solid var(--md-outline); border-radius: 12px; background: transparent;
-  color: var(--md-on-surface); font-family: var(--font); font-size: .9rem; outline: none; transition: all 150ms;
-}
-.rcp input:hover { border-color: var(--md-on-surface-med); }
-.rcp input:focus { border-color: var(--md-primary); box-shadow: 0 0 0 3px rgba(43,92,117,.12); }
 .rcp-fila { display: grid; grid-template-columns: 1.3fr 1fr; gap: .75rem; }
-.rcp-campo > span { display: block; margin: 0 0 .2rem .2rem; font-size: .72rem; font-weight: 600; color: var(--md-on-surface-med); }
 .rcp-rapidas { display: flex; flex-wrap: wrap; gap: .35rem; }
 .rcp-rapida {
-  border: none; background: var(--md-surface-variant); color: var(--md-on-surface-med); border-radius: 999px; padding: .2rem .7rem;
-  font-family: var(--font); font-size: .76rem; font-weight: 600; cursor: pointer; transition: all 150ms;
+  border: none; background: var(--md-surface-variant); color: var(--md-on-surface-med); border-radius: var(--md-shape-full); padding: .2rem .7rem;
+  font-family: var(--font); font-size: var(--fs-xs); font-weight: 600; cursor: pointer;
+  transition: background-color var(--dur-1) var(--ease), color var(--dur-1) var(--ease);
 }
 .rcp-rapida:hover { background: var(--md-primary-light); color: var(--md-primary-dark); }
-.rcp-acciones { display: flex; align-items: center; justify-content: flex-end; gap: .5rem; }
-.rcp-btn {
-  display: inline-flex; align-items: center; justify-content: center; gap: .4rem; height: 38px; padding: 0 1.2rem; border-radius: 999px; cursor: pointer;
-  border: 1px solid var(--md-outline); background: transparent; color: var(--md-primary); font-family: var(--font); font-size: .85rem; font-weight: 600; transition: all 150ms;
-}
-.rcp-btn:hover:not(:disabled) { background: var(--md-primary-light); }
-.rcp-btn.primario { background: var(--md-primary-container); border-color: var(--md-primary-container); color: var(--md-primary-dark); }
-.rcp-btn.primario:hover:not(:disabled) { filter: brightness(.97); }
-.rcp-btn:disabled { opacity: .5; cursor: not-allowed; }
-.rcp-btn .material-symbols-outlined { font-size: 18px; }
-.rcp-msg { min-height: 1.1rem; font-size: .78rem; font-weight: 500; color: var(--md-success); }
+.rcp-acciones { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+.rcp-msg { min-height: 1.1rem; font-size: var(--fs-xs); font-weight: 500; color: var(--md-success); }
 .rcp-msg.error { color: var(--md-error); }
 
 /* ── Listas ── */
 .rcp-grupo-tit {
   display: flex; align-items: center; gap: .5rem; padding: .95rem 1.1rem .3rem;
-  font-size: .68rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--md-on-surface-med);
+  font-size: var(--fs-2xs); font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--md-on-surface-med);
 }
 .rcp-grupo-tit.atrasados { color: var(--md-error); }
-.rcp-grupo-tit .n { background: var(--md-surface-variant); border-radius: 999px; padding: 0 .45rem; font-size: .68rem; }
-.rcp-item { display: flex; align-items: flex-start; gap: .35rem; padding: .4rem 1rem .4rem .55rem; border-left: 3px solid transparent; transition: background 150ms; }
+.rcp-grupo-tit .n { background: var(--md-surface-variant); border-radius: var(--md-shape-full); padding: 0 .45rem; font-size: var(--fs-2xs); }
+.rcp-item { display: flex; align-items: flex-start; gap: .35rem; padding: .4rem 1rem .4rem .55rem; border-left: 3px solid transparent; transition: background-color var(--dur-1) var(--ease); }
 .rcp-item:hover { background: var(--md-surface-variant); }
 .rcp-item.editando { background: var(--md-primary-light); border-left-color: var(--md-primary); }
 .rcp-icono-btn {
   flex-shrink: 0; width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center;
-  border: none; background: transparent; border-radius: 50%; color: var(--md-on-surface-low); cursor: pointer; transition: all 150ms;
+  border: none; background: transparent; border-radius: 50%; color: var(--md-on-surface-low); cursor: pointer;
+  transition: background-color var(--dur-1) var(--ease), color var(--dur-1) var(--ease), opacity var(--dur-1) var(--ease);
 }
 .rcp-icono-btn:hover { background: var(--md-primary-light); color: var(--md-primary-dark); }
-.rcp-icono-btn:focus-visible { outline: 2px solid var(--md-primary); outline-offset: 1px; }
 .rcp-item.hecho .rcp-check { color: var(--md-success); }
 .rcp-cuerpo { flex: 1; min-width: 0; padding-top: .25rem; cursor: pointer; }
-.rcp-item-texto { font-size: .9rem; line-height: 1.35; overflow-wrap: anywhere; }
+.rcp-item-texto { font-size: var(--fs-md); line-height: 1.35; overflow-wrap: anywhere; }
 .rcp-item.hecho .rcp-item-texto { color: var(--md-on-surface-low); text-decoration: line-through; }
-.rcp-meta { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; margin-top: .25rem; font-size: .74rem; color: var(--md-on-surface-med); }
+.rcp-meta { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; margin-top: .25rem; font-size: var(--fs-xs); color: var(--md-on-surface-med); }
 .rcp-item.atrasado .rcp-meta .cuando { color: var(--md-error); font-weight: 600; }
-.rcp-tag { display: inline-flex; align-items: center; gap: .2rem; padding: 0 .55rem 0 .3rem; border-radius: 999px; background: var(--rc-bg); color: var(--md-on-surface); font-weight: 600; }
+.rcp-tag { display: inline-flex; align-items: center; gap: .2rem; padding: 0 .55rem 0 .3rem; border-radius: var(--md-shape-full); background: var(--rc-bg); color: var(--md-on-surface); font-weight: 600; }
 .rcp-tag .material-symbols-outlined { font-size: 14px; color: var(--rc-c); }
 .rcp-borrar { opacity: 0; }
 .rcp-item:hover .rcp-borrar, .rcp-borrar:focus-visible { opacity: 1; }
 .rcp-borrar:hover { background: var(--md-error-bg); color: var(--md-error); }
 @media (hover: none) { .rcp-borrar { opacity: 1; } }
-.rcp-vacio { padding: 2.2rem 1.2rem; text-align: center; color: var(--md-on-surface-low); font-size: .85rem; }
+.rcp-vacio { padding: 2.2rem 1.2rem; text-align: center; color: var(--md-on-surface-low); font-size: var(--fs-md); }
 .rcp-hechos { margin-top: .4rem; border-top: 1px solid var(--md-outline); }
 .rcp-hechos > summary { list-style: none; cursor: pointer; }
 .rcp-hechos > summary::-webkit-details-marker { display: none; }
@@ -109,10 +97,10 @@
         <button title="Tipo: nota" type="button" class="rcp-tipo rc-t-nota"    data-tipo="Nota"><span class="material-symbols-outlined">sticky_note_2</span>Nota</button>
         <button title="Tipo: festivo" type="button" class="rcp-tipo rc-t-festivo" data-tipo="Festivo"><span class="material-symbols-outlined">flag</span>Festivo</button>
       </div>
-      <input type="text" class="rcp-texto" placeholder="¿Qué quieres recordar?" maxlength="200" autocomplete="off" aria-label="Texto del recordatorio">
+      <div class="md-campo md-campo--compacto"><input type="text" class="md-campo__control rcp-texto" placeholder="¿Qué quieres recordar?" maxlength="200" autocomplete="off" aria-label="Texto del recordatorio"></div>
       <div class="rcp-fila">
-        <label class="rcp-campo"><span>Fecha</span><input type="date" class="rcp-fecha"></label>
-        <label class="rcp-campo"><span>Hora (opcional)</span><input type="time" class="rcp-hora"></label>
+        <label class="md-campo md-campo--compacto rcp-campo"><input type="date" class="md-campo__control rcp-fecha"><span class="md-campo__etiqueta">Fecha</span></label>
+        <label class="md-campo md-campo--compacto rcp-campo"><input type="time" class="md-campo__control rcp-hora"><span class="md-campo__etiqueta">Hora (opcional)</span></label>
       </div>
       <div class="rcp-rapidas">
         <button title="Fecha: hoy" type="button" class="rcp-rapida" data-rapida="hoy">Hoy</button>
@@ -121,8 +109,8 @@
         <button title="Dejar sin fecha" type="button" class="rcp-rapida" data-rapida="sin">Sin fecha</button>
       </div>
       <div class="rcp-acciones">
-        <button title="Dejar de editar este recordatorio" type="button" class="rcp-btn rcp-cancelar" hidden>Cancelar edición</button>
-        <button title="Guardar el recordatorio" type="button" class="rcp-btn primario rcp-guardar"><span class="material-symbols-outlined">add</span><span class="rcp-guardar-txt">Añadir</span></button>
+        <button title="Dejar de editar este recordatorio" type="button" class="md-btn md-btn--text rcp-cancelar" hidden>Cancelar edición</button>
+        <button title="Guardar el recordatorio" type="button" class="md-btn md-btn--tonal rcp-guardar"><span class="material-symbols-outlined">add</span><span class="rcp-guardar-txt">Añadir</span></button>
       </div>
       <div class="rcp-msg" role="status" aria-live="polite"></div>
     </section>

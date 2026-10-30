@@ -12,60 +12,56 @@
         el horario ni el rango, se envía { horarios: [], diasCerrados } sin desde/hasta, y el resto de horarios no se toca.
     · onAplicado(res) → se llama cuando el servidor confirma; la página cierra el panel y recarga la semana
   Devuelve { haCambiado(), alEscape(), cerrar() }.
-  Servidor: agenda/Disponibilidad.gs (obtenerDisponibilidadWeb, aplicarDisponibilidadWeb). Estilos acotados a .dsp y basados en los
-  tokens --md-* (como Panel_Recordatorios).
+  Servidor: agenda/Disponibilidad.gs (obtenerDisponibilidadWeb, aplicarDisponibilidadWeb). Estilos acotados a .dsp; colores, esquinas
+  y tiempos salen de ui/CSS_Global (botones .md-btn, campos .md-campo--compacto; el foco con teclado lo da la regla global).
   Marcada = hora DISPONIBLE (por defecto todas). Al aplicar, las horas sin marca quedan cerradas en todas las fechas del rango que
   coincidan con los días de la semana elegidos; lo que hubiera antes en esas fechas se sustituye. Las citas ya puestas se mantienen.
 -->
 <style>
-.dsp { display: flex; flex-direction: column; height: 100%; min-height: 0; font-family: var(--font); font-size: 14px; color: var(--md-on-surface); background: var(--md-surface); }
+.dsp { display: flex; flex-direction: column; height: 100%; min-height: 0; font-family: var(--font); font-size: var(--fs-md); color: var(--md-on-surface); background: var(--md-surface); }
 .dsp-scroll { flex: 1; min-height: 0; overflow: auto; padding: 1rem 1.1rem; display: flex; flex-direction: column; gap: 1.2rem; }
 .dsp-sec { display: flex; flex-direction: column; gap: .65rem; }
-.dsp-sec h3 { margin: 0; font-size: .78rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--md-on-surface-med); }
-.dsp-ayuda { margin: 0; font-size: .8rem; line-height: 1.45; color: var(--md-on-surface-med); }
+.dsp-sec h3 { margin: 0; font-size: var(--fs-xs); font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--md-on-surface-med); }
+.dsp-ayuda { margin: 0; font-size: var(--fs-sm); line-height: 1.45; color: var(--md-on-surface-med); }
 .dsp-fechas { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
-.dsp-campo > span { display: block; margin: 0 0 .2rem .2rem; font-size: .72rem; font-weight: 600; color: var(--md-on-surface-med); }
-.dsp input[type=date] { width: 100%; padding: .6rem .75rem; border: 1.5px solid var(--md-outline); border-radius: 12px; background: transparent; color: var(--md-on-surface); font-family: var(--font); font-size: .9rem; outline: none; transition: all 150ms; }
-.dsp input[type=date]:hover { border-color: var(--md-on-surface-med); }
-.dsp input[type=date]:focus { border-color: var(--md-primary); box-shadow: 0 0 0 3px rgba(43,92,117,.12); }
 .dsp-rapidas { display: flex; flex-wrap: wrap; gap: .35rem; }
-.dsp-rapida, .dsp-link { border: none; background: var(--md-surface-variant); color: var(--md-on-surface-med); border-radius: 999px; padding: .2rem .7rem; font-family: var(--font); font-size: .76rem; font-weight: 600; cursor: pointer; transition: all 150ms; }
+.dsp-rapida, .dsp-link { border: none; background: var(--md-surface-variant); color: var(--md-on-surface-med); border-radius: var(--md-shape-full); padding: .2rem .7rem; font-family: var(--font); font-size: var(--fs-xs); font-weight: 600; cursor: pointer; transition: background-color var(--dur-1) var(--ease), color var(--dur-1) var(--ease); }
 .dsp-rapida:hover, .dsp-link:hover { background: var(--md-primary-light); color: var(--md-primary-dark); }
+/* Botones que se marcan y desmarcan (días, horario que se edita, horas): esquina y borde de control; pasar el raton = capa del color del texto al 8 % */
+.dsp-dia, .dsp-tab, .dsp-hora {
+  border-radius: var(--md-shape-sm); border: 1.5px solid var(--md-outline-strong); background: transparent; color: var(--md-on-surface-med);
+  font-family: var(--font); cursor: pointer;
+  transition: background-color var(--dur-1) var(--ease), border-color var(--dur-1) var(--ease), color var(--dur-1) var(--ease);
+}
+.dsp-dia:hover, .dsp-tab:hover, .dsp-hora:hover {
+  background-image: linear-gradient(color-mix(in srgb, currentColor 8%, transparent), color-mix(in srgb, currentColor 8%, transparent));
+}
+.dsp-dia[aria-pressed=true], .dsp-tab[aria-pressed=true] { background-color: var(--md-primary-light); border-color: var(--md-primary); color: var(--md-primary-dark); }
 .dsp-dias { display: flex; gap: .4rem; }
-.dsp-dia { flex: 1; height: 36px; border-radius: 10px; border: 1.5px solid var(--md-outline); background: transparent; color: var(--md-on-surface-med); font-family: var(--font); font-size: .85rem; font-weight: 700; cursor: pointer; transition: all 150ms; }
-.dsp-dia:hover { background: var(--md-surface-variant); }
-.dsp-dia[aria-pressed=true] { background: var(--md-primary-light); border-color: var(--md-primary); color: var(--md-primary-dark); }
-.dsp-bloque-cab { display: flex; align-items: center; justify-content: space-between; margin-bottom: .4rem; font-size: .85rem; font-weight: 600; }
+.dsp-dia { flex: 1; height: 36px; font-size: var(--fs-md); font-weight: 700; }
+.dsp-bloque-cab { display: flex; align-items: center; justify-content: space-between; margin-bottom: .4rem; font-size: var(--fs-md); font-weight: 600; }
 .dsp-horas { display: grid; grid-template-columns: repeat(4, 1fr); gap: .4rem; }
-.dsp-hora { height: 34px; border-radius: 10px; border: 1.5px solid var(--md-primary); background: var(--md-primary-light); color: var(--md-primary-dark); font-family: var(--font); font-size: .82rem; font-weight: 600; font-variant-numeric: tabular-nums; cursor: pointer; transition: all 150ms; }
-.dsp-hora:hover { filter: brightness(.97); }
-.dsp-hora[aria-pressed=false] { border: 1.5px dashed var(--md-outline); background: transparent; color: var(--md-on-surface-med); text-decoration: line-through; opacity: .8; }
+.dsp-hora { height: 34px; border-color: var(--md-primary); background-color: var(--md-primary-light); color: var(--md-primary-dark); font-size: var(--fs-sm); font-weight: 600; font-variant-numeric: tabular-nums; }
+.dsp-hora[aria-pressed=false] { border-style: dashed; border-color: var(--md-outline-strong); background-color: transparent; color: var(--md-on-surface-med); text-decoration: line-through; opacity: .8; }
 .dsp-todas { align-self: flex-start; }
-.dsp-anadir { display: flex; align-items: center; gap: .5rem; }
-.dsp-anadir input[type=date] { flex: 1; min-width: 0; }
+.dsp-anadir { display: flex; align-items: flex-end; gap: .5rem; }
+.dsp-anadir .md-campo { flex: 1; min-width: 0; }
 .dsp-chips { display: flex; flex-wrap: wrap; gap: .4rem; }
 .dsp-chips:empty { display: none; }
-.dsp-chip { display: inline-flex; align-items: center; gap: .15rem; padding: .15rem .3rem .15rem .75rem; border-radius: 999px; background: var(--md-surface-variant); color: var(--md-on-surface); font-size: .78rem; font-weight: 600; font-variant-numeric: tabular-nums; }
-.dsp-chip button { border: none; background: transparent; color: var(--md-on-surface-med); font-size: 1.05rem; line-height: 1; padding: 0 .3rem; border-radius: 999px; cursor: pointer; }
+.dsp-chip { display: inline-flex; align-items: center; gap: .15rem; padding: .15rem .3rem .15rem .75rem; border-radius: var(--md-shape-full); background: var(--md-surface-variant); color: var(--md-on-surface); font-size: var(--fs-xs); font-weight: 600; font-variant-numeric: tabular-nums; }
+.dsp-chip button { border: none; background: transparent; color: var(--md-on-surface-med); font-size: var(--fs-lg); line-height: 1; padding: 0 .3rem; border-radius: var(--md-shape-full); cursor: pointer; transition: color var(--dur-1) var(--ease); }
 .dsp-chip button:hover { color: var(--md-error); }
-.dsp-check { display: flex; align-items: center; gap: .5rem; font-size: .85rem; font-weight: 600; cursor: pointer; }
+.dsp-check { display: flex; align-items: center; gap: .5rem; font-size: var(--fs-md); font-weight: 600; cursor: pointer; }
 .dsp-check input { width: 18px; height: 18px; margin: 0; accent-color: var(--md-primary); cursor: pointer; }
 .dsp-tabs { display: flex; gap: .4rem; }
 .dsp-tabs[hidden] { display: none; }
-.dsp-tab { flex: 1; height: 36px; border-radius: 10px; border: 1.5px solid var(--md-outline); background: transparent; color: var(--md-on-surface-med); font-family: var(--font); font-size: .82rem; font-weight: 700; cursor: pointer; transition: all 150ms; }
-.dsp-tab:hover { background: var(--md-surface-variant); }
-.dsp-tab[aria-pressed=true] { background: var(--md-primary-light); border-color: var(--md-primary); color: var(--md-primary-dark); }
-.dsp-resumen { margin: 0; font-size: .82rem; line-height: 1.5; color: var(--md-on-surface-med); }
+.dsp-tab { flex: 1; height: 36px; font-size: var(--fs-sm); font-weight: 700; }
+.dsp-resumen { margin: 0; font-size: var(--fs-sm); line-height: 1.5; color: var(--md-on-surface-med); }
 .dsp-resumen b { color: var(--md-on-surface); }
 .dsp-resumen .aviso { display: block; margin-top: .3rem; color: var(--md-on-surface); }
-.dsp-msg { display: none; margin: 0; font-size: .82rem; color: var(--md-error); }
+.dsp-msg { display: none; margin: 0; font-size: var(--fs-sm); color: var(--md-error); }
 .dsp-msg.visible { display: block; }
-.dsp-pie { display: flex; align-items: center; justify-content: flex-end; gap: .5rem; padding: .8rem 1.1rem; border-top: 1px solid var(--md-outline); background: var(--md-surface); }
-.dsp-btn { display: inline-flex; align-items: center; justify-content: center; height: 38px; padding: 0 1.2rem; border-radius: 999px; cursor: pointer; border: 1px solid var(--md-outline); background: transparent; color: var(--md-primary); font-family: var(--font); font-size: .85rem; font-weight: 600; transition: all 150ms; }
-.dsp-btn:hover:not(:disabled) { background: var(--md-primary-light); }
-.dsp-btn.primario { background: var(--md-primary-container); border-color: var(--md-primary-container); color: var(--md-primary-dark); }
-.dsp-btn:disabled { opacity: .5; cursor: not-allowed; }
-.dsp button:focus-visible, .dsp input:focus-visible { outline: 2px solid var(--md-primary); outline-offset: 2px; }
+.dsp-pie { display: flex; align-items: center; justify-content: flex-end; gap: 8px; padding: .8rem 1.1rem; border-top: 1px solid var(--md-outline); background: var(--md-surface); }
 </style>
 <script>
 window.PanelDisponibilidad = (function () {
@@ -121,8 +117,8 @@ window.PanelDisponibilidad = (function () {
           '<div class="dsp-scroll">' +
             '<section class="dsp-sec"><h3>Días</h3>' +
               '<div class="dsp-fechas">' +
-                '<label class="dsp-campo"><span>Desde</span><input type="date" class="dsp-desde"></label>' +
-                '<label class="dsp-campo"><span>Hasta</span><input type="date" class="dsp-hasta"></label>' +
+                '<label class="md-campo md-campo--compacto"><input type="date" class="md-campo__control dsp-desde"><span class="md-campo__etiqueta">Desde</span></label>' +
+                '<label class="md-campo md-campo--compacto"><input type="date" class="md-campo__control dsp-hasta"><span class="md-campo__etiqueta">Hasta</span></label>' +
               '</div>' +
               '<div class="dsp-rapidas"><button type="button" class="dsp-rapida" data-rap="semana">Esta semana</button><button type="button" class="dsp-rapida" data-rap="mes">Este mes</button></div>' +
               '<div class="dsp-dias" role="group" aria-label="Días de la semana">' +
@@ -142,13 +138,13 @@ window.PanelDisponibilidad = (function () {
             '</section>' +
             '<section class="dsp-sec"><h3>Días cerrados</h3>' +
               '<p class="dsp-ayuda">Festivos, bajas o cualquier día sin consulta: se cierra el día completo, aunque esté fuera del rango de arriba. Mientras no toques el horario ni el rango, solo se cierran estos días y el resto no cambia.</p>' +
-              '<div class="dsp-anadir"><input type="date" class="dsp-cerrado-fecha" aria-label="Día que se cierra"><button type="button" class="dsp-btn" data-accion="anadir-cerrado">Añadir</button></div>' +
+              '<div class="dsp-anadir"><div class="md-campo md-campo--compacto"><input type="date" class="md-campo__control dsp-cerrado-fecha" aria-label="Día que se cierra"></div><button type="button" class="md-btn md-btn--outline" data-accion="anadir-cerrado"><span class="material-symbols-outlined" aria-hidden="true">event_busy</span>Añadir</button></div>' +
               '<div class="dsp-chips"></div>' +
             '</section>' +
             '<p class="dsp-resumen" aria-live="polite"></p>' +
             '<p class="dsp-msg" role="alert"></p>' +
           '</div>' +
-          '<div class="dsp-pie"><button type="button" class="dsp-btn dsp-cancelar">Cancelar</button><button type="button" class="dsp-btn primario dsp-aplicar">Aplicar</button></div>' +
+          '<div class="dsp-pie"><button type="button" class="md-btn md-btn--text dsp-cancelar">Cancelar</button><button type="button" class="md-btn md-btn--tonal dsp-aplicar">Aplicar</button></div>' +
         '</div>';
 
       var raiz = host.querySelector('.dsp');
