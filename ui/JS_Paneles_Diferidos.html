@@ -69,7 +69,7 @@ var PanelesDiferidos = (function () {
           ctl = window[global].abrir(host, opts);
         }, function () {
           if (!host.isConnected) return;
-          estadoEnHost(host, 'No se pudo cargar el formulario.<br><button type="button" class="pd-reintentar" style="margin-top:.8rem;padding:.45rem 1rem;border:1px solid var(--md-outline, #dadce0);border-radius:50px;background:transparent;color:inherit;font:inherit;cursor:pointer">Reintentar</button>');
+          estadoEnHost(host, 'No se pudo cargar el formulario.<br><button type="button" class="pd-reintentar md-btn md-btn--outline" style="margin-top:.8rem">Reintentar</button>');
           var b = host.querySelector('.pd-reintentar');
           if (b) b.addEventListener('click', function () { ctl = resguardo.abrir(host, opts); });
         });

@@ -26,20 +26,7 @@
         --md-on-surface-med:   light-dark(#5f6368, #aab1c0);
         --md-on-surface-low:   light-dark(#80868b, #7f8797);
 
-        --tabs-bg:             light-dark(#e7eff6, #1b2733);
-
-        /* Nombres heredados de las paginas (se retiran en la fase V7) */
-        --md-texto-secundario: light-dark(#45494f, #c7cdd8);
-        --on-warn:             light-dark(#6b4300, #f6d58a);
-        --on-err:              light-dark(#9c2a1f, #f7c5c2);
-        --on-purple:           light-dark(#5a2596, #dcc3fb);
-
-        --radius-sm: 4px;
-        --radius-md: 8px;
-        --radius-pill: 50px;
-
         --font: 'Google Sans', 'Segoe UI', Arial, sans-serif;
-        --transition: 150ms cubic-bezier(.2,0,0,1);
       }
 
       /* Tema: auto sigue al sistema; el selector de cada pagina pone data-tema="claro" u "oscuro".
@@ -66,8 +53,8 @@
       .toast-aviso .aviso-icono.aviso { color: #fdd663; }
       .toast-aviso .aviso-icono.error { color: #fff; }
       /* ============================================================================
-         SISTEMA DE DISENO (fase V1, 28-oct-2026). Referencia: docs/diseno/SISTEMA_DE_DISENO.md
-         Ninguna pagina usa todavia estos componentes (se van migrando en las fases V3 a V6).
+         SISTEMA DE DISENO (fases V1 a V7, 28 a 30-oct-2026). Referencia visual: ?page=guiaVisual (ui/Guia_Visual)
+         Los usan todas las paginas y formularios (migrados en las fases V3 a V7).
          Los colores con light-dark() eligen claro u oscuro segun el color-scheme
          de la pagina (claro / oscuro / auto).
          ============================================================================ */
@@ -85,6 +72,11 @@
         --md-data-evento:  #14a38b;
         --md-data-nota:    #e0a000;
         --md-data-festivo: #e5484d;
+        --md-data-festivo-fg: #ffffff;   /* texto sobre el rojo de festivo (mismo en los dos temas) */
+
+        /* --- Otros (V7): resaltado de la busqueda y verde de WhatsApp (color de marca, solo al pasar el raton por su boton) --- */
+        --md-resaltado: light-dark(#fff1a8, #5c4d0f);
+        --md-whatsapp:  light-dark(#1fa855, #25d366);
 
         /* --- Dolor y analgesicos (V6, formulario de Valoracion): alias de los semanticos, asi siguen el tema --- */
         --md-pain-low:      var(--md-success);
@@ -308,6 +300,58 @@
       }
       .modal-mensaje { font-size: var(--fs-md); color: var(--md-on-surface); white-space: pre-line; line-height: 1.45; margin: 0 0 1.5rem; }
       .modal-botones { display: flex; justify-content: flex-end; gap: 8px; }
+
+      /* --- Piezas comunes de las cuatro pestanas (Usuarios, Agenda, Valoraciones, Estadisticas): barra de pestanas,
+             cabecera, botones de la barra y buscador. Una sola definicion; cada pagina solo anade su colocacion
+             (relleno de la cabecera, ancho del buscador...). (V7, 30-oct-2026) --- */
+      nav.tabs-cambio { display: flex; gap: .25rem; flex-shrink: 0; background: var(--md-bg); padding: .5rem .75rem 0; border-bottom: 1px solid var(--md-outline); }
+      nav.tabs-cambio a.tab-cambio {
+        display: inline-flex; align-items: center; gap: .4rem; background: transparent; color: var(--md-primary-dark); text-decoration: none;
+        font-family: var(--font); font-weight: 600; font-size: .82rem; padding: .5rem 1rem; border-radius: var(--md-shape-sm) var(--md-shape-sm) 0 0;
+        transition: background-color var(--dur-1) var(--ease), color var(--dur-1) var(--ease);
+      }
+      nav.tabs-cambio a.tab-cambio:hover { background: color-mix(in srgb, var(--md-primary) 6%, transparent); }
+      nav.tabs-cambio a.tab-cambio.activo { background: var(--md-primary-container); color: var(--md-primary-dark); cursor: default; }
+      nav.tabs-cambio a.tab-cambio .material-symbols-outlined { font-size: 18px; }
+
+      header.top { background: var(--md-surface); border-bottom: 1px solid var(--md-outline); flex-shrink: 0; box-shadow: var(--md-elev-1); position: relative; z-index: var(--z-sticky); padding: .6rem 1rem; }
+      /* Cabecera comun en UNA fila (solo se parte si no cabe), mismo orden en las cuatro pestanas:
+         titulo · buscador · controles propios de la pestana · espacio · herramientas y Deshacer · tema · accion principal (a la derecha) */
+      .cabecera-fila { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; min-height: 40px; }
+      .cabecera-titulo { display: flex; align-items: center; gap: .5rem; margin: 0 .5rem 0 0; font-size: 1.05rem; font-weight: 600; line-height: 1.2; white-space: nowrap; }
+      .cabecera-titulo .material-symbols-outlined { font-size: 22px; color: var(--md-primary); }
+      .cabecera-titulo .contador { font-size: .78rem; color: var(--md-on-surface-med); font-weight: 400; }
+      .cabecera-fila .buscador { flex: 0 1 320px; min-width: 200px; }
+      .cabecera-espacio { flex: 1; }
+      .separador-toolbar { width: 1px; align-self: stretch; background: var(--md-outline); margin: .2rem .3rem; }
+
+      .btn-toolbar {
+        display: inline-flex; align-items: center; gap: .3rem; box-sizing: border-box; min-height: 32px; padding: .35rem .8rem;
+        background: var(--md-surface); border: 1px solid var(--md-outline); border-radius: var(--md-shape-full); color: var(--md-on-surface);
+        font-family: var(--font); font-size: .8rem; font-weight: 500; cursor: pointer;
+        transition: background-color var(--dur-1) var(--ease), border-color var(--dur-1) var(--ease), color var(--dur-1) var(--ease);
+      }
+      .btn-toolbar:hover:not(:disabled) { background-color: var(--md-surface-variant); }
+      .btn-toolbar .material-symbols-outlined { font-size: 18px; }
+      .btn-toolbar.btn-nav, .btn-toolbar.icono-solo { width: 36px; padding: 0; justify-content: center; }   /* boton de barra con solo icono */
+      .btn-toolbar:disabled { opacity: .45; cursor: not-allowed; }
+      .btn-toolbar.primario, .btn-toolbar.activo { background-color: var(--md-primary-container); border-color: transparent; color: var(--md-primary-dark); }
+      .btn-toolbar.deshacer { display: none; background-color: var(--md-warning-bg); border-color: var(--md-warning); color: var(--md-warning-text); }
+      .btn-toolbar.deshacer.visible { display: inline-flex; }
+      .btn-toolbar.primario:hover:not(:disabled), .btn-toolbar.activo:hover:not(:disabled), .btn-toolbar.deshacer:hover:not(:disabled) {
+        background-image: linear-gradient(color-mix(in srgb, currentColor 8%, transparent), color-mix(in srgb, currentColor 8%, transparent));
+      }
+      .btn-toolbar.primario:hover:not(:disabled), .btn-toolbar.activo:hover:not(:disabled) { background-color: var(--md-primary-container); }
+      .btn-toolbar.deshacer:hover:not(:disabled) { background-color: var(--md-warning-bg); }
+      .btn-toolbar.peligro { color: var(--md-error); }
+      .btn-toolbar.peligro:hover:not(:disabled), .btn-toolbar.destructivo:hover:not(:disabled) { background-color: var(--md-error-bg); border-color: var(--md-error); color: var(--md-error); }
+
+      /* Buscador: pastilla con el campo sin borde dentro; el foco se marca con un anillo de 2 px en la pastilla */
+      .buscador { display: flex; align-items: center; gap: .4rem; box-sizing: border-box; min-height: 34px; padding: .4rem .8rem; background: var(--md-surface-variant); border-radius: var(--md-shape-full); }
+      .buscador:focus-within { box-shadow: 0 0 0 2px var(--md-primary); }
+      .buscador input { flex: 1; min-width: 0; border: none; outline: none; background: transparent; color: var(--md-on-surface); font-family: var(--font); font-size: .85rem; }
+      .buscador input::placeholder { color: var(--md-on-surface-low); }
+      .buscador .material-symbols-outlined { color: var(--md-on-surface-low); font-size: 18px; }
 
       /* --- Reducir movimiento (V2): una sola llave. Las cuatro duraciones pasan a casi 0 y todo lo que
              usa --dur-* lo respeta. El girador sigue girando (es informacion), mas despacio. --- */

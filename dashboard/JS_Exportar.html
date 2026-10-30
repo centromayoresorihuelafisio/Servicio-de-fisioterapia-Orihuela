@@ -11,7 +11,9 @@
    *   Exportar.nombreSeguro(texto)      → nombre de archivo sin tildes ni símbolos.
    */
   window.Exportar = (function () {
-    var COLORES = ['#2b5c75', '#137333', '#f29900', '#8430ce', '#c5221f', '#80868b'];   // = gr-b0..5 en tema claro
+    // = gr-b0..5 en tema claro (valores claros de --md-primary, --md-success, --md-warning, --md-purple, --md-error y
+    // --md-on-surface-low de ui/CSS_Global). El lienzo del PNG necesita el color escrito: si cambian allí, cambiarlos aquí.
+    var COLORES = ['#0b57d0', '#137333', '#f29900', '#8430ce', '#c5221f', '#80868b'];
     var FUENTE = 'Arial, Helvetica, sans-serif';
 
     // ---------- ZIP (sin compresión) ----------

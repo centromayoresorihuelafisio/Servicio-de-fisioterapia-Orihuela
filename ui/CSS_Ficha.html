@@ -78,13 +78,9 @@ button.fu-chip:hover { background-image: linear-gradient(color-mix(in srgb, curr
 .fu-otros > .fu-campos { padding: 0 1.25rem 1.15rem; }
 
 /* ---------- Pie con acciones propias de la pagina (opcional) ---------- */
-.fu-pie { flex: none; display: flex; flex-wrap: wrap; gap: .4rem; padding: .7rem 1rem; border-top: 1px solid var(--md-outline); }
-.fu-boton { display: inline-flex; align-items: center; gap: .3rem; border: 1px solid var(--md-outline-strong); background: transparent; border-radius: var(--md-shape-full); padding: .35rem .8rem; font-family: var(--font); font-size: var(--fs-xs); font-weight: 500; cursor: pointer; color: var(--md-on-surface);
-  transition: background-color var(--dur-1) var(--ease), border-color var(--dur-1) var(--ease); }
-.fu-boton:hover { background: var(--md-surface-variant); }
-.fu-boton .material-symbols-outlined { font-size: 16px; }
-.fu-boton.peligro { color: var(--md-error); margin-left: auto; }
-.fu-boton.peligro:hover { background: var(--md-error-bg); border-color: var(--md-error); }
+/* Los botones del pie son .md-btn (--outline y --danger) de ui/CSS_Global; aquí solo su colocación */
+.fu-pie { flex: none; display: flex; flex-wrap: wrap; gap: 8px; padding: .7rem 1rem; border-top: 1px solid var(--md-outline); }
+.fu-boton.peligro { margin-left: auto; }
 
 /* ---------- Menu flotante de estado (lo usa la Agenda; Usuarios tiene el suyo) ---------- */
 .fu-menu { position: fixed; z-index: var(--z-popover); min-width: 190px; background: var(--md-surface); border: 1px solid var(--md-outline); border-radius: var(--md-shape-md); box-shadow: var(--md-elev-2); padding: .3rem; }

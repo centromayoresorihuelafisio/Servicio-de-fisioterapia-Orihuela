@@ -13,7 +13,8 @@
   Servidor: agenda/Recordatorios.gs. Estilos acotados a .rcp; colores, esquinas y tiempos salen de ui/CSS_Global
   (botones .md-btn, campos .md-campo--compacto; el foco con teclado lo da la regla global).
   Las clases .rc-t-* (color por tipo) son globales: la página las usa también para las etiquetas de la agenda.
-  --rc-c y --rc-bg se conservan solo porque las lee agenda/Web_Vista (se retiran en V7); su valor sale de --md-data-*.
+  --rc-c y --rc-bg no son una paleta propia: cada clase .rc-t-* las apunta al color de datos de su tipo (--md-data-*), y las
+  etiquetas, puntos y chips del panel y de agenda/Web_Vista leen de ahí el color del tipo que tengan (decidido en V7).
 -->
 <style>
 /* Color por tipo: lo usan el panel y las etiquetas de la agenda */

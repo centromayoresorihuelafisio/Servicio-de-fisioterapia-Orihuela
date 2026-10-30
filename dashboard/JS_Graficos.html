@@ -4,9 +4,9 @@
   .gr-svg { display: block; width: 100%; height: auto; overflow: visible; }
   .gr-eje { stroke: var(--md-outline); stroke-width: 1; }
   .gr-rejilla { stroke: var(--md-outline); stroke-width: 1; stroke-dasharray: 3 3; opacity: .75; }
-  .gr-txt { fill: var(--md-on-surface-med); font-size: 11px; font-family: var(--font); }
-  .gr-val { fill: var(--md-on-surface); font-size: 11px; font-weight: 500; font-family: var(--font); }
-  .gr-vacio { fill: var(--md-on-surface-low); font-size: 12px; font-family: var(--font); }
+  .gr-txt { fill: var(--md-on-surface-med); font-size: var(--fs-2xs); font-family: var(--font); }
+  .gr-val { fill: var(--md-on-surface); font-size: var(--fs-2xs); font-weight: 500; font-family: var(--font); }
+  .gr-vacio { fill: var(--md-on-surface-low); font-size: var(--fs-xs); font-family: var(--font); }
   .gr-s0 { fill: var(--md-primary); }  .gr-s1 { fill: var(--md-success); }  .gr-s2 { fill: var(--md-warning); }
   .gr-s3 { fill: var(--md-purple); }   .gr-s4 { fill: var(--md-error); }    .gr-s5 { fill: var(--md-on-surface-low); }
   .gr-l0 { stroke: var(--md-primary); } .gr-l1 { stroke: var(--md-success); } .gr-l2 { stroke: var(--md-warning); }
@@ -20,20 +20,21 @@
   @keyframes gr-crece { from { transform: scaleX(0); } }
   @keyframes gr-traza { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
   @keyframes gr-aparece { from { opacity: 0; } }
-  .gr-entra .gr-barra { transform-box: fill-box; transform-origin: 50% 100%; animation: gr-sube .6s cubic-bezier(.2, .7, .2, 1) backwards; animation-delay: calc(var(--k, 0) * 30ms); }
-  .gr-entra .gr-barraH { transform-box: fill-box; transform-origin: 0 50%; animation: gr-crece .6s cubic-bezier(.2, .7, .2, 1) backwards; animation-delay: calc(var(--k, 0) * 40ms); }
-  .gr-entra .gr-linea { stroke-dasharray: 1; animation: gr-traza 1s ease-out backwards; }
-  .gr-entra .gr-area { animation: gr-aparece .6s ease-out .35s backwards; }
-  .gr-entra circle, .gr-entra .gr-val { animation: gr-aparece .35s ease-out .6s backwards; }
-  @media (prefers-reduced-motion: reduce) { .gr-entra * { animation: none !important; } }
-  .gr-leyenda { display: flex; flex-wrap: wrap; gap: .25rem .9rem; font-size: .76rem; color: var(--md-on-surface-med); margin-bottom: .4rem; }
+  /* Tiempos y curva de ui/CSS_Global: la llave global de «reducir movimiento» (las --dur-* a casi 0) también los apaga */
+  .gr-entra .gr-barra { transform-box: fill-box; transform-origin: 50% 100%; animation: gr-sube var(--dur-4) var(--ease) backwards; animation-delay: calc(var(--k, 0) * var(--dur-1) / 3); }
+  .gr-entra .gr-barraH { transform-box: fill-box; transform-origin: 0 50%; animation: gr-crece var(--dur-4) var(--ease) backwards; animation-delay: calc(var(--k, 0) * var(--dur-1) / 2.5); }
+  .gr-entra .gr-linea { stroke-dasharray: 1; animation: gr-traza calc(var(--dur-4) * 2) var(--ease) backwards; }
+  .gr-entra .gr-area { animation: gr-aparece var(--dur-4) var(--ease) var(--dur-3) backwards; }
+  .gr-entra circle, .gr-entra .gr-val { animation: gr-aparece var(--dur-3) var(--ease) var(--dur-4) backwards; }
+  .gr-leyenda { display: flex; flex-wrap: wrap; gap: .25rem .9rem; font-size: var(--fs-xs); color: var(--md-on-surface-med); margin-bottom: .4rem; }
   .gr-chip { display: inline-flex; align-items: center; gap: .35rem; }
   .gr-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
   .gr-b0 { background: var(--md-primary); }  .gr-b1 { background: var(--md-success); }  .gr-b2 { background: var(--md-warning); }
   .gr-b3 { background: var(--md-purple); }   .gr-b4 { background: var(--md-error); }    .gr-b5 { background: var(--md-on-surface-low); }
-  /* Contenedor fuera de pantalla para exportar: SIEMPRE en tema claro (la memoria es un documento blanco), con tipografía segura. */
-  .gr-export { --md-primary:#2b5c75; --md-success:#137333; --md-warning:#f29900; --md-purple:#8430ce; --md-error:#c5221f; --md-outline:#dadce0;
-    --md-on-surface:#202124; --md-on-surface-med:#5f6368; --md-on-surface-low:#80868b; --font: Arial, Helvetica, sans-serif; }
+  /* Contenedor fuera de pantalla para exportar: SIEMPRE en tema claro (la memoria es un documento blanco). color-scheme: light hace
+     que los colores de ui/CSS_Global (definidos con light-dark()) salgan en su versión clara. La letra es Arial a propósito: la imagen
+     exportada no puede cargar fuentes web. */
+  .gr-export { color-scheme: light; --font: Arial, Helvetica, sans-serif; }
 </style>
 <script>
   /**

@@ -170,7 +170,8 @@ var FichaUsuario = (function() {
   function htmlPie(lista) {
     if (!lista || !lista.length) return '';
     return '<div class="fu-pie">' + lista.map(function(b) {
-      return '<button type="button" class="fu-boton' + (b.peligro ? ' peligro' : '') + '" data-fu="accion" title="' + esc(b.titulo || b.texto) + '" data-acc="' + esc(b.id) + '">' + icono(b.icono) + esc(b.texto) + '</button>';
+      // Botones del sistema (.md-btn de ui/CSS_Global): acción normal con contorno; la que borra, en rojo suave sin borde.
+      return '<button type="button" class="fu-boton md-btn ' + (b.peligro ? 'md-btn--danger peligro' : 'md-btn--outline') + '" data-fu="accion" title="' + esc(b.titulo || b.texto) + '" data-acc="' + esc(b.id) + '">' + icono(b.icono) + esc(b.texto) + '</button>';
     }).join('') + '</div>';
   }
 

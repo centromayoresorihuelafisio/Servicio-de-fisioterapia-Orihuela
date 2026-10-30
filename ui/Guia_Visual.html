@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Guía visual</title>
+<!--
+  ui/Guia_Visual.html
+  Banco de pruebas visual (decisión D-V7, fase V7): muestra en una sola página todos los componentes del sistema de diseño
+  (colores, letra, botones, campos, chips, avisos, cuadro de diálogo, tarjetas, sombras, carga) tal como los define ui/CSS_Global.
+  Sirve para revisar de un vistazo, en claro y en oscuro, que todo sigue igual tras cualquier cambio de estilo.
+  Se abre con ?page=guiaVisual (core/WebApp.gs); no tiene pestaña. No lee ni escribe datos.
+  El conmutador de tema de arriba solo afecta a esta página: lee el tema guardado ('temaApp') al abrir, pero no lo cambia.
+  Las clases propias van con prefijo .gv- y solo colocan las muestras; el aspecto sale de ui/CSS_Global.
+-->
+<link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600&family=Material+Symbols+Outlined:opsz,wght,FILL@20..48,300..700,0..1&display=swap" rel="stylesheet">
+<script>
+  try { var t0 = localStorage.getItem('temaApp'); if (t0 === 'oscuro' || t0 === 'claro') document.documentElement.setAttribute('data-tema', t0); } catch (err) { /* sin almacenamiento */ }
+</script>
+<style>
+<?!= include('ui/CSS_Global'); ?>
+  body { margin: 0; background: var(--md-bg); color: var(--md-on-surface); font-family: var(--font); font-size: var(--fs-md); line-height: 1.4; }
+  .gv-cab { position: sticky; top: 0; z-index: var(--z-sticky); display: flex; align-items: center; gap: 12px; padding: 12px 24px;
+    background: var(--md-surface); border-bottom: 1px solid var(--md-outline); box-shadow: var(--md-elev-1); }
+  .gv-cab h1 { margin: 0; font-size: var(--fs-h); font-weight: 600; flex: 1; }
+  .gv-pagina { max-width: 1100px; margin: 0 auto; padding: 24px; display: grid; gap: 24px; }
+  .gv-sec { background: var(--md-surface); border: 1px solid var(--md-outline); border-radius: var(--md-shape-md); padding: 16px 20px 20px; }
+  .gv-sec h2 { margin: 0 0 4px; font-size: var(--fs-title); font-weight: 600; }
+  .gv-sec > p { margin: 0 0 16px; color: var(--md-on-surface-med); font-size: var(--fs-sm); }
+  .gv-fila { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+  .gv-rejilla { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
+  .gv-muestras { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+  .gv-muestra { border: 1px solid var(--md-outline); border-radius: var(--md-shape-sm); overflow: hidden; font-size: var(--fs-xs); }
+  .gv-muestra i { display: block; height: 44px; }
+  .gv-muestra span { display: block; padding: 6px 8px; font-family: var(--font-mono); color: var(--md-on-surface-med); }
+  .gv-etq { font-size: var(--fs-xs); color: var(--md-on-surface-low); font-family: var(--font-mono); }
+  .gv-caja { padding: 14px; border-radius: var(--md-shape-md); background: var(--md-surface); border: 1px solid var(--md-outline); min-height: 56px; }
+  .gv-modal { position: static; max-width: 400px; }
+</style>
+</head>
+<body>
+<header class="gv-cab">
+  <span class="material-symbols-outlined" aria-hidden="true">palette</span>
+  <h1>Guía visual</h1>
+  <div class="gv-fila" role="group" aria-label="Tema de esta página">
+    <button type="button" class="md-chip" data-tema-gv="claro">Claro</button>
+    <button type="button" class="md-chip" data-tema-gv="oscuro">Oscuro</button>
+    <button type="button" class="md-chip" data-tema-gv="auto">Automático</button>
+  </div>
+</header>
+
+<main class="gv-pagina">
+
+  <section class="gv-sec">
+    <h2>Colores de marca y superficies</h2>
+    <p>Variables de color de ui/CSS_Global. Cada una tiene su versión clara y oscura.</p>
+    <div class="gv-muestras">
+      <div class="gv-muestra"><i style="background:var(--md-primary)"></i><span>--md-primary</span></div>
+      <div class="gv-muestra"><i style="background:var(--md-primary-dark)"></i><span>--md-primary-dark</span></div>
+      <div class="gv-muestra"><i style="background:var(--md-primary-container)"></i><span>--md-primary-container</span></div>
+      <div class="gv-muestra"><i style="background:var(--md-primary-light)"></i><span>--md-primary-light</span></div>
+      <div class="gv-muestra"><i style="background:var(--md-bg)"></i><span>--md-bg</span></div>
+      <div class="gv-muestra"><i style="background:var(--md-surface)"></i><span>--md-surface</span></div>
+      <div class="gv-muestra"><i style="background:var(--md-surface-variant)"></i><span>--md-surface-variant</span></div>
+      <div class="gv-muestra"><i style="background:var(--md-outline)"></i><span>--md-outline</span></div>
+      <div class="gv-muestra"><i style="background:var(--md-outline-strong)"></i><span>--md-outline-strong</span></div>
+      <div class="gv-muestra"><i style="background:var(--md-on-surface)"></i><span>--md-on-surface</span></div>
+      <div class="gv-muestra"><i style="background:var(--md-on-surface-med)"></i><span>--md-on-surface-med</span></div>
+      <div class="gv-muestra"><i style="background:var(--md-on-surface-low)"></i><span>--md-on-surface-low</span></div>
+    </div>
+  </section>
+
+  <section class="gv-sec">
+    <h2>Colores con significado y de datos</h2>
+    <p>Éxito, aviso, error y morado (con su fondo), y los colores de datos: tipos de recordatorio, dolor, resaltado y WhatsApp.</p>
+    <div class="gv-muestras">
+      <div class="gv-muestra"><i style="background:var(--md-success)"></i><span>--md-success</span></div>
+      <div class="gv-muestra"><i style="background:var(--md-success-bg)"></i><span>--md-success-bg</span></div>
+      <div class="gv-muestra"><i style="background:var(--md-warning)"></i><span>--md-warning</span></div>
+      <div class="gv-muestra"><i style="background:var(--md-warning-text)"></i><span>--md-warning-text</span></div>
+      <div class="gv-muestra"><i style="background:var(--md-warning-bg)"></i><span>--md-warning-bg</span></div>
+      <div class="gv-muestra"><i style="background:var(--md-error)"></i><span>--md-error</span></div>
+      <div class="gv-muestra"><i style="background:var(--md-error-bg)"></i><span>--md-error-bg</span></div>
+      <div class="gv-muestra"><i style="background:var(--md-purple)"></i><span>--md-purple</span></div>
+      <div class="gv-muestra"><i style="background:var(--md-purple-bg)"></i><span>--md-purple-bg</span></div>
+      <div class="gv-muestra"><i style="background:var(--md-data-llamar)"></i><span>--md-data-llamar</span></div>
+      <div class="gv-muestra"><i style="background:var(--md-data-reunion)"></i><span>--md-data-reunion</span></div>
+      <div class="gv-muestra"><i style="background:var(--md-data-evento)"></i><span>--md-data-evento</span></div>
+      <div class="gv-muestra"><i style="background:var(--md-data-nota)"></i><span>--md-data-nota</span></div>
+      <div class="gv-muestra"><i style="background:var(--md-data-festivo)"></i><span>--md-data-festivo</span></div>
+      <div class="gv-muestra"><i style="background:var(--md-pain-low-bg)"></i><span>--md-pain-low-bg</span></div>
+      <div class="gv-muestra"><i style="background:var(--md-pain-mid-bg)"></i><span>--md-pain-mid-bg</span></div>
+      <div class="gv-muestra"><i style="background:var(--md-pain-high-bg)"></i><span>--md-pain-high-bg</span></div>
+      <div class="gv-muestra"><i style="background:var(--md-resaltado)"></i><span>--md-resaltado</span></div>
+      <div class="gv-muestra"><i style="background:var(--md-whatsapp)"></i><span>--md-whatsapp</span></div>
+    </div>
+  </section>
+
+  <section class="gv-sec">
+    <h2>Letra</h2>
+    <p>Escala de tamaños (--fs-*). Google Sans; los identificadores, en letra de ancho fijo.</p>
+    <div style="display:grid;gap:8px">
+      <div style="font-size:var(--fs-kpi);font-weight:600">28 · Cifras grandes <span class="gv-etq">--fs-kpi</span></div>
+      <div style="font-size:var(--fs-h);font-weight:600">22 · Título de página <span class="gv-etq">--fs-h</span></div>
+      <div style="font-size:var(--fs-title);font-weight:600">18 · Título de formulario o diálogo <span class="gv-etq">--fs-title</span></div>
+      <div style="font-size:var(--fs-lg)">16 · Texto destacado <span class="gv-etq">--fs-lg</span></div>
+      <div style="font-size:var(--fs-field)">15 · Valor dentro de un campo <span class="gv-etq">--fs-field</span></div>
+      <div style="font-size:var(--fs-md)">14 · Cuerpo, botones y celdas <span class="gv-etq">--fs-md</span></div>
+      <div style="font-size:var(--fs-sm);color:var(--md-on-surface-med)">13 · Texto secundario, chips y avisos <span class="gv-etq">--fs-sm</span></div>
+      <div style="font-size:var(--fs-xs);color:var(--md-on-surface-med)">12 · Ayuda y errores de campo <span class="gv-etq">--fs-xs</span></div>
+      <div style="font-size:var(--fs-2xs);color:var(--md-on-surface-low)">11 · Insignias <span class="gv-etq">--fs-2xs</span></div>
+      <div style="font-family:var(--font-mono);font-size:var(--fs-sm)">ID 3f2a9c1e-0b7d-4e2a · <span class="gv-etq">--font-mono</span></div>
+    </div>
+  </section>
+
+  <section class="gv-sec">
+    <h2>Botones</h2>
+    <p>Un solo botón con relleno (tonal) por formulario, a la derecha. Pasar el ratón: capa suave; sin onda, sin escalado.</p>
+    <div class="gv-fila">
+      <button type="button" class="md-btn md-btn--text">Cancelar</button>
+      <button type="button" class="md-btn md-btn--tonal"><span class="material-symbols-outlined" aria-hidden="true">save</span>Guardar cambios</button>
+      <button type="button" class="md-btn md-btn--outline"><span class="material-symbols-outlined" aria-hidden="true">content_copy</span>Copiar teléfono</button>
+      <button type="button" class="md-btn md-btn--danger"><span class="material-symbols-outlined" aria-hidden="true">delete</span>Eliminar</button>
+      <button type="button" class="md-btn md-btn--icon" title="Cerrar" aria-label="Cerrar"><span class="material-symbols-outlined" aria-hidden="true">close</span></button>
+      <button type="button" class="md-btn md-btn--tonal" disabled>Desactivado</button>
+      <button type="button" class="md-btn md-btn--tonal" aria-busy="true">Guardando…</button>
+    </div>
+  </section>
+
+  <section class="gv-sec">
+    <h2>Cabecera de las pestañas y botones de barra</h2>
+    <p>Una sola fila igual en todas las pestañas: título · buscador · controles propios · espacio · herramientas · tema · acción principal a la derecha. Los botones de barra son más compactos (32 px) y llevan borde.</p>
+    <div class="cabecera-fila" style="border:1px solid var(--md-outline);border-radius:var(--md-shape-md);padding:.6rem 1rem;background:var(--md-surface)">
+      <h1 class="cabecera-titulo"><span class="material-symbols-outlined" aria-hidden="true">folder_shared</span> Ejemplo <span class="contador">500 de 500</span></h1>
+      <div class="buscador"><span class="material-symbols-outlined" aria-hidden="true">search</span><input type="text" placeholder="Buscar…  ( / )" aria-label="Buscar (ejemplo)"></div>
+      <button type="button" class="btn-toolbar">Filtro</button>
+      <span class="cabecera-espacio"></span>
+      <button type="button" class="btn-toolbar deshacer visible"><span class="material-symbols-outlined" aria-hidden="true">undo</span> Deshacer</button>
+      <button type="button" class="btn-toolbar btn-nav" title="Herramienta" aria-label="Herramienta"><span class="material-symbols-outlined" aria-hidden="true">keyboard</span></button>
+      <button type="button" class="btn-toolbar btn-nav" title="Tema" aria-label="Tema"><span class="material-symbols-outlined" aria-hidden="true">contrast</span></button>
+      <button type="button" class="btn-toolbar peligro"><span class="material-symbols-outlined" aria-hidden="true">delete</span> Eliminar</button>
+      <button type="button" class="btn-toolbar primario"><span class="material-symbols-outlined" aria-hidden="true">person_add</span> Acción principal</button>
+    </div>
+  </section>
+
+  <section class="gv-sec">
+    <h2>Campos</h2>
+    <p>Campo estándar (52 px, etiqueta flotante, icono opcional) y compacto (40 px, etiqueta fija encima). Pulsa Tab para ver el foco.</p>
+    <div class="gv-rejilla">
+      <div class="md-campo md-campo--icono">
+        <span class="material-symbols-outlined md-campo__icono" aria-hidden="true">person</span>
+        <input class="md-campo__control" id="gv-c1" placeholder=" ">
+        <label class="md-campo__etiqueta" for="gv-c1">Nombre</label>
+        <p class="md-campo__ayuda">Texto de ayuda</p>
+      </div>
+      <div class="md-campo md-campo--icono">
+        <span class="material-symbols-outlined md-campo__icono" aria-hidden="true">call</span>
+        <input class="md-campo__control" id="gv-c2" placeholder=" " value="600 123 456">
+        <label class="md-campo__etiqueta" for="gv-c2">Teléfono (con valor)</label>
+      </div>
+      <div class="md-campo md-campo--error">
+        <input class="md-campo__control" id="gv-c3" placeholder=" " value="12345678">
+        <label class="md-campo__etiqueta" for="gv-c3">DNI (con error)</label>
+        <p class="md-campo__ayuda">Falta la letra del DNI</p>
+      </div>
+      <div class="md-campo">
+        <input class="md-campo__control" id="gv-c4" placeholder=" " value="No se puede editar" disabled>
+        <label class="md-campo__etiqueta" for="gv-c4">Desactivado</label>
+      </div>
+      <div class="md-campo">
+        <select class="md-campo__control" id="gv-c5"><option>Seguimiento</option><option>Inicial</option><option>Final</option></select>
+        <label class="md-campo__etiqueta" for="gv-c5">Lista desplegable</label>
+      </div>
+      <div class="md-campo">
+        <textarea class="md-campo__control" id="gv-c6" placeholder=" "></textarea>
+        <label class="md-campo__etiqueta" for="gv-c6">Área de texto</label>
+      </div>
+      <label class="md-campo md-campo--compacto"><input type="date" class="md-campo__control"><span class="md-campo__etiqueta">Fecha (compacto)</span></label>
+      <label class="md-campo md-campo--compacto"><input type="time" class="md-campo__control"><span class="md-campo__etiqueta">Hora (compacto)</span></label>
+    </div>
+  </section>
+
+  <section class="gv-sec">
+    <h2>Chips, carga y vacío</h2>
+    <p>Chip normal y seleccionado (con marca, no solo color), girador y esqueleto de carga.</p>
+    <div class="gv-fila">
+      <button type="button" class="md-chip">Todos</button>
+      <button type="button" class="md-chip md-chip--sel">Activos</button>
+      <button type="button" class="md-chip">En espera</button>
+      <span class="md-girador" role="status" aria-label="Cargando"></span>
+      <span class="md-esqueleto" style="width:180px;height:14px"></span>
+      <span class="md-esqueleto" style="width:90px;height:14px"></span>
+    </div>
+  </section>
+
+  <section class="gv-sec">
+    <h2>Avisos y cuadro de diálogo</h2>
+    <p>Aviso emergente de cada tono y cuadro de confirmación, tal como salen en las páginas (aquí sin moverse de su sitio).</p>
+    <div class="gv-rejilla">
+      <div style="display:grid;gap:8px;align-content:start">
+        <div class="toast-aviso"><span class="material-symbols-outlined aviso-icono ok" aria-hidden="true">check_circle</span>Cita guardada</div>
+        <div class="toast-aviso"><span class="material-symbols-outlined aviso-icono aviso" aria-hidden="true">warning</span>Hay una hora que ya no está libre</div>
+        <div class="toast-aviso error"><span class="material-symbols-outlined aviso-icono error" aria-hidden="true">error</span>No se pudo guardar</div>
+      </div>
+      <div class="modal-box gv-modal" role="dialog" aria-label="Ejemplo de confirmación">
+        <p class="modal-mensaje">¿Eliminar este usuario?
+Se podrá deshacer durante unos segundos.</p>
+        <div class="modal-botones">
+          <button type="button" class="md-btn md-btn--text">Cancelar</button>
+          <button type="button" class="md-btn md-btn--danger">Eliminar</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="gv-sec">
+    <h2>Esquinas y sombras</h2>
+    <p>Esquinas --md-shape-* y los cuatro niveles de sombra (en oscuro apenas se ven: manda el borde).</p>
+    <div class="gv-rejilla">
+      <div class="gv-caja" style="border-radius:var(--md-shape-xs)">4 · <span class="gv-etq">--md-shape-xs</span></div>
+      <div class="gv-caja" style="border-radius:var(--md-shape-sm)">8 · <span class="gv-etq">--md-shape-sm</span></div>
+      <div class="gv-caja" style="border-radius:var(--md-shape-md)">12 · <span class="gv-etq">--md-shape-md</span></div>
+      <div class="gv-caja" style="border-radius:var(--md-shape-lg)">16 · <span class="gv-etq">--md-shape-lg</span></div>
+      <div class="gv-caja" style="box-shadow:var(--md-elev-0)">Sombra 0 · <span class="gv-etq">--md-elev-0</span></div>
+      <div class="gv-caja" style="box-shadow:var(--md-elev-1)">Sombra 1 · <span class="gv-etq">--md-elev-1</span></div>
+      <div class="gv-caja" style="box-shadow:var(--md-elev-2)">Sombra 2 · <span class="gv-etq">--md-elev-2</span></div>
+      <div class="gv-caja" style="box-shadow:var(--md-elev-3)">Sombra 3 · <span class="gv-etq">--md-elev-3</span></div>
+    </div>
+  </section>
+
+</main>
+
+<script>
+  // Conmutador de tema de ESTA página: no guarda nada (el tema de la app se elige en cada pestaña).
+  (function () {
+    var raiz = document.documentElement, botones = document.querySelectorAll('[data-tema-gv]');
+    function marcar() {
+      var actual = raiz.getAttribute('data-tema') || 'auto';
+      botones.forEach(function (b) { b.setAttribute('aria-pressed', b.getAttribute('data-tema-gv') === actual ? 'true' : 'false'); });
+    }
+    botones.forEach(function (b) {
+      b.addEventListener('click', function () {
+        var t = b.getAttribute('data-tema-gv');
+        if (t === 'auto') raiz.removeAttribute('data-tema'); else raiz.setAttribute('data-tema', t);
+        marcar();
+      });
+    });
+    marcar();
+  })();
+</script>
+</body>
+</html>

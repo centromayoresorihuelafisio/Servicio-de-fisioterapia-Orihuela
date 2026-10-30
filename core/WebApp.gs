@@ -111,7 +111,8 @@ const PAGINAS_WEB = {
   baseDatos:     { archivo: 'usuarios/BaseDatos_Vista',                 titulo: 'Usuarios',     icono: 'folder_shared' },
   agenda:        { archivo: 'agenda/Web_Vista',                    titulo: 'Agenda',            icono: 'calendar_month' },
   valoraciones:  { archivo: 'valoraciones/Web_Vista',              titulo: 'Valoraciones',      icono: 'monitoring' },
-  dashboard:     { archivo: 'dashboard/Web_Vista',                 titulo: 'Estadísticas',         icono: 'dashboard' }
+  dashboard:     { archivo: 'dashboard/Web_Vista',                 titulo: 'Estadísticas',         icono: 'dashboard' },
+  guiaVisual:    { archivo: 'ui/Guia_Visual',                      titulo: 'Guía visual',          icono: 'palette' }   // banco de pruebas visual (D-V7); sin pestaña
 };
 
 function doGet(e) {
@@ -137,7 +138,7 @@ function doGet(e) {
   // despliegue para abrir ventanas emergentes propias (editar, valoración...)
   // y para los enlaces de las pestañas — un href relativo no resuelve bien
   // dentro del iframe en el que Google sirve la Web App.
-  if (page === 'baseDatos' || page === 'agenda' || page === 'valoraciones' || page === 'dashboard') {
+  if (page === 'baseDatos' || page === 'agenda' || page === 'valoraciones' || page === 'dashboard' || page === 'guiaVisual') {
     const template = HtmlService.createTemplateFromFile(config.archivo);
     template.baseUrl = ScriptApp.getService().getUrl();
     return template.evaluate()

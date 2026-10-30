@@ -54,7 +54,7 @@
   function _avisoCerrarManual() {
     var d = document.createElement('div');
     d.textContent = '✓ Guardado. Ya puedes cerrar esta ventana.';
-    d.style.cssText = 'position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#1b5e20;color:#fff;padding:12px 20px;border-radius:12px;font:500 14px sans-serif;z-index:99999;box-shadow:0 4px 12px rgba(0,0,0,.25)';
+    d.style.cssText = 'position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#1b5e20;color:#fff;padding:12px 20px;border-radius:var(--md-shape-md);font:500 14px sans-serif;z-index:99999;box-shadow:0 4px 12px rgba(0,0,0,.25)';
     document.body.appendChild(d);
   }
 </script>
