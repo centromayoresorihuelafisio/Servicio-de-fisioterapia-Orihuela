@@ -1,0 +1,799 @@
+      // agenda/JS_Agenda_Edicion.html - Agenda: selector de usuarios, edicion en linea, eliminar, seleccion, Valoracion, Dar cita y copiar citas.
+      // Se incluye dentro del unico <script> de agenda/Web_Vista, en este orden: JS_Agenda_Base, ui/JS_Modal_Deshacer, JS_Agenda_Edicion, JS_Agenda_Vistas, JS_Agenda_Resumen.
+      // Sin scriptlets: include() no los evalua (la direccion de la app llega en URL_BASE_WEB, definida en la pagina).
+      // ---------- Selector de usuarios al pulsar un hueco libre (F5) ----------
+      // Ventana flotante anclada al hueco (hoja inferior en móvil) con búsqueda por nombre, DNI o teléfono. Sirve para los tres sitios con
+      // huecos (tabla, tarjetas de Hoy y cuadrícula): todos son `.editable[data-campo="Usuario"]` y entran por activarEdicion.
+      // Asigna por ID paciente (asignarPacienteHuecoWeb(clave, id)). La lista (USUARIOS_HUECO) llega con las fichas (cargarFichas) y trae
+      // a TODOS los usuarios, también a los homónimos (las fichas se indexan por nombre y los pierden); si se abre antes de que llegue,
+      // se pide con obtenerUsuariosParaCitaWeb. Mismo orden que la Maestra (activos y en espera primero).
+      var USUARIOS_HUECO = null;   // [{ id, nombre, dni, tel1, tel2, estado, _n, _d, _t1, _t2 }] o null mientras no llegue
+      var SelectorUsuario = (function() {
+        var MAX_FILAS = 80;   // más filas por tecla serían lentas y nadie las lee: se invita a seguir escribiendo
+        var fondo = null, panel = null, input = null, lista = null;
+        var claveHueco = '', items = [], activo = -1, pidiendo = false, mensajeError = '';
+
+        function sinTildes(s) { return String(s === null || s === undefined ? '' : s).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase(); }
+        function esMovil() { return window.matchMedia('(max-width: 900px)').matches; }
+
+        // Añade a cada usuario sus claves de búsqueda (una vez al recibir la lista, no en cada tecla).
+        function preparar(usuarios) {
+          return (usuarios || []).map(function(u) {
+            return {
+              id: u.id, nombre: u.nombre, dni: u.dni || '', tel1: u.tel1 || '', tel2: u.tel2 || '', estado: u.estado || '',
+              _n: sinTildes(u.nombre), _d: String(u.dni || '').replace(/[\s.\-]/g, '').toLowerCase(),
+              _t1: Telefono.clave(u.tel1), _t2: Telefono.clave(u.tel2)
+            };
+          });
+        }
+
+        // Búsqueda: sin tildes ni mayúsculas. Por nombre (todas las palabras escritas, en cualquier orden), por DNI (sin espacios ni
+        // guiones) o por teléfono (solo dígitos, sin +34 / 0034 / 34, coincidencia parcial de 3 cifras o más). Conserva el orden de la lista.
+        function filtrar(lista, texto) {
+          var q = String(texto || '').trim();
+          if (!q) return lista;
+          var palabras = sinTildes(q).split(/\s+/).filter(Boolean);
+          var dniQ = q.replace(/[\s.\-]/g, '').toLowerCase();
+          var dig = '';
+          if (/^[\d\s+().\-]+$/.test(q)) {
+            dig = q.replace(/\D/g, '');
+            if (/^(\+|00)34/.test(q.replace(/\s/g, ''))) dig = dig.replace(/^(00)?34/, '');
+            else if (dig.length > 9 && dig.indexOf('34') === 0) dig = dig.slice(2);
+          }
+          return lista.filter(function(u) {
+            if (palabras.every(function(w) { return u._n.indexOf(w) !== -1; })) return true;
+            if (dniQ.length >= 2 && u._d && u._d.indexOf(dniQ) !== -1) return true;
+            return dig.length >= 3 && (u._t1.indexOf(dig) !== -1 || u._t2.indexOf(dig) !== -1);
+          });
+        }
+
+        function filaHtml(u, i) {
+          var sub = [Telefono.formato(u.tel1 || u.tel2), u.dni].filter(Boolean).map(escapar).join(' · ');
+          var chip = u.estado ? '<span class="fu-chip ' + FichaUsuario.claseEstado(u.estado) + '">' + escapar(FichaUsuario.textoEstado(u.estado)) + '</span>' : '';
+          return '<div class="su-item" role="option" id="su-op-' + i + '" data-i="' + i + '" aria-selected="false">' + avatarHtml(u.nombre) +
+            '<div class="su-datos"><div class="su-nombre">' + escapar(u.nombre) + '</div>' + (sub ? '<div class="su-sub">' + sub + '</div>' : '') + '</div>' + chip + '</div>';
+        }
+
+        function marcar(i, desplazar) {
+          var previo = lista.querySelector('.su-item.activo');
+          if (previo) { previo.classList.remove('activo'); previo.setAttribute('aria-selected', 'false'); }
+          activo = i;
+          var el = lista.querySelector('.su-item[data-i="' + i + '"]');
+          if (!el) return;
+          el.classList.add('activo');
+          el.setAttribute('aria-selected', 'true');
+          input.setAttribute('aria-activedescendant', el.id);
+          if (desplazar) el.scrollIntoView({ block: 'nearest' });
+        }
+
+        function pintar() {
+          if (!panel) return;
+          items = USUARIOS_HUECO ? filtrar(USUARIOS_HUECO, input.value) : [];
+          var visibles = items.slice(0, MAX_FILAS), html;
+          if (!USUARIOS_HUECO) html = '<div class="su-vacio">' + escapar(mensajeError || 'Cargando usuarios…') + '</div>';
+          else if (!visibles.length) html = '<div class="su-vacio">Ningún usuario coincide.</div>';
+          else html = visibles.map(filaHtml).join('') +
+            (items.length > visibles.length ? '<div class="su-mas">Hay ' + (items.length - visibles.length) + ' más: sigue escribiendo para acotar.</div>' : '');
+          lista.innerHTML = html;
+          lista.scrollTop = 0;
+          activo = -1;
+          if (visibles.length) marcar(0, false);
+        }
+
+        function mover(d) {
+          var n = Math.min(items.length, MAX_FILAS);
+          if (n) marcar((activo + d + n) % n, true);
+        }
+
+        function elegir(i) {
+          var u = items[i];
+          if (!u) return;
+          var clave = claveHueco;
+          cerrar();
+          asignarPaciente(clave, u.id);
+        }
+
+        function alDesplazar(e) { if (panel && !panel.contains(e.target)) cerrar(); }
+
+        function cerrar() {
+          window.removeEventListener('resize', cerrar);
+          window.removeEventListener('scroll', alDesplazar, true);
+          if (fondo && fondo.parentNode) fondo.parentNode.removeChild(fondo);
+          if (panel && panel.parentNode) panel.parentNode.removeChild(panel);
+          fondo = panel = input = lista = null;
+          items = [];
+          activo = -1;
+        }
+
+        // Escritorio: bajo el hueco si cabe (si no, encima), alineado a su izquierda y sin salirse de la pantalla. Móvil: hoja inferior (CSS).
+        function colocar(ancla) {
+          if (esMovil()) { panel.style.cssText = ''; return; }
+          var r = ancla.getBoundingClientRect(), vw = window.innerWidth, vh = window.innerHeight;
+          var ancho = Math.min(380, vw - 16);
+          var izq = Math.max(8, Math.min(r.left, vw - ancho - 8));
+          var abajo = vh - r.bottom - 12, arriba = r.top - 12;
+          var estilo = 'left:' + izq + 'px;width:' + ancho + 'px;';
+          if (abajo >= 260 || abajo >= arriba) estilo += 'top:' + (r.bottom + 4) + 'px;max-height:' + Math.max(160, Math.min(440, abajo)) + 'px;';
+          else estilo += 'bottom:' + (vh - r.top + 4) + 'px;max-height:' + Math.max(160, Math.min(440, arriba)) + 'px;';
+          panel.style.cssText = estilo;
+        }
+
+        function crear() {
+          fondo = document.createElement('div');
+          fondo.className = 'su-fondo';
+          panel = document.createElement('div');
+          panel.className = 'su-panel';
+          panel.setAttribute('role', 'dialog');
+          panel.setAttribute('aria-label', 'Elegir usuario');
+          panel.innerHTML =
+            '<div class="su-cab"><span class="material-symbols-outlined" aria-hidden="true">search</span>' +
+            '<input class="su-buscar" type="text" placeholder="Buscar por nombre, DNI o teléfono" autocomplete="off" spellcheck="false" role="combobox" aria-expanded="true" aria-controls="su-lista" aria-label="Buscar usuario"></div>' +
+            '<div class="su-lista" id="su-lista" role="listbox"></div>' +
+            '<div class="su-pie">↑ ↓ moverse · Enter elegir · Esc cerrar</div>';
+          input = panel.querySelector('.su-buscar');
+          lista = panel.querySelector('.su-lista');
+          document.body.appendChild(fondo);
+          document.body.appendChild(panel);
+          fondo.addEventListener('click', cerrar);
+          input.addEventListener('input', pintar);
+          panel.addEventListener('keydown', function(e) {
+            e.stopPropagation();   // el selector se queda con el teclado: ni el Esc general de la Agenda ni sus atajos
+            if (e.key === 'Escape') { e.preventDefault(); cerrar(); }
+            else if (e.key === 'ArrowDown') { e.preventDefault(); mover(1); }
+            else if (e.key === 'ArrowUp') { e.preventDefault(); mover(-1); }
+            else if (e.key === 'Enter') { e.preventDefault(); elegir(activo); }
+          });
+          lista.addEventListener('mousedown', function(e) { e.preventDefault(); });   // no quita el foco del cuadro de búsqueda
+          lista.addEventListener('click', function(e) {
+            var it = e.target.closest ? e.target.closest('.su-item') : null;
+            if (it) elegir(parseInt(it.dataset.i, 10));
+          });
+          lista.addEventListener('mousemove', function(e) {
+            var it = e.target.closest ? e.target.closest('.su-item') : null;
+            if (it && parseInt(it.dataset.i, 10) !== activo) marcar(parseInt(it.dataset.i, 10), false);
+          });
+        }
+
+        // Respaldo: la lista aún no ha llegado con las fichas.
+        function pedirRespaldo() {
+          if (pidiendo) return;
+          pidiendo = true;
+          google.script.run
+            .withSuccessHandler(function(res) {
+              pidiendo = false;
+              if (res && res.success) { if (!USUARIOS_HUECO) USUARIOS_HUECO = preparar(res.usuarios); mensajeError = ''; }
+              else mensajeError = (res && res.message) || 'No se pudo cargar la lista de usuarios.';
+              pintar();
+            })
+            .withFailureHandler(function() { pidiendo = false; mensajeError = 'No se pudo cargar la lista de usuarios.'; pintar(); })
+            .obtenerUsuariosParaCitaWeb();
+        }
+
+        function abrir(ancla) {
+          cerrar();
+          claveHueco = String(ancla.dataset.fila || '');
+          mensajeError = '';
+          crear();
+          pintar();
+          colocar(ancla);
+          input.focus();
+          // En escritorio, cambiar el tamaño o desplazar la página cierra el selector (el hueco se movería de sitio). En móvil no: al
+          // aparecer el teclado cambia el tamaño de la ventana y el fondo ya impide desplazar la página.
+          if (!esMovil()) { window.addEventListener('resize', cerrar); window.addEventListener('scroll', alDesplazar, true); }
+          if (!USUARIOS_HUECO) pedirRespaldo();
+        }
+
+        return { abrir: abrir, cerrar: cerrar, preparar: preparar, filtrar: filtrar, refrescar: pintar };
+      })();
+
+      // ---------- Edición en línea ----------
+      function activarEdicion(td) {
+        var campo = td.dataset.campo;
+        var fila = td.dataset.fila;
+        var valorActual = td.dataset.valor || '';
+
+        // Hueco libre: selector flotante de usuarios (F5). No pasa a modo "editando": no cambia el contenido de la celda.
+        if (campo === 'Usuario') { SelectorUsuario.abrir(td); return; }
+
+        td.classList.add('editando');
+
+        // Notas y Sesión: texto libre con autoguardado tras una pausa al escribir.
+        // Enter guarda y sale; Escape cancela el guardado pendiente.
+        td.innerHTML = '<input class="input-celda" type="text" value="' + escapar(valorActual) + '">';
+        var input = td.querySelector('input');
+        input.focus();
+        input.select();
+
+        var autoguardadoPendiente = null;
+
+        input.addEventListener('input', function() {
+          if (autoguardadoPendiente) clearTimeout(autoguardadoPendiente);
+          autoguardadoPendiente = setTimeout(function() {
+            autoguardadoPendiente = null;
+            guardarCampoSilencioso(fila, campo, input.value, td);
+          }, 700);
+        });
+
+        input.addEventListener('keydown', function(ev) {
+          if (ev.key === 'Enter') {
+            if (autoguardadoPendiente) { clearTimeout(autoguardadoPendiente); autoguardadoPendiente = null; }
+            input.blur();
+          }
+          if (ev.key === 'Escape') {
+            if (autoguardadoPendiente) { clearTimeout(autoguardadoPendiente); autoguardadoPendiente = null; }
+            render();
+          }
+        });
+        input.addEventListener('blur', function() {
+          if (autoguardadoPendiente) { clearTimeout(autoguardadoPendiente); autoguardadoPendiente = null; }
+          guardarCampo(fila, campo, input.value);
+        });
+      }
+
+      function mostrarEstadoGuardado(td, estado) {
+        if (!td || !td.classList.contains('editando')) return;
+        var marca = td.querySelector('.estado-guardado');
+        if (!marca) {
+          marca = document.createElement('span');
+          marca.className = 'estado-guardado';
+          td.appendChild(marca);
+        }
+        if (estado === 'progreso') {
+          marca.className = 'estado-guardado progreso';
+          marca.textContent = '…';
+          marca.title = 'Guardando…';
+        } else if (estado === 'ok') {
+          marca.className = 'estado-guardado ok';
+          marca.textContent = '✓';
+          marca.title = 'Guardado';
+          setTimeout(function() { if (marca) marca.textContent = ''; }, 1200);
+        } else {
+          marca.className = 'estado-guardado fallo';
+          marca.innerHTML = '<span class="material-symbols-outlined">error</span>';
+          marca.title = 'No se pudo guardar';
+        }
+      }
+
+      function guardarCampoSilencioso(fila, campo, valor, td) {
+        mostrarEstadoGuardado(td, 'progreso');
+        google.script.run
+          .withSuccessHandler(function(res) {
+            var cita = CITAS.find(function(c) { return c._fila == fila; });
+            if (cita) cita[campo] = valor;
+            mostrarEstadoGuardado(td, res.success ? 'ok' : 'fallo');
+          })
+          .withFailureHandler(function() { mostrarEstadoGuardado(td, 'fallo'); })
+          .actualizarCampoAgendaWeb(fila, campo, valor);
+      }
+
+      function guardarCampo(fila, campo, valor) {
+        google.script.run
+          .withSuccessHandler(function(res) {
+            if (!res.success) { mostrarAviso(res.message || 'No se pudo guardar el cambio.'); render(); return; }
+            var cita = CITAS.find(function(c) { return c._fila == fila; });
+            if (cita) cita[campo] = valor;
+            render();
+          })
+          .withFailureHandler(function(err) {
+            mostrarAviso('Error al guardar: ' + err);
+            render();
+          })
+          .actualizarCampoAgendaWeb(fila, campo, valor);
+      }
+
+      function asignarPaciente(fila, idPaciente) {
+        google.script.run
+          .withSuccessHandler(function(res) {
+            if (!res.success) { mostrarAviso(res.message || 'No se pudo asignar el usuario.'); if (modoCitasNuevo()) cargar(semanaActual, true); else render(); return; }
+            // Asignar un hueco pone al usuario en Activo y el servidor reordena la Maestra: se actualiza la lista del selector y se refrescan las fichas.
+            var uSel = USUARIOS_HUECO ? USUARIOS_HUECO.find(function(u) { return u.id === idPaciente; }) : null;
+            if (uSel && FichaUsuario.claseEstado(uSel.estado) !== 'activo') { uSel.estado = 'Activo'; cargarFichas(); }
+            if (modoCitasNuevo()) {   // tabla nueva: la cita acaba de crearse con un ID nuevo; se recarga la semana en vez de parchear la fila local
+              if (res.ingresoRegistrado && window.HCCache) HCCache.cambioDeUsuario();
+              cargar(semanaActual, true);
+              return;
+            }
+            var cita = CITAS.find(function(c) { return c._fila == fila; });
+            if (cita) {
+              cita['Usuario'] = res.usuario;
+              cita['Teléfono'] = res.telefono;
+              if (COL_HISTORIA) cita[COL_HISTORIA] = res.historiaClinica;
+              cita._hueco = false;
+            }
+            if (res.ingresoRegistrado && window.HCCache) HCCache.cambioDeUsuario();   // la HC cambió (ingreso = primera cita)
+            render();
+          })
+          .withFailureHandler(function(err) {
+            mostrarAviso('Error al asignar el usuario: ' + err);
+            render();
+          })
+          .asignarPacienteHuecoWeb(fila, idPaciente);
+      }
+
+      async function manejarBorrarFila(fila) {
+        var confirmado = await mostrarConfirm('¿Eliminar cita? Se borrarán los datos de la cita');
+        if (!confirmado) return;
+
+        var citaOriginal = CITAS.find(function(c) { return c._fila == fila; });
+        marcarSaliendo(fila);
+        var snapshot = citaOriginal ? [{ fila: fila, valores: Object.assign({}, citaOriginal) }] : null;
+
+        google.script.run
+          .withSuccessHandler(function(res) {
+            if (!res.success) { mostrarAviso(res.message || 'No se pudo liberar el hueco.'); render(); return; }
+            if (res.snapshots) {   // tabla nueva: se borra la fila; se recarga la semana y Deshacer usa las fotos del servidor (con ID)
+              cargar(semanaActual, true);
+              actualizarBotonesSeleccion();
+              if (res.snapshots.length) mostrarDeshacer(res.snapshots, 'Cita eliminada.');
+              return;
+            }
+            var cita = CITAS.find(function(c) { return c._fila == fila; });
+            if (cita) {
+              cita['Usuario'] = '';
+              cita['Teléfono'] = '';
+              cita['Sesión'] = '';
+              cita['Asistencia'] = '';
+              if (COL_HISTORIA) cita[COL_HISTORIA] = '';
+              cita['Notas'] = '';
+              cita._hueco = true;
+            }
+            render();
+            actualizarBotonesSeleccion();
+            if (snapshot) mostrarDeshacer(snapshot, 'Cita eliminada.');
+          })
+          .withFailureHandler(function(err) {
+            mostrarAviso('Error: ' + err);
+            render();
+          })
+          .eliminarDatosFilaAgendaWeb(fila);
+      }
+
+      // ---------- Eliminar varias citas ----------
+      async function manejarEliminarSeleccionadas() {
+        var sel = citasSeleccionadas();
+        if (sel.length === 0) return;
+
+        var confirmado = await mostrarConfirm('¿Eliminar cita? Se borrarán los datos de la cita');
+        if (!confirmado) return;
+
+        var snapshot = sel.map(function(c) { return { fila: c._fila, valores: Object.assign({}, c) }; });
+        sel.forEach(function(c) { marcarSaliendo(c._fila); });
+        var filas = sel.map(function(c) { return c._fila; });
+
+        google.script.run
+          .withSuccessHandler(function(res) {
+            if (!res.success) { mostrarAviso(res.message || 'No se pudieron eliminar las citas.'); return; }
+            mostrarAviso(res.message);
+            quitarSeleccion();
+            cargar(semanaActual, true);
+            var fotos = res.snapshots || snapshot;   // tabla nueva: fotos del servidor (con ID); hoja vieja: las del cliente
+            mostrarDeshacer(fotos, fotos.length === 1 ? 'Cita eliminada.' : fotos.length + ' citas eliminadas.');
+          })
+          .withFailureHandler(function(err) { mostrarAviso('Error: ' + err); })
+          .eliminarVariasCitasWeb(filas);
+      }
+
+      document.getElementById('btnEliminarCitas').addEventListener('click', manejarEliminarSeleccionadas);
+
+      function ejecutarDeshacer() {
+        if (!ultimaEliminacion || procesandoDeshacer) return;
+        procesandoDeshacer = true;
+        var snapshot = ultimaEliminacion;
+
+        google.script.run
+          .withSuccessHandler(function(res) {
+            procesandoDeshacer = false;
+            if (!res.success) { mostrarAviso(res.message || 'No se pudo deshacer.'); return; }
+            ocultarDeshacer();
+            cargar(semanaActual, true);
+          })
+          .withFailureHandler(function(err) {
+            procesandoDeshacer = false;
+            mostrarAviso('Error al deshacer: ' + err);
+          })
+          .restaurarCitasWeb(snapshot);
+      }
+
+      document.getElementById('toastDeshacerBtn').addEventListener('click', ejecutarDeshacer);
+      document.getElementById('btnDeshacer').addEventListener('click', ejecutarDeshacer);
+
+      // ---------- Selección múltiple (el clic añade o quita de la selección) ----------
+      var BOTONES_UNA_SOLA = ['btnValoracion'].map(function(id) { return document.getElementById(id); });
+      var BOTONES_UNA_O_MAS = ['btnWhatsapp', 'btnMenuCopiar', 'btnCopiarCita', 'btnCopiarCita2', 'btnEliminarCitas'].map(function(id) { return document.getElementById(id); });
+
+      function citasSeleccionadas() {
+        return CITAS.filter(function(c) { return filasSeleccionadas.has(c._fila) && !c._hueco; });
+      }
+
+      function alternarSeleccionFila(cita) {
+        if (filasSeleccionadas.has(cita._fila)) filasSeleccionadas.delete(cita._fila);
+        else filasSeleccionadas.add(cita._fila);
+        render();
+        actualizarBotonesSeleccion();
+      }
+
+      function quitarSeleccion() {
+        filasSeleccionadas.clear();
+        render();
+        actualizarBotonesSeleccion();
+      }
+
+      function actualizarBotonesSeleccion() {
+        var n = citasSeleccionadas().length;
+        if (n === 0) document.getElementById('menuCopiarWrap').classList.remove('abierto');
+        BOTONES_UNA_SOLA.forEach(function(btn) {
+          btn.disabled = (n !== 1);
+          btn.style.display = (n === 1) ? '' : 'none';
+        });
+        BOTONES_UNA_O_MAS.forEach(function(btn) { btn.disabled = (n === 0); });
+
+        var contador = document.getElementById('contadorSeleccion');
+        contador.textContent = n > 0 ? (n + (n === 1 ? ' cita seleccionada' : ' citas seleccionadas')) : '';
+
+        document.getElementById('cabecera').classList.toggle('con-seleccion', n > 0);
+        document.getElementById('barraSeleccion').classList.toggle('visible', n > 0);
+      }
+
+      document.getElementById('btnQuitarSeleccion').addEventListener('click', quitarSeleccion);
+
+      function alternarPlegado(fechaISO) {
+        var nuevo = !diaPlegado(fechaISO);
+        plegadoManual[fechaISO] = nuevo;
+        if (nuevo) {
+          CITAS.forEach(function(c) { if (c._fechaISO === fechaISO) filasSeleccionadas.delete(c._fila); });
+          actualizarBotonesSeleccion();
+        }
+        render();
+      }
+
+      function alternarFiltroDiaSinAsis(fechaISO) {
+        if (filtroDiaSinAsis === fechaISO) {
+          filtroDiaSinAsis = null;
+          filtrosActivos.delete('sinAsistencia');
+        } else {
+          filtroDiaSinAsis = fechaISO;
+          filtrosActivos.add('sinAsistencia');
+          plegadoManual[fechaISO] = false;   // que el día quede abierto al quitar el filtro
+        }
+        render();
+      }
+
+      function limpiarFiltros() {
+        filtroDiaSinAsis = null;
+        filtrosActivos.clear();
+        document.getElementById('inputBusqueda').value = '';
+        render();
+      }
+
+      document.getElementById('tablaWrap').addEventListener('click', function(e) {
+        var t = e.target;
+        if (t.closest('.editando')) return; // no seleccionar mientras se edita
+
+        // Asistencia con un clic (icono ✓ / ✕ / aviso)
+        var btnAsis = t.closest('[data-asis]');
+        if (btnAsis) {
+          var contenedor = btnAsis.closest('[data-fila]');
+          if (contenedor) guardarAsistencia(contenedor.dataset.fila, btnAsis.classList.contains('activo') ? '' : btnAsis.dataset.asis);
+          return;
+        }
+
+        // Chip «N sin registrar» del resumen del día: filtra las citas sin asistencia de ese día (otro clic lo quita)
+        var btnPend = t.closest('[data-sin-asis]');
+        if (btnPend) { alternarFiltroDiaSinAsis(btnPend.dataset.sinAsis); return; }
+
+        // Sesión: − / + (aparecen al pasar el ratón por el número). Se atiende aquí para que no abra la edición en línea ni seleccione la fila.
+        var btnSes = t.closest('[data-ses]');
+        if (btnSes) {
+          var ctlSes = btnSes.closest('.ses-ctl');
+          if (ctlSes && !btnSes.disabled) cambiarSesion(ctlSes.dataset.fila, parseInt(btnSes.dataset.ses, 10));
+          return;
+        }
+
+        // Nombre / avatar: ficha del usuario en el panel lateral
+        var fu = t.closest('[data-ficha-fila]');
+        if (fu) { abrirFichaUsuario(fu.dataset.fichaFila); return; }
+
+        // Recordatorios: chip (editar), "+" del día (nuevo para esa fecha)
+        var rcChip = t.closest('[data-rec-id]');
+        if (rcChip) { abrirRecordatorios({ editarId: rcChip.dataset.recId }); return; }
+        var rcNuevo = t.closest('[data-rec-nuevo]');
+        if (rcNuevo) { abrirRecordatorios({ fecha: rcNuevo.dataset.recNuevo }); return; }
+
+        // Acciones rápidas de la fila / tarjeta
+        var btnFila = t.closest('.btn-fila');
+        if (btnFila) {
+          var f = btnFila.dataset.fila, acc = btnFila.dataset.accion;
+          if (acc === 'hc') abrirHCFila(f);
+          else if (acc === 'borrar') manejarBorrarFila(f);
+          else if (acc === 'whatsapp') abrirWhatsappFila(f);
+          else if (acc === 'alta') manejarAltaFila(f);
+          else if (acc === 'copiar1' || acc === 'copiar2') {
+            var cp = citaPorFila(f);
+            if (cp) {
+              if (!filasSeleccionadas.has(cp._fila)) { filasSeleccionadas.clear(); filasSeleccionadas.add(cp._fila); }   // si ya hay selección que la incluye, se copia toda
+              manejarCopiarSeleccionadas(acc === 'copiar2', false);
+            }
+          }
+          else if (acc === 'cita') { var cc = citaPorFila(f); if (cc) abrirCitaPanel(cc['Usuario'], cc['_idPaciente']); }
+          else if (acc === 'valoracion') {
+            var ci = CITAS.find(function(c) { return c._fila == f; });
+            if (ci) abrirValoracionCita(ci['_idPaciente'], ci['Usuario']);
+          }
+          return;
+        }
+
+        // Botones de los estados vacíos
+        var vacio = t.closest('[data-vacio]');
+        if (vacio) {
+          if (vacio.dataset.vacio === 'limpiar') limpiarFiltros();
+          else if (vacio.dataset.vacio === 'huecos') { mostrarHuecos = true; actualizarBotonHuecos(); render(); }
+          else if (vacio.dataset.vacio === 'reintentar') cargar(semanaActual);
+          return;
+        }
+
+        var editable = t.closest('.editable');
+        if (editable) { activarEdicion(editable); return; }
+
+        var banda = t.closest('tr.fila-dia');
+        if (banda) { alternarPlegado(banda.dataset.dia); return; }
+
+        if (t.closest('a')) return; // los enlaces (Historia clínica) no seleccionan la cita
+
+        var fil = t.closest('tr[data-fila], .tarjeta[data-fila], .cal-cita[data-fila]');
+        if (fil) {
+          var cita = CITAS.find(function(c) { return c._fila == fil.dataset.fila; });
+          if (cita && !cita._hueco) alternarSeleccionFila(cita);
+        }
+      });
+
+      // ---------- Panel lateral de Valoración (sustituye a la ventana emergente) ----------
+      // Igual que en Usuarios: el formulario vive en el panel (valoraciones/Panel_Valoracion) y devuelve un
+      // controlador con haCambiado(). El panel trabaja con el nombre del usuario, no con la fila ni con la semana
+      // mostrada, así que seguir navegando por la agenda (o el refresco automático) no lo afecta.
+      var panelAbierto = false, panelClave = '', controladorPanel = null, timerLimpiarPanel = null;
+
+      function panelHaCambiado() {
+        return !!(panelAbierto && controladorPanel && controladorPanel.haCambiado && controladorPanel.haCambiado());
+      }
+      // Antes de cualquier acción que destruiría el formulario (cerrar, abrir otro…): si hay cambios sin
+      // guardar pregunta; si se acepta, el formulario queda descartado.
+      async function descartarPanelSiProcede() {
+        if (!panelHaCambiado()) return true;
+        if (!(await mostrarConfirm('Hay cambios sin guardar en el formulario. ¿Quieres descartarlos?'))) return false;
+        try { if (controladorPanel && controladorPanel.cerrar) controladorPanel.cerrar(); } catch (e) { /* no crítico */ }
+        panelAbierto = false; controladorPanel = null;
+        return true;
+      }
+      function ocultarPanel() {
+        var el = document.getElementById('ficha');
+        try { if (controladorPanel && controladorPanel.cerrar) controladorPanel.cerrar(); } catch (e) { /* no crítico */ }   // la historia clínica vuelca lo pendiente
+        panelAbierto = false; panelClave = ''; controladorPanel = null;
+        document.body.classList.remove('con-ficha', 'ficha-ancha', 'ficha-hc');
+        el.classList.remove('abierta');
+        el.setAttribute('aria-hidden', 'true');
+        // El contenido se vacía cuando termina de deslizarse, para que no se vea un panel en blanco al salir.
+        if (timerLimpiarPanel) clearTimeout(timerLimpiarPanel);
+        timerLimpiarPanel = setTimeout(function() { if (!panelAbierto) el.innerHTML = ''; }, 220);
+        actualizarBotonRec();
+      }
+      async function cerrarPanel(forzar) {
+        if (!panelAbierto) return;
+        if (forzar !== true && !(await descartarPanelSiProcede())) return;
+        ocultarPanel();
+      }
+
+      // Abre un formulario en el panel lateral. `clave` identifica el contenido (no se reabre si ya está);
+      // `montar(contenedor)` devuelve el controlador { haCambiado, alEscape, ... } del módulo.
+      // `opciones.sinCabecera`: sin la barra de título con el botón de cerrar (la ficha de usuario trae la suya).
+      async function abrirPanelLateral(clave, titulo, ancho, montar, opciones) {
+        if (panelAbierto && panelClave === clave) return false;
+        if (!(await descartarPanelSiProcede())) return false;
+        var el = document.getElementById('ficha');
+        if (timerLimpiarPanel) { clearTimeout(timerLimpiarPanel); timerLimpiarPanel = null; }
+        panelAbierto = true; panelClave = clave; controladorPanel = null;
+        document.body.classList.add('con-ficha');
+        document.body.classList.toggle('ficha-ancha', ancho === true);
+        document.body.classList.toggle('ficha-hc', ancho === 'hc');
+        el.classList.add('abierta');
+        el.setAttribute('aria-hidden', 'false');
+        var sinCabecera = !!(opciones && opciones.sinCabecera);
+        el.innerHTML = (sinCabecera ? '' : '<div class="ficha-form-cab"><div class="ficha-form-tit"></div><button type="button" data-panel="cerrar" title="Cerrar (Esc)" aria-label="Cerrar"><span class="material-symbols-outlined">close</span></button></div>') + '<div class="ficha-form-cuerpo"></div>';
+        if (!sinCabecera) el.querySelector('.ficha-form-tit').textContent = titulo;
+        controladorPanel = montar(el.querySelector('.ficha-form-cuerpo'));
+        actualizarBotonRec();
+        return true;
+      }
+
+      // ---------- Valoración, Dar cita y WhatsApp (barra de selección y acciones por fila) ----------
+      // El panel de valoraciones trabaja con el ID paciente del usuario (nunca con el nombre ni el DNI), no con la fila ni con la
+      // semana mostrada, así que seguir navegando por la agenda (o el refresco automático) no lo afecta. El nombre solo se muestra.
+      function abrirValoracionCita(idPaciente, nombre) {
+        idPaciente = String(idPaciente || '').trim();
+        nombre = (nombre || '').trim();
+        if (!idPaciente) { mostrarAviso('Esa cita no tiene usuario asignado.'); return; }
+        var cita = CITAS.find(function(c) { return c['_idPaciente'] === idPaciente && c['Teléfono']; });
+        var ficha = fichaDeMemoria(nombre);                                   // DNI y teléfono de la Maestra, si las fichas ya están cargadas
+        var dniUsuario = ficha ? String(FichaUsuario.valor(ficha.paciente, ficha.headers, 'DNI') || '').trim() : '';
+        var telUsuario = cita ? String(cita['Teléfono']) : (ficha ? String(FichaUsuario.valor(ficha.paciente, ficha.headers, 'Teléfono 1') || '') : '');
+        var clave = 'valoracion:' + idPaciente;
+        // Sin valoraciones previas abre directamente el formulario de Nueva valoración; con valoraciones, su panel
+        // (evolución, historial, añadir / editar / eliminar). Lo decide valoraciones/Panel_Valoraciones.
+        return abrirPanelLateral(clave, 'Valoraciones · ' + nombre, false, function(cont) {
+          return PanelValoraciones.abrir(cont, Object.assign({
+            idPaciente: idPaciente,
+            paciente: nombre,
+            dni: dniUsuario,
+            telefono: telUsuario,
+            onGuardado: function() { mostrarAviso('Valoración guardada'); if (panelClave === clave) cerrarPanel(true); },
+            onCancelar: function() { if (panelClave === clave) cerrarPanel(); }
+          }, ValoracionesCache.opcionesPanel(idPaciente)));   // valoraciones ya precargadas: el panel se abre al instante
+        });
+      }
+
+      function abrirCitaPanel(nombre, idPaciente) {
+        nombre = (nombre || '').trim();
+        idPaciente = String(idPaciente || '').trim();
+        if (!nombre) { mostrarAviso('Esa cita no tiene usuario asignado.'); return; }
+        var clave = 'cita:' + (idPaciente || nombre);
+        return abrirPanelLateral(clave, 'Dar cita · ' + nombre, true, function(cont) {
+          return PanelCita.abrir(cont, {
+            idPaciente: idPaciente,
+            paciente: nombre,
+            alDisponibilidad: function() { cargar(semanaActual, true); },   // se aplicó una disponibilidad desde el formulario: los huecos de la semana cambian
+            onGuardado: function(msj) {
+              mostrarAviso(typeof msj === 'string' && msj ? msj : 'Cita registrada');
+              if (panelClave === clave) cerrarPanel(true);
+              cargar(semanaActual, true);
+            },
+            onCancelar: function() { if (panelClave === clave) cerrarPanel(); }
+          });
+        });
+      }
+
+      // Disponibilidad: abrir o cerrar horas de la agenda (agenda/Panel_Disponibilidad + agenda/Disponibilidad.gs). Al aplicar se recarga la semana.
+      function abrirDisponibilidad() {
+        var clave = 'disponibilidad';
+        return abrirPanelLateral(clave, 'Disponibilidad', false, function(cont) {
+          return PanelDisponibilidad.abrir(cont, {
+            semana: semanaActual,
+            hoy: hoyISO,
+            obtener: function(desde, hasta) {
+              return new Promise(function(ok, ko) { google.script.run.withSuccessHandler(ok).withFailureHandler(ko).obtenerDisponibilidadWeb(desde, hasta); });
+            },
+            aplicar: function(datos) {
+              return new Promise(function(ok, ko) { google.script.run.withSuccessHandler(ok).withFailureHandler(ko).aplicarDisponibilidadWeb(datos); });
+            },
+            onAplicado: function(res) {
+              mostrarAviso((res && res.mensaje) || 'Disponibilidad actualizada');
+              if (panelClave === clave) cerrarPanel(true);
+              cargar(semanaActual, true);
+            },
+            onCancelar: function() { if (panelClave === clave) cerrarPanel(); }
+          });
+        });
+      }
+      document.getElementById('btnDisponibilidad').addEventListener('click', abrirDisponibilidad);
+
+      document.getElementById('ficha').addEventListener('click', function(e) {
+        if (e.target.closest('[data-panel="cerrar"]')) cerrarPanel();
+      });
+
+      // Esc con el panel abierto lo cierra (con confirmación si hay cambios). Va en fase de captura para que no
+      // llegue además al Esc general de la página (que quitaría la selección de citas). Se aparta si hay un diálogo
+      // abierto, el menú Copiar desplegado, un arrastre en curso o la edición en línea / el buscador con el foco.
+      document.addEventListener('keydown', function(e) {
+        if (e.key !== 'Escape' || !panelAbierto || arrastre) return;
+        var modal = document.getElementById('modalOverlay');
+        if (modal && modal.classList.contains('visible')) return;
+        if (document.querySelector('.menu-wrap.abierto, .fu-menu')) return;
+        var activo = document.activeElement;
+        if (activo && activo.closest && activo.closest('.editando, .buscador')) return;
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        if (controladorPanel && controladorPanel.alEscape && controladorPanel.alEscape()) return;   // el formulario gestiona su propio Esc
+        cerrarPanel();
+      }, true);
+
+      // Un solo usuario (botón de la fila, tarjeta lateral o barra de selección): ventana con el mensaje para revisarlo.
+      function abrirWhatsappFila(fila) {
+        var c = CITAS.find(function(x) { return x._fila == fila; });
+        WhatsappDialogo.abrir('datosWhatsappLoteAgendaWeb', [fila], c ? c['Usuario'] : '');
+      }
+
+      // Dar de alta al usuario de la cita (mismo proceso que el botón Alta de Usuarios).
+      async function manejarAltaFila(fila) {
+        var cita = CITAS.find(function(c) { return c._fila == fila; });
+        var nombre = cita ? (cita['Usuario'] || '') : '';
+        if (!nombre) { mostrarAviso('Esa fila no tiene usuario asignado.'); return; }
+        var confirmado = await mostrarConfirm('¿Dar de alta a ' + nombre + '?');
+        if (!confirmado) return;
+
+        google.script.run
+          .withSuccessHandler(function(res) { mostrarAviso(res.message); if (window.HCCache) HCCache.cambioDeUsuario(); })
+          .withFailureHandler(function(err) { mostrarAviso('Error al dar de alta: ' + err); })
+          .darDeAltaPacienteParaAgendaWeb(fila);
+      }
+
+      document.getElementById('btnValoracion').addEventListener('click', function() {
+        var sel = citasSeleccionadas();
+        if (sel.length === 1) abrirValoracionCita(sel[0]['_idPaciente'], sel[0]['Usuario']);
+      });
+
+      function filasWhatsappSeleccion() { return citasSeleccionadas().map(function(c) { return c._fila; }); }
+      document.getElementById('btnWhatsapp').addEventListener('click', function() {
+        var sel = citasSeleccionadas();
+        if (sel.length) WhatsappDialogo.abrir('datosWhatsappLoteAgendaWeb', filasWhatsappSeleccion(), sel.length === 1 ? sel[0]['Usuario'] : '');
+      });
+      // Al pasar el ratón por un botón de WhatsApp se piden ya los datos: al hacer clic el diálogo sale con el mensaje listo.
+      document.addEventListener('pointerover', function(e) {
+        var b = e.target.closest ? e.target.closest('.btn-whatsapp, #btnWhatsapp') : null;
+        if (!b || b.disabled) return;
+        var filas = (b.id === 'btnWhatsapp') ? filasWhatsappSeleccion() : [/^\d+$/.test(b.dataset.fila) ? Number(b.dataset.fila) : b.dataset.fila];   // hoja vieja: número; tabla nueva: ID de cita
+        WhatsappDialogo.precargar('datosWhatsappLoteAgendaWeb', filas);
+      });
+
+      // ---------- Copiar Siguiente Cita / ×2 ----------
+      async function manejarCopiarSeleccionadas(doble, forzar) {
+        var sel = citasSeleccionadas();
+        if (sel.length === 0) return;
+        var items = sel.map(function(c) { return { fila: c._fila, doble: doble }; });
+
+        google.script.run
+          .withSuccessHandler(async function(res) {
+            if (res.ocupado && !forzar) {
+              var confirmado = await mostrarConfirm(res.message);
+              if (confirmado) manejarCopiarSeleccionadas(doble, true);
+              return;
+            }
+            if (!res.success) { mostrarAviso(res.message || 'No se pudo copiar.'); return; }
+            mostrarAviso(res.message);
+            quitarSeleccion();
+            cargar(semanaActual, true);
+          })
+          .withFailureHandler(function(err) { mostrarAviso('Error: ' + err); })
+          .copiarVariasCitasWeb(items, !!forzar);
+      }
+
+      document.getElementById('btnCopiarCita').addEventListener('click', function() { manejarCopiarSeleccionadas(false, false); });
+      document.getElementById('btnCopiarCita2').addEventListener('click', function() { manejarCopiarSeleccionadas(true, false); });
+
+      // ---------- Copiar Semana (mié/jue doble, vie simple → semana siguiente) ----------
+      function diaSemanaDeCita(c) {
+        var partes = c._fechaISO.split('-').map(Number);
+        return new Date(partes[0], partes[1] - 1, partes[2]).getDay();
+      }
+
+      async function manejarCopiarSemana(forzar) {
+        var items = CITAS
+          .filter(function(c) {
+            if (c._hueco) return false;
+            var dia = diaSemanaDeCita(c);
+            return dia === 3 || dia === 4 || dia === 5;
+          })
+          .map(function(c) {
+            var dia = diaSemanaDeCita(c);
+            return { fila: c._fila, doble: (dia === 3 || dia === 4) };
+          });
+
+        if (items.length === 0) {
+          mostrarAviso('No hay citas de miércoles, jueves o viernes en esta semana para copiar.');
+          return;
+        }
+
+        google.script.run
+          .withSuccessHandler(async function(res) {
+            if (res.ocupado && !forzar) {
+              var confirmado = await mostrarConfirm(res.message);
+              if (confirmado) manejarCopiarSemana(true);
+              return;
+            }
+            if (!res.success) { mostrarAviso(res.message || 'No se pudo copiar la semana.'); return; }
+            mostrarAviso(res.message);
+            cargar(semanaActual, true);
+          })
+          .withFailureHandler(function(err) { mostrarAviso('Error: ' + err); })
+          .copiarVariasCitasWeb(items, !!forzar);
+      }
+
+      document.getElementById('btnCopiarSemana').addEventListener('click', function() { manejarCopiarSemana(false); });
+

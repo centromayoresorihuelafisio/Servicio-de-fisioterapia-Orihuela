@@ -64,7 +64,7 @@ function citasHoraTexto_(v, tz) {
 
 /**
  * Categoría de Asistencia de un texto. Los 4 valores oficiales (sin importar mayúsculas ni tildes) se reconocen tal cual; el
- * texto antiguo se clasifica con las mismas reglas y el mismo orden que ESTILOS_ASISTENCIA (agenda/Web_Vista.html).
+ * texto antiguo se clasifica con las mismas reglas y el mismo orden que ESTILOS_ASISTENCIA (agenda/JS_Agenda_Base.html).
  * @return {{categoria:string, estandar:boolean, vacio:boolean, desconocido:boolean}} `estandar` = era exactamente uno de los 4;
  *   `vacio` = celda vacía (cuenta como Pendiente); `desconocido` = no encaja en nada (se deja Pendiente y debe revisarse).
  */

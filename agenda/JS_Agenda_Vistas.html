@@ -1,0 +1,588 @@
+      // agenda/JS_Agenda_Vistas.html - Agenda: navegacion, vistas, atajos, arrastrar, avisos, tema, animaciones, cuadricula y actualizacion automatica.
+      // Se incluye dentro del unico <script> de agenda/Web_Vista, en este orden: JS_Agenda_Base, ui/JS_Modal_Deshacer, JS_Agenda_Edicion, JS_Agenda_Vistas, JS_Agenda_Resumen.
+      // Sin scriptlets: include() no los evalua (la direccion de la app llega en URL_BASE_WEB, definida en la pagina).
+      // ---------- Navegación de semana ----------
+      function hoyISO() { return formatoISO(new Date()); }
+
+      function formatoISO(d) {
+        var m = (d.getMonth() + 1).toString().padStart(2, '0');
+        var day = d.getDate().toString().padStart(2, '0');
+        return d.getFullYear() + '-' + m + '-' + day;
+      }
+
+      function moverSemana(dias) {
+        if (!semanaActual) return;
+        var partes = semanaActual.split('-').map(Number);
+        var d = new Date(partes[0], partes[1] - 1, partes[2]);
+        d.setDate(d.getDate() + dias);
+        fijarVista('semana');
+        cargar(formatoISO(d));
+      }
+
+      document.getElementById('btnSemanaAnterior').addEventListener('click', function() { moverSemana(-7); });
+      document.getElementById('btnSemanaSiguiente').addEventListener('click', function() { moverSemana(7); });
+
+      // "Hoy": en la vista de tarjetas las refresca; en la tabla, si el día ya
+      // está en la semana cargada solo se desplaza hasta él, y si no, carga la actual.
+      document.getElementById('btnHoy').addEventListener('click', function() {
+        if (vista === 'hoy') { cambiarVista('hoy'); return; }
+        var hoy = hoyISO();
+        if (CITAS.some(function(c) { return c._fechaISO === hoy; })) scrollAHoy();
+        else cargar(hoy);
+      });
+
+      document.getElementById('inputSemana').addEventListener('change', function(e) {
+        if (e.target.value) { fijarVista('semana'); cargar(e.target.value); }
+      });
+
+      SelectorFecha.enlazar(document.getElementById('inputSemana'), { borrar: false, marcas: marcasDia });   // calendario moderno en lugar del nativo
+      document.getElementById('inputBusqueda').addEventListener('input', render);
+
+      document.getElementById('btnHuecos').addEventListener('click', function() {
+        mostrarHuecos = !mostrarHuecos;
+        actualizarBotonHuecos();
+        render();
+      });
+
+      function actualizarBotonHuecos() {
+        var btn = document.getElementById('btnHuecos');
+        btn.title = mostrarHuecos ? 'Ocultar huecos libres' : 'Mostrar huecos libres';
+        btn.setAttribute('aria-pressed', mostrarHuecos ? 'true' : 'false');
+        btn.classList.toggle('activo', mostrarHuecos);
+      }
+
+      // ---------- Vista Semana / Hoy ----------
+      function fijarVista(v) {
+        vista = v;
+        document.getElementById('btnVistaSemana').classList.toggle('activo', v === 'semana');
+        document.getElementById('btnVistaHoy').classList.toggle('activo', v === 'hoy');
+        document.getElementById('btnVistaCal').classList.toggle('activo', v === 'cuadricula');
+        aplicarResumen();
+      }
+
+      function cambiarVista(v) {
+        var w = document.getElementById('tablaWrap');
+        w.classList.remove('anim'); void w.offsetWidth; w.classList.add('anim');
+        fijarVista(v);
+        if (v === 'hoy' && !CITAS.some(function(c) { return c._fechaISO === hoyISO(); })) {
+          cargar(hoyISO()); // la semana cargada no contiene hoy
+          return;
+        }
+        render();
+        if (v === 'semana') scrollAHoy();
+        else document.getElementById('tablaWrap').scrollTop = 0;
+      }
+
+      document.getElementById('btnVistaSemana').addEventListener('click', function() { cambiarVista('semana'); });
+      document.getElementById('btnVistaHoy').addEventListener('click', function() { cambiarVista('hoy'); });
+      document.getElementById('btnVistaCal').addEventListener('click', function() { cambiarVista('cuadricula'); });
+
+      // ---------- Filtros rápidos ----------
+
+      // ---------- Densidad de filas ----------
+      function aplicarDensidad(compacto, guardar) {
+        document.body.classList.toggle('compacto', compacto);
+        var bd = document.getElementById('btnDensidad');
+        bd.innerHTML = '<span class="material-symbols-outlined">' + (compacto ? 'density_small' : 'density_medium') + '</span>';
+        bd.title = compacto ? 'Densidad compacta (clic para espaciar)' : 'Densidad espaciada (clic para compactar)';
+        bd.classList.toggle('activo', compacto);
+        if (guardar) { try { localStorage.setItem('agendaDensidad', compacto ? 'compacto' : 'comodo'); } catch (err) { /* sin almacenamiento */ } }
+      }
+      document.getElementById('btnDensidad').addEventListener('click', function() {
+        aplicarDensidad(!document.body.classList.contains('compacto'), true);
+      });
+      (function() {
+        var guardada = null;
+        try { guardada = localStorage.getItem('agendaDensidad'); } catch (err) { /* sin almacenamiento */ }
+        aplicarDensidad(guardada === 'compacto', false);
+      })();
+
+      // ---------- Menú Copiar ----------
+      document.getElementById('btnMenuCopiar').addEventListener('click', function(e) {
+        e.stopPropagation();
+        if (this.disabled) return;
+        var abierto = document.getElementById('menuCopiarWrap').classList.toggle('abierto');
+        this.setAttribute('aria-expanded', abierto ? 'true' : 'false');
+      });
+      document.getElementById('btnMenuMas').addEventListener('click', function(e) {
+        e.stopPropagation();
+        var abierto = document.getElementById('menuMasWrap').classList.toggle('abierto');
+        this.setAttribute('aria-expanded', abierto ? 'true' : 'false');
+      });
+      document.addEventListener('click', function(e) {
+        document.querySelectorAll('.menu-wrap.abierto').forEach(function(w) {
+          if (!w.contains(e.target) || e.target.closest('.menu-item')) w.classList.remove('abierto');
+        });
+      });
+
+      // ---------- Atajos de teclado ----------
+      document.getElementById('btnAtajos').addEventListener('click', function() {
+        mostrarAviso('Atajos de teclado\n← / →   Semana anterior / siguiente\nT   Ir a hoy\nR   Recordatorios\n/   Buscar\nEsc   Quitar selección o filtros');
+      });
+
+      document.getElementById('inputBusqueda').addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') { this.value = ''; this.blur(); render(); }
+      });
+
+      document.addEventListener('keydown', function(e) {
+        if (e.ctrlKey || e.metaKey || e.altKey) return;
+        var modal = document.getElementById('modalOverlay');
+        if (modal && modal.classList.contains('visible')) return;
+        var el = document.activeElement, tag = el ? el.tagName : '';
+        if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA' || (el && el.isContentEditable)) return;
+        if (el && el.closest && el.closest('#ficha, .fu-menu')) return;   // el foco está en el panel lateral o en su menú de estado
+
+        if (e.key === 'ArrowLeft') { e.preventDefault(); moverSemana(-7); }
+        else if (e.key === 'ArrowRight') { e.preventDefault(); moverSemana(7); }
+        else if (e.key === 't' || e.key === 'T') { document.getElementById('btnHoy').click(); }
+        else if (e.key === 'r' || e.key === 'R') { e.preventDefault(); abrirRecordatorios(); }   // preventDefault: si no, la "r" se escribe en el campo que el panel enfoca
+        else if (e.key === '/') { e.preventDefault(); document.getElementById('inputBusqueda').focus(); }
+        else if (e.key === 'Escape') {
+          var menusAbiertos = document.querySelectorAll('.menu-wrap.abierto');
+          if (menusAbiertos.length) menusAbiertos.forEach(function(w) { w.classList.remove('abierto'); });
+          else if (citasSeleccionadas().length) quitarSeleccion();
+          else if (hayBusqueda()) limpiarFiltros();
+        }
+      });
+
+      // Cada minuto: actualiza "ahora", la línea de hora y las citas ya terminadas
+      setInterval(function() {
+        actualizarBotonRec();
+        if (document.querySelector('.editando') || arrastre || !CITAS.length) return;
+        if (vista === 'hoy' || CITAS.some(function(c) { return c._fechaISO === hoyISO(); })) render();
+      }, 60000);
+
+      // ---------- Arrastrar y soltar: mover una cita a un hueco libre ----------
+      // Pointer Events (ratón, táctil y lápiz). Con ratón se arrastra desde cualquier
+      // parte de la fila/tarjeta (salvo botones, enlaces y celdas editables); con
+      // táctil, desde el asa ⋮⋮. Mientras se arrastra se muestran los huecos libres,
+      // la lista hace autoscroll en los bordes y Esc cancela.
+      var arrastre = null;          // arrastre en curso: { fila, id, x, y, destino, ghost, raf }
+      var candidatoArrastre = null; // pulsación pendiente de superar el umbral de movimiento
+      var ultimoArrastreTs = 0;
+      var UMBRAL_ARRASTRE = 6;
+      var ultimoMovimiento = null, timeoutToastMover = null;
+
+      function citaPorFila(f) { return CITAS.find(function(c) { return c._fila == f; }); }
+
+      // La clave de una fila es un número (hoja Agenda vieja) o un texto (tabla nueva: ID de cita o "hueco AAAA-MM-DD HH:mm"):
+      // nunca se fuerza a número con Number(), que con un ID daría NaN.
+      function filaDeElemento(el) { var f = el.dataset.fila; return /^\d+$/.test(f) ? Number(f) : f; }
+      // ¿La semana cargada viene de la tabla nueva "Citas"? (solo ella añade `_id` a cada fila)
+      function modoCitasNuevo() { return CITAS.length > 0 && CITAS[0]._id !== undefined; }
+
+      function camposMovibles() {
+        var k = ['Usuario', 'Teléfono', 'Sesión', 'Asistencia', 'Notas'];
+        if (COL_HISTORIA) k.push(COL_HISTORIA);
+        return k;
+      }
+
+      // Traspasa los datos de una cita a otro hueco EN MEMORIA (fecha/día/hora no se tocan).
+      function transferirLocal(deFila, aFila) {
+        var o = citaPorFila(deFila), d = citaPorFila(aFila);
+        if (!o || !d) return false;
+        camposMovibles().forEach(function(k) { d[k] = o[k]; o[k] = ''; });
+        o._hueco = true; d._hueco = false;
+        if (filasSeleccionadas.has(deFila)) { filasSeleccionadas.delete(deFila); filasSeleccionadas.add(aFila); }
+        return true;
+      }
+
+      var wrapArrastre = document.getElementById('tablaWrap');
+
+      wrapArrastre.addEventListener('pointerdown', function(e) {
+        if (arrastre || (e.pointerType === 'mouse' && e.button !== 0)) return;
+        if (document.querySelector('.editando')) return;
+        var t = e.target, asa = t.closest('.asa');
+        if (!asa && (e.pointerType !== 'mouse' || t.closest('button, a, input, select, .editable, .chk'))) return;
+        var el = t.closest('tr.fila-cita, .tarjeta:not(.hueco), .cal-cita');
+        if (!el) return;
+        candidatoArrastre = { fila: filaDeElemento(el), id: e.pointerId, x: e.clientX, y: e.clientY };
+      });
+
+      window.addEventListener('pointermove', function(e) {
+        if (!arrastre && candidatoArrastre && e.pointerId === candidatoArrastre.id) {
+          var dx = e.clientX - candidatoArrastre.x, dy = e.clientY - candidatoArrastre.y;
+          if (dx * dx + dy * dy > UMBRAL_ARRASTRE * UMBRAL_ARRASTRE) iniciarArrastre(e);
+        }
+        if (arrastre && e.pointerId === arrastre.id) {
+          arrastre.x = e.clientX; arrastre.y = e.clientY;
+          if (e.cancelable) e.preventDefault();
+          posicionarGhost();
+        }
+      }, { passive: false });
+
+      window.addEventListener('pointerup', function(e) {
+        candidatoArrastre = null;
+        if (arrastre && e.pointerId === arrastre.id) finalizarArrastre(true);
+      });
+      window.addEventListener('pointercancel', function() { candidatoArrastre = null; if (arrastre) finalizarArrastre(false); });
+      document.addEventListener('selectstart', function(e) { if (arrastre) e.preventDefault(); });
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && arrastre) { e.stopPropagation(); finalizarArrastre(false); }
+      }, true);
+
+      // El clic que sigue a soltar no debe seleccionar/editar nada.
+      wrapArrastre.addEventListener('click', function(e) {
+        if (Date.now() - ultimoArrastreTs < 350) { e.stopPropagation(); e.preventDefault(); }
+      }, true);
+
+      function iniciarArrastre(e) {
+        var cita = citaPorFila(candidatoArrastre.fila);
+        if (!cita || cita._hueco) { candidatoArrastre = null; return; }
+        arrastre = { fila: cita._fila, id: candidatoArrastre.id, x: e.clientX, y: e.clientY, destino: null, ghost: null, raf: 0 };
+        candidatoArrastre = null;
+        try { wrapArrastre.setPointerCapture(e.pointerId); } catch (err) { /* no crítico */ }
+
+        var g = document.createElement('div');
+        g.className = 'ghost-cita';
+        g.innerHTML = '<span class="material-symbols-outlined" style="font-size:18px">event</span><span>' + escapar(cita['Usuario']) +
+          '</span><small>' + escapar(cita['Hora']) + '</small><span class="ghost-dest" style="display:none"></span>';
+        document.body.appendChild(g);
+        arrastre.ghost = g;
+        document.body.classList.add('arrastrando-cita');
+        try { window.getSelection().removeAllRanges(); } catch (err) { /* no crítico */ }
+
+        render(); // enseña los huecos libres mientras se arrastra
+        posicionarGhost();
+        arrastre.raf = requestAnimationFrame(bucleArrastre);
+      }
+
+      function posicionarGhost() {
+        if (arrastre && arrastre.ghost) arrastre.ghost.style.transform = 'translate3d(' + (arrastre.x + 14) + 'px,' + (arrastre.y + 10) + 'px,0)';
+      }
+
+      function reaplicarArrastre() {
+        if (!arrastre) return;
+        var o = document.querySelector('tr.fila-cita[data-fila="' + arrastre.fila + '"], .tarjeta[data-fila="' + arrastre.fila + '"], .cal-cita[data-fila="' + arrastre.fila + '"]');
+        if (o) o.classList.add('arrastrando');
+        arrastre.destino = null;
+      }
+
+      function bucleArrastre() {
+        if (!arrastre) return;
+        var r = wrapArrastre.getBoundingClientRect(), th = wrapArrastre.querySelector('thead');
+        var arriba = r.top + (th ? th.offsetHeight : 0) + 60, abajo = r.bottom - 60, v = 0;
+        if (arrastre.y < arriba) v = -(arriba - arrastre.y) / 4;
+        else if (arrastre.y > abajo) v = (arrastre.y - abajo) / 4;
+        if (v) wrapArrastre.scrollTop += Math.max(-22, Math.min(22, v));
+        marcarDestino();
+        arrastre.raf = requestAnimationFrame(bucleArrastre);
+      }
+
+      function marcarDestino() {
+        var el = document.elementFromPoint(arrastre.x, arrastre.y);
+        var obj = el && el.closest ? el.closest('tr.fila-hueco, tr.fila-cita, .tarjeta, .cal-cita, .cal-hueco') : null;
+        var fila = obj ? filaDeElemento(obj) : null;
+        if (fila === arrastre.fila) { obj = null; fila = null; }
+        if (fila === arrastre.destino) return;
+        var prev = document.querySelector('.destino-drop');
+        if (prev) prev.classList.remove('destino-drop');
+        arrastre.destino = fila;
+        if (obj) obj.classList.add('destino-drop');
+        etiquetaDestino(fila ? citaPorFila(fila) : null);
+      }
+
+      function finalizarArrastre(soltar) {
+        var a = arrastre;
+        if (!a) return;
+        cancelAnimationFrame(a.raf);
+        if (soltar) marcarDestino();
+        var destino = soltar ? a.destino : null;
+        if (a.ghost) a.ghost.remove();
+        document.body.classList.remove('arrastrando-cita');
+        try { wrapArrastre.releasePointerCapture(a.id); } catch (err) { /* ya liberado */ }
+        ultimoArrastreTs = Date.now();
+        arrastre = null;
+        if (destino) moverCitaUI(a.fila, destino, false);
+        else { render(); actualizarBotonesSeleccion(); }
+      }
+
+      // Actualiza la pantalla al instante y confirma con el servidor; si falla, revierte.
+      function elFila(f) {
+        return document.querySelector('tr[data-fila="' + f + '"], .tarjeta[data-fila="' + f + '"], .cal-cita[data-fila="' + f + '"], .cal-hueco[data-fila="' + f + '"]');
+      }
+
+      function etiquetaDestino(d) {
+        var s = arrastre && arrastre.ghost && arrastre.ghost.querySelector('.ghost-dest');
+        if (!s) return;
+        if (!d) { s.style.display = 'none'; s.textContent = ''; return; }
+        s.style.display = '';
+        s.textContent = d._hueco ? '→ ' + (d['Día'] ? d['Día'] + ' ' : '') + d['Hora'] : '⇄ ' + d['Usuario'] + ' · ' + d['Hora'];
+      }
+
+      // Intercambia en memoria los datos de dos citas ocupadas.
+      function intercambiarLocal(a, b) {
+        var x = citaPorFila(a), y = citaPorFila(b);
+        if (!x || !y) return false;
+        camposMovibles().forEach(function(k) { var v = x[k]; x[k] = y[k]; y[k] = v; });
+        var sa = filasSeleccionadas.has(a), sb = filasSeleccionadas.has(b);
+        filasSeleccionadas.delete(a); filasSeleccionadas.delete(b);
+        if (sa) filasSeleccionadas.add(b);
+        if (sb) filasSeleccionadas.add(a);
+        return true;
+      }
+
+      // Mover a un hueco libre, o intercambiar si el destino está ocupado.
+      // Actualiza la pantalla al instante y confirma con el servidor; si falla, revierte.
+      function moverCitaUI(filaO, filaD, esDeshacer) {
+        if (modoCitasNuevo()) { moverCitaUINuevo(filaO, filaD, esDeshacer); return; }
+        var d = citaPorFila(filaD), intercambio = !!(d && !d._hueco);
+        function pos(f, haciaFila) { var e = elFila(f); if (!e) return null; var r = e.getBoundingClientRect(); return { fila: haciaFila, x: r.left, y: r.top }; }
+        var flips = [pos(filaO, filaD)];
+        if (intercambio) flips.push(pos(filaD, filaO));
+        pendienteFLIP = flips.filter(Boolean);
+
+        if (!(intercambio ? intercambiarLocal(filaO, filaD) : transferirLocal(filaO, filaD))) { render(); return; }
+        render();
+        actualizarBotonesSeleccion();
+
+        function revertir(msg) {
+          if (intercambio) intercambiarLocal(filaO, filaD); else transferirLocal(filaD, filaO);
+          render();
+          actualizarBotonesSeleccion();
+          mostrarAviso(msg);
+          cargar(semanaActual, true);
+        }
+
+        var runner = google.script.run
+          .withSuccessHandler(function(res) {
+            if (!res || !res.success) { revertir((res && res.message) || 'No se pudo mover la cita.'); return; }
+            if (esDeshacer) ocultarToastMover(); else mostrarToastMover(filaO, filaD, intercambio);
+          })
+          .withFailureHandler(function(err) { revertir('Error al mover la cita: ' + err); });
+        if (intercambio) runner.intercambiarCitasWeb(filaO, filaD); else runner.moverCitaWeb(filaO, filaD);
+      }
+
+      // Tabla nueva: sin cambio local en memoria (cada cita lleva su ID y los huecos se calculan en el servidor).
+      // Se confirma con el servidor y se recarga la semana. `filaO` es el ID de la cita; `filaD`, el ID de otra cita
+      // (intercambio) o la clave "hueco AAAA-MM-DD HH:mm" (mover). Deshacer: mover de vuelta al hueco de origen
+      // (su clave se calcula con la fecha y la hora que tenía) o repetir el intercambio, que es simétrico.
+      function moverCitaUINuevo(filaO, filaD, esDeshacer) {
+        var o = citaPorFila(filaO), d = citaPorFila(filaD);
+        render();                       // quita los huecos que se enseñaban mientras se arrastraba
+        actualizarBotonesSeleccion();
+        if (!o || o._hueco || String(filaO) === String(filaD)) return;
+        var intercambio = !!(d && !d._hueco);
+        if (!intercambio && String(filaD).indexOf('hueco ') !== 0) return;
+        var texto = intercambio ? 'Citas intercambiadas.' :
+          'Cita movida' + (d ? ' a ' + (d['Día'] ? d['Día'] + ' ' : '') + d['Hora'] : '') + '.';
+        var deshacer = { desde: intercambio ? filaD : 'hueco ' + o._fechaISO + ' ' + o._horaOrden, hacia: filaO };
+
+        var runner = google.script.run
+          .withSuccessHandler(function(res) {
+            if (!res || !res.success) { mostrarAviso((res && res.message) || 'No se pudo mover la cita.'); cargar(semanaActual, true); return; }
+            cargar(semanaActual, true);
+            if (esDeshacer) ocultarToastMover(); else mostrarToastMoverTexto(texto, deshacer);
+          })
+          .withFailureHandler(function(err) { mostrarAviso('Error al mover la cita: ' + err); cargar(semanaActual, true); });
+        if (intercambio) runner.intercambiarCitasWeb(filaO, filaD); else runner.moverCitaWeb(filaO, filaD);
+      }
+
+      function mostrarToastMoverTexto(texto, movimiento) {
+        ultimoMovimiento = movimiento;
+        document.getElementById('toastMoverTexto').textContent = texto;
+        var toast = document.getElementById('toastMover');
+        toast.classList.add('visible');
+        if (timeoutToastMover) clearTimeout(timeoutToastMover);
+        timeoutToastMover = setTimeout(function() { toast.classList.remove('visible'); }, 6000);
+      }
+
+      function mostrarToastMover(filaO, filaD, intercambio) {
+        var d = citaPorFila(filaD);
+        ultimoMovimiento = { desde: filaO, hacia: filaD };
+        document.getElementById('toastMoverTexto').textContent = intercambio ? 'Citas intercambiadas.' :
+          'Cita movida' + (d ? ' a ' + (d['Día'] ? d['Día'] + ' ' : '') + d['Hora'] : '') + '.';
+        var toast = document.getElementById('toastMover');
+        toast.classList.add('visible');
+        if (timeoutToastMover) clearTimeout(timeoutToastMover);
+        timeoutToastMover = setTimeout(function() { toast.classList.remove('visible'); }, 6000);
+      }
+
+      function ocultarToastMover() {
+        ultimoMovimiento = null;
+        document.getElementById('toastMover').classList.remove('visible');
+        if (timeoutToastMover) { clearTimeout(timeoutToastMover); timeoutToastMover = null; }
+      }
+
+      document.getElementById('toastMoverBtn').addEventListener('click', function() {
+        var m = ultimoMovimiento;
+        if (!m) return;
+        ocultarToastMover();
+        moverCitaUI(m.hacia, m.desde, true);
+      });
+
+      // ---------- Avisos ligeros (toasts): sustituyen al modal salvo textos largos o multilínea ----------
+      var contenedorToasts = (function() { var d = document.createElement('div'); d.className = 'toasts'; document.body.appendChild(d); return d; })();
+      function mostrarAviso(mensaje) {
+        var m = (mensaje === null || mensaje === undefined) ? '' : String(mensaje);
+        if (m.indexOf('\n') !== -1 || m.length > 160) return mostrarDialogo(m, false);
+        var t = document.createElement('div');
+        var error = /^error|no se pudo|no se pudieron|ya est/i.test(m);
+        t.className = 'toast-aviso' + (error ? ' error' : '');
+        t.setAttribute('role', 'status');
+        var tono = error ? 'error' : tonoAviso_(m);
+        if (tono) t.appendChild(iconoAviso_(tono));
+        t.appendChild(document.createTextNode(m));
+        contenedorToasts.appendChild(t);
+        setTimeout(function() { t.classList.add('saliendo'); setTimeout(function() { t.remove(); }, 260); }, error ? 6000 : 3800);
+        return Promise.resolve(true);
+      }
+
+      // ---------- Avatares con iniciales ----------
+      function avatarHtml(nombre) {
+        var n = (nombre || '').toString().trim();
+        if (!n) return '';
+        var p = n.split(/\s+/), ini = (p[0].charAt(0) + (p.length > 1 ? p[1].charAt(0) : p[0].charAt(1))).toUpperCase(), h = 0, low = n.toLowerCase();
+        for (var i = 0; i < low.length; i++) h = (h * 31 + low.charCodeAt(i)) % 360;
+        return '<span class="avatar" style="--h:' + h + '">' + escapar(ini) + '</span>';
+      }
+
+      // ---------- Tema: automático / oscuro / claro ----------
+      var TEMAS = ['auto', 'oscuro', 'claro'], ICONOS_TEMA = { auto: 'contrast', oscuro: 'dark_mode', claro: 'light_mode' }, NOMBRES_TEMA = { auto: 'Automático', oscuro: 'Oscuro', claro: 'Claro' };
+      function aplicarTema(t, guardar) {
+        if (t === 'auto') document.documentElement.removeAttribute('data-tema'); else document.documentElement.setAttribute('data-tema', t);
+        var b = document.getElementById('btnTema');
+        b.innerHTML = '<span class="material-symbols-outlined">' + ICONOS_TEMA[t] + '</span>';   // boton de icono en la cabecera, como en las demas pestanas
+        b.title = 'Tema: ' + t + ' (clic para cambiar)';
+        b.dataset.tema = t;
+        if (guardar) { try { localStorage.setItem('temaApp', t); } catch (err) { /* sin almacenamiento */ } }
+      }
+      document.getElementById('btnTema').addEventListener('click', function() {
+        aplicarTema(TEMAS[(TEMAS.indexOf(this.dataset.tema || 'auto') + 1) % TEMAS.length], true);
+      });
+      (function() {
+        var t = 'auto';
+        try { t = localStorage.getItem('temaApp') || 'auto'; } catch (err) { /* sin almacenamiento */ }
+        aplicarTema(TEMAS.indexOf(t) === -1 ? 'auto' : t, false);
+      })();
+
+      // ---------- Animaciones: desplazamiento al mover, destello y salida al eliminar ----------
+      var pendienteFLIP = [], estadoHuecoPrevio = {};
+      function marcarSaliendo(f) { var e = elFila(f); if (e) e.classList.add('saliendo-fila'); }
+      function animarCambios() {
+        var flips = pendienteFLIP; pendienteFLIP = [];
+        var nuevo = {};
+        CITAS.forEach(function(c) { nuevo[c._fila] = c._hueco; });
+        var reducir = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+        if (!reducir) {
+          flips.forEach(function(f) {
+            var el = elFila(f.fila);
+            if (!el) return;
+            var r = el.getBoundingClientRect(), dx = f.x - r.left, dy = f.y - r.top;
+            if (dx || dy) el.animate([{ transform: 'translate(' + dx + 'px,' + dy + 'px)', opacity: .55 }, { transform: 'none', opacity: 1 }], { duration: 300, easing: 'cubic-bezier(.2,0,0,1)' });
+          });
+          Object.keys(nuevo).forEach(function(k) {
+            var antes = estadoHuecoPrevio[k];
+            if (antes === undefined || antes === nuevo[k]) return;
+            var el = elFila(k);
+            if (!el) return;
+            if (nuevo[k]) el.animate([{ opacity: .25 }, { opacity: 1 }], { duration: 260 });
+            else { el.classList.add('recien'); setTimeout(function() { el.classList.remove('recien'); }, 1300); }
+          });
+        }
+        estadoHuecoPrevio = nuevo;
+      }
+
+      // Sombra en las columnas fijas al desplazar en horizontal
+      document.getElementById('tablaWrap').addEventListener('scroll', function() { this.classList.toggle('desplazado', this.scrollLeft > 4); }, { passive: true });
+
+      // ---------- Vista Cuadrícula (calendario semanal) ----------
+      function htmlCuadricula(filtradas) {
+        var hoy = hoyISO(), ahora = ahoraHHmm(), buscando = hayBusqueda();
+        var visibles = new Set(filtradas.map(function(c) { return c._fila; }));
+        var dias = [], horas = [], mapa = {}, etiqueta = {};
+        CITAS.forEach(function(c) {
+          var h = c['Hora'] || '';
+          if (dias.indexOf(c._fechaISO) === -1) dias.push(c._fechaISO);
+          if (h && horas.indexOf(h) === -1) horas.push(h);
+          mapa[c._fechaISO + '|' + h] = c;
+          if (!etiqueta[c._fechaISO]) etiqueta[c._fechaISO] = (c['Día'] ? c['Día'] + ' ' : '') + String(c['Fecha'] || '').slice(0, 5);
+        });
+        dias.sort(); horas.sort();
+        var proxima = filaProxima(hoy, ahora);
+        var html = '<div class="cal" style="grid-template-columns:64px repeat(' + dias.length + ',minmax(150px,1fr))"><div class="cal-cab cal-esq"></div>';
+        dias.forEach(function(d) { html += '<div class="cal-cab' + (d === hoy ? ' hoy' : '') + (festivosDia(d).length ? ' festivo' : '') + '">' + htmlCabCal(d) + htmlRecPuntos(d) + '</div>'; });
+        horas.forEach(function(h) {
+          var media = /:30$/.test(h) ? ' media' : '';
+          html += '<div class="cal-hora' + media + '">' + escapar(h) + '</div>';
+          dias.forEach(function(d) {
+            var c = mapa[d + '|' + h];
+            html += '<div class="cal-celda' + (d === hoy ? ' hoy' : '') + (festivosDia(d).length ? ' festivo' : '') + (c ? '' : ' vacia') + media + '">' +
+              (c ? htmlCeldaCal(c, ahora, proxima, d === hoy, !buscando || visibles.has(c._fila)) : '') + '</div>';
+          });
+        });
+        return html + '</div>';
+      }
+
+      function htmlCabCal(iso) {
+        var p = iso.split('-'), dt = new Date(+p[0], +p[1] - 1, +p[2]);
+        var f = festivosDia(iso)[0];
+        return '<span class="cal-dow">' + DIAS_ES[dt.getDay()].slice(0, 3) + '</span><span class="cal-num">' + (+p[2]) + '</span>' +
+          (f ? '<span class="cal-fest" data-rec-id="' + escapar(f.id) + '" title="' + escapar('Festivo — ' + nombreFestivo(f)) + '"><span class="material-symbols-outlined">flag</span>' + escapar(nombreFestivo(f)) + '</span>' : '');
+      }
+
+      function htmlCeldaCal(c, ahora, proxima, esHoy, visible) {
+        if (c._hueco) return '<div class="cal-hueco editable hueco-libre" data-campo="Usuario" data-fila="' + c._fila + '" data-valor="" title="Asignar usuario"><span class="material-symbols-outlined">add</span></div>';
+        var clases = ['cal-cita'], est = estiloAsistencia(c['Asistencia']);
+        if (est && est !== 'neutro') clases.push('asist-' + est);
+        var tempo = esHoy ? estadoTemporal(c['Hora'] || '', ahora) : '';
+        if (tempo) clases.push(tempo);
+        if (esHoy && proxima && proxima._fila === c._fila) clases.push('proxima');
+        if (filasSeleccionadas.has(c._fila)) clases.push('seleccionada');
+        if (!visible) clases.push('atenuada');
+        var tip = [c['Usuario'], sinEmoji(c['Asistencia']), c['Notas']].filter(function(v) { return !vacioTxt(v); }).join(' · ');
+        return '<div class="' + clases.join(' ') + '" data-fila="' + c._fila + '" title="' + escapar(tip) + '">' +
+          '<span class="asa material-symbols-outlined">drag_indicator</span>' + avatarHtml(c['Usuario']) +
+          '<span class="nombre-u">' + escapar(c['Usuario']) + '</span>' + (vacioTxt(c['Sesión']) ? '' : badgeSesion(c['Sesión'])) + '</div>';
+      }
+
+      function abrirHCFila(fila) {
+        var c = citaPorFila(fila), url = c && COL_HISTORIA ? c[COL_HISTORIA] : '';
+        if (!c || !esUrl(url)) { mostrarAviso('Esta cita no tiene Historia Clínica enlazada.'); return; }
+        var nombre = String(c['Usuario'] || '').trim();
+        var m = /[?&]page=hc&id=([^&#]+)/.exec(url);                 // enlace a la ficha web: se abre como panel lateral
+        abrirPanelLateral('hc:' + (m ? m[1] : nombre), 'Historia clínica · ' + nombre, 'hc', function(cont) {
+          return PanelHC.abrir(cont, { id: m ? decodeURIComponent(m[1]) : '', urlPagina: URL_BASE_WEB + '?page=hc',
+            // Cita o edición hechas desde la historia: se actualizan la agenda y las fichas (igual que al avisar otra ventana).
+            alCambiar: function(tipo) {
+              if (tipo === 'usuario') cargarFichas();
+              if ((tipo === 'cita' || tipo === 'usuario' || tipo === 'disponibilidad') && semanaActual && !document.querySelector('.editando')) cargar(semanaActual, true);
+            } });
+        });
+      }
+
+      // ---------- Auto-refresh: sondeo barato de versión (CacheService) y recarga
+      // silenciosa solo si cambió. Se salta si hay una celda en edición. ----------
+      var ultimaVersionAgenda = null;
+
+      function comprobarVersionAgenda() {
+        if (!semanaActual || arrastre) return;
+        if (document.querySelector('.editando')) return;
+
+        google.script.run
+          .withSuccessHandler(function(res) {
+            if (!res || res.error) return;
+            if (ultimaVersionAgenda === null) { ultimaVersionAgenda = res.version; return; }
+            if (res.version !== ultimaVersionAgenda) {
+              ultimaVersionAgenda = res.version;
+              cargar(semanaActual, true);
+              cargarRecordatorios();
+            }
+          })
+          .withFailureHandler(function() { /* se reintenta en el próximo ciclo */ })
+          .obtenerVersionAgendaWeb();
+      }
+
+      var AUTO_REFRESH_MS = 4000;
+      setInterval(comprobarVersionAgenda, AUTO_REFRESH_MS);
+
+      // Si otra pestaña actualiza un usuario (las páginas sueltas ?page=… avisan por localStorage al guardar),
+      // la agenda se recarga salvo que haya una edición en línea en curso.
+      window.addEventListener('storage', function(e) {
+        if (e.key === 'pacienteActualizado') cargarFichas();   // los datos de la ficha pueden haber cambiado
+        if (e.key === 'pacienteActualizado' && semanaActual) {
+          if (document.querySelector('.editando')) return;
+          cargar(semanaActual, true);
+        }
+      });
+

@@ -38,7 +38,7 @@ function obtenerFichasUsuariosWeb(campos) {
 
     const respuesta = { success: true, headers: bd.headers, fichas: fichas, generado: Date.now() };
     // Sin lista de columnas (la Agenda) se añade también la lista de TODOS los usuarios para el selector de huecos
-    // (agenda/Web_Vista.html → SelectorUsuario). `fichas` se indexa por nombre y descarta a los homónimos; esta lista no.
+    // (agenda/JS_Agenda_Edicion.html → SelectorUsuario). `fichas` se indexa por nombre y descarta a los homónimos; esta lista no.
     if (!(campos && campos.length)) respuesta.usuarios = usuariosParaSelectorDesdeMaestra_(bd.pacientes).usuarios;
     return respuesta;
   } catch (e) {

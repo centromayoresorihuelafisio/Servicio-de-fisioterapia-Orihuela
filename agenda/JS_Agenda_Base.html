@@ -1,0 +1,638 @@
+      // agenda/JS_Agenda_Base.html - Agenda: carga de datos, filtros, asistencia, dibujo de la tabla y tarjetas de Hoy.
+      // Se incluye dentro del unico <script> de agenda/Web_Vista, en este orden: JS_Agenda_Base, ui/JS_Modal_Deshacer, JS_Agenda_Edicion, JS_Agenda_Vistas, JS_Agenda_Resumen.
+      // Sin scriptlets: include() no los evalua (la direccion de la app llega en URL_BASE_WEB, definida en la pagina).
+      // Hora ("HH:mm") a partir de la cual una cita es "de tarde".
+      var HORA_CORTE_TARDE = '14:00';
+
+      var filasSeleccionadas = new Set();
+
+      // Columnas de Sheets que no se muestran (normalizadas: sin mayúsculas ni acentos).
+      var COLUMNAS_OCULTAS = ['fecha', 'dia', 'id evento calendar', 'historia clinica', 'telefono'];
+
+      var HEADERS = [];
+      var HEADERS_VISIBLES = [];
+      var CITAS = [];
+      var COL_HISTORIA = null;
+      var semanaActual = null; // lunes de la semana mostrada, "yyyy-MM-dd"
+      var mostrarHuecos = false;
+      var OPCIONES_ASISTENCIA = [];
+      var vista = 'semana';            // 'semana' (tabla) | 'hoy' (tarjetas del día de hoy)
+      var filtrosActivos = new Set();  // 'sinAsistencia' | 'sinHC' | 'conNotas'
+      var filtroDiaSinAsis = null;     // fecha ISO si el filtro «sin asistencia» se limita a un solo día (chip del resumen del día)
+      var RECORDATORIOS = [];            // recordatorios genéricos (agenda/Recordatorios.gs)
+      var plegadoManual = {};          // fechaISO -> true/false: días plegados o desplegados a mano
+      var DURACION_CITA_MIN = 30;      // para marcar "Ahora" y atenuar las citas ya terminadas
+
+      // Color del chip según el texto de Asistencia. Se evalúa EN ORDEN y gana
+      // la primera coincidencia: primero las negativas ("No asistió", "Falta"),
+      // después "pendiente" (gris), después avisos (ámbar) y por último las
+      // positivas (verde). Lo que no encaje sale en gris neutro.
+      var ESTILOS_ASISTENCIA = [
+        { clase: 'mal',    patron: /^no\b|^sin asist|falt|ausen|plant|no (vino|asist|acud|se present)/ },
+        { clase: 'neutro', patron: /pendient|por confirmar|sin confirmar|sin registrar/ },
+        { clase: 'aviso',  patron: /cancel|anul|aplaz|recuper|justific|retras/ },
+        { clase: 'ok',     patron: /asist|vino|presente|realiz|acudi|^si$|^ok$/ }
+      ];
+
+      function estiloAsistencia(valor) {
+        var v = normalizar(valor);
+        if (!v) return '';
+        for (var i = 0; i < ESTILOS_ASISTENCIA.length; i++) {
+          if (ESTILOS_ASISTENCIA[i].patron.test(v)) return ESTILOS_ASISTENCIA[i].clase;
+        }
+        return 'neutro';
+      }
+
+      function htmlEsqueleto() {
+        var nombres = [150, 190, 130, 170, 160];
+        function barra(w, r) { return '<span class="esq-barra" style="width:' + w + 'px' + (r ? ';border-radius:' + r : '') + '"></span>'; }
+        function dia() { return '<div class="esq-dia2"><span class="esq-barra esq-circ"></span><span class="esq-col">' + barra(80) + barra(54) + '</span><span class="esq-flex"></span>' + barra(190) + '</div>'; }
+        function filas(n, o) {
+          var h = '';
+          for (var i = 0; i < n; i++) h += '<div class="esq-fila2">' + barra(46) + '<span class="esq-barra esq-circ sm"></span>' + barra(nombres[(i + o) % nombres.length]) +
+            '<span class="esq-flex"></span>' + barra(76, '999px') + barra(98, '999px') + '</div>';
+          return h;
+        }
+        return '<div class="esqueleto" aria-busy="true" aria-label="Cargando agenda">' + dia() + '<div class="esq-turno"></div>' + filas(5, 0) +
+          dia() + '<div class="esq-turno"></div>' + filas(4, 2) + '</div>';
+      }
+
+      // ---------- Carga de datos ----------
+      // `silencioso`: refrescos en segundo plano (sin esqueleto y SIN mover el
+      // scroll). Una carga no silenciosa (primera carga, Hoy, flechas, selector
+      // de fecha) deja la vista centrada en el día de hoy si está en la semana.
+      function cargar(fechaISO, silencioso) {
+        var irAHoy = !silencioso;
+        if (!silencioso) {
+          document.getElementById('tablaWrap').innerHTML = htmlEsqueleto();
+        }
+
+        google.script.run
+          .withSuccessHandler(function(res) {
+            if (res.error) { mostrarError(res.error); return; }
+            HEADERS = res.headers || [];
+            HEADERS_VISIBLES = HEADERS.filter(function(h) { return COLUMNAS_OCULTAS.indexOf(normalizar(h)) === -1; });
+            CITAS = res.citas || [];
+            OPCIONES_ASISTENCIA = res.opcionesAsistencia || [];
+            COL_HISTORIA = HEADERS.find(function(h) { return h.toLowerCase().indexOf('historia') !== -1; });
+
+            if (res.semana) {
+              semanaActual = res.semana.lunes;
+              document.getElementById('etiquetaSemana').textContent = res.semana.etiqueta;
+              document.getElementById('inputSemana').value = res.semana.lunes;
+            }
+            render();
+            if (irAHoy) scrollAHoy();
+          })
+          .withFailureHandler(mostrarError)
+          .obtenerAgendaSemanaWeb(fechaISO || null);
+      }
+
+      // Coloca la cabecera del día de hoy justo bajo el encabezado de columnas,
+      // para no tener que hacer scroll hacia abajo un viernes. Si hoy no está
+      // en la semana mostrada, vuelve arriba.
+      function scrollAHoy() {
+        var wrap = document.getElementById('tablaWrap');
+        var filaHoy = wrap.querySelector('tr.fila-dia.hoy');
+        if (!filaHoy) { wrap.scrollTop = 0; return; }
+        var thead = wrap.querySelector('thead');
+        var alto = thead ? thead.offsetHeight : 0;
+        var destino = filaHoy.getBoundingClientRect().top - wrap.getBoundingClientRect().top - alto + wrap.scrollTop;
+        wrap.scrollTop = Math.max(0, destino);
+      }
+
+      function mostrarError(err) {
+        document.getElementById('tablaWrap').innerHTML =
+          '<div class="estado-vacio"><span class="estado-icono-wrap error"><span class="material-symbols-outlined estado-icono">cloud_off</span></span>' +
+          '<div class="estado-titulo">No se pudo cargar la agenda</div><div class="estado-texto">' + escapar(err && err.message ? err.message : err) + '</div>' +
+          '<button title="Volver a cargar la agenda" type="button" class="md-btn md-btn--outline" data-vacio="reintentar"><span class="material-symbols-outlined">refresh</span>Reintentar</button></div>';
+      }
+
+      function normalizar(txt) {
+        return (txt || '').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+      }
+
+      function esUrl(valor) { return typeof valor === 'string' && /^https?:\/\//i.test(valor.trim()); }
+
+      // Escapado completo (& < > " '). Sirve tanto para texto como para
+      // valores de atributo: antes solo se escapaba "<", y una comilla doble
+      // en una nota cortaba el value="..." del campo de edición.
+      function escapar(txt) {
+        return (txt === null || txt === undefined ? '' : txt + '')
+          .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+      }
+
+      var CAMPOS_EDITABLES = ['Notas', 'Sesión'];
+
+      // ---------- Utilidades de fecha/hora y estado ----------
+      function vacioTxt(v) { return v === '' || v === null || v === undefined; }
+      function pad2(n) { return (n < 10 ? '0' : '') + n; }
+      function ahoraHHmm() { var d = new Date(); return pad2(d.getHours()) + ':' + pad2(d.getMinutes()); }
+
+      function finCita(hora) {
+        var m = /^(\d{1,2}):(\d{2})$/.exec(hora || '');
+        if (!m) return '';
+        var t = parseInt(m[1], 10) * 60 + parseInt(m[2], 10) + DURACION_CITA_MIN;
+        return pad2(Math.floor(t / 60)) + ':' + pad2(t % 60);
+      }
+
+      // '' | 'pasada' (ya terminó) | 'en-curso'. Solo tiene sentido para citas de hoy.
+      function estadoTemporal(hora, ahora) {
+        var fin = finCita(hora);
+        if (!fin) return '';
+        if (fin <= ahora) return 'pasada';
+        if (hora <= ahora) return 'en-curso';
+        return '';
+      }
+
+      function filaProxima(hoy, ahora) {
+        return CITAS.find(function(c) { return c._fechaISO === hoy && !c._hueco && (c['Hora'] || '') > ahora; }) || null;
+      }
+
+      function sumarDiasISO(iso, n) {
+        var p = iso.split('-').map(Number);
+        return formatoISO(new Date(p[0], p[1] - 1, p[2] + n));
+      }
+
+      function semanaContieneHoy() {
+        if (!semanaActual) return false;
+        var h = hoyISO();
+        return h >= semanaActual && h <= sumarDiasISO(semanaActual, 6);
+      }
+
+      // Días pasados de la semana actual: plegados por defecto (en semanas
+      // pasadas o futuras se muestra todo). Lo que el usuario pliega o
+      // despliega a mano manda sobre el valor por defecto.
+      var imprimiendo = false;   // al imprimir se despliegan todos los días
+      function diaPlegado(fechaISO) {
+        if (imprimiendo) return false;
+        if (Object.prototype.hasOwnProperty.call(plegadoManual, fechaISO)) return plegadoManual[fechaISO];
+        return semanaContieneHoy() && fechaISO < hoyISO();
+      }
+
+      function hayBusqueda() {
+        return normalizar(document.getElementById('inputBusqueda').value) !== '' || filtrosActivos.size > 0;
+      }
+
+      function calcularTotalesDia() {
+        var tot = {};
+        CITAS.forEach(function(c) {
+          var t = tot[c._fechaISO] || (tot[c._fechaISO] = { citas: 0, libres: 0, registradas: 0 });
+          if (c._hueco) t.libres++;
+          else { t.citas++; if (!vacioTxt(c['Asistencia'])) t.registradas++; }
+        });
+        return tot;
+      }
+
+      // ---------- Filtros rápidos ----------
+      function cumpleFiltro(c, filtro) {
+        if (c._hueco) return false;
+        if (filtro === 'sinAsistencia') return c._fechaISO <= hoyISO() && vacioTxt(c['Asistencia']);
+        if (filtro === 'sinHC') return !!COL_HISTORIA && vacioTxt(c[COL_HISTORIA]);
+        if (filtro === 'conNotas') return !vacioTxt(c['Notas']);
+        return true;
+      }
+
+      function pasaFiltrosRapidos(c) {
+        if (filtroDiaSinAsis && c._fechaISO !== filtroDiaSinAsis) return false;
+        var ok = true;
+        filtrosActivos.forEach(function(f) { if (!cumpleFiltro(c, f)) ok = false; });
+        return ok;
+      }
+
+
+      // ---------- Asistencia con un clic ----------
+      // Cada botón busca en las opciones reales de tu desplegable la que
+      // corresponde a su color (verde/rojo/ámbar), igual que los chips.
+      function opcionAsistencia(clase) {
+        var ops = OPCIONES_ASISTENCIA.filter(function(op) { return estiloAsistencia(op) === clase; });
+        if (clase === 'aviso') {
+          var just = ops.filter(function(op) { return /justific/.test(normalizar(op)); });
+          if (just.length) return just[0];
+        }
+        if (clase === 'neutro') {
+          // Lo no reconocido también cae en 'neutro': aquí solo vale una opción "Pendiente".
+          var pend = ops.filter(function(op) { return /pendient/.test(normalizar(op)); });
+          return pend[0] || '';
+        }
+        return ops[0] || '';
+      }
+
+      var ASIS_RAPIDA = [
+        { clase: 'ok',     icono: 'check_circle' },
+        { clase: 'mal',    icono: 'cancel' },
+        { clase: 'aviso',  icono: 'event_busy' },
+        { clase: 'neutro', icono: 'hourglass_empty' }
+      ];
+
+      // Los botones se muestran SIEMPRE; el estado actual queda resaltado y pulsarlo de nuevo lo quita.
+      // Un valor que no encaja con ningún botón (texto libre antiguo) sale como chip pulsable para poder quitarlo.
+      function htmlAsistenciaBotones(valor, conTexto) {
+        var hay = !vacioTxt(valor), v = hay ? String(valor) : '', clsV = hay ? estiloAsistencia(v) : '', alguno = false, html = '';
+        ASIS_RAPIDA.forEach(function(a) {
+          var op = opcionAsistencia(a.clase);
+          if (!op) return;
+          var act = hay && (v === op || (a.clase !== 'neutro' && clsV === a.clase) || (a.clase === 'neutro' && /pendient/.test(normalizar(v))));
+          if (act) alguno = true;
+          html += '<button type="button" class="btn-asis ' + a.clase + (act ? ' activo' : '') + (conTexto ? ' btn-asis-lg' : '') +
+            '" data-asis="' + escapar(op) + '" aria-pressed="' + act + '" title="' + escapar(act ? sinEmoji(v) + ' — clic para quitar' : sinEmoji(op)) +
+            '"><span class="material-symbols-outlined">' + a.icono + '</span>' + (conTexto ? escapar(sinEmoji(op)) : (act ? '<span class="asis-txt">' + escapar(sinEmoji(v)) + '</span>' : '')) + '</button>';
+        });
+        if (hay && !alguno) html = '<button type="button" class="chip chip-' + clsV + '" data-asis="" title="' + escapar(sinEmoji(v) + ' — clic para quitar') + '">' + escapar(sinEmoji(v)) + '</button>' + html;
+        return '<span class="asis-rapida">' + html + '</span>';
+      }
+
+      function guardarAsistencia(fila, valor) {
+        var cita = CITAS.find(function(c) { return c._fila == fila; });
+        if (!cita) return;
+        var previo = cita['Asistencia'];
+        cita['Asistencia'] = valor;            // respuesta inmediata; se revierte si el servidor falla
+        render();
+        function revertir(msg) { cita['Asistencia'] = previo; render(); mostrarAviso(msg); }
+        google.script.run
+          .withSuccessHandler(function(res) {
+            if (!res || !res.success) { revertir((res && res.message) || 'No se pudo guardar el cambio.'); return; }
+            // Tabla nueva: "quitar" = Pendiente y Pendiente se muestra vacío, igual que al recargar la semana.
+            if (res.asistencia !== undefined && res.asistencia !== cita['Asistencia']) { cita['Asistencia'] = res.asistencia; render(); }
+          })
+          .withFailureHandler(function(err) { revertir('Error al guardar: ' + err); })
+          .actualizarCampoAgendaWeb(fila, 'Asistencia', valor);
+      }
+
+      function badgeSesion(v, etiqueta) {
+        var t = (v + '').trim();
+        if (!/^\d+$/.test(t)) return escapar(v);
+        return '<span class="badge-sesion ' + (t === '1' ? 's1' : 'sn') + (etiqueta ? ' etq' : '') + '" title="' + (t === '1' ? 'Primera sesión' : 'Sesión ' + t) + '">' + (etiqueta ? 'Sesión ' : '') + t + '</span>';
+      }
+
+      // Sesión con − / +. Solo si es un número (vacío o texto libre se quedan como estaban). Mínimo 1.
+      function htmlSesion(valor, fila) {
+        var t = (valor + '').trim();
+        if (!/^\d+$/.test(t)) return badgeSesion(valor, true);
+        var n = parseInt(t, 10);
+        return '<span class="ses-ctl" data-fila="' + fila + '"><span class="ses-vista">' + badgeSesion(valor, true) + '</span>' +
+          '<span class="ses-paso"><button type="button" class="btn-ses" data-ses="-1"' + (n <= 1 ? ' disabled' : '') + ' title="Restar una sesión"><span class="material-symbols-outlined">remove</span></button>' +
+          '<span class="ses-num">' + n + '</span>' +
+          '<button type="button" class="btn-ses" data-ses="1" title="Sumar una sesión"><span class="material-symbols-outlined">add</span></button></span></span>';
+      }
+
+      // El número cambia al instante en pantalla; se guarda UNA sola vez cuando se deja de pulsar (0,5 s), aunque se hayan dado varios clics.
+      // Si el servidor falla, vuelve al valor con el que se empezó.
+      var sesionesPendientes = {};   // fila → { timer, previo, valor }
+      function cambiarSesion(fila, delta) {
+        var cita = CITAS.find(function(c) { return c._fila == fila; });
+        if (!cita) return;
+        var actual = parseInt(String(cita['Sesión']).trim(), 10);
+        if (isNaN(actual)) return;
+        var nuevo = Math.max(1, actual + delta);
+        if (nuevo === actual) return;
+        var p = sesionesPendientes[fila];
+        if (!p) p = sesionesPendientes[fila] = { previo: cita['Sesión'] };   // valor con el que empezó la tanda de clics
+        p.valor = nuevo;
+        cita['Sesión'] = nuevo;
+        render();
+        clearTimeout(p.timer);
+        p.timer = setTimeout(function() { guardarSesion(fila); }, 500);
+      }
+
+      function guardarSesion(fila) {
+        var p = sesionesPendientes[fila];
+        if (!p) return;
+        delete sesionesPendientes[fila];
+        if (String(p.valor) === String(p.previo).trim()) return;   // se ha vuelto al valor de partida: nada que guardar
+        function revertir(msg) {
+          var cita = CITAS.find(function(c) { return c._fila == fila; });
+          if (cita) { cita['Sesión'] = p.previo; render(); }
+          mostrarAviso(msg);
+        }
+        google.script.run
+          .withSuccessHandler(function(res) { if (!res || !res.success) revertir((res && res.message) || 'No se pudo guardar el cambio.'); })
+          .withFailureHandler(function(err) { revertir('Error al guardar: ' + err); })
+          .actualizarCampoAgendaWeb(fila, 'Sesión', p.valor);
+      }
+
+      // Quita emojis del texto que viene de la hoja (el icono del chip ya indica el estado).
+      function sinEmoji(v) {
+        var o = (v === null || v === undefined) ? '' : String(v);
+        var l = o.replace(/[\p{Extended_Pictographic}\uFE0F\u200D]/gu, '').replace(/\s+/g, ' ').trim();
+        return l || o;
+      }
+
+
+      // Mismo icono de WhatsApp que usa Usuarios.
+      var SVG_WHATSAPP = '<svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 16 16" fill="currentColor">' +
+        '<path d="M13.601 2.326A7.854 7.854 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.933 7.933 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.898 7.898 0 0 0 13.6 2.326zM7.994 14.521a6.573 6.573 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.557 6.557 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592zm3.615-4.934c-.197-.099-1.17-.578-1.353-.646-.182-.065-.315-.099-.445.099-.133.197-.513.646-.627.775-.114.133-.232.148-.43.05-.197-.1-.836-.308-1.592-.985-.59-.525-.985-1.175-1.103-1.372-.114-.198-.011-.304.088-.403.087-.088.197-.232.296-.346.1-.114.133-.198.198-.33.065-.134.034-.248-.015-.347-.05-.099-.445-1.076-.612-1.47-.16-.389-.323-.335-.445-.34-.114-.007-.247-.007-.38-.007a.729.729 0 0 0-.529.247c-.182.198-.691.677-.691 1.654 0 .977.71 1.916.81 2.049.098.133 1.394 2.132 3.383 2.992.47.205.84.326 1.129.418.475.152.904.129 1.246.08.38-.058 1.171-.48 1.338-.943.164-.464.164-.86.114-.943-.049-.084-.182-.133-.38-.232z"/></svg>';
+
+      function htmlBotonesFila(fila, cita) {
+        var btnHC = '', btnCopiar = '';
+        if (cita) {
+          btnCopiar =
+            '<button type="button" class="btn-fila" data-accion="copiar1" data-fila="' + fila + '" title="Copiar a la siguiente cita"><span class="material-symbols-outlined">content_copy</span></button>' +
+            '<button type="button" class="btn-fila" data-accion="copiar2" data-fila="' + fila + '" title="Copiar a las 2 siguientes citas"><span class="material-symbols-outlined">library_add</span></button>';
+          var url = COL_HISTORIA ? cita[COL_HISTORIA] : '';
+          var tiene = esUrl(url);
+          btnHC = '<button type="button" class="btn-fila ' + (tiene ? 'con-hc' : 'sin-hc') + '" data-accion="hc" data-fila="' + fila + '" title="' +
+            (tiene ? 'Abrir Historia Clínica' : 'Sin Historia Clínica enlazada') + '"><span class="material-symbols-outlined">description</span></button>';
+        }
+        return '<span class="acc-pill">' + btnHC +
+          '<button type="button" class="btn-fila btn-whatsapp" data-accion="whatsapp" data-fila="' + fila + '" title="Abrir WhatsApp">' + SVG_WHATSAPP + '</button>' + btnCopiar +
+          '<button type="button" class="btn-fila" data-accion="cita" data-fila="' + fila + '" title="Dar cita"><span class="material-symbols-outlined">edit_calendar</span></button>' +
+          '<button type="button" class="btn-fila" data-accion="valoracion" data-fila="' + fila + '" title="Valoración"><span class="material-symbols-outlined">assignment</span></button>' +
+          '<button type="button" class="btn-fila" data-accion="alta" data-fila="' + fila + '" title="Dar de alta"><span class="material-symbols-outlined">how_to_reg</span></button>' +
+          '<button type="button" class="btn-fila peligro" data-accion="borrar" data-fila="' + fila + '" title="Liberar este hueco (borra todos los datos de la cita)"><span class="material-symbols-outlined">delete</span></button></span>';
+      }
+
+      var MESES_ES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+      var DIAS_ES = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+      function htmlDiaTitulo(iso, dia) {
+        var p = String(iso).split('-'), d = parseInt(p[2], 10), m = parseInt(p[1], 10) - 1;
+        var nombre = dia || DIAS_ES[new Date(+p[0], m, d).getDay()];
+        return '<span class="dia-num">' + d + '</span><span class="dia-txt"><b>' + escapar(nombre) + '</b><small>' + MESES_ES[m] + ' ' + p[0] + '</small></span>';
+      }
+
+      // Resumen del día: en reposo, una línea tenue («12 citas · 4 libres»); color solo si hay asistencias por registrar
+      // (chip ámbar que filtra); la barra fina aparece al pasar el ratón y el desglose va en el tooltip.
+      function htmlStatsDia(t, fechaISO) {
+        var txt;
+        if (t.citas === 0 && t.libres === 0) {
+          txt = 'Cerrado';
+        } else {
+          txt = t.citas === 0 ? 'Sin citas' : t.citas + (t.citas === 1 ? ' cita' : ' citas');
+          if (t.libres > 0) txt += ' · ' + t.libres + (t.libres === 1 ? ' libre' : ' libres');
+        }
+
+        var sin = t.citas - t.registradas, pasadoOHoy = fechaISO <= hoyISO();
+        var pend = pasadoOHoy ? sin : 0, chip = '';
+        if (pend > 0) {
+          var activo = filtroDiaSinAsis === fechaISO;
+          chip = '<button type="button" class="dia-pend' + (activo ? ' activo' : '') + '" data-sin-asis="' + fechaISO + '" aria-pressed="' + activo + '" title="' +
+            (activo ? 'Quitar el filtro' : 'Ver solo las citas sin asistencia de este día') + '">' + pend + ' sin registrar</button>';
+        }
+
+        var total = t.citas + t.libres, barra = '', desglose = '';
+        if (total > 0) {
+          desglose = pasadoOHoy
+            ? t.registradas + ' registradas · ' + sin + ' sin registrar · ' + t.libres + ' libres'
+            : t.citas + ' citas · ' + t.libres + ' libres';
+          barra = '<span class="ocup"><span class="o-reg" style="width:' + (100 * t.registradas / total) + '%"></span><span class="o-cita" style="width:' + (100 * sin / total) + '%"></span></span>';
+        }
+        return '<span class="dia-resumen"' + (desglose ? ' title="' + desglose + '"' : '') + '>' + chip + '<span class="dia-stats">' + txt + '</span>' + barra + '</span>';
+      }
+
+      function htmlLineaAhora(ahora, numColumnas) {
+        return '<tr class="fila-ahora"><td colspan="' + numColumnas + '"><div class="ahora-linea"><span>' + ahora + '</span></div></td></tr>';
+      }
+
+      function renderCelda(header, valor, fila, esHueco, tag) {
+        var vacio = vacioTxt(valor);
+
+        if (header === 'Hora') {
+          var casilla = '<span class="chk' + (esHueco ? ' oculto' : '') + '"></span>';
+          var punto = tag ? '<span class="pto-t ' + tag + '" title="' + (tag === 'ahora' ? 'En curso' : 'Próxima cita') + '"></span>' : '';
+          var asa = '<span class="asa material-symbols-outlined"' + (esHueco ? ' style="visibility:hidden"' : ' title="Arrastra para mover la cita a otro hueco libre"') + '>' + (esHueco ? '' : 'drag_indicator') + '</span>';
+          return '<td class="hora"><span class="hora-celda">' + asa + casilla + (vacio ? '—' : escapar(valor)) + punto + '</span></td>';
+        }
+
+        if (header === 'Usuario' && esHueco) {
+          return '<td class="editable hueco-libre" data-campo="Usuario" data-fila="' + fila + '" data-valor=""><span class="chip-asignar"><span class="material-symbols-outlined">add</span>Asignar</span></td>';
+        }
+
+        if (esHueco && vacio) return '<td class="vacio"></td>';
+
+        if (header === COL_HISTORIA) {
+          if (vacio) return '<td class="vacio">Sin enlace</td>';
+          return esUrl(valor)
+            ? '<td><a class="link-hc" title="Abrir la historia clínica" href="' + escapar(valor.trim()) + '" target="_blank" rel="noopener"><span class="material-symbols-outlined ic-15">description</span>Abrir</a></td>'
+            : '<td>' + escapar(valor) + '</td>';
+        }
+
+        if (header === 'Asistencia' && !esHueco) {
+          return '<td class="celda-asis" data-fila="' + fila + '">' + htmlAsistenciaBotones(valor, false) + '</td>';
+        }
+
+        if (!esHueco && CAMPOS_EDITABLES.indexOf(header) !== -1) {
+          var valorAttr = vacio ? '' : escapar(valor);
+          var contenido;
+          if (header === 'Notas') contenido = '<span class="material-symbols-outlined ic-nota-btn">sticky_note_2</span><span class="nota-txt' + (vacio ? ' vacia' : '') + '" title="' + (vacio ? 'Añadir nota' : valorAttr) + '">' + (vacio ? 'Añadir nota…' : escapar(valor)) + '</span>';
+          else if (vacio) contenido = '—';
+          else if (header === 'Sesión') contenido = htmlSesion(valor, fila);
+          else contenido = escapar(valor);
+
+          var clases = 'editable' + (vacio ? ' vacio' : '') + (header === 'Notas' ? ' celda-notas' + (vacio ? '' : ' con-nota') : '');
+          return '<td class="' + clases + '" data-campo="' + escapar(header) + '" data-fila="' + fila + '" data-valor="' + valorAttr + '">' + contenido + '</td>';
+        }
+
+        var titulo = (header === 'Usuario' && !vacio) ? ' title="' + escapar(valor) + '"' : '';
+        var interior = vacio ? '—' : escapar(valor);
+        if (header === 'Usuario' && !vacio && !esHueco) interior = '<div class="celda-usuario" data-ficha-fila="' + fila + '">' + avatarHtml(valor) + '<span class="nombre-u">' + escapar(valor) + '</span></div>';
+        return '<td class="' + (vacio ? 'vacio' : '') + '"' + titulo + '>' + interior + '</td>';
+      }
+
+      // ---------- Estado vacío con acción ----------
+      function htmlVacio() {
+        var titulo, texto, boton = '', icono = 'event_busy';
+        if (hayBusqueda()) {
+          icono = 'search_off';
+          titulo = 'Ninguna cita coincide';
+          texto = 'Prueba con otro término o quita los filtros.';
+          boton = '<button title="Quitar los filtros" type="button" class="btn-toolbar" data-vacio="limpiar"><span class="material-symbols-outlined">filter_alt_off</span> Quitar filtros</button>';
+        } else {
+          icono = vista === 'hoy' ? 'event_available' : 'event_busy';
+          titulo = vista === 'hoy' ? 'Hoy no hay citas asignadas' : 'Esta semana no tiene citas asignadas';
+          texto = mostrarHuecos ? 'Todos los huecos están libres.' : 'Puedes mostrar los huecos libres para asignar usuarios.';
+          if (!mostrarHuecos) boton = '<button title="Mostrar los huecos libres" type="button" class="btn-toolbar" data-vacio="huecos"><span class="material-symbols-outlined">event_available</span> Mostrar citas disponibles</button>';
+        }
+        return '<div class="estado-vacio"><span class="estado-icono-wrap"><span class="material-symbols-outlined estado-icono">' + icono + '</span></span>' +
+          '<div class="estado-titulo">' + titulo + '</div><div class="estado-texto">' + texto + '</div>' + boton + '</div>';
+      }
+
+      // ---------- Render ----------
+      function render() {
+        renderResumen();
+        var cont = document.getElementById('tablaWrap');
+        var scrollPrevio = cont.scrollTop; // se conserva al repintar (ediciones, selección, refrescos)
+        var termino = normalizar(document.getElementById('inputBusqueda').value);
+        var hoy = hoyISO();
+
+        if (filtroDiaSinAsis) {   // al registrar la última asistencia pendiente del día, se vuelve a la vista normal
+          var tf = calcularTotalesDia()[filtroDiaSinAsis];
+          if (!tf || tf.citas - tf.registradas <= 0) { filtroDiaSinAsis = null; filtrosActivos.delete('sinAsistencia'); }
+        }
+
+        var filtradas = CITAS.filter(function(c) {
+          if (vista === 'hoy' && c._fechaISO !== hoy) return false;
+          if (arrastre && c._hueco) return true;
+          if (filtrosActivos.size > 0) {
+            if (!pasaFiltrosRapidos(c)) return false;
+          } else if (!mostrarHuecos && c._hueco) {
+            return false;
+          }
+          if (!termino) return true;
+          var campos = [c['Usuario'], c['Notas'], c['Sesión']];
+          return campos.some(function(v) { return normalizar(v).indexOf(termino) !== -1; });
+        });
+
+
+        if ((filtradas.length === 0 && vista !== 'cuadricula') || (vista === 'cuadricula' && CITAS.length === 0)) {
+          cont.innerHTML = htmlVacio();
+          return;
+        }
+
+        cont.innerHTML = vista === 'hoy' ? htmlTarjetas(filtradas) : (vista === 'cuadricula' ? htmlCuadricula(filtradas) : htmlTabla(filtradas));
+        ajustarHoy();
+        cont.scrollTop = scrollPrevio;
+        reaplicarArrastre();
+        animarCambios();
+      }
+
+      function htmlTabla(filtradas) {
+        var totalesDia = calcularTotalesDia();
+        var hoy = hoyISO(), ahora = ahoraHHmm(), buscando = hayBusqueda();
+        var proxima = filaProxima(hoy, ahora);
+
+        var numColumnas = HEADERS_VISIBLES.length + 1;
+        var ANCHOS_COL = { 'Hora': 144, 'Usuario': 320, 'Sesión': 120, 'Asistencia': 230 };
+        var thead = '<colgroup>' + HEADERS_VISIBLES.map(function(h) { return h === 'Notas' ? '<col>' : '<col style="width:' + (ANCHOS_COL[h] || 120) + 'px">'; }).join('') + '<col style="width:120px"></colgroup>';
+
+        var grupos = [];
+        filtradas.forEach(function(c) {
+          var ultimo = grupos[grupos.length - 1];
+          if (!ultimo || ultimo.fechaISO !== c._fechaISO) {
+            grupos.push({ fechaISO: c._fechaISO, dia: c['Día'], fecha: c['Fecha'], citas: [c] });
+          } else {
+            ultimo.citas.push(c);
+          }
+        });
+
+        var contadorFila = 0;
+
+        var tbody = '<tbody>' + grupos.map(function(g) {
+          var etiquetaDia = (g.dia ? escapar(g.dia) + ' · ' : '') + escapar(g.fecha);
+          var t = totalesDia[g.fechaISO] || { citas: 0, libres: 0, registradas: 0 };
+          var esHoy = g.fechaISO === hoy;
+          var plegado = !buscando && diaPlegado(g.fechaISO);
+
+          var cabecera = '<tr class="fila-dia' + (esHoy ? ' hoy' : '') + (festivosDia(g.fechaISO).length ? ' festivo' : '') + (plegado ? ' plegado' : '') + '" data-dia="' + g.fechaISO + '"><td colspan="' + numColumnas + '">' +
+            '<div class="dia-cab"><span class="material-symbols-outlined dia-chevron">' + (plegado ? 'chevron_right' : 'expand_more') + '</span>' +
+            htmlDiaTitulo(g.fechaISO, g.dia) +
+            (esHoy ? '<span class="dia-hoy">Hoy</span>' : '') + htmlFestivoDia(g.fechaISO) +
+            htmlRecDia(g.fechaISO) + htmlStatsDia(t, g.fechaISO) + '</div></td></tr>';
+
+          if (plegado) return cabecera;
+
+          var turnoPrevio = null, lineaPuesta = false;
+
+          var filasDia = g.citas.map(function(c) {
+            var hora = c['Hora'] || '';
+            var prefijo = '';
+
+            // Línea de "ahora": justo antes de la primera fila posterior a la hora actual
+            if (esHoy && !lineaPuesta && hora > ahora) { prefijo += htmlLineaAhora(ahora, numColumnas); lineaPuesta = true; }
+
+            var tempo = (esHoy && !c._hueco) ? estadoTemporal(hora, ahora) : '';
+            var tag = tempo === 'en-curso' ? 'ahora' : ((esHoy && proxima && proxima._fila === c._fila) ? 'proxima' : '');
+
+            var celdas = HEADERS_VISIBLES.map(function(h) { return renderCelda(h, c[h], c._fila, c._hueco, tag); }).join('');
+            var celdaAcciones = c._hueco ? '<td></td>' : '<td class="acciones-fila">' + htmlBotonesFila(c._fila, c) + '</td>';
+
+            var esManana = hora < HORA_CORTE_TARDE;
+            var turno = esManana ? 'manana' : 'tarde';
+            if (turno !== turnoPrevio) {
+              prefijo += '<tr class="fila-turno ' + turno + '"><td colspan="' + numColumnas + '">' + (esManana ? 'Turno de mañana' : 'Turno de tarde') + '</td></tr>';
+            }
+            turnoPrevio = turno;
+
+            var clases = [];
+            if (c._hueco) {
+              clases.push('fila-hueco');
+            } else {
+              clases.push('fila-cita');
+              var estado = estiloAsistencia(c['Asistencia']);
+              if (estado && estado !== 'neutro') clases.push('asist-' + estado);
+            }
+            if (tempo) clases.push(tempo);
+            if (contadorFila % 2 === 1) clases.push('fila-par');
+            if (filasSeleccionadas.has(c._fila)) clases.push('seleccionada');
+            contadorFila++;
+
+            return prefijo + '<tr class="' + clases.join(' ') + '" data-fila="' + c._fila + '">' + celdas + celdaAcciones + '</tr>';
+          }).join('');
+
+          return cabecera + filasDia;
+        }).join('') + '</tbody>';
+
+        return '<table>' + thead + tbody + '</table>';
+      }
+
+      // ---------- Vista "Hoy": tarjetas compactas ----------
+      // Mañana y tarde van lado a lado (cada columna con ancho proporcional a su nº de citas) y, si aun así
+      // no cabe en alto, ajustarHoy() activa el modo denso (tarjetas más estrechas y menos relleno).
+      function htmlTarjetas(citas) {
+        var hoy = hoyISO(), ahora = ahoraHHmm();
+        var t = calcularTotalesDia()[hoy] || { citas: 0, libres: 0, registradas: 0 };
+        var proxima = filaProxima(hoy, ahora);
+        var primera = citas[0];
+
+        var html = '<div class="tj-cab"><div class="dia-cab">' + htmlDiaTitulo(hoy, primera['Día']) + '<span class="dia-hoy">Hoy</span>' + htmlFestivoDia(hoy) + htmlRecDia(hoy) + htmlStatsDia(t, hoy) + '</div></div><div class="tj-turnos">';
+
+        var man = [], tar = [];
+        citas.forEach(function(c) { ((c['Hora'] || '') < HORA_CORTE_TARDE ? man : tar).push(c); });
+        [[man, 'manana', 'Turno de mañana'], [tar, 'tarde', 'Turno de tarde']].forEach(function(g) {
+          if (!g[0].length) return;
+          html += '<div class="tj-col" style="--n:' + g[0].length + '"><div class="tj-turno-titulo ' + g[1] + '">' + g[2] + '</div><div class="tj-grid">' +
+            g[0].map(function(c) { return htmlTarjeta(c, ahora, proxima); }).join('') + '</div></div>';
+        });
+        return html + '</div>';
+      }
+
+      function ajustarHoy() {
+        var w = document.getElementById('tablaWrap');
+        w.classList.remove('tj-medio', 'tj-denso');
+        if (vista !== 'hoy' || !w.querySelector('.tj-turnos')) return;
+        function desborda() { return w.scrollHeight > w.clientHeight + 2; }
+        if (!desborda()) return;
+        w.classList.add('tj-medio');
+        if (!desborda()) return;
+        w.classList.add('tj-denso');
+      }
+      if (window.ResizeObserver) {
+        var rafAjuste = 0;
+        new ResizeObserver(function() {
+          if (vista !== 'hoy') return;
+          cancelAnimationFrame(rafAjuste);
+          rafAjuste = requestAnimationFrame(ajustarHoy);
+        }).observe(document.getElementById('tablaWrap'));
+      }
+
+      function htmlTarjeta(c, ahora, proxima) {
+        var hora = c['Hora'] || '—';
+
+        if (c._hueco) {
+          return '<div class="tarjeta hueco" data-fila="' + c._fila + '"><div class="tj-hora">' + escapar(hora) + '</div>' +
+            '<div class="editable hueco-libre" data-campo="Usuario" data-fila="' + c._fila + '" data-valor=""><span class="chip-asignar"><span class="material-symbols-outlined">add</span>Asignar</span></div></div>';
+        }
+
+        var tempo = estadoTemporal(c['Hora'] || '', ahora);
+        var esProxima = !!(proxima && proxima._fila === c._fila);
+        var clases = ['tarjeta'];
+        var estado = estiloAsistencia(c['Asistencia']);
+        if (estado && estado !== 'neutro') clases.push('asist-' + estado);
+        if (tempo) clases.push(tempo);
+        if (esProxima) clases.push('proxima');
+        if (filasSeleccionadas.has(c._fila)) clases.push('seleccionada');
+
+        var tagTxt = tempo === 'en-curso' ? '<span class="tag-t ahora">Ahora</span>' : (esProxima ? '<span class="tag-t proxima">Próxima</span>' : '');
+        var asis = '<div class="tj-asis" data-fila="' + c._fila + '">' + htmlAsistenciaBotones(c['Asistencia'], false) + '</div>';
+
+        var vNotas = c['Notas'];
+        var notas = '<div class="tj-notas editable" data-campo="Notas" data-fila="' + c._fila + '" data-valor="' + (vacioTxt(vNotas) ? '' : escapar(vNotas)) + '">' +
+          (vacioTxt(vNotas) ? '<span class="tj-notas-vacia">Añadir nota…</span>' : '<span class="material-symbols-outlined ic-nota">sticky_note_2</span>' + escapar(vNotas)) + '</div>';
+
+        return '<div class="' + clases.join(' ') + '" data-fila="' + c._fila + '">' +
+          '<div class="tj-top"><span class="asa material-symbols-outlined" title="Arrastra para mover la cita a otro hueco libre">drag_indicator</span><span class="chk"></span><span class="tj-hora">' + escapar(hora) + '</span>' + tagTxt +
+            '<span class="tj-fill"></span>' + (vacioTxt(c['Sesión']) ? '' : htmlSesion(c['Sesión'], c._fila)) + '<span class="tj-acciones">' + htmlBotonesFila(c._fila, c) + '</span></div>' +
+          '<div class="tj-nombre" data-ficha-fila="' + c._fila + '" title="' + escapar(c['Usuario']) + '">' + avatarHtml(c['Usuario']) + '<span class="nombre-u">' + escapar(c['Usuario']) + '</span></div>' +
+          asis + notas + '</div>';
+      }
+

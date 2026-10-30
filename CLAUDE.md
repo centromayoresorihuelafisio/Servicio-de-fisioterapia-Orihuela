@@ -7,7 +7,7 @@
 
 ## Antes de empezar cualquier tarea
 1. Lee la sección 0 de `CONTEXTO.md` y úsalo como mapa del proyecto: busca con grep por nombre de función o archivo y lee solo el fragmento necesario. No releas `CONTEXTO.md` entero.
-2. NO leas enteros estos archivos enormes: `agenda/Web_Vista.html`, `usuarios/BaseDatos_Vista.html`, `valoraciones/Panel_Valoracion.html`, `valoraciones/Web_Vista.html`. Usa grep y lee solo unas decenas de líneas.
+2. NO leas enteros estos archivos enormes: `usuarios/BaseDatos_Vista.html`, `valoraciones/Panel_Valoracion.html`, `valoraciones/Web_Vista.html`. Usa grep y lee solo unas decenas de líneas.
 3. Ignora `node_modules` y `.git`.
 4. Antes de crear una función, busca con grep que su nombre no exista (el ámbito es global).
 5. Si hay algo "POR CONFIRMAR" en `CONTEXTO.md`, compruébalo en el código o pregúntame antes de asumir.
