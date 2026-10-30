@@ -1,0 +1,480 @@
+      // usuarios/JS_Usuarios_Base.html - Usuarios: datos, filtros, tabla, seleccion multiple y teclado
+      // Se incluye dentro del unico <script> de usuarios/BaseDatos_Vista, en este orden: JS_Usuarios_Base, JS_Usuarios_Ficha, ui/JS_Modal_Deshacer, JS_Usuarios_Acciones.
+      // Sin scriptlets: include() no los evalua (la direccion de la app llega en URL_BASE_WEB, definida en la pagina).
+      var TODOS = [];
+      var HEADERS = [];
+      var filtroEstado = null;
+      var COL_HISTORIA = null;
+      var pacienteSeleccionado = null; // { _fila, Nombre, ... } o null
+      var filtroGravedad = null, filtroSinHC = false, filtroSinTel = false;
+      var filtroTipo = null, filtroPatologia = null;
+      var seleccionMultiple = new Set();
+      var ordenCampo = null, ordenDir = 1; // 1 = asc, -1 = desc
+      var ultimosFiltrados = [], filaActivaFila = null;
+
+      // ---------- Carga de datos ----------
+      function cargar(alReanclar) {
+        google.script.run
+          .withSuccessHandler(function(res) {
+            if (res.error) { mostrarError(res.error); return; }
+            HEADERS = res.headers || [];
+            TODOS = res.pacientes || [];
+            COL_HISTORIA = HEADERS.find(function(h) { return h.toLowerCase().indexOf('historia') !== -1; });
+            reanclarSeleccion();
+            if (typeof alReanclar === 'function') alReanclar();
+            construirMenusFiltro();
+            render();
+            renderFicha();
+          })
+          .withFailureHandler(mostrarError)
+          .obtenerBaseDatosCompletaWeb();
+      }
+
+      function mostrarError(err) {
+        document.getElementById('tablaWrap').innerHTML =
+          '<div class="estado-vacio"><span class="material-symbols-outlined" style="display:block;font-size:28px;margin-bottom:.4rem;color:var(--md-error)">error</span>No se pudo cargar la base de datos.<br>' + esc(err && err.message ? err.message : err) + '</div>';
+      }
+
+      function normalizar(txt) {
+        return (txt || '').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+      }
+
+      // ---------- Filtros (menús desplegables) ----------
+      var FILTROS_DEF = [
+        { id: 'estado', etq: 'Estado', icono: 'label' },
+        { id: 'gravedad', etq: 'Gravedad', icono: 'priority_high' },
+        { id: 'carencias', etq: 'Sin HC / TLF', icono: 'folder_off' },
+        { id: 'tipo', etq: 'Derivación', icono: 'alt_route' },
+        { id: 'patologia', etq: 'Patología', icono: 'medical_services' }
+      ];
+
+      // Patologías individuales: cada campo puede traer varias separadas por , ; / | · + o salto de línea.
+      var SEP_PAT = /\s*(?:[,;\/|·+]|\r?\n)\s*/;
+      function patologiasDe(p) {
+        var out = [], vistos = {};
+        ['Patología 1', 'Patología 2'].forEach(function(campo) {
+          dato(p, campo).split(SEP_PAT).forEach(function(s) {
+            s = s.replace(/[.\s]+$/, '').trim();
+            var k = normalizar(s);
+            if (!k || vistos[k]) return;
+            vistos[k] = true; out.push(s);
+          });
+        });
+        return out;
+      }
+      function sinHC(p) { return !esUrl(COL_HISTORIA ? p[COL_HISTORIA] : ''); }
+      function sinTelefono(p) { return !(dato(p, 'Teléfono 1') || dato(p, 'Teléfono 2')); }
+
+      // 'excluir' permite calcular los contadores de un menú ignorando su propio filtro (conteo por facetas).
+      function pasaFiltros(p, terminoNorm, excluir) {
+        if (excluir !== 'estado' && filtroEstado && (p['Estado'] || '').toString().trim() !== filtroEstado) return false;
+        if (excluir !== 'gravedad' && filtroGravedad && claseGravedad(dato(p, 'Gravedad')) !== filtroGravedad) return false;
+        if (excluir !== 'sinHC' && filtroSinHC && !sinHC(p)) return false;
+        if (excluir !== 'sinTel' && filtroSinTel && !sinTelefono(p)) return false;
+        if (excluir !== 'tipo' && filtroTipo && normalizar(textoEstado(dato(p, 'Tipo de Ingreso'))) !== normalizar(filtroTipo)) return false;
+        if (excluir !== 'patologia' && filtroPatologia && patologiasDe(p).map(normalizar).indexOf(normalizar(filtroPatologia)) === -1) return false;
+        if (!terminoNorm) return true;
+        // Los teléfonos se guardan solo con dígitos ("612345678") pero se ven como "612 34 56 78": si lo escrito parece un número,
+        // se compara por dígitos para que se pueda buscar tal como se ve en pantalla.
+        var dTerm = terminoNorm.replace(/\D/g, '');
+        if (dTerm.length >= 3 && /^[\d\s+.\-]+$/.test(terminoNorm) &&
+            ['Teléfono 1', 'Teléfono 2'].some(function(h) { return Telefono.clave(dato(p, h)).indexOf(dTerm) !== -1; })) return true;
+        return HEADERS.some(function(h) { return normalizar(p[h]).indexOf(terminoNorm) !== -1; });
+      }
+
+      function cuentasFiltros() {
+        var term = normalizar(document.getElementById('inputBusqueda').value);
+        var base = function(ex) { return TODOS.filter(function(p) { return pasaFiltros(p, term, ex); }); };
+        var c = { estado: {}, gravedad: { leve: 0, moderado: 0, urgente: 0 }, tipo: {}, patologia: {}, tot: {} };
+        var b = base('estado'); c.tot.estado = b.length;
+        b.forEach(function(p) { var e = (p['Estado'] || '').toString().trim(); if (e) c.estado[e] = (c.estado[e] || 0) + 1; });
+        b = base('gravedad'); c.tot.gravedad = b.length;
+        b.forEach(function(p) { var g = claseGravedad(dato(p, 'Gravedad')); if (g) c.gravedad[g]++; });
+        b = base('tipo'); c.tot.tipo = b.length;
+        b.forEach(function(p) {
+          var tx = textoEstado(dato(p, 'Tipo de Ingreso')), k = normalizar(tx);
+          if (k) { c.tipo[k] = c.tipo[k] || { texto: tx, n: 0 }; c.tipo[k].n++; }
+        });
+        b = base('patologia'); c.tot.patologia = b.length;
+        b.forEach(function(p) { patologiasDe(p).forEach(function(s) { var k = normalizar(s); c.patologia[k] = c.patologia[k] || { texto: s, n: 0 }; c.patologia[k].n++; }); });
+        c.sinHC = base('sinHC').filter(sinHC).length;
+        c.sinTel = base('sinTel').filter(sinTelefono).length;
+        return c;
+      }
+
+      function itemsFiltro(id) {
+        var c = cuentasFiltros(), it = [];
+        var fin = function() { construirMenusFiltro(); render(); };
+        if (id === 'estado') {
+          if (filtroEstado && !c.estado[filtroEstado]) c.estado[filtroEstado] = 0;
+          it.push({ punto: '', texto: 'Todos', n: c.tot.estado, marcado: !filtroEstado, fn: function() { filtroEstado = null; fin(); } });
+          Object.keys(c.estado).sort().forEach(function(e) {
+            it.push({ punto: claseParaEstado(e), texto: textoEstado(e), n: c.estado[e], marcado: filtroEstado === e, fn: function() { filtroEstado = e; fin(); } });
+          });
+        } else if (id === 'gravedad') {
+          var col = { leve: 'activo', moderado: 'espera', urgente: 'contactara' };
+          it.push({ punto: '', texto: 'Todas', n: c.tot.gravedad, marcado: !filtroGravedad, fn: function() { filtroGravedad = null; fin(); } });
+          ['leve', 'moderado', 'urgente'].forEach(function(g) {
+            it.push({ punto: col[g], texto: g.charAt(0).toUpperCase() + g.slice(1), n: c.gravedad[g], marcado: filtroGravedad === g, fn: function() { filtroGravedad = g; fin(); } });
+          });
+        } else if (id === 'carencias') {
+          it.push({ icono: 'folder_off', texto: 'Sin Historia Clínica', n: c.sinHC, marcado: filtroSinHC, fn: function() { filtroSinHC = !filtroSinHC; fin(); abrirMenuFiltro('carencias'); } });
+          it.push({ icono: 'phone_disabled', texto: 'Sin teléfono', n: c.sinTel, marcado: filtroSinTel, fn: function() { filtroSinTel = !filtroSinTel; fin(); abrirMenuFiltro('carencias'); } });
+        } else {
+          var esTipo = id === 'tipo', mapa = esTipo ? c.tipo : c.patologia, sel = esTipo ? filtroTipo : filtroPatologia, actual = normalizar(sel);
+          if (actual && !mapa[actual]) mapa[actual] = { texto: sel, n: 0 };
+          var poner = function(v) { if (esTipo) filtroTipo = v; else filtroPatologia = v; fin(); };
+          it.push({ texto: 'Todas', n: c.tot[id], marcado: !actual, fn: function() { poner(null); } });
+          Object.keys(mapa).sort(function(a, b) { return mapa[a].texto.localeCompare(mapa[b].texto, 'es'); }).forEach(function(k) {
+            it.push({ texto: mapa[k].texto, n: mapa[k].n, marcado: actual === k, fn: function() { poner(mapa[k].texto); } });
+          });
+        }
+        return it;
+      }
+
+      function abrirMenuFiltro(id) {
+        var btn = document.querySelector('#filtrosMenus [data-filtro="' + id + '"]');
+        if (btn) abrirMenu(itemsFiltro(id), btn, true);
+      }
+
+      function construirMenusFiltro() {
+        var cont = document.getElementById('filtrosMenus');
+        if (filtroEstado && !TODOS.some(function(p) { return (p['Estado'] || '').toString().trim() === filtroEstado; })) filtroEstado = null;
+        if (filtroTipo && !TODOS.some(function(p) { return normalizar(textoEstado(dato(p, 'Tipo de Ingreso'))) === normalizar(filtroTipo); })) filtroTipo = null;
+        if (filtroPatologia && !TODOS.some(function(p) { return patologiasDe(p).map(normalizar).indexOf(normalizar(filtroPatologia)) !== -1; })) filtroPatologia = null;
+        var val = {
+          estado: filtroEstado ? textoEstado(filtroEstado) : '',
+          gravedad: filtroGravedad ? filtroGravedad.charAt(0).toUpperCase() + filtroGravedad.slice(1) : '',
+          carencias: filtroSinHC && filtroSinTel ? 'HC + TLF' : filtroSinHC ? 'Sin HC' : filtroSinTel ? 'Sin TLF' : '',
+          tipo: filtroTipo || '', patologia: filtroPatologia || ''
+        };
+        var hay = filtroEstado || filtroGravedad || filtroSinHC || filtroSinTel || filtroTipo || filtroPatologia;
+        cont.innerHTML = FILTROS_DEF.map(function(f) {
+          var v = val[f.id];
+          return '<button type="button" class="filtro-menu' + (v ? ' on' : '') + '" data-filtro="' + f.id + '" title="Filtrar por ' + esc(f.etq).toLowerCase() + '" aria-haspopup="menu" aria-expanded="false"><span class="material-symbols-outlined">' + f.icono + '</span>' +
+            esc(f.etq) + (v ? '<span class="filtro-val">' + esc(v) + '</span>' : '') + '<span class="material-symbols-outlined">arrow_drop_down</span></button>';
+        }).join('') + (hay ? '<button type="button" class="filtro-limpiar" data-filtro="limpiar" title="Quitar filtros" aria-label="Quitar filtros"><span class="material-symbols-outlined">filter_alt_off</span></button>' : '');
+      }
+
+      document.getElementById('filtrosMenus').addEventListener('click', function(e) {
+        var b = e.target.closest('[data-filtro]');
+        if (!b) return;
+        if (b.dataset.filtro === 'limpiar') {
+          filtroEstado = null; filtroGravedad = null; filtroTipo = null; filtroPatologia = null; filtroSinHC = false; filtroSinTel = false;
+          construirMenusFiltro(); render();
+          return;
+        }
+        abrirMenuFiltro(b.dataset.filtro);
+      });
+
+      // ---------- Recordar filtros y orden durante la sesión ----------
+      var CLAVE_VISTA = 'bdVista';
+      function guardarVista() {
+        try {
+          sessionStorage.setItem(CLAVE_VISTA, JSON.stringify({ q: document.getElementById('inputBusqueda').value, e: filtroEstado, g: filtroGravedad,
+            hc: filtroSinHC, tl: filtroSinTel, t: filtroTipo, p: filtroPatologia, oc: ordenCampo, od: ordenDir }));
+        } catch (err) { /* sin almacenamiento */ }
+      }
+      function restaurarVista() {
+        try {
+          var v = JSON.parse(sessionStorage.getItem(CLAVE_VISTA) || 'null');
+          if (!v) return;
+          document.getElementById('inputBusqueda').value = v.q || '';
+          filtroEstado = v.e || null; filtroGravedad = v.g || null; filtroSinHC = !!v.hc; filtroSinTel = !!v.tl;
+          filtroTipo = v.t || null; filtroPatologia = v.p || null;
+          if (v.oc) { ordenCampo = v.oc; ordenDir = v.od === -1 ? -1 : 1; }
+        } catch (err) { /* sin almacenamiento */ }
+      }
+
+      function claseParaEstado(estado) {
+        var e = normalizar(estado);
+        if (e.indexOf('activo') !== -1) return 'activo';
+        if (e.indexOf('espera') !== -1) return 'espera';
+        if (e.indexOf('contactar') !== -1) return 'contactara';
+        if (e.indexOf('alta') !== -1) return 'alta';
+        if (e.indexOf('responde') !== -1) return 'no-responde';
+        return '';
+      }
+
+      function esUrl(valor) { return typeof valor === 'string' && /^https?:\/\//i.test(valor.trim()); }
+
+      // ================= Tabla de dos líneas, ficha lateral y estado en línea =================
+      var fichaAbierta = false, CACHE_HDR = {};
+      var MAPA_ACC = { editar: 'btnEditar', whatsapp: 'btnWhatsapp', cita: 'btnCita', valoracion: 'btnValoracion', alta: 'btnAlta',
+        crearhc: 'btnHistoria', eliminar: 'btnEliminarUsuario' };
+
+      function esc(t) { return (t === null || t === undefined ? '' : String(t)).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
+      function hdr(nombre) {
+        if (!(nombre in CACHE_HDR)) { var n = normalizar(nombre); CACHE_HDR[nombre] = HEADERS.find(function(h) { return normalizar(h) === n; }) || null; }
+        return CACHE_HDR[nombre];
+      }
+      function dato(p, nombre) { var h = hdr(nombre); if (!h) return ''; var v = p[h]; return (v === null || v === undefined) ? '' : String(v).trim(); }
+      function textoEstado(e) { var s = String(e || ''); return s.replace(/^[^\p{L}\p{N}]+/u, '').trim() || s; }
+      function edadTxt(p) { var e = dato(p, 'Edad'); return /^\d+$/.test(e) ? e + ' años' : e; }
+      function claseGravedad(v) { var n = normalizar(v); return n.indexOf('leve') !== -1 ? 'leve' : n.indexOf('moderad') !== -1 ? 'moderado' : n.indexOf('urgent') !== -1 ? 'urgente' : ''; }
+      function chipGravedad(v) { return '<span class="chip-g ' + claseGravedad(v) + '">' + esc(textoEstado(v)) + '</span>'; }
+
+      function formatearTel(t) { return Telefono.formato(t); }   // regla única: ui/JS_Telefono.html
+
+      function avatarHtml(nombre, extra) {
+        var n = (nombre || '').toString().trim();
+        if (!n) return '';
+        var p = n.split(/\s+/), ini = (p[0].charAt(0) + (p.length > 1 ? p[1].charAt(0) : p[0].charAt(1))).toUpperCase(), hue = 0, low = n.toLowerCase();
+        for (var i = 0; i < low.length; i++) hue = (hue * 31 + low.charCodeAt(i)) % 360;
+        return '<span class="avatar' + (extra ? ' ' + extra : '') + '" style="--h:' + hue + '">' + esc(ini) + '</span>';
+      }
+
+      // Columna A: puntuación de prioridad que escribe "Ordenar Usuarios" (ordenarPacientes,
+      // en usuarios/BaseDatos.gs). Se localiza por posición (primera columna), no por nombre,
+      // para no depender de cómo esté titulada esa columna en tu hoja.
+      function colPrioridad() { return HEADERS.length ? HEADERS[0] : null; }
+      function prioridadNum(p) {
+        var h = colPrioridad();
+        if (!h) return null;
+        var n = parseFloat(p[h]);
+        return isNaN(n) ? null : n;
+      }
+      function prioridadTxt(p) { var n = prioridadNum(p); return n === null ? '—' : n.toFixed(2); }
+
+      function badgeEstado(p) {
+        var e = dato(p, 'Estado');
+        return '<button type="button" class="badge estado-btn ' + claseParaEstado(e) + '" data-estado-fila="' + p._fila + '" title="Cambiar estado">' +
+          (e ? esc(textoEstado(e)) : 'Sin estado') + '<span class="material-symbols-outlined">expand_more</span></button>';
+      }
+
+      var SVG_WHATSAPP = '<svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 16 16" fill="currentColor">' +
+        '<path d="M13.601 2.326A7.854 7.854 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.933 7.933 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.898 7.898 0 0 0 13.6 2.326zM7.994 14.521a6.573 6.573 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.557 6.557 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592zm3.615-4.934c-.197-.099-1.17-.578-1.353-.646-.182-.065-.315-.099-.445.099-.133.197-.513.646-.627.775-.114.133-.232.148-.43.05-.197-.1-.836-.308-1.592-.985-.59-.525-.985-1.175-1.103-1.372-.114-.198-.011-.304.088-.403.087-.088.197-.232.296-.346.1-.114.133-.198.198-.33.065-.134.034-.248-.015-.347-.05-.099-.445-1.076-.612-1.47-.16-.389-.323-.335-.445-.34-.114-.007-.247-.007-.38-.007a.729.729 0 0 0-.529.247c-.182.198-.691.677-.691 1.654 0 .977.71 1.916.81 2.049.098.133 1.394 2.132 3.383 2.992.47.205.84.326 1.129.418.475.152.904.129 1.246.08.38-.058 1.171-.48 1.338-.943.164-.464.164-.86.114-.943-.049-.084-.182-.133-.38-.232z"/></svg>';
+
+      function contenidoIcono(icono) { return icono === 'whatsapp' ? SVG_WHATSAPP : '<span class="material-symbols-outlined">' + icono + '</span>'; }
+
+      function btnFila(acc, p, icono, titulo, extra) {
+        return '<button type="button" class="btn-fila ' + (extra || '') + (icono === 'whatsapp' ? ' btn-whatsapp' : '') + '" data-acc="' + acc + '" data-fila="' + p._fila + '" title="' + esc(titulo) + '">' + contenidoIcono(icono) + '</button>';
+      }
+
+      function resalta(txt, termino) {
+        var s = esc(txt || '');
+        if (!termino) return s;
+        try {
+          var re = new RegExp('(' + termino.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'ig');
+          return s.replace(re, '<mark>$1</mark>');
+        } catch (err) { return s; }
+      }
+
+      function htmlFila(p, termino) {
+        var t1 = dato(p, 'Teléfono 1'), t2 = dato(p, 'Teléfono 2'), grav = dato(p, 'Gravedad'), tipo = dato(p, 'Tipo de Ingreso');
+        var pats = patologiasDe(p).join(' · ');
+        var tieneHC = esUrl(COL_HISTORIA ? p[COL_HISTORIA] : '');
+        var sel = pacienteSeleccionado && pacienteSeleccionado._fila === p._fila;
+        var enLote = seleccionMultiple.has(p._fila);
+        var tel = function(t, cls) { return t ? '<span class="' + cls + ' copiable" data-copiar="' + esc(Telefono.digitos(t) || t) + '" data-etiqueta="Teléfono" title="Copiar">' + resalta(formatearTel(t), termino) + '</span>' : ''; };
+        return '<tr data-fila="' + p._fila + '" class="' + (sel ? 'seleccionada ' : '') + (enLote ? 'seleccion-multiple' : '') + '">' +
+          '<td class="col-check"><input type="checkbox" class="chk-fila" data-fila="' + p._fila + '"' + (enLote ? ' checked' : '') + '></td>' +
+          '<td class="col-usuario"><div class="celda-u">' + avatarHtml(p['Nombre']) + '<div class="doble"><div class="u-nombre">' + resalta(p['Nombre'], termino) + '</div><div class="u-sub">' +
+            (resalta([dato(p, 'DNI'), edadTxt(p)].filter(Boolean).join(' · '), termino) || '—') + '</div></div></div></td>' +
+          '<td data-label="Contacto" class="col-contacto"><div class="doble">' + (tel(t1, '') || '<span class="vacio">—</span>') + (t2 ? '<div class="c-sub">' + tel(t2, '') + '</div>' : '') + '</div></td>' +
+          '<td data-label="Clínico" class="col-clinico"><div class="doble"><div class="cl-pat" title="' + esc(pats) + '">' + (pats ? resalta(pats, termino) : '<span class="vacio">—</span>') + '</div><div class="c-sub">' +
+            (grav ? chipGravedad(grav) : '') + (tipo ? '<span class="tipo-ing">' + esc(textoEstado(tipo)) + '</span>' : '') + '</div></div></td>' +
+          '<td data-label="Estado" class="col-estado">' + badgeEstado(p) + '</td>' +
+          '<td data-label="Prioridad" class="celda-prioridad">' + esc(prioridadTxt(p)) + '</td>' +
+          '<td data-label="Inscripción">' + (dato(p, 'Fecha inscripción') ? esc(dato(p, 'Fecha inscripción')) : '<span class="vacio">—</span>') + '</td>' +
+          '<td class="acciones-fila"><span class="acc-pill">' +
+            btnFila('hc', p, 'description', tieneHC ? 'Abrir Historia Clínica' : 'Sin Historia Clínica · clic para crearla', tieneHC ? 'con-hc' : 'sin-hc') +
+            btnFila('whatsapp', p, 'whatsapp', 'Abrir WhatsApp') + btnFila('cita', p, 'event', 'Nueva cita') + btnFila('editar', p, 'edit', 'Editar') + btnFila('mas', p, 'more_vert', 'Más acciones') +
+          '</span></td></tr>';
+      }
+
+      function render() {
+        var termino = document.getElementById('inputBusqueda').value.trim();
+        var terminoNorm = normalizar(termino);
+        guardarVista();
+        var filtrados = TODOS.filter(function(p) { return pasaFiltros(p, terminoNorm); });
+        filtrados = ordenarFiltrados(filtrados);
+        ultimosFiltrados = filtrados;
+        document.getElementById('contador').textContent = filtrados.length + ' de ' + TODOS.length;
+        var cont = document.getElementById('tablaWrap'), scroll = cont.scrollTop;
+
+        if (TODOS.length === 0) {
+          cont.innerHTML = '<div class="estado-vacio"><span class="material-symbols-outlined grande">group_off</span>' +
+            'Todavía no hay usuarios registrados.<button title="Añadir un usuario nuevo" type="button" class="btn-toolbar primario" id="btnVacioNuevo"><span class="material-symbols-outlined">person_add</span> Añadir usuario</button></div>';
+          document.getElementById('btnVacioNuevo').addEventListener('click', function() { document.getElementById('btnNuevoPaciente').click(); });
+          return;
+        }
+        if (filtrados.length === 0) {
+          cont.innerHTML = '<div class="estado-vacio"><span class="material-symbols-outlined grande">search_off</span>' +
+            'No se encontró ningún usuario con ese criterio.<button title="Quitar filtros y búsqueda" type="button" class="btn-toolbar" id="btnVacioLimpiar">Quitar filtros</button></div>';
+          document.getElementById('btnVacioLimpiar').addEventListener('click', function() {
+            document.getElementById('inputBusqueda').value = '';
+            filtroEstado = null; filtroGravedad = null; filtroSinHC = false; filtroSinTel = false; filtroTipo = null; filtroPatologia = null;
+            construirMenusFiltro(); render();
+          });
+          return;
+        }
+        cont.innerHTML = '<table><thead><tr>' +
+          '<th class="col-check"><input type="checkbox" class="chk-todo" title="Seleccionar todos los visibles"' + (todosVisiblesSeleccionados(filtrados) ? ' checked' : '') + '></th>' +
+          thCol('nombre', 'Usuario', 'col-usuario') + '<th>Contacto</th><th>Clínico</th>' + thCol('estado', 'Estado') + thCol('prioridad', 'Prioridad') + thCol('inscripcion', 'Inscripción') + '<th class="col-acciones"></th></tr></thead><tbody>' +
+          filtrados.map(function(p) { return htmlFila(p, termino); }).join('') + '</tbody></table>';
+        cont.scrollTop = scroll;
+        marcarFilaActiva();
+      }
+
+      function thCol(campo, texto, clase) {
+        var dir = ordenCampo === campo ? (ordenDir === 1 ? 'orden-asc' : 'orden-desc') : '';
+        return '<th class="ordenable ' + (clase || '') + ' ' + dir + '" data-orden="' + campo + '">' + texto + '<span class="material-symbols-outlined">arrow_upward</span></th>';
+      }
+
+      function parseFechaEs(s) {
+        var m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})/.exec(s || '');
+        return m ? new Date(+m[3], +m[2] - 1, +m[1]).getTime() : -Infinity;
+      }
+
+      function ordenarFiltrados(lista) {
+        if (!ordenCampo) return lista;
+        var estados = estadosDisponibles();
+        var claves = { nombre: function(p) { return normalizar(p['Nombre']); },
+          estado: function(p) { var i = estados.indexOf(dato(p, 'Estado')); return i === -1 ? 999 : i; },
+          prioridad: function(p) { var n = prioridadNum(p); return n === null ? -Infinity : n; },
+          inscripcion: function(p) { return parseFechaEs(dato(p, 'Fecha inscripción')); } };
+        var clave = claves[ordenCampo];
+        return lista.slice().sort(function(a, b) {
+          var x = clave(a), y = clave(b);
+          return (x < y ? -1 : x > y ? 1 : 0) * ordenDir;
+        });
+      }
+
+      document.getElementById('tablaWrap').addEventListener('click', function(e) {
+        var th = e.target.closest('th.ordenable');
+        if (!th) return;
+        // Ciclo: dirección inicial → inversa → sin orden (vuelve al orden de la hoja). Prioridad empieza por mayor puntuación.
+        var campo = th.dataset.orden, inicial = campo === 'prioridad' ? -1 : 1;
+        if (ordenCampo !== campo) { ordenCampo = campo; ordenDir = inicial; }
+        else if (ordenDir === inicial) ordenDir = -inicial;
+        else { ordenCampo = null; ordenDir = 1; }
+        render();
+      });
+
+      function refrescarVista() { construirMenusFiltro(); render(); renderFicha(); }
+
+      // Tras recargar (p. ej. después de ordenar) las filas cambian de número: se vuelve a localizar la selección por nombre y DNI.
+      function reanclarSeleccion() {
+        CACHE_HDR = {};
+        if (!pacienteSeleccionado) return;
+        var n = pacienteSeleccionado['Nombre'], d = pacienteSeleccionado['DNI'] || '';
+        pacienteSeleccionado = TODOS.find(function(p) { return p['Nombre'] === n && (p['DNI'] || '') === d; }) || null;
+        if (!pacienteSeleccionado) fichaAbierta = false;
+      }
+
+      // ---------- Selección múltiple (checkboxes + acciones en lote) ----------
+      function todosVisiblesSeleccionados(lista) { return lista.length > 0 && lista.every(function(p) { return seleccionMultiple.has(p._fila); }); }
+
+      function actualizarBarraLote() {
+        var n = seleccionMultiple.size, barra = document.getElementById('barraLote');
+        document.body.classList.toggle('seleccion-activa', n > 0);
+        barra.classList.toggle('visible', n > 0);
+        document.getElementById('bloteN').textContent = n;
+      }
+
+      document.getElementById('tablaWrap').addEventListener('click', function(e) {
+        var chk = e.target.closest('.chk-fila, .chk-todo');
+        if (!chk) return;
+        e.stopPropagation();
+        if (chk.classList.contains('chk-todo')) {
+          if (todosVisiblesSeleccionados(ultimosFiltrados)) ultimosFiltrados.forEach(function(p) { seleccionMultiple.delete(p._fila); });
+          else ultimosFiltrados.forEach(function(p) { seleccionMultiple.add(p._fila); });
+        } else {
+          var f = Number(chk.dataset.fila);
+          if (chk.checked) seleccionMultiple.add(f); else seleccionMultiple.delete(f);
+        }
+        render();
+        actualizarBarraLote();
+      });
+
+      document.getElementById('bloteCancelar').addEventListener('click', function() { seleccionMultiple.clear(); render(); actualizarBarraLote(); });
+
+      document.getElementById('bloteEstado').addEventListener('click', function(e) {
+        abrirMenu(estadosDisponibles().map(function(est) {
+          return { punto: claseParaEstado(est), texto: textoEstado(est), fn: function() { cambiarEstadoLote(est); } };
+        }), e.currentTarget);
+      });
+
+      function cambiarEstadoLote(valor) {
+        if (claseParaEstado(valor) === 'alta') { mostrarAviso('Da de alta a cada usuario por separado desde su ficha: el alta actualiza también fechas e Historia Clínica.'); return; }
+        var filas = Array.from(seleccionMultiple), hEst = hdr('Estado') || 'Estado';
+        var antes = {};
+        filas.forEach(function(f) { var p = TODOS.find(function(x) { return x._fila === f; }); if (p) { antes[f] = p[hEst]; p[hEst] = valor; } });
+        render();
+        google.script.run
+          .withSuccessHandler(function(res) {
+            if (!res || !res.success) {
+              filas.forEach(function(f) { var p = TODOS.find(function(x) { return x._fila === f; }); if (p && f in antes) p[hEst] = antes[f]; });
+              render();
+              mostrarAviso((res && res.message) || 'No se pudo cambiar el estado.');
+              return;
+            }
+            mostrarAviso('Estado cambiado a ' + textoEstado(valor) + ' en ' + filas.length + (filas.length === 1 ? ' usuario.' : ' usuarios.'));
+            if (res.ordenado) cargar();   // el servidor reordenó la hoja: se recarga para ver el orden nuevo (la selección y la ficha se reanclan por ID)
+          })
+          .withFailureHandler(function(err) { cargar(); mostrarAviso('Error al cambiar el estado: ' + err); })
+          .cambiarEstadoLoteWeb(filas.map(idDeFila), valor);
+      }
+
+      document.getElementById('bloteEliminar').addEventListener('click', async function() {
+        var filas = Array.from(seleccionMultiple);
+        if (!filas.length) return;
+        var confirmado = await mostrarConfirm('¿Eliminar a ' + filas.length + (filas.length === 1 ? ' usuario? Se borrará toda su ficha.' : ' usuarios? Se borrará toda su ficha de cada uno.'));
+        if (!confirmado) return;
+        // Copia de cada ficha ANTES de borrar, en orden de fila, para poder deshacer.
+        var copias = filas.map(function(f) { return TODOS.find(function(x) { return x._fila === f; }); })
+          .filter(Boolean).map(function(p) { return Object.assign({}, p); })
+          .sort(function(a, b) { return a._fila - b._fila; });
+        google.script.run
+          .withSuccessHandler(function(res) {
+            seleccionMultiple.clear();
+            actualizarBarraLote();
+            cargar();
+            if (res && res.success && copias.length) mostrarDeshacer(copias, (res.message) || (copias.length + (copias.length === 1 ? ' usuario eliminado.' : ' usuarios eliminados.')));
+            else mostrarAviso((res && res.message) || (res && res.success ? 'Usuarios eliminados.' : 'No se pudo eliminar.'));
+          })
+          .withFailureHandler(function(err) { cargar(); mostrarAviso('Error al eliminar: ' + err); })
+          .eliminarPacientesLoteWeb(copias.map(idPaciente));
+      });
+
+      // ---------- Navegación por teclado ----------
+      function marcarFilaActiva() {
+        document.querySelectorAll('tbody tr').forEach(function(tr) { tr.classList.toggle('fila-activa', Number(tr.dataset.fila) === filaActivaFila); });
+      }
+      function moverFilaActiva(delta) {
+        if (!ultimosFiltrados.length) return;
+        var idx = ultimosFiltrados.findIndex(function(p) { return p._fila === filaActivaFila; });
+        idx = Math.min(ultimosFiltrados.length - 1, Math.max(0, idx + delta));
+        filaActivaFila = ultimosFiltrados[idx]._fila;
+        marcarFilaActiva();
+        var el = document.querySelector('tr[data-fila="' + filaActivaFila + '"]');
+        if (el) el.scrollIntoView({ block: 'nearest' });
+      }
+      document.addEventListener('keydown', function(e) {
+        if (document.querySelector('dialog[open]')) return;   // el diálogo gestiona su teclado
+        if (menuItems) { tecladoMenu(e); return; }
+        var enCampo = /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName);
+        if (e.key === '/' && !enCampo) { e.preventDefault(); document.getElementById('inputBusqueda').focus(); return; }
+        if (enCampo) return;
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); moverFilaActiva(e.key === 'ArrowDown' ? 1 : -1); }
+        else if (e.key === 'Enter' && filaActivaFila !== null) { alternarFicha(filaActivaFila); }
+      });
+
+      // ---------- Atajos de teclado (ayuda) ----------
+      document.getElementById('btnAtajos').addEventListener('click', function(e) {
+        var d = document.createElement('div'); d.className = 'menu-atajos';
+        d.innerHTML = '<dl>' +
+          '<dt><kbd>/</kbd></dt><dd>Buscar</dd>' +
+          '<dt><kbd>&uarr;</kbd> <kbd>&darr;</kbd></dt><dd>Moverse por la lista</dd>' +
+          '<dt><kbd>Enter</kbd></dt><dd>Abrir ficha</dd>' +
+          '<dt><kbd>Esc</kbd></dt><dd>Cerrar ficha o menú; después, vaciar la búsqueda</dd></dl>';
+        var m = document.getElementById('menuFlotante');
+        cerrarMenu(); m.innerHTML = ''; m.appendChild(d); m.classList.add('visible');
+        var r = e.currentTarget.getBoundingClientRect();
+        m.style.left = Math.min(r.left, window.innerWidth - m.offsetWidth - 8) + 'px';
+        m.style.top = (r.bottom + 4) + 'px';
+        menuItems = [];
+      });
+
+      function fijarSeleccion(p) { pacienteSeleccionado = p; actualizarUiSeleccion(); }

@@ -1,0 +1,383 @@
+      // usuarios/JS_Usuarios_Ficha.html - Usuarios: formularios en el panel lateral, menus, estado en linea y ficha
+      // Se incluye dentro del unico <script> de usuarios/BaseDatos_Vista, en este orden: JS_Usuarios_Base, JS_Usuarios_Ficha, ui/JS_Modal_Deshacer, JS_Usuarios_Acciones.
+      // Sin scriptlets: include() no los evalua (la direccion de la app llega en URL_BASE_WEB, definida en la pagina).
+      // ---------- Formularios dentro del panel lateral ----------
+      // Cada formulario es un módulo (PanelValoracion / PanelEditar / PanelCita) que se monta en el cuerpo de la
+      // ficha y devuelve un controlador con haCambiado() y, opcionalmente, alEscape().
+      var formularioActivo = false, formularioFila = null, controladorForm = null;
+      var FORMULARIOS_PANEL = {
+        valoracion: {
+          titulo: 'Valoraciones', aviso: 'Valoración guardada',
+          // Sin valoraciones previas abre directamente el formulario de Nueva valoración; con valoraciones, su panel
+          // (evolución, historial, añadir / editar / eliminar). Lo decide valoraciones/Panel_Valoraciones.
+          montar: function(cont, p, cb) {
+            return PanelValoraciones.abrir(cont, Object.assign(
+              { idPaciente: p['ID paciente'] || '', paciente: p['Nombre'] || '', telefono: p['Teléfono 1'] || '', dni: p['DNI'] || '', onGuardado: cb.guardado, onCancelar: cb.cancelar },
+              ValoracionesCache.opcionesPanel(p['ID paciente'])   // valoraciones ya precargadas: el panel se abre al instante
+            ));
+          }
+        },
+        editar: {
+          titulo: 'Editar', aviso: 'Cambios guardados',
+          montar: function(cont, p, cb) {
+            return PanelEditar.abrir(cont, { idPaciente: idPaciente(p), onGuardado: cb.guardado, onCancelar: cb.cancelar });
+          }
+        },
+        cita: {
+          titulo: 'Cita', aviso: 'Cita registrada', ancha: true,
+          montar: function(cont, p, cb) {
+            return PanelCita.abrir(cont, { idPaciente: p['ID paciente'] || '', paciente: p['Nombre'] || '', onGuardado: cb.guardado, onCancelar: cb.cancelar });
+          }
+        },
+        hc: {
+          titulo: 'Historia clínica', ancha: 'hc', sinAviso: true,
+          montar: function(cont, p, cb) {
+            return PanelHC.abrir(cont, { id: hcIdDeUrl(p[COL_HISTORIA]), idPaciente: p['ID paciente'] || '',
+              urlPagina: URL_BASE_WEB + '?page=hc',
+              // Editar al usuario desde la historia: la tabla se recarga como al guardar desde la ficha (la historia sigue abierta).
+              alCambiar: function(tipo) {
+                if (tipo === 'usuario') cargar();
+                // El alta reordena la Maestra: la fila del usuario cambia, así que se actualiza la fila del panel abierto para que no se cierre.
+                else if (tipo === 'alta') cargar(function() { if (formularioActivo && pacienteSeleccionado) formularioFila = pacienteSeleccionado._fila; });
+              } });
+          }
+        }
+      };
+      function cerrarControlador() { try { if (controladorForm && controladorForm.cerrar) controladorForm.cerrar(); } catch (e) { /* no crítico */ } }
+      // ID paciente del usuario (columna "ID paciente"): es lo que se envía al servidor, nunca el número de fila ni el nombre.
+      function idPaciente(p) { return (p && p['ID paciente']) ? String(p['ID paciente']).trim() : ''; }
+      function idDeFila(f) { return idPaciente(TODOS.find(function(x) { return x._fila === f; })); }
+      function hcIdDeUrl(u) { var m = /[?&]id=([^&#]+)/.exec(String(u || '')); return m ? decodeURIComponent(m[1]) : ''; }
+      function hayCambiosSinGuardar() {
+        return !!(formularioActivo && controladorForm && controladorForm.haCambiado && controladorForm.haCambiado());
+      }
+      // Antes de cualquier acción que destruiría el formulario abierto (otra fila, cerrar la ficha, abrir otro
+      // formulario…): si hay cambios sin guardar pregunta; si se acepta, el formulario queda descartado.
+      async function descartarFormularioSiProcede() {
+        if (!hayCambiosSinGuardar()) return true;
+        if (!(await mostrarConfirm('Hay cambios sin guardar en el formulario. ¿Quieres descartarlos?'))) return false;
+        cerrarControlador();
+        formularioActivo = false; controladorForm = null;
+        return true;
+      }
+      async function abrirFormularioPanel(tipo) {
+        var def = FORMULARIOS_PANEL[tipo];
+        if (!def || !pacienteSeleccionado) return;
+        if (!(await descartarFormularioSiProcede())) return;
+        var p = pacienteSeleccionado;
+        if (!p) return;
+        var fila = p._fila, el = document.getElementById('ficha');
+        fichaAbierta = true; formularioActivo = true; formularioFila = fila; controladorForm = null;
+        document.body.classList.add('con-ficha');
+        document.body.classList.toggle('ficha-ancha', def.ancha === true);
+        document.body.classList.toggle('ficha-hc', def.ancha === 'hc');
+        el.classList.add('abierta');
+        el.setAttribute('aria-hidden', 'false');
+        el.innerHTML = '<div class="ficha-form-cab"><button type="button" data-ficha-volver title="Volver a la ficha"><span class="material-symbols-outlined">arrow_back</span></button><div class="ficha-form-tit"></div></div><div class="ficha-form-cuerpo"></div>';
+        el.querySelector('.ficha-form-tit').textContent = def.titulo + ' · ' + (p['Nombre'] || '');
+        controladorForm = def.montar(el.querySelector('.ficha-form-cuerpo'), p, {
+          guardado: function(msj) {
+            mostrarAviso(typeof msj === 'string' && msj ? msj : def.aviso);
+            if (formularioActivo && formularioFila === fila) volverDeFormulario(true);
+            cargar();
+          },
+          cancelar: function() { if (formularioActivo && formularioFila === fila) volverDeFormulario(); }
+        });
+      }
+      // Nuevo usuario en el panel lateral (usuarios/Panel_Nuevo). No hay usuario: se cierra la ficha que hubiera abierta y el
+      // formulario ocupa el panel. Al guardar, la hoja se reordena por prioridad, así que se recarga la tabla entera.
+      var FILA_NUEVO = 'nuevo';
+      async function abrirPanelNuevo() {
+        if (formularioActivo && formularioFila === FILA_NUEVO) {            // ya está abierto: solo se le da el foco
+          var n = document.querySelector('#ficha #nu-nombre'); if (n) n.focus();
+          return;
+        }
+        if (!(await descartarFormularioSiProcede())) return;
+        formularioActivo = false; controladorForm = null;
+        quitarSeleccion();                                                   // sin usuario seleccionado (cierra la ficha)
+        var el = document.getElementById('ficha');
+        fichaAbierta = false; formularioActivo = true; formularioFila = FILA_NUEVO;
+        document.body.classList.add('con-ficha');
+        document.body.classList.remove('ficha-ancha', 'ficha-hc');
+        el.classList.add('abierta');
+        el.setAttribute('aria-hidden', 'false');
+        el.innerHTML = '<div class="ficha-form-cab"><button type="button" data-ficha-volver title="Cerrar"><span class="material-symbols-outlined">arrow_back</span></button><div class="ficha-form-tit">Nuevo usuario</div></div><div class="ficha-form-cuerpo"></div>';
+        controladorForm = PanelNuevo.abrir(el.querySelector('.ficha-form-cuerpo'), {
+          onGuardado: function(msj) {
+            mostrarAviso(typeof msj === 'string' && msj ? msj : 'Usuario guardado');
+            if (formularioActivo && formularioFila === FILA_NUEVO) volverDeFormulario(true);
+            cargar();
+          },
+          onCancelar: function() { if (formularioActivo && formularioFila === FILA_NUEVO) volverDeFormulario(); },
+          // El alta coincide con un usuario que ya existe y se ha elegido editarlo: se descarta el alta (la elección ya es
+          // explícita, no hace falta preguntar por los cambios sin guardar) y se abre el formulario de edición de esa fila.
+          // Lista de usuarios ya cargada en la página: el panel la usa para avisar de duplicados sin llamar al servidor.
+          obtenerUsuarios: function() { return TODOS; },
+          onAbrirEditar: function(fila) {
+            var p = TODOS.find(function(x) { return x._fila === fila; });
+            if (!p) return false;
+            formularioActivo = false; controladorForm = null;
+            fichaAbierta = true; fijarSeleccion(p);
+            abrirFormularioPanel('editar');
+            return true;
+          }
+        });
+      }
+      async function volverDeFormulario(forzar) {
+        if (forzar !== true && !(await descartarFormularioSiProcede())) return;
+        cerrarControlador();
+        formularioActivo = false; controladorForm = null;
+        renderFicha();
+      }
+
+      async function cerrarFicha() {
+        if (!(await descartarFormularioSiProcede())) return;
+        fichaAbierta = false; quitarSeleccion();
+      }
+      async function alternarFicha(fila) {
+        if (!(await descartarFormularioSiProcede())) return;
+        if (fichaAbierta && pacienteSeleccionado && pacienteSeleccionado._fila === fila) { cerrarFicha(); return; }
+        var p = TODOS.find(function(x) { return x._fila === fila; });
+        if (!p) return;
+        fichaAbierta = true;
+        fijarSeleccion(p);
+      }
+
+      // Las acciones reutilizan los botones (ocultos) de la barra, con todos sus flujos ya existentes.
+      async function accionPaciente(acc, fila) {
+        var p = TODOS.find(function(x) { return x._fila === fila; });
+        if (!p) return;
+        if (acc === 'fichahc') {
+          var idHCficha = hcIdDeUrl(COL_HISTORIA ? p[COL_HISTORIA] : '');
+          window.open(URL_BASE_WEB + '?page=hc&' + (idHCficha ? 'id=' + encodeURIComponent(idHCficha) : 'idPaciente=' + encodeURIComponent(p['ID paciente'] || '')), '_blank', 'noopener');
+          return;
+        }
+        if (acc === 'hc') {
+          var url = COL_HISTORIA ? p[COL_HISTORIA] : '';
+          if (esUrl(url) && /[?&]page=hc&id=/.test(url)) {          // historia en la ficha web: se abre como panel lateral
+            if (!(await descartarFormularioSiProcede())) return;
+            fichaAbierta = true; fijarSeleccion(p);
+            abrirFormularioPanel('hc');
+            return;
+          }
+          if (esUrl(url)) { window.open(url.trim(), '_blank', 'noopener'); return; }
+          if (!(await mostrarConfirm('¿Crear la Historia Clínica de ' + p['Nombre'] + '?'))) return;
+          acc = 'crearhc';
+        }
+        if (!(await descartarFormularioSiProcede())) return;
+        fijarSeleccion(p);
+        var btn = document.getElementById(MAPA_ACC[acc]);
+        if (btn) btn.click();
+      }
+
+      // ---------- Menús flotantes ----------
+      var menuItems = null, menuAncla = null;
+      function cerrarMenu() {
+        var m = document.getElementById('menuFlotante');
+        if (menuAncla && menuAncla.setAttribute) menuAncla.setAttribute('aria-expanded', 'false');
+        menuItems = null; menuAncla = null;
+        m.classList.remove('visible'); m.removeAttribute('role');
+      }
+      function abrirMenu(items, ancla, izq) {
+        cerrarMenu();
+        var m = document.getElementById('menuFlotante');
+        m.setAttribute('role', 'menu');
+        m.innerHTML = items.map(function(it, i) {
+          if (it.sep) return '<div class="menu-sep" role="separator"></div>';
+          var rol = it.marcado !== undefined ? 'menuitemcheckbox" aria-checked="' + (it.marcado ? 'true' : 'false') : 'menuitem';
+          return '<button type="button" role="' + rol + '" class="menu-item' + (it.peligro ? ' peligro' : '') + '" title="' + esc(it.titulo || it.texto) + '" data-i="' + i + '">' +
+            (it.punto !== undefined ? '<span class="punto ' + it.punto + '"></span>' : it.icono ? '<span class="material-symbols-outlined">' + it.icono + '</span>' : '') +
+            '<span>' + esc(it.texto) + '</span>' + (it.n !== undefined ? '<span class="menu-n">' + it.n + '</span>' : '') + (it.marcado ? '<span class="material-symbols-outlined check">check</span>' : '') + '</button>';
+        }).join('');
+        m.classList.add('visible');
+        var r = ancla.getBoundingClientRect(), mw = m.offsetWidth, mh = m.offsetHeight;
+        var x = Math.min(Math.max(8, izq ? r.left : r.right - mw), window.innerWidth - mw - 8), y = r.bottom + 4;
+        if (y + mh > window.innerHeight - 8) y = Math.max(8, r.top - mh - 4);
+        m.style.left = x + 'px'; m.style.top = y + 'px';
+        menuItems = items; menuAncla = ancla;
+        if (ancla.setAttribute) ancla.setAttribute('aria-expanded', 'true');
+        var primero = m.querySelector('.menu-item[aria-checked="true"]') || m.querySelector('.menu-item');
+        if (primero) primero.focus({ preventScroll: true });
+      }
+      // Teclado dentro de un menú abierto: flechas, Inicio/Fin, Tab cierra (Enter/Espacio activan el botón enfocado; Esc se gestiona aparte).
+      function tecladoMenu(e) {
+        if (e.key === 'Tab') { cerrarMenu(); return; }
+        var its = Array.prototype.slice.call(document.querySelectorAll('#menuFlotante .menu-item'));
+        if (!its.length) return;
+        var i = its.indexOf(document.activeElement);
+        if (e.key === 'ArrowDown') i = (i + 1) % its.length;
+        else if (e.key === 'ArrowUp') i = i <= 0 ? its.length - 1 : i - 1;
+        else if (e.key === 'Home') i = 0;
+        else if (e.key === 'End') i = its.length - 1;
+        else return;
+        e.preventDefault();
+        its[i].focus();
+      }
+      document.getElementById('menuFlotante').addEventListener('click', function(e) {
+        var b = e.target.closest('.menu-item');
+        if (!b || !menuItems) return;
+        var it = menuItems[Number(b.dataset.i)];
+        cerrarMenu();
+        if (it && it.fn) it.fn();
+      });
+      document.addEventListener('click', function(e) { if (menuItems && !e.target.closest('#menuFlotante')) cerrarMenu(); }, true);
+      document.getElementById('tablaWrap').addEventListener('scroll', cerrarMenu, { passive: true });
+
+      function menuMas(fila, ancla) {
+        var p = TODOS.find(function(x) { return x._fila === fila; });
+        if (!p) return;
+        var tieneHC = esUrl(COL_HISTORIA ? p[COL_HISTORIA] : '');
+        var a = function(acc) { return function() { accionPaciente(acc, fila); }; };
+        abrirMenu([
+          { icono: 'assignment', texto: 'Valoración', fn: a('valoracion') },
+          { sep: true },
+          tieneHC ? null : { icono: 'note_add', texto: 'Crear Historia Clínica', fn: a('crearhc') },
+          { icono: 'how_to_reg', texto: 'Dar de alta', fn: a('alta') },
+          { sep: true },
+          { icono: 'delete', texto: 'Eliminar usuario', peligro: true, fn: a('eliminar') }
+        ].filter(Boolean), ancla);
+      }
+
+      // ---------- Cambio de estado en línea ----------
+      function estadosDisponibles() {
+        return FichaUsuario.estadosDisponibles(TODOS.map(function(p) { return p['Estado']; }));
+      }
+
+      function menuEstado(fila, ancla) {
+        var p = TODOS.find(function(x) { return x._fila === fila; });
+        if (!p) return;
+        var actual = normalizar(dato(p, 'Estado'));
+        abrirMenu(estadosDisponibles().map(function(e) {
+          return { punto: claseParaEstado(e), texto: textoEstado(e), marcado: normalizar(e) === actual, fn: function() { cambiarEstado(fila, e); } };
+        }), ancla);
+      }
+
+      function cambiarEstado(fila, valor) {
+        var p = TODOS.find(function(x) { return x._fila === fila; });
+        if (!p) return;
+        var hEst = hdr('Estado') || 'Estado', antes = p[hEst];
+        if (normalizar(antes) === normalizar(valor)) return;
+        if (claseParaEstado(valor) === 'alta') { accionPaciente('alta', fila); return; } // el alta tiene su propio flujo (fechas e HC)
+        p[hEst] = valor;
+        refrescarVista();
+        function revertir(msg) { p[hEst] = antes; refrescarVista(); mostrarAviso(msg); }
+        google.script.run
+          .withSuccessHandler(function(res) {
+            if (!res || !res.success) { revertir((res && res.message) || 'No se pudo cambiar el estado.'); return; }
+            mostrarAviso('Estado cambiado a ' + textoEstado(valor) + '.');
+            if (window.HCCache) HCCache.cambioDeUsuario();   // un usuario nuevo en Activo entra en la precarga de HC
+            if (res.ordenado) cargar();   // el servidor reordenó la hoja: se recarga para ver el orden nuevo (la ficha se reancla por ID)
+          })
+          .withFailureHandler(function(err) { revertir('Error al cambiar el estado: ' + err); })
+          .cambiarEstadoPacienteWeb(idPaciente(p), valor);
+      }
+
+      // ---------- Copiar al portapapeles ----------
+      function copiarTexto(txt, etiqueta) {
+        var ok = false;
+        try {
+          var ta = document.createElement('textarea');
+          ta.value = txt; ta.style.cssText = 'position:fixed;opacity:0;top:0;left:0';
+          document.body.appendChild(ta); ta.select(); ok = document.execCommand('copy'); ta.remove();
+        } catch (err) { ok = false; }
+        if (!ok && navigator.clipboard) { navigator.clipboard.writeText(txt); ok = true; }
+        mostrarAviso(ok ? (etiqueta || 'Texto') + ' copiado.' : 'No se pudo copiar.');
+      }
+
+      // ---------- Ficha lateral ----------
+      var fichaTieneVal = null;   // si la ficha pintada por última vez mostraba el botón como «Valoraciones» (true), «Valoración» (false) o aún sin saber (null)
+      function htmlFicha(p) {
+        var tieneHC = esUrl(COL_HISTORIA ? p[COL_HISTORIA] : '');
+        fichaTieneVal = ValoracionesCache.tiene(p['ID paciente']);   // para repintar si cambia al terminar la precarga
+        var esFichaWeb = tieneHC && /[?&]page=hc&id=/.test(p[COL_HISTORIA]);   // la HC ya vive en la ficha web: no hay Doc que actualizar
+        var pie = esFichaWeb ? [] : tieneHC ? [{ id: 'fichahc', icono: 'article', texto: 'Ficha HC', titulo: 'Abrir la ficha de historia clínica en la app (versión de prueba)' }]
+                          : [{ id: 'crearhc', icono: 'note_add', texto: 'Crear HC', titulo: 'Crear la historia clínica' }];
+        pie = pie.concat([{ id: 'alta', icono: 'how_to_reg', texto: 'Alta', titulo: 'Dar de alta al usuario' }, { id: 'eliminar', icono: 'delete', texto: 'Eliminar', titulo: 'Eliminar al usuario', peligro: true }]);
+        return FichaUsuario.html(p, HEADERS, {
+          nombre: p['Nombre'],
+          acciones: ['whatsapp', { id: 'hc', texto: tieneHC ? 'Historia' : 'Crear HC', titulo: tieneHC ? 'Abrir la historia clínica' : 'Crear la historia clínica' }, 'editar', 'cita', ValoracionesCache.accion(p['ID paciente'])],   // «Valoración» (formulario) o «Valoraciones» (su panel)
+          extraCabecera: prioridadNum(p) !== null ? '<span class="fu-extra" title="Puntuación de \'Ordenar Usuarios\'">Prioridad ' + esc(prioridadTxt(p)) + '</span>' : '',
+          excluir: [COL_HISTORIA, colPrioridad()],
+          pie: pie
+        });
+      }
+
+      ValoracionesCache.alCambiar(function() {
+        var p = pacienteSeleccionado;
+        if (!p || !fichaAbierta || formularioActivo) return;
+        if (ValoracionesCache.tiene(p['ID paciente']) !== fichaTieneVal) renderFicha();
+      });
+
+      function renderFicha() {
+        var el = document.getElementById('ficha'), p = pacienteSeleccionado, abierta = fichaAbierta && !!p;
+        // Nuevo usuario: el panel está abierto sin ningún usuario seleccionado; se mantiene hasta que se elija otra fila
+        // (entonces cae en la regla de más abajo y se descarta, como los demás formularios).
+        if (formularioActivo && formularioFila === FILA_NUEVO && !abierta) {
+          document.body.classList.add('con-ficha');
+          el.classList.add('abierta');
+          el.setAttribute('aria-hidden', 'false');
+          return;
+        }
+        document.body.classList.toggle('con-ficha', abierta);
+        el.classList.toggle('abierta', abierta);
+        el.setAttribute('aria-hidden', abierta ? 'false' : 'true');
+        if (formularioActivo && (!abierta || p._fila !== formularioFila)) { cerrarControlador(); formularioActivo = false; controladorForm = null; }
+        if (formularioActivo) return; // no pisar el formulario abierto en el panel
+        document.body.classList.remove('ficha-ancha', 'ficha-hc');   // la ficha y el resto de formularios usan el ancho normal
+        if (abierta) FichaUsuario.pintar(el, htmlFicha(p));
+      }
+
+      document.getElementById('ficha').addEventListener('click', function(e) {
+        if (e.target.closest('[data-ficha-volver]')) { volverDeFormulario(); return; }
+        FichaUsuario.alClic(e, {
+          cerrar: cerrarFicha,
+          estado: function(btn) { if (pacienteSeleccionado) menuEstado(pacienteSeleccionado._fila, btn); },
+          accion: function(a) { if (pacienteSeleccionado) accionPaciente(a, pacienteSeleccionado._fila); }
+        });
+      });
+
+      document.getElementById('tablaWrap').addEventListener('click', function(e) {
+        var t = e.target, c;
+        if ((c = t.closest('[data-copiar]'))) { e.stopPropagation(); copiarTexto(c.dataset.copiar, c.dataset.etiqueta); return; }
+        if ((c = t.closest('.estado-btn'))) { e.stopPropagation(); menuEstado(Number(c.dataset.estadoFila), c); return; }
+        if ((c = t.closest('.btn-fila'))) {
+          e.stopPropagation();
+          var f = Number(c.dataset.fila);
+          if (c.dataset.acc === 'mas') menuMas(f, c); else accionPaciente(c.dataset.acc, f);
+          return;
+        }
+        var tr = t.closest('tbody tr[data-fila]');
+        if (tr) alternarFicha(Number(tr.dataset.fila));
+      });
+
+      function quitarSeleccion() {
+        fichaAbierta = false;
+        pacienteSeleccionado = null;
+        actualizarUiSeleccion();
+      }
+
+      var BOTONES_PACIENTE = ['btnEditar','btnEliminarUsuario','btnAlta','btnHistoria','btnWhatsapp','btnCita','btnValoracion']
+        .map(function(id) { return document.getElementById(id); });
+
+      function actualizarUiSeleccion() {
+        var info = document.getElementById('seleccionInfo');
+        if (pacienteSeleccionado) {
+          info.style.display = 'flex';
+          document.getElementById('nombreSeleccionado').textContent = pacienteSeleccionado['Nombre'] || '';
+        } else {
+          info.style.display = 'none';
+        }
+        BOTONES_PACIENTE.forEach(function(btn) { btn.disabled = !pacienteSeleccionado; });
+        document.querySelectorAll('tbody tr').forEach(function(tr) {
+          var fila = parseInt(tr.getAttribute('data-fila'), 10);
+          tr.classList.toggle('seleccionada', !!(pacienteSeleccionado && pacienteSeleccionado._fila === fila));
+        });
+        renderFicha();
+      }
+
+      document.getElementById('btnQuitarSeleccion').addEventListener('click', async function(e) {
+        e.stopPropagation();
+        if (!(await descartarFormularioSiProcede())) return;
+        quitarSeleccion();
+      });
+

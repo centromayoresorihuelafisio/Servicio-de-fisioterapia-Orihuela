@@ -1,0 +1,268 @@
+      // usuarios/JS_Usuarios_Acciones.html - Usuarios: avisos, barra de herramientas, eliminar, alta, Historia Clinica, WhatsApp, tema y arranque
+      // Se incluye dentro del unico <script> de usuarios/BaseDatos_Vista, en este orden: JS_Usuarios_Base, JS_Usuarios_Ficha, ui/JS_Modal_Deshacer, JS_Usuarios_Acciones.
+      // Sin scriptlets: include() no los evalua (la direccion de la app llega en URL_BASE_WEB, definida en la pagina).
+
+
+      // ---------- Avisos ligeros (toasts): sustituyen al modal salvo textos largos o multilínea ----------
+      var contenedorToasts = (function() { var d = document.createElement('div'); d.className = 'toasts'; document.body.appendChild(d); return d; })();
+      function mostrarAviso(mensaje) {
+        var m = (mensaje === null || mensaje === undefined) ? '' : String(mensaje);
+        if (m.indexOf('\n') !== -1 || m.length > 160) return mostrarDialogo(m, false);
+        var t = document.createElement('div'), error = /^error|no se pudo|no se pudieron|bloqueado/i.test(m);
+        t.className = 'toast-aviso' + (error ? ' error' : '');
+        t.setAttribute('role', 'status');
+        var tono = error ? 'error' : tonoAviso_(m);
+        if (tono) t.appendChild(iconoAviso_(tono));
+        t.appendChild(document.createTextNode(m));
+        contenedorToasts.appendChild(t);
+        setTimeout(function() { t.classList.add('saliendo'); setTimeout(function() { t.remove(); }, 260); }, error ? 6000 : 3800);
+        return Promise.resolve(true);
+      }
+
+      // Barra de progreso superior mientras algún botón (oculto o no) muestra "procesando"
+      new MutationObserver(function() {
+        var ocupado = Array.prototype.some.call(document.querySelectorAll('.barra-herramientas button'), function(b) { return b.innerHTML.indexOf('progress_activity') !== -1; });
+        document.body.classList.toggle('ocupado', ocupado);
+      }).observe(document.querySelector('.barra-herramientas'), { childList: true, subtree: true });
+
+      // Esc: cierra primero el menú y después la ficha
+      document.addEventListener('keydown', function(e) {
+        if (e.key !== 'Escape') return;
+        if (document.querySelector('dialog[open]')) return;
+        if (menuItems) { var ancla = menuAncla; cerrarMenu(); if (ancla && document.contains(ancla) && ancla.focus) ancla.focus(); return; }
+        if (formularioActivo) {
+          if (document.querySelector('.modal-overlay.visible')) return;
+          // primero lo que el formulario tenga abierto (desplegables, lista de usuarios, horas elegidas…)
+          if (controladorForm && controladorForm.alEscape && controladorForm.alEscape()) return;
+          volverDeFormulario();
+          return;
+        }
+        if (document.querySelector('.modal-overlay.visible')) return;
+        if (fichaAbierta) cerrarFicha();
+        else limpiarBusqueda();   // nada más que cerrar: Esc vacía la búsqueda
+      });
+
+      // Si otra pestaña actualiza un usuario (las páginas sueltas ?page=… avisan por localStorage al guardar),
+      // la tabla se recarga. Los formularios de esta página ya no usan ventanas emergentes.
+      window.addEventListener('storage', function(e) {
+        if (e.key === 'pacienteActualizado') cargar();
+      });
+
+      // ---------- Barra de herramientas ----------
+      // Nuevo usuario: formulario en el panel lateral (usuarios/Panel_Nuevo), como Valoración o Editar.
+      document.getElementById('btnNuevoPaciente').addEventListener('click', abrirPanelNuevo);
+
+      document.getElementById('btnOrdenar').addEventListener('click', function() {
+        var btn = document.getElementById('btnOrdenar');
+        var icono = btn.querySelector('.material-symbols-outlined');
+        btn.disabled = true;
+        icono.textContent = 'progress_activity';
+        icono.classList.add('girando');
+        google.script.run
+          .withSuccessHandler(function() {
+            btn.disabled = false;
+            icono.textContent = 'sort';
+            icono.classList.remove('girando');
+            cargar();
+          })
+          .withFailureHandler(function(err) {
+            btn.disabled = false;
+            icono.textContent = 'sort';
+            icono.classList.remove('girando');
+            mostrarAviso('Error al ordenar: ' + err);
+          })
+          .ordenarPacientes();
+      });
+
+      // ---------- Eliminar usuario ----------
+      document.getElementById('btnEliminarUsuario').addEventListener('click', async function() {
+        if (!pacienteSeleccionado) return;
+        var confirmado = await mostrarConfirm('¿Eliminar a ' + pacienteSeleccionado['Nombre'] + '? Se borrará toda su ficha.');
+        if (!confirmado) return;
+
+        // Foto completa de la ficha ANTES de borrarla, para poder deshacer.
+        var snapshot = Object.assign({}, pacienteSeleccionado);
+
+        var btn = this;
+        btn.disabled = true;
+
+        google.script.run
+          .withSuccessHandler(function(res) {
+            btn.disabled = !pacienteSeleccionado;
+            if (!res.success) { mostrarAviso(res.message || 'No se pudo eliminar el usuario.'); return; }
+            quitarSeleccion();
+            cargar();
+            mostrarDeshacer(snapshot, 'Usuario eliminado.');
+          })
+          .withFailureHandler(function(err) {
+            btn.disabled = !pacienteSeleccionado;
+            mostrarAviso('Error al eliminar: ' + err);
+          })
+          .eliminarPacienteWeb(idPaciente(snapshot));
+      });
+
+      function ejecutarDeshacer() {
+        if (!ultimaEliminacion || procesandoDeshacer) return;
+        procesandoDeshacer = true;
+        var snapshot = ultimaEliminacion;
+        if (Array.isArray(snapshot)) { restaurarEnCadena(snapshot, 0); return; } // eliminación en lote
+
+        google.script.run
+          .withSuccessHandler(function(res) {
+            procesandoDeshacer = false;
+            if (!res.success) { mostrarAviso(res.message || 'No se pudo deshacer.'); return; } // el botón sigue disponible para reintentar
+            ocultarDeshacer();
+            cargar();
+          })
+          .withFailureHandler(function(err) {
+            procesandoDeshacer = false;
+            mostrarAviso('Error al deshacer: ' + err); // el botón sigue disponible para reintentar
+          })
+          .restaurarPacienteWeb(snapshot);
+      }
+
+      // Restaura una lista de fichas de una en una (en orden de fila); si una falla, conserva las pendientes para reintentar.
+      function restaurarEnCadena(lista, i) {
+        if (i >= lista.length) {
+          procesandoDeshacer = false;
+          ocultarDeshacer();
+          cargar();
+          mostrarAviso(lista.length + (lista.length === 1 ? ' usuario restaurado.' : ' usuarios restaurados.'));
+          return;
+        }
+        function fallo(msg) { procesandoDeshacer = false; ultimaEliminacion = lista.slice(i); cargar(); mostrarAviso(msg); }
+        google.script.run
+          .withSuccessHandler(function(res) {
+            if (!res || !res.success) { fallo((res && res.message) || 'No se pudieron restaurar todos los usuarios.'); return; }
+            restaurarEnCadena(lista, i + 1);
+          })
+          .withFailureHandler(function(err) { fallo('Error al deshacer: ' + err); })
+          .restaurarPacienteWeb(lista[i]);
+      }
+
+      document.getElementById('toastDeshacerBtn').addEventListener('click', ejecutarDeshacer);
+      document.getElementById('btnDeshacer').addEventListener('click', ejecutarDeshacer);
+
+      // ---------- Dar de alta ----------
+      document.getElementById('btnAlta').addEventListener('click', async function() {
+        if (!pacienteSeleccionado) return;
+        var confirmado = await mostrarConfirm('¿Dar de alta a ' + pacienteSeleccionado['Nombre'] + '?');
+        if (!confirmado) return;
+
+        var btn = this;
+        var textoOriginal = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="material-symbols-outlined">progress_activity</span> Procesando…';
+
+        google.script.run
+          .withSuccessHandler(function(res) {
+            btn.innerHTML = textoOriginal;
+            mostrarAviso(res.message);
+            if (window.HCCache) HCCache.cambioDeUsuario();   // el alta cambia el episodio de la HC
+            quitarSeleccion();
+            cargar();
+          })
+          .withFailureHandler(function(err) {
+            btn.disabled = false;
+            btn.innerHTML = textoOriginal;
+            mostrarAviso('Error al dar de alta: ' + err);
+          })
+          .darDeAltaPacienteWeb(idPaciente(pacienteSeleccionado));
+      });
+
+      // ---------- Generar Historia Clínica ----------
+      document.getElementById('btnHistoria').addEventListener('click', function() {
+        if (!pacienteSeleccionado) return;
+
+        var btn = this;
+        var textoOriginal = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="material-symbols-outlined">progress_activity</span> Generando…';
+
+        google.script.run
+          .withSuccessHandler(function(res) {
+            btn.innerHTML = textoOriginal;
+            btn.disabled = !pacienteSeleccionado;
+            mostrarAviso(res.message);
+            if (res.success) cargar();
+          })
+          .withFailureHandler(function(err) {
+            btn.innerHTML = textoOriginal;
+            btn.disabled = !pacienteSeleccionado;
+            mostrarAviso('Error al generar la historia clínica: ' + err);
+          })
+          .generarHistoriaClinicaWeb(idPaciente(pacienteSeleccionado));
+      });
+
+      // ---------- WhatsApp ----------
+      // Un solo usuario: ventana con el mensaje predefinido para revisarlo y elegir WhatsApp Web o la app de escritorio.
+      document.getElementById('btnWhatsapp').addEventListener('click', function() {
+        if (!pacienteSeleccionado) return;
+        WhatsappDialogo.abrir('datosWhatsappMaestraWeb', [idPaciente(pacienteSeleccionado)], pacienteSeleccionado['Nombre']);
+      });
+      // Al pasar el ratón por el botón de WhatsApp de una fila se piden ya los datos: al hacer clic el diálogo sale con el mensaje listo.
+      document.addEventListener('pointerover', function(e) {
+        var btn = e.target.closest ? e.target.closest('.btn-whatsapp') : null;
+        var idWa = btn && btn.dataset.fila ? idDeFila(Number(btn.dataset.fila)) : '';
+        if (idWa) WhatsappDialogo.precargar('datosWhatsappMaestraWeb', [idWa]);
+      });
+
+      // ---------- Editar, Cita y Valoración: formularios en el panel lateral ----------
+      document.getElementById('btnEditar').addEventListener('click', function() {
+        if (!pacienteSeleccionado) return;
+        abrirFormularioPanel('editar');
+      });
+
+      document.getElementById('btnCita').addEventListener('click', function() {
+        if (!pacienteSeleccionado) return;
+        abrirFormularioPanel('cita');
+      });
+
+      document.getElementById('btnValoracion').addEventListener('click', function() {
+        if (!pacienteSeleccionado) return;
+        abrirFormularioPanel('valoracion');
+      });
+
+      var temporizadorBusqueda = null;
+      document.getElementById('inputBusqueda').addEventListener('input', function() {
+        clearTimeout(temporizadorBusqueda);
+        temporizadorBusqueda = setTimeout(render, 150);
+      });
+
+      // Esc vacía la búsqueda (render la repinta y guarda la vista). Devuelve true si había texto.
+      function limpiarBusqueda() {
+        var inp = document.getElementById('inputBusqueda');
+        clearTimeout(temporizadorBusqueda);
+        if (!inp.value) return false;
+        inp.value = '';
+        render();
+        return true;
+      }
+      // Con el cursor en la búsqueda: Esc la vacía y suelta el foco, sin cerrar la ficha que haya detrás.
+      document.getElementById('inputBusqueda').addEventListener('keydown', function(e) {
+        if (e.key !== 'Escape') return;
+        e.stopPropagation();
+        limpiarBusqueda();
+        this.blur();
+      });
+
+      var TEMAS = ['auto', 'oscuro', 'claro'], ICONOS_TEMA = { auto: 'contrast', oscuro: 'dark_mode', claro: 'light_mode' };
+      function aplicarTema(t, guardar) {
+        if (t === 'auto') document.documentElement.removeAttribute('data-tema'); else document.documentElement.setAttribute('data-tema', t);
+        var b = document.getElementById('btnTema');
+        b.innerHTML = '<span class="material-symbols-outlined">' + ICONOS_TEMA[t] + '</span>';
+        b.title = 'Tema: ' + t + ' (clic para cambiar)';
+        b.dataset.tema = t;
+        if (guardar) { try { localStorage.setItem('temaApp', t); } catch (err) { /* sin almacenamiento */ } }
+      }
+      document.getElementById('btnTema').addEventListener('click', function() {
+        aplicarTema(TEMAS[(TEMAS.indexOf(this.dataset.tema || 'auto') + 1) % TEMAS.length], true);
+      });
+      (function() {
+        var t = 'auto';
+        try { t = localStorage.getItem('temaApp') || 'auto'; } catch (err) { /* sin almacenamiento */ }
+        aplicarTema(TEMAS.indexOf(t) === -1 ? 'auto' : t, false);
+      })();
+
+      restaurarVista();
+      cargar();

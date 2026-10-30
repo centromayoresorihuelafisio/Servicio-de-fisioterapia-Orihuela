@@ -15,7 +15,7 @@
 const DASH_CURSO_INICIO_ = '2026-09-01';
 const DASH_COL_PATOLOGIA_1_ = 'Patología 1';
 const DASH_COL_PATOLOGIA_2_ = 'Patología 2';
-// Mismo separador de varias patologías en una celda que usa la pestaña Usuarios (usuarios/BaseDatos_Vista).
+// Mismo separador de varias patologías en una celda que usa la pestaña Usuarios (usuarios/JS_Usuarios_Base).
 const DASH_SEP_PATOLOGIA_ = /\s*(?:[,;\/|·+]|\r?\n)\s*/;
 
 function dashHoy_() { return Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd'); }

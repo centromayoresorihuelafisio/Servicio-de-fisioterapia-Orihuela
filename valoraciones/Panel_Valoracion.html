@@ -320,6 +320,10 @@
       display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.25rem; text-align: center;
     }
     .pv .md-btn .ms { font-size: 18px; }
+    /* El reinicio de arriba (.pv * { padding: 0 }) pisaba el relleno de .md-btn de ui/CSS_Global: se restituye el mismo */
+    .pv .md-btn { padding: 0 20px; }
+    .pv .md-btn--text { padding: 0 12px; }
+    .pv .md-btn--icon { padding: 0; }
     .pv .submit-hint { font-size: .75rem; color: var(--md-on-surface-med); line-height: 1.5; max-width: 560px; }
     .pv .submit-hint strong { color: var(--md-primary); }
 

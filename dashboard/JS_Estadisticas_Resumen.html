@@ -1,0 +1,401 @@
+      // dashboard/JS_Estadisticas_Resumen.html - Estadisticas: utilidades, tarjetas de resumen, globos de informacion, banda de periodo y primer vistazo
+      // Se incluye dentro del unico <script> de dashboard/Web_Vista, en este orden: JS_Estadisticas_Resumen, JS_Estadisticas_Graficos.
+      // Sin scriptlets: include() no los evalua.
+      var $ = function (id) { return document.getElementById(id); };
+      var NF = new Intl.NumberFormat('es-ES', { maximumFractionDigits: 1 });
+      var MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+      var MESES_LARGO = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+
+      function num(v) { return v == null ? '—' : NF.format(v); }
+      function pct(v) { return v == null ? '—' : NF.format(v) + ' %'; }
+      function pc(v) { return NF.format(v) + '%'; }
+      function firmado(v, unidad) { return v == null ? '—' : (v > 0 ? '+' : v < 0 ? '−' : '') + NF.format(Math.abs(v)) + (unidad || ''); }
+      function dias(v) { return v == null ? '—' : NF.format(v) + (v === 1 ? ' día' : ' días'); }
+      function plural(n, uno, varios) { return n + ' ' + (n === 1 ? uno : varios); }
+      function fechaES(iso) { return iso ? iso.slice(8, 10) + '/' + iso.slice(5, 7) + '/' + iso.slice(0, 4) : ''; }
+      function pad(n) { return (n < 10 ? '0' : '') + n; }
+      function mesLargo(m) { var t = MESES_LARGO[+m.slice(5, 7) - 1]; return t.charAt(0).toUpperCase() + t.slice(1) + ' ' + m.slice(0, 4); }
+      function hijo(padre, tag, clase, texto) {
+        var e = document.createElement(tag);
+        if (clase) e.className = clase;
+        if (texto != null) e.textContent = texto;
+        padre.appendChild(e);
+        return e;
+      }
+      function limpiar(e) { while (e.firstChild) e.removeChild(e.firstChild); }
+      function avisos(lista) { return lista.filter(Boolean).join(' · '); }
+
+      // ---------- Tarjetas de resumen ----------
+      var REDUCE = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : { matches: false };
+      var animar = true;   // la entrada escalonada solo ocurre en la primera pintura, no al cambiar filtros
+
+      // Tono (azul = participación, verde = evaluación clínica, ámbar = requiere atención), icono y, si pct es true, anillo de progreso (el valor es un porcentaje 0–100).
+      var ESTILO_KPI = {
+        'Usuarios individuales atendidos': { tono: 'azul', icono: 'groups' },
+        'Número de sesiones': { tono: 'azul', icono: 'event_available' },
+        'Media de sesiones por usuario': { tono: 'azul', icono: 'bar_chart' },
+        'Bajas por alta': { tono: 'azul', icono: 'task_alt' },
+        'Bajas por abandono': { tono: 'ambar', icono: 'person_off' },
+        'Índice de absentismo': { tono: 'ambar', icono: 'event_busy', pct: true },
+        'Mejora del dolor': { tono: 'verde', icono: 'trending_down', pct: true },
+        'Usuarios que reducen analgésicos': { tono: 'verde', icono: 'medication', pct: true },
+        'Mejora de la capacidad funcional': { tono: 'verde', icono: 'accessibility_new', pct: true },
+        'Ocupación reservada': { tono: 'azul', icono: 'calendar_month', pct: true },
+        '% de faltas': { tono: 'ambar', icono: 'event_busy', pct: true },
+        'Reincidentes': { tono: 'ambar', icono: 'repeat' },
+        'Lista de espera hoy': { tono: 'ambar', icono: 'hourglass_top' },
+        'Espera hasta el primer ingreso': { tono: 'azul', icono: 'schedule' },
+        'Duración del tratamiento': { tono: 'azul', icono: 'timelapse' },
+        'Sesiones asistidas por episodio': { tono: 'azul', icono: 'format_list_numbered' },
+        'Usuarios que mejoran': { tono: 'verde', icono: 'trending_up', pct: true },
+        'Dolor (PEG)': { tono: 'verde', icono: 'trending_down' },
+        'Función global': { tono: 'verde', icono: 'accessibility_new' },
+        'Reducen analgésicos': { tono: 'verde', icono: 'medication', pct: true },
+        'Activos hoy': { tono: 'azul', icono: 'how_to_reg' },
+        'En espera hoy': { tono: 'ambar', icono: 'hourglass_top' },
+        'Cambios de estado': { tono: 'azul', icono: 'swap_horiz' },
+        'Tiempo en Activo': { tono: 'azul', icono: 'timer' }
+      };
+      // El valor llega ya formateado («72,5 %»): se vuelve a leer como número para dibujar el anillo; «—» (sin datos) deja el anillo vacío.
+      function pctDeTexto(texto) {
+        var v = parseFloat(String(texto).replace(/\./g, '').replace(',', '.'));
+        return isNaN(v) ? null : Math.max(0, Math.min(100, v));
+      }
+      // Contador: del 0 al valor en ~0,75 s al aparecer la tarjeta (solo en la primera pintura). El texto final es siempre el original, tal cual lo formateó la tarjeta.
+      function contar(elem, final, retraso) {
+        var m = /\d[\d.]*(?:,\d+)?/.exec(final);
+        if (!m || REDUCE.matches) return;
+        var objetivo = parseFloat(m[0].replace(/\./g, '').replace(',', '.'));
+        if (!(objetivo > 0)) return;
+        var dec = m[0].indexOf(',') >= 0 ? m[0].length - m[0].indexOf(',') - 1 : 0;
+        var fmt = new Intl.NumberFormat('es-ES', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+        var pre = final.slice(0, m.index), suf = final.slice(m.index + m[0].length), t0 = null, dur = 750;
+        elem.textContent = pre + fmt.format(0) + suf;
+        var paso = function (t) {
+          if (t0 === null) t0 = t;
+          var k = Math.min(1, (t - t0) / dur);
+          elem.textContent = k >= 1 ? final : pre + fmt.format(objetivo * (1 - Math.pow(1 - k, 3))) + suf;
+          if (k < 1) requestAnimationFrame(paso);
+        };
+        setTimeout(function () { requestAnimationFrame(paso); }, retraso);
+        setTimeout(function () { elem.textContent = final; }, retraso + dur + 400);   // red de seguridad (pestaña en segundo plano)
+      }
+      function anillo(p, titulo, anim, retraso) {
+        var NS = 'http://www.w3.org/2000/svg', R = 26, C = 2 * Math.PI * R;
+        var s = document.createElementNS(NS, 'svg');
+        s.setAttribute('viewBox', '0 0 64 64'); s.setAttribute('class', 'anillo'); s.setAttribute('role', 'img');
+        s.setAttribute('aria-label', titulo + ': ' + (p == null ? 'sin datos' : pc(p)));
+        var dibujar = function (tag, atributos, texto) {
+          var e = document.createElementNS(NS, tag);
+          Object.keys(atributos).forEach(function (k) { e.setAttribute(k, atributos[k]); });
+          if (texto != null) e.textContent = texto;
+          s.appendChild(e);
+        };
+        dibujar('circle', { cx: 32, cy: 32, r: R, 'class': 'an-pista' });
+        if (p != null && p > 0) dibujar('circle', { cx: 32, cy: 32, r: R, 'class': 'an-valor', 'stroke-dasharray': C.toFixed(2), 'stroke-dashoffset': (C * (1 - p / 100)).toFixed(2), transform: 'rotate(-90 32 32)', style: '--c:' + C.toFixed(2) });
+        dibujar('text', { x: 32, y: 32, 'text-anchor': 'middle', 'dominant-baseline': 'central', 'class': 'an-texto' }, p == null ? '—' : pc(p));
+        if (anim) {
+          s.setAttribute('class', 'anillo anima');
+          var arco = s.querySelector('.an-valor');
+          if (arco) arco.addEventListener('animationend', function () { s.setAttribute('class', 'anillo'); }, { once: true });   // sin la clase no se repite al replegar y abrir la sección
+          contar(s.querySelector('.an-texto'), p == null ? '—' : pc(p), retraso);
+        }
+        return s;
+      }
+
+      // Esqueletos grises de la primera carga (los sustituyen las propias funciones pintar*, que vacían cada contenedor).
+      var ESQUELETOS = { kpisPart: 6, kpisEval: 3, kpis: 7, kpisClinica: 4, kpisFlujo: 4 };
+      function pintarEsqueletos() {
+        Object.keys(ESQUELETOS).forEach(function (id) {
+          var c = $(id);
+          limpiar(c);
+          for (var i = 0; i < ESQUELETOS[id]; i++) {
+            var a = hijo(c, 'article', 'kpi esqueleto');
+            a.setAttribute('aria-hidden', 'true');
+            var cab = hijo(a, 'div', 'kpi-cab');
+            hijo(cab, 'div', 'sk sk-ic');
+            hijo(cab, 'div', 'sk sk-t');
+            hijo(a, 'div', 'sk sk-v');
+            hijo(a, 'div', 'sk sk-s');
+          }
+        });
+      }
+      function quitarEsqueletos() {
+        [].slice.call(document.querySelectorAll('.kpi.esqueleto')).forEach(function (e) { e.parentNode.removeChild(e); });
+      }
+
+      // ---------- ⓘ: información en un globo (hover, foco o clic) ----------
+      var infoAbierta = null, contInfo = 0;
+      function crearInfo(padre, lineas, opc) {
+        opc = opc || {};
+        var w = hijo(padre, 'span', 'info-wrap');
+        var b = hijo(w, 'button', 'info-btn' + (opc.aviso ? ' aviso' : '') + (opc.etiqueta ? ' etiqueta' : ''));
+        b.type = 'button';
+        b.setAttribute('aria-expanded', 'false');
+        b.setAttribute('aria-label', opc.rotulo || 'Más información');
+        hijo(b, 'span', 'material-symbols-outlined', 'info');
+        if (opc.aviso) hijo(b, 'span', 'info-n', String(lineas.length));
+        if (opc.etiqueta) hijo(b, 'span', null, opc.etiqueta);
+        var pop = hijo(w, 'div', 'info-pop');
+        pop.hidden = true;
+        pop.id = 'info' + (++contInfo);
+        b.setAttribute('aria-controls', pop.id);
+        w._caja = hijo(pop, 'div', 'info-caja');
+        rellenarInfo(w, lineas);
+        w.addEventListener('mouseenter', function () { if (!w.dataset.fijo) abrirInfo(w, false); });
+        w.addEventListener('mouseleave', function () { if (!w.dataset.fijo && infoAbierta === w) cerrarInfo(); });
+        b.addEventListener('focus', function () { if (infoAbierta !== w) abrirInfo(w, false); });
+        b.addEventListener('blur', function () { if (!w.dataset.fijo && infoAbierta === w) cerrarInfo(); });
+        b.addEventListener('click', function (ev) {
+          ev.stopPropagation();
+          if (infoAbierta === w && w.dataset.fijo) cerrarInfo(); else abrirInfo(w, true);
+        });
+        return w;
+      }
+      function rellenarInfo(w, lineas) {
+        limpiar(w._caja);
+        lineas.forEach(function (l) { hijo(w._caja, 'div', null, l); });
+      }
+      function abrirInfo(w, fijar) {
+        if (infoAbierta && infoAbierta !== w) cerrarInfo();
+        var pop = w.querySelector('.info-pop');
+        pop.hidden = false;
+        pop.style.left = '0'; pop.style.right = 'auto';
+        if (w.getBoundingClientRect().left + pop.offsetWidth > window.innerWidth - 12) { pop.style.left = 'auto'; pop.style.right = '0'; }
+        w.querySelector('.info-btn').setAttribute('aria-expanded', 'true');
+        var host = w.closest('.kpi, .tarjeta');
+        if (host) host.classList.add('info-abierto');
+        if (fijar) w.dataset.fijo = '1';
+        infoAbierta = w;
+      }
+      function cerrarInfo() {
+        var w = infoAbierta;
+        if (!w) return;
+        w.querySelector('.info-pop').hidden = true;
+        w.querySelector('.info-btn').setAttribute('aria-expanded', 'false');
+        var host = w.closest('.kpi, .tarjeta');
+        if (host) host.classList.remove('info-abierto');
+        delete w.dataset.fijo;
+        infoAbierta = null;
+      }
+      document.addEventListener('click', function (ev) { if (infoAbierta && !infoAbierta.contains(ev.target)) cerrarInfo(); });
+      document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape' && infoAbierta) cerrarInfo(); });
+
+      // ---------- Evolución clínica: chip de dirección y mini barras primera → última ----------
+      var EVOL_KPI = {};
+      function prepararEvolucion(e) {
+        var d = e.dolor, f = e.funcion, a = e.analgesicos;
+        var dolor = { antes: d.primera, despues: d.ultima, max: 10, baja: true, unidad: ' pts', n: d.n };
+        var funcion = { antes: f.primera, despues: f.ultima, max: 10, baja: false, unidad: ' pts', n: f.n };
+        var analg = { antes: a.primera, despues: a.ultima, max: 5, baja: true, unidad: ' niv.', n: a.n };
+        EVOL_KPI = { 'Mejora del dolor': dolor, 'Dolor (PEG)': dolor, 'Mejora de la capacidad funcional': funcion, 'Función global': funcion,
+                     'Usuarios que reducen analgésicos': analg, 'Reducen analgésicos': analg };
+      }
+      // «baja» = en esta variable mejorar es bajar (dolor, analgésicos). Sin cambio = igual al redondear a un decimal, como se muestra.
+      function evolucionKpi(titulo) {
+        var ev = EVOL_KPI[titulo];
+        if (!ev || ev.antes == null || ev.despues == null) return null;
+        var delta = Math.round((ev.despues - ev.antes) * 10) / 10;
+        var estado = delta === 0 ? 'igual' : (((delta < 0) === ev.baja) ? 'mejora' : 'empeora');
+        var tono = estado === 'mejora' ? 'verde' : estado === 'empeora' ? 'rojo' : 'gris';
+        var palabra = estado === 'mejora' ? 'Mejora' : estado === 'empeora' ? 'Empeora' : 'Sin cambio';
+        var texto = firmado(delta, ev.unidad);
+        var chip = document.createElement('span');
+        chip.className = 'chip-dir t-' + tono;
+        chip.title = palabra + ': de ' + num(ev.antes) + ' a ' + num(ev.despues) + ' (media de ' + plural(ev.n, 'usuario', 'usuarios') + ')';
+        chip.setAttribute('aria-label', palabra + ', ' + texto);
+        hijo(chip, 'span', 'material-symbols-outlined', delta < 0 ? 'arrow_downward' : delta > 0 ? 'arrow_upward' : 'remove');
+        hijo(chip, 'span', null, texto);
+        var barras = document.createElement('div');
+        barras.className = 'minibarras';
+        barras.setAttribute('role', 'img');
+        barras.setAttribute('aria-label', 'Primera valoración ' + num(ev.antes) + ', última ' + num(ev.despues) + ', sobre ' + ev.max);
+        [['Primera', ev.antes, 'antes', ''], ['Última', ev.despues, 'despues', ' t-' + tono]].forEach(function (x) {
+          var fila = hijo(barras, 'div', 'mb-fila');
+          hijo(fila, 'span', 'mb-et', x[0]);
+          var pista = hijo(fila, 'div', 'mb-pista');
+          hijo(pista, 'div', 'mb-barra ' + x[2] + x[3]).style.width = Math.max(0, Math.min(100, x[1] / ev.max * 100)) + '%';
+          hijo(fila, 'span', 'mb-v', num(x[1]));
+        });
+        return { chip: chip, barras: barras };
+      }
+
+      // ---------- Resumen en vivo de cada sección plegable ----------
+      function resumen(id, texto) {
+        var c = $(id).querySelector('summary .chip-res');
+        if (c) c.textContent = texto;
+      }
+      function prepararResumenes() {
+        [].slice.call(document.querySelectorAll('details.avanzado')).forEach(function (d) {
+          var sm = d.querySelector('summary'), peq = sm.querySelector('small');
+          if (!peq) return;
+          sm.title = peq.textContent;   // la descripción fija pasa al texto al pasar el ratón
+          var c = document.createElement('span');
+          c.className = 'chip-res';
+          sm.replaceChild(c, peq);
+        });
+      }
+
+      // ---------- Descripciones de sección: del texto fijo al ⓘ ----------
+      function convertirDescripciones() {
+        var envolver = function (h2, texto, rotulo) {
+          var cab = document.createElement('div');
+          cab.className = 'sec-cab';
+          h2.parentNode.insertBefore(cab, h2);
+          cab.appendChild(h2);
+          crearInfo(cab, [texto], { rotulo: rotulo });
+        };
+        var manual = document.querySelector('.pie.manual');
+        if (manual) { envolver($('kpisEval').previousElementSibling, manual.textContent, 'Indicadores que se rellenan a mano'); manual.parentNode.removeChild(manual); }
+        [].slice.call(document.querySelectorAll('.seccion-sub')).forEach(function (p) {
+          var previo = p.previousElementSibling, texto = p.textContent;
+          if (previo && previo.tagName === 'H2') envolver(previo, texto, 'Cómo usar el detalle');
+          else { var fila = document.createElement('div'); fila.className = 'info-fila'; p.parentNode.insertBefore(fila, p); crearInfo(fila, [texto], { etiqueta: 'Cómo se calcula', rotulo: 'Cómo se calcula esta sección' }); }
+          p.parentNode.removeChild(p);
+        });
+      }
+
+      // ---------- Banda de periodo y filtros activos ----------
+      function chipBanda(padre, tono, icono, texto, alQuitar, rotulo) {
+        var c = hijo(padre, 'span', 'chip t-' + tono + (alQuitar ? '' : ' sin-x'));
+        hijo(c, 'span', 'material-symbols-outlined', icono);
+        hijo(c, 'span', null, texto);
+        if (alQuitar) {
+          var x = hijo(c, 'button');
+          x.type = 'button';
+          x.setAttribute('aria-label', 'Quitar el filtro ' + rotulo);
+          hijo(x, 'span', 'material-symbols-outlined', 'close');
+          x.addEventListener('click', function () { alQuitar(c); });
+        }
+      }
+      function pintarBanda(periodo) {
+        var b = $('banda'), modo = $('selPeriodo').value, nombre = 'Curso completo';
+        limpiar(b);
+        if (modo === 'mes') nombre = $('selMes').value ? mesLargo($('selMes').value) : 'Un mes';
+        else if (modo === 'rango') nombre = 'Rango de fechas';
+        chipBanda(b, 'azul', 'calendar_month', nombre + ' · ' + fechaES(periodo.desde) + ' – ' + fechaES(periodo.hasta));
+        [['fGravedad', 'Gravedad', 'priority_high'], ['fTipo', 'Tipo de ingreso', 'input'], ['fPatologia', 'Patología', 'healing']].forEach(function (x) {
+          var sel = $(x[0]);
+          if (!sel.value) return;
+          var tono = x[0] === 'fGravedad' ? ({ leve: 'verde', moderado: 'ambar', urgente: 'rojo' }[sel.value] || 'azul') : 'azul';
+          chipBanda(b, tono, x[2], x[1] + ': ' + sel.options[sel.selectedIndex].text, function (chip) {
+            sel.value = '';
+            chip.parentNode.removeChild(chip);
+            actualizarVisibilidad();
+            cargarPronto();
+          }, x[1]);
+        });
+      }
+
+      function kpi(titulo, valor, sub, n, aviso) { kpiEn('kpis', titulo, valor, sub, n, aviso); }
+      function kpiEn(destino, titulo, valor, sub, n, aviso, abre) {
+        var cont = $(destino), est = ESTILO_KPI[titulo] || {}, ev = evolucionKpi(titulo), compacta = destino === 'kpisPart' || destino === 'kpisEval', retraso = Math.min(cont.children.length, 8) * 50 + 120;
+        var a = hijo(cont, 'article', 'kpi' + (est.tono ? ' t-' + est.tono : '') + (abre ? ' con-detalle' : '') + (animar ? ' entra' : ''));
+        a.style.setProperty('--i', Math.min(cont.children.length - 1, 8));
+        if (animar) a.addEventListener('animationend', function () { a.classList.remove('entra'); }, { once: true });   // las tarjetas de secciones plegadas animan al abrirlas por primera vez, no cada vez
+        var cab = hijo(a, 'div', 'kpi-cab');
+        if (est.icono) {
+          var ic = hijo(cab, 'span', 'kpi-ic');
+          ic.setAttribute('aria-hidden', 'true');
+          hijo(ic, 'span', 'material-symbols-outlined', est.icono);
+        }
+        hijo(cab, 'div', 'kpi-titulo', titulo);
+        if (ev) cab.appendChild(ev.chip);
+        // Los avisos de datos excluidos van en un ⓘ ámbar con su número; el «n» se queda visible en la tarjeta.
+        if (aviso) crearInfo(cab, aviso.split(' · '), { aviso: true, rotulo: 'Avisos sobre los datos de «' + titulo + '»' });
+        // Tarjetas principales: solo título, valor y gráfico; cómo se calcula (subtítulo y «n») va en el texto al pasar el ratón.
+        if (compacta) a.title = [sub, n].filter(Boolean).join('\n');
+        if (est.pct) {
+          // Porcentaje: el valor va en el centro de un anillo, con el subtítulo y el n al lado.
+          var fila = hijo(a, 'div', 'kpi-fila');
+          fila.appendChild(anillo(pctDeTexto(valor), titulo, animar, retraso));
+          if (!compacta) {
+            var tx = hijo(fila, 'div', 'kpi-textos');
+            if (sub) hijo(tx, 'div', 'kpi-sub', sub);
+            hijo(tx, 'div', 'kpi-n', n);
+          }
+          if (ev) a.appendChild(ev.barras);
+        } else {
+          var vv = hijo(a, 'div', 'kpi-valor', valor);
+          if (animar) contar(vv, valor, retraso);
+          if (!compacta && sub) hijo(a, 'div', 'kpi-sub', sub);
+          if (ev) a.appendChild(ev.barras);
+          if (!compacta) hijo(a, 'div', 'kpi-n', n);
+        }
+        if (abre) {
+          var b = hijo(a, 'button', 'kpi-link', 'Ver detalle ›');
+          b.type = 'button';
+          b.addEventListener('click', function () { abrirDetalle(abre); });
+        }
+      }
+      function abrirDetalle(id) {
+        var d = $(id);
+        d.open = true;
+        Graficos.refrescar(d);
+        d.scrollIntoView({ behavior: REDUCE.matches ? 'auto' : 'smooth', block: 'start' });
+      }
+
+      // ---------- Primer vistazo: los indicadores de la dirección del centro ----------
+      var indicadores = [];     // [{ grupo, titulo, valor (número o null), unidad, detalle }] — también va a la hoja «Indicadores» del Excel
+      function pctDe(a, b) { return b > 0 ? Math.round(a / b * 1000) / 10 : null; }
+
+      function pintarVistazo(r) {
+        var c = r.citas, at = c.atendidos, ab = c.abandonos, fa = c.faltas, p = r.pacientes;
+        var e = r.clinica.evolucion, d = e.dolor, f = e.funcion, a = e.analgesicos;
+        prepararEvolucion(e);
+        limpiar($('kpisPart')); limpiar($('kpisEval'));
+        indicadores = [];
+        var uno = function (grupo, titulo, valor, texto, unidad, sub, n, aviso, abre) {
+          kpiEn(grupo === 'Participación y asistencia' ? 'kpisPart' : 'kpisEval', titulo, texto, sub, n, aviso, abre);
+          indicadores.push({ grupo: grupo, titulo: titulo, valor: valor, unidad: unidad, detalle: avisos([sub, n, aviso]) });
+        };
+        var G1 = 'Participación y asistencia', G2 = 'Evaluación clínica';
+        uno(G1, 'Usuarios individuales atendidos', at.usuarios, num(at.usuarios), 'usuarios', 'Con al menos una sesión asistida', 'Citas «Asistido» del periodo', '', 'detAgenda');
+        uno(G1, 'Número de sesiones', at.sesiones, num(at.sesiones), 'sesiones', 'Citas con asistencia «Asistido»', 'Del ' + fechaES(r.periodo.desde) + ' al ' + fechaES(r.periodo.hasta), '', 'detAgenda');
+        uno(G1, 'Media de sesiones por usuario', at.media, num(at.media), 'sesiones/usuario', 'Sesiones ÷ usuarios atendidos', 'n = ' + plural(at.usuarios, 'usuario', 'usuarios'), '', 'detPacientes');
+        uno(G1, 'Bajas por alta', p.porMes.altas, num(p.porMes.altas), 'usuarios', 'Tratamientos terminados en el periodo', 'Episodios con fecha de alta', '', 'detPacientes');
+        uno(G1, 'Bajas por abandono', ab.total, num(ab.total), 'usuarios', ab.umbral + ' o más faltas «No asistido» en el periodo',
+          'De ' + plural(ab.usuariosConRegistro, 'usuario', 'usuarios') + ' con citas registradas', '', 'detAgenda');
+        uno(G1, 'Índice de absentismo', fa.porcentaje, pct(fa.porcentaje), '%', plural(fa.noAsistido, 'falta', 'faltas') + ' «No asistido»',
+          'Sobre ' + plural(fa.n, 'cita con asistencia registrada', 'citas con asistencia registrada'),
+          fa.sinRegistrar ? plural(fa.sinRegistrar, 'cita pasada', 'citas pasadas') + ' sin registrar' : '', 'detAgenda');
+
+        var pd = pctDe(d.mejoran, d.n), pf = pctDe(f.mejoran, f.n), pa = pctDe(a.mejoran, a.n);
+        uno(G2, 'Mejora del dolor', pd, pct(pd), '% de usuarios', d.n ? 'Mejora media del ' + pct(d.pctMejoraMedia) + ' · ' + d.mejoran + ' de ' + d.n + ' bajan' : 'Aún sin dos valoraciones que comparar',
+          'n = ' + plural(d.n, 'usuario', 'usuarios') + ' con valoración inicial y última', d.sinDato ? d.sinDato + ' sin dolor en la primera o la última' : '', 'detClinica');
+        uno(G2, 'Usuarios que reducen analgésicos', pa, pct(pa), '% de usuarios', a.n ? 'Reducción media del ' + pct(a.pctMejoraMedia) + ' · ' + a.mejoran + ' reducen, ' + a.igual + ' igual, ' + a.empeoran + ' aumentan' : 'Aún sin dos valoraciones que comparar',
+          'n = ' + plural(a.n, 'usuario', 'usuarios') + ' con analgésicos registrados', a.sinDato ? a.sinDato + ' sin analgésicos en la primera o la última' : '', 'detClinica');
+        uno(G2, 'Mejora de la capacidad funcional', pf, pct(pf), '% de usuarios', f.n ? 'Mejora media del ' + pct(f.pctMejoraMedia) + ' · ' + f.mejoran + ' de ' + f.n + ' suben' : 'Aún sin dos valoraciones que comparar',
+          'n = ' + plural(f.n, 'usuario', 'usuarios') + ' con valoración inicial y última', f.sinDato ? f.sinDato + ' sin función en la primera o la última' : '', 'detClinica');
+      }
+
+      function pintarKpis(r) {
+        var oc = r.citas.ocupacion, fa = r.citas.faltas, re = r.citas.reincidentes, p = r.pacientes;
+        var le = p.listaEspera, te = p.tiempoEspera, du = p.duracion, se = p.sesiones;
+        limpiar($('kpis'));
+        // Resúmenes de las dos secciones de gráficos que no tienen su propia función de tarjetas (usan los mismos datos)
+        resumen('detKpis', 'Ocupación ' + pct(oc.total.pctReservada) + ' · faltas ' + pct(fa.porcentaje) + ' · espera ' + num(le.total));
+        resumen('detAgenda', plural(oc.total.reservadas, 'cita reservada', 'citas reservadas') + ' · ' + plural(fa.noAsistido, 'falta', 'faltas') + ' · ' + plural(re.total, 'reincidente', 'reincidentes'));
+        resumen('detPacientes', num(le.total) + ' en espera · duración media ' + dias(du.dias.media) + ' · ' + plural(p.porMes.altas, 'alta', 'altas'));
+        kpi('Ocupación reservada', pct(oc.total.pctReservada), 'Efectiva (solo asistidas): ' + pct(oc.total.pctEfectiva),
+          plural(oc.total.reservadas, 'cita', 'citas') + ' en ' + plural(oc.total.huecos, 'hueco abierto', 'huecos abiertos'),
+          oc.fueraDeParrilla ? plural(oc.fueraDeParrilla, 'cita fuera', 'citas fuera') + ' de un hueco abierto (no cuentan)' : '');
+        kpi('% de faltas', pct(fa.porcentaje), plural(fa.noAsistido, 'no asistida', 'no asistidas'),
+          'Calculado con ' + plural(fa.n, 'cita con asistencia registrada', 'citas con asistencia registrada'),
+          fa.sinRegistrar ? plural(fa.sinRegistrar, 'cita pasada', 'citas pasadas') + ' sin registrar' : '');
+        kpi('Reincidentes', num(re.total), re.pct == null ? '' : pct(re.pct) + ' de los usuarios con citas registradas',
+          re.umbral + ' faltas o más · de ' + plural(re.usuariosConRegistro, 'usuario', 'usuarios'), '');
+        kpi('Lista de espera hoy', num(le.total), 'Espera mediana: ' + dias(le.dias.mediana),
+          'Tiempo calculado con ' + plural(le.n, 'usuario con fecha de inscripción', 'usuarios con fecha de inscripción'),
+          avisos([le.sinFecha ? plural(le.sinFecha, 'sin fecha de inscripción', 'sin fecha de inscripción') : '', le.incoherentes ? plural(le.incoherentes, 'fecha incoherente', 'fechas incoherentes') : '']));
+        kpi('Espera hasta el primer ingreso', dias(te.dias.media), 'Mediana: ' + dias(te.dias.mediana),
+          'Calculado con ' + te.n + ' de ' + plural(te.ingresosEnPeriodo, 'primer ingreso', 'primeros ingresos') + ' del periodo',
+          avisos([te.sinInscripcion ? te.sinInscripcion + ' sin fecha de inscripción' : '', te.incoherentes ? plural(te.incoherentes, 'fecha incoherente', 'fechas incoherentes') : '']));
+        kpi('Duración del tratamiento', dias(du.dias.media), 'Mediana: ' + dias(du.dias.mediana),
+          'Calculado con ' + du.n + ' de ' + plural(du.altasEnPeriodo, 'alta', 'altas') + ' del periodo',
+          avisos([du.sinIngreso ? du.sinIngreso + ' sin fecha de ingreso' : '', du.incoherentes ? plural(du.incoherentes, 'fecha incoherente', 'fechas incoherentes') : '']));
+        kpi('Sesiones asistidas por episodio', num(se.porEpisodio.media), 'Mediana: ' + num(se.porEpisodio.mediana) + ' · total ' + num(se.total),
+          'Calculado con ' + plural(se.n, 'episodio', 'episodios') + ' (iniciados desde el ' + fechaES(se.desde) + ')',
+          se.excluidosAntiguos ? plural(se.excluidosAntiguos, 'episodio anterior', 'episodios anteriores') + ' no medido (sus citas no están en la tabla)' : '');
+      }
+

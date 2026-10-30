@@ -1,0 +1,446 @@
+      // dashboard/JS_Estadisticas_Graficos.html - Estadisticas: graficos, evolucion clinica, flujo de estados, exportar, controles, tema y arranque
+      // Se incluye dentro del unico <script> de dashboard/Web_Vista, en este orden: JS_Estadisticas_Resumen, JS_Estadisticas_Graficos.
+      // Sin scriptlets: include() no los evalua.
+      // ---------- Gráficos ----------
+      // La nota de cada gráfica se guarda en su <p class="nota"> (oculto; la exportación a PNG la lee) y se muestra en el ⓘ del título de la tarjeta.
+      function nota(id, texto) {
+        var p = $(id), t = p.closest('.tarjeta'), cab = t && t.querySelector('header');
+        p.textContent = texto;
+        if (!cab) return;
+        var w = cab._info;
+        if (!texto) { if (w) w.hidden = true; return; }
+        if (w) { rellenarInfo(w, [texto]); w.hidden = false; return; }
+        var h2 = cab.querySelector('h2'), tit = document.createElement('div');
+        tit.className = 'tit';
+        cab.insertBefore(tit, h2);
+        tit.appendChild(h2);
+        cab._info = crearInfo(tit, [texto], { rotulo: 'Cómo se calcula esta gráfica' });
+      }
+      function tramosGrafico(id, tramos, nombre, descripcion) {
+        Graficos.montar($(id), 'barras', {
+          etiquetas: tramos.map(function (t) { return t.etiqueta; }), series: [{ nombre: nombre, valores: tramos.map(function (t) { return t.n; }), clase: 0 }],
+          formato: num, alto: 190, anchoEtiqueta: 46, descripcion: descripcion
+        });
+      }
+
+      function pintarGraficos(r) {
+        var oc = r.citas.ocupacion, fa = r.citas.faltas, re = r.citas.reincidentes, p = r.pacientes;
+        var seriesOc = function (filas) {
+          return [{ nombre: 'Reservada (todas las citas)', clase: 0, valores: filas.map(function (f) { return f.pctReservada; }) },
+                  { nombre: 'Efectiva (solo asistidas)', clase: 1, valores: filas.map(function (f) { return f.pctEfectiva; }) }];
+        };
+        var leyOc = function (id) { Graficos.leyenda($(id), [{ nombre: 'Reservada (todas las citas)', clase: 0 }, { nombre: 'Efectiva (solo asistidas)', clase: 1 }]); };
+        var notaOc = oc.total.huecos + ' huecos abiertos y ' + oc.total.reservadas + ' citas reservadas en el periodo (hasta hoy)';
+
+        leyOc('leySemana');
+        Graficos.montar($('gSemana'), 'lineas', {
+          etiquetas: oc.porSemana.map(function (s) { return s.semana.slice(8, 10) + '/' + s.semana.slice(5, 7); }),
+          titulos: oc.porSemana.map(function (s) { return 'Semana del ' + fechaES(s.semana); }),
+          series: seriesOc(oc.porSemana), formato: pc, max: 100, descripcion: 'Ocupación semanal en porcentaje'
+        });
+        nota('nSemana', notaOc + '. Las semanas sin huecos abiertos (festivos, cerradas) no se dibujan.');
+
+        leyOc('leyDia');
+        Graficos.montar($('gDia'), 'barras', {
+          etiquetas: oc.porDiaSemana.map(function (d) { return d.etiqueta.slice(0, 3); }), titulos: oc.porDiaSemana.map(function (d) { return d.etiqueta; }),
+          series: seriesOc(oc.porDiaSemana), formato: pc, max: 100, alto: 200, anchoEtiqueta: 34, descripcion: 'Ocupación por día de la semana'
+        });
+        nota('nDia', notaOc);
+
+        leyOc('leyFranja');
+        Graficos.montar($('gFranja'), 'barras', {
+          etiquetas: oc.porFranja.map(function (f) { return f.hora; }), series: seriesOc(oc.porFranja), formato: pc, max: 100, alto: 200,
+          anchoEtiqueta: 40, descripcion: 'Ocupación por franja horaria'
+        });
+        nota('nFranja', notaOc);
+
+        Graficos.montar($('gAsistencia'), 'barrasH', {
+          items: [{ etiqueta: 'Asistido', valor: fa.asistido, clase: 1 }, { etiqueta: 'No asistido', valor: fa.noAsistido, clase: 4 },
+                  { etiqueta: 'Justificada', valor: fa.justificada, clase: 3 }, { etiqueta: 'Sin registrar (ya pasadas)', valor: fa.sinRegistrar, clase: 2 },
+                  { etiqueta: 'Pendiente (futuras)', valor: fa.pendiente, clase: 5 }],
+          formato: num, descripcion: 'Número de citas por estado de asistencia'
+        });
+        nota('nAsistencia', 'El % de faltas se calcula con las ' + fa.n + ' citas con asistencia registrada (Asistido + No asistido + Justificada); «Sin registrar» y «Pendiente» quedan fuera.');
+
+        var cuerpo = $('cuerpoReinc');
+        limpiar(cuerpo);
+        if (!re.lista.length) {
+          var vacia = hijo(cuerpo, 'tr'), td = hijo(vacia, 'td', null, 'Ningún usuario con ' + re.umbral + ' faltas o más en el periodo.'); td.colSpan = 3;
+        }
+        re.lista.forEach(function (u) {
+          var tr = hijo(cuerpo, 'tr');
+          hijo(tr, 'td', null, u.nombre || '(usuario eliminado)');
+          hijo(tr, 'td', 'num', String(u.noAsistidas));
+          hijo(tr, 'td', 'num', String(u.registradas));
+        });
+        nota('nReinc', re.total + ' de ' + plural(re.usuariosConRegistro, 'usuario', 'usuarios') + ' con citas registradas' + (re.total > re.lista.length ? ' · se muestran los ' + re.lista.length + ' con más faltas' : ''));
+
+        var meses = p.porMes.meses;
+        Graficos.leyenda($('leyMes'), [{ nombre: 'Inscripciones', clase: 0 }, { nombre: 'Altas', clase: 1 }]);
+        Graficos.montar($('gMes'), 'barras', {
+          etiquetas: meses.map(function (m, i) { var k = +m.mes.slice(5, 7); return MESES[k - 1] + (i === 0 || k === 1 ? ' ' + m.mes.slice(2, 4) : ''); }),
+          titulos: meses.map(function (m) { return mesLargo(m.mes); }),
+          series: [{ nombre: 'Inscripciones', clase: 0, valores: meses.map(function (m) { return m.inscripciones; }) },
+                   { nombre: 'Altas', clase: 1, valores: meses.map(function (m) { return m.altas; }) }],
+          atenuar: meses.map(function (m) { return m.futuro; }), formato: num, alto: 200, anchoEtiqueta: 44, descripcion: 'Inscripciones y altas por mes'
+        });
+        nota('nMes', plural(p.porMes.inscripciones, 'inscripción', 'inscripciones') + ' y ' + plural(p.porMes.altas, 'alta', 'altas') + ' en el periodo · '
+          + p.porMes.sinFechaInscripcion + ' usuarios sin fecha de inscripción no se cuentan en las inscripciones. Los meses futuros salen atenuados.');
+
+        var te = p.tiempoEspera, le = p.listaEspera, du = p.duracion, se = p.sesiones;
+        tramosGrafico('gEsperaIngreso', te.tramos, 'Usuarios', 'Usuarios por días de espera hasta su primer ingreso');
+        nota('nEsperaIngreso', 'n = ' + te.n + ' (media ' + dias(te.dias.media) + ', mediana ' + dias(te.dias.mediana) + '). Excluidos: ' + te.sinInscripcion + ' sin fecha de inscripción, ' + te.incoherentes + ' con fechas incoherentes.');
+        tramosGrafico('gEsperaHoy', le.tramos, 'Usuarios', 'Usuarios en lista de espera por días esperando');
+        nota('nEsperaHoy', le.total + ' en lista de espera; n = ' + le.n + ' con fecha de inscripción (media ' + dias(le.dias.media) + ', máximo ' + dias(le.dias.max) + ').');
+        tramosGrafico('gDuracion', du.tramos, 'Episodios', 'Episodios cerrados por duración del tratamiento');
+        nota('nDuracion', 'n = ' + du.n + ' de ' + plural(du.altasEnPeriodo, 'alta', 'altas') + ' (media ' + dias(du.dias.media) + ', mediana ' + dias(du.dias.mediana) + '). Episodios abiertos hoy: ' + du.abiertos + ' (no entran).');
+        tramosGrafico('gSesiones', se.tramos, 'Episodios', 'Episodios por número de sesiones asistidas');
+        nota('nSesiones', 'n = ' + se.n + ' episodios cerrados iniciados desde el ' + fechaES(se.desde) + ' (media ' + num(se.porEpisodio.media) + ', mediana ' + num(se.porEpisodio.mediana) + '). Se cuentan citas «Asistido» entre el ingreso y el alta.');
+
+        var dc = r.citas.diagnostico, dp = p.diagnostico;
+        $('pie').textContent = 'Citas en el periodo: ' + dc.citasEnPeriodo + ' · citas sin ID de usuario (no cuentan): ' + dc.citasSinId + ' · festivos marcados: ' + dc.festivos
+          + ' · episodios de HC sin usuario: ' + dp.episodiosSinPaciente;
+      }
+
+      // ---------- Evolución clínica ----------
+      var ANALG_NIVELES = ['Ninguno', 'Ocasional (< 1 vez/semana)', 'Semanal (1–2 veces/semana)', 'Habitual (casi todos los días)', 'Diario (1 vez al día)', 'Varios al día'];
+      var ANALG_CORTO = ['Ninguno', 'Ocasional', 'Semanal', 'Habitual', 'Diario', 'Varios/día'];
+
+      function pintarClinica(r) {
+        var e = r.clinica.evolucion, g = e.global, d = e.dolor, f = e.funcion, a = e.analgesicos, dg = r.clinica.diagnostico;
+        prepararEvolucion(e);
+        limpiar($('kpisClinica'));
+        resumen('detClinica', pct(g.pctMejoran) + ' mejoran · dolor ' + firmado(d.cambio.media, ' pts') + ' · función ' + firmado(f.cambio.media, ' pts'));
+        var k = function () { kpiEn.apply(null, ['kpisClinica'].concat([].slice.call(arguments))); };
+        var detalle = function (v) { return v.mejoran + ' mejoran · ' + v.igual + ' igual · ' + v.empeoran + ' empeoran'; };
+        k('Usuarios que mejoran', pct(g.pctMejoran), g.mejoran + ' de ' + g.n + ' · el dolor baja o la función sube',
+          'Calculado con ' + plural(g.n, 'usuario', 'usuarios') + ' con 2 o más valoraciones',
+          avisos([e.sinComparar ? plural(e.sinComparar, 'usuario con una sola fecha', 'usuarios con una sola fecha') + ' (no se compara)' : '', g.sinDato ? g.sinDato + ' sin dolor ni función en la primera o la última' : '']));
+        k('Dolor (PEG)', firmado(d.cambio.media, ' pts'), d.n ? 'Escala 0–10, menos es mejor' : '',
+          'n = ' + d.n + (d.n ? ' · ' + detalle(d) : ''), d.sinDato ? d.sinDato + ' sin dolor en la primera o la última' : '');
+        k('Función global', firmado(f.cambio.media, ' pts'), f.n ? 'Escala 0–10, más es mejor' : '',
+          'n = ' + f.n + (f.n ? ' · ' + detalle(f) : ''), f.sinDato ? f.sinDato + ' sin función en la primera o la última' : '');
+        k('Reducen analgésicos', pct(a.n ? Math.round(a.mejoran / a.n * 1000) / 10 : null), a.n ? a.mejoran + ' reducen · ' + a.igual + ' igual · ' + a.empeoran + ' aumentan' : '',
+          'n = ' + a.n + ' usuarios con analgésicos registrados en la primera y la última', a.sinDato ? a.sinDato + ' sin analgésicos registrados en la primera o la última' : '');
+
+        var pareja = [{ nombre: 'Primera valoración', clase: 5 }, { nombre: 'Última valoración', clase: 0 }];
+        Graficos.leyenda($('leyClinEscala'), pareja);
+        Graficos.montar($('gClinEscala'), 'barras', {
+          etiquetas: ['Dolor (PEG)', 'Función global'], titulos: ['Dolor (PEG, 0–10; menos es mejor)', 'Función global (0–10; más es mejor)'],
+          series: [{ nombre: pareja[0].nombre, clase: 5, valores: [d.primera, f.primera] }, { nombre: pareja[1].nombre, clase: 0, valores: [d.ultima, f.ultima] }],
+          formato: num, max: 10, alto: 200, anchoEtiqueta: 90, descripcion: 'Media de dolor y de función global en la primera y la última valoración'
+        });
+        nota('nClinEscala', 'Medias de ' + plural(d.n, 'usuario', 'usuarios') + ' en dolor y de ' + f.n + ' en función (los que tienen valor en la primera y en la última). Entre la primera y la última pasan ' + dias(e.diasEntre.mediana) + ' de mediana.');
+
+        Graficos.leyenda($('leyClinAnalg'), pareja);
+        Graficos.montar($('gClinAnalg'), 'barras', {
+          etiquetas: ANALG_CORTO, titulos: ANALG_NIVELES,
+          series: [{ nombre: pareja[0].nombre, clase: 5, valores: a.niveles.map(function (x) { return x.primera; }) }, { nombre: pareja[1].nombre, clase: 0, valores: a.niveles.map(function (x) { return x.ultima; }) }],
+          formato: num, alto: 200, anchoEtiqueta: 62, descripcion: 'Usuarios por nivel de consumo de analgésicos en la primera y la última valoración'
+        });
+        nota('nClinAnalg', 'Usuarios por nivel de consumo; n = ' + a.n + '. «Sin registrar» no se dibuja: ' + a.sinDato + ' usuarios sin dato en la primera o la última.');
+
+        Graficos.leyenda($('leyClinCambio'), [{ nombre: 'Dolor', clase: 0 }, { nombre: 'Función global', clase: 1 }, { nombre: 'Analgésicos (mejoran = reducen)', clase: 3 }]);
+        Graficos.montar($('gClinCambio'), 'barras', {
+          etiquetas: ['Mejoran', 'Sin cambio', 'Empeoran'],
+          series: [{ nombre: 'Dolor', clase: 0, valores: [d.mejoran, d.igual, d.empeoran] }, { nombre: 'Función global', clase: 1, valores: [f.mejoran, f.igual, f.empeoran] },
+                   { nombre: 'Analgésicos', clase: 3, valores: [a.mejoran, a.igual, a.empeoran] }],
+          formato: num, alto: 200, anchoEtiqueta: 70, descripcion: 'Usuarios que mejoran, siguen igual o empeoran en dolor, función y analgésicos'
+        });
+        nota('nClinCambio', 'Dolor: mejora si baja. Función: mejora si sube. Analgésicos: «mejoran» = reducen el consumo (no entra en la mejora global). Mejora global (dolor baja o función sube): ' + g.mejoran + ' de ' + g.n + '.');
+        $('pie').textContent += ' · valoraciones leídas: ' + dg.valoraciones + ' · filas sin ID de usuario (no cuentan): ' + dg.filasSinId + ' · filas sin fecha válida: ' + dg.filasSinFecha;
+      }
+
+      // ---------- Flujo de estados ----------
+      var CLASE_ESTADO = { activo: 1, espera: 3, contactara: 2, noresponde: 4, alta: 0 };
+
+      function pintarEstados(r) {
+        var f = r.estados.flujo, d = f.datos, dg = r.estados.diagnostico, h = f.estadoActual;
+        var itemEstado = function (clase) { return f.estadoActual.items.filter(function (x) { return x.clase === clase; })[0]; };
+        var tiempo = function (clase) { return f.tiempoEnEstado.filter(function (x) { return x.clase === clase; })[0]; };
+        var sinDatos = !d.cambiosReales;
+        limpiar($('kpisFlujo'));
+        resumen('detEstados', plural(itemEstado('activo').n, 'activo', 'activos') + ' · ' + num(itemEstado('espera').n) + ' en espera · ' + plural(f.transiciones.total, 'cambio', 'cambios'));
+        var k = function () { kpiEn.apply(null, ['kpisFlujo'].concat([].slice.call(arguments))); };
+        k('Activos hoy', num(itemEstado('activo').n), 'De ' + plural(h.total, 'usuario', 'usuarios') + ' con estado', 'Estado actual en la Maestra', h.sinEstado ? plural(h.sinEstado, 'usuario sin estado', 'usuarios sin estado') : '');
+        k('En espera hoy', num(itemEstado('espera').n), 'Contactará: ' + itemEstado('contactara').n + ' · No responde: ' + itemEstado('noresponde').n, 'Estado actual en la Maestra', '');
+        k('Cambios de estado', num(f.transiciones.total), sinDatos ? 'Aún sin cambios registrados' : 'Entre estados distintos, en el periodo',
+          'Registro real desde el ' + (d.desde ? fechaES(d.desde) : '—'), avisos([d.cambiosEnPeriodo - f.transiciones.total > 0 ? plural(d.cambiosEnPeriodo - f.transiciones.total, 'cambio', 'cambios') + ' sin estado anterior (altas de usuarios nuevos)' : '']));
+        var ta = tiempo('activo');
+        k('Tiempo en Activo', dias(ta.dias.media), 'Mediana: ' + dias(ta.dias.mediana), 'Calculado con ' + plural(ta.n, 'estancia cerrada', 'estancias cerradas'),
+          ta.n < 5 ? 'Pocos datos todavía: se afinará con las semanas' : '');
+
+        Graficos.montar($('gFlujoHoy'), 'barrasH', {
+          items: f.estadoActual.items.map(function (x) { return { etiqueta: x.etiqueta, valor: x.n, clase: CLASE_ESTADO[x.clase] }; }),
+          formato: num, descripcion: 'Número de usuarios en cada estado hoy'
+        });
+        nota('nFlujoHoy', plural(h.total, 'usuario', 'usuarios') + ' con estado' + (h.otros ? ' · ' + h.otros + ' con un estado no reconocido' : '') + '. Es la foto de hoy: no depende del periodo.');
+
+        Graficos.montar($('gFlujoTiempo'), 'barrasH', {
+          items: f.tiempoEnEstado.filter(function (t) { return t.n > 0; }).map(function (t) { return { etiqueta: t.etiqueta + ' (n=' + t.n + ')', valor: t.dias.media, clase: CLASE_ESTADO[t.clase] }; }),
+          formato: num, vacio: 'Todavía no hay estancias cerradas: hace falta que un usuario entre en un estado y salga de él con el historial ya activo.',
+          descripcion: 'Días de media que los usuarios pasan en cada estado'
+        });
+        nota('nFlujoTiempo', 'Solo estancias cerradas por dos cambios registrados que acaban en el periodo. No se miden ' + plural(d.estanciasAbiertas, 'estancia abierta', 'estancias abiertas')
+          + (d.estanciasIncoherentes ? ' ni ' + plural(d.estanciasIncoherentes, 'estancia con registros que no encajan', 'estancias con registros que no encajan') : '') + '.');
+
+        var meses = f.entradasPorMes.meses;
+        var serie = function (c) { return { nombre: dashEtiqueta(c), clase: CLASE_ESTADO[c], valores: meses.map(function (m) { return m[c]; }) }; };
+        var orden = ['activo', 'espera', 'contactara', 'noresponde', 'alta'];
+        Graficos.leyenda($('leyFlujoMes'), orden.map(function (c) { return { nombre: dashEtiqueta(c), clase: CLASE_ESTADO[c] }; }));
+        Graficos.montar($('gFlujoMes'), 'barras', {
+          etiquetas: meses.map(function (m, i) { var q = +m.mes.slice(5, 7); return MESES[q - 1] + (i === 0 || q === 1 ? ' ' + m.mes.slice(2, 4) : ''); }),
+          titulos: meses.map(function (m) { return mesLargo(m.mes); }),
+          series: orden.map(serie), atenuar: meses.map(function (m) { return m.futuro; }), formato: num, alto: 200, anchoEtiqueta: 44,
+          descripcion: 'Usuarios que entran en cada estado, por mes'
+        });
+        nota('nFlujoMes', plural(f.entradasPorMes.total, 'entrada', 'entradas') + ' en el periodo, contadas por el estado al que entra el usuario (incluye los usuarios nuevos). Los meses futuros salen atenuados.');
+
+        var cuerpo = $('cuerpoFlujo');
+        limpiar(cuerpo);
+        if (!f.transiciones.lista.length) {
+          var vacia = hijo(cuerpo, 'tr'), td = hijo(vacia, 'td', null, sinDatos ? 'Todavía no hay cambios de estado registrados.' : 'Ningún cambio de estado en el periodo.'); td.colSpan = 3;
+        }
+        f.transiciones.lista.forEach(function (t) {
+          var tr = hijo(cuerpo, 'tr');
+          hijo(tr, 'td', null, t.deEtiqueta); hijo(tr, 'td', null, t.aEtiqueta); hijo(tr, 'td', 'num', String(t.n));
+        });
+        nota('nFlujo', f.transiciones.total + ' cambios en total' + (f.transiciones.distintas > f.transiciones.lista.length ? ' · se muestran los ' + f.transiciones.lista.length + ' más frecuentes' : '')
+          + ' · filas del historial leídas: ' + dg.filasEstado + (dg.filasSinId || dg.filasSinFecha ? ' (sin ID: ' + dg.filasSinId + ', sin fecha válida: ' + dg.filasSinFecha + ')' : ''));
+      }
+      function dashEtiqueta(c) { return { activo: 'Activo', espera: 'En espera', contactara: 'Contactará', noresponde: 'No responde', alta: 'Alta' }[c]; }
+
+      // ---------- Exportar ----------
+      function nombreBase() {
+        return 'estadisticas_fisioterapia_' + datos.periodo.desde + '_' + datos.periodo.hasta;
+      }
+
+      /** Hojas del libro de Excel, a partir de lo que ya está cargado. No incluye nombres de usuarios. */
+      function construirHojas(r) {
+        var oc = r.citas.ocupacion, fa = r.citas.faltas, re = r.citas.reincidentes, ab = r.citas.abandonos, p = r.pacientes, e = r.clinica.evolucion, f = r.estados.flujo;
+        var filtros = r.filtros || {};
+        var hojas = [];
+        var uni = function (nombre, cab, filas) { hojas.push({ nombre: nombre, filas: [cab].concat(filas) }); };
+
+        uni('Indicadores', ['Grupo', 'Indicador', 'Valor', 'Unidad', 'Detalle'],
+          indicadores.map(function (i) { return [i.grupo, i.titulo, i.valor, i.unidad, i.detalle]; }));
+        uni('Periodo y filtros', ['Concepto', 'Valor'], [
+          ['Desde', fechaES(r.periodo.desde)], ['Hasta', fechaES(r.periodo.hasta)], ['Gravedad', filtros.gravedad || 'todas'],
+          ['Tipo de ingreso', filtros.tipo || 'todos'], ['Patología', filtros.patologia || 'todas'], ['Datos generados', new Date(r.generadoEn).toLocaleString('es-ES')]]);
+
+        var filaOc = function (x) { return [x.huecos, x.reservadas, x.efectivas, x.pctReservada, x.pctEfectiva]; };
+        var cabOc = ['Huecos abiertos', 'Citas reservadas', 'Citas asistidas', '% ocupación reservada', '% ocupación efectiva'];
+        uni('Ocupación total', cabOc, [filaOc(oc.total)]);
+        uni('Ocupación por semana', ['Semana (lunes)'].concat(cabOc), oc.porSemana.map(function (x) { return [fechaES(x.semana)].concat(filaOc(x)); }));
+        uni('Ocupación por día', ['Día'].concat(cabOc), oc.porDiaSemana.map(function (x) { return [x.etiqueta].concat(filaOc(x)); }));
+        uni('Ocupación por franja', ['Hora'].concat(cabOc), oc.porFranja.map(function (x) { return [x.hora].concat(filaOc(x)); }));
+        uni('Asistencia', ['Concepto', 'Valor'], [
+          ['Asistido', fa.asistido], ['No asistido', fa.noAsistido], ['Justificada', fa.justificada], ['Sin registrar (ya pasadas)', fa.sinRegistrar], ['Pendiente (futuras)', fa.pendiente],
+          ['Citas con asistencia registrada', fa.n], ['% de faltas (índice de absentismo)', fa.porcentaje], ['Usuarios con citas registradas', re.usuariosConRegistro],
+          ['Reincidentes (' + re.umbral + ' faltas o más)', re.total], ['Abandonos (' + ab.umbral + ' faltas o más)', ab.total]]);
+
+        var m = p.porMes.meses;
+        uni('Inscripciones y altas', ['Mes', 'Inscripciones', 'Altas'], m.map(function (x) { return [x.mes, x.inscripciones, x.altas]; }));
+        var res = function (nombre, x) { return [nombre, x.n, x.dias.media, x.dias.mediana, x.dias.min, x.dias.max]; };
+        uni('Tiempos y sesiones', ['Métrica', 'n', 'Media', 'Mediana', 'Mínimo', 'Máximo'], [
+          res('Espera hasta el primer ingreso (días)', p.tiempoEspera), res('Lista de espera hoy: días esperando', p.listaEspera), res('Duración del tratamiento (días)', p.duracion),
+          ['Sesiones asistidas por episodio', p.sesiones.n, p.sesiones.porEpisodio.media, p.sesiones.porEpisodio.mediana, p.sesiones.porEpisodio.min, p.sesiones.porEpisodio.max]]);
+        var tr = [];
+        [['Espera hasta el primer ingreso (días)', p.tiempoEspera], ['Lista de espera hoy (días)', p.listaEspera], ['Duración del tratamiento (días)', p.duracion], ['Sesiones por episodio', p.sesiones]]
+          .forEach(function (g) { g[1].tramos.forEach(function (t) { tr.push([g[0], t.etiqueta, t.n]); }); });
+        uni('Tramos', ['Métrica', 'Tramo', 'Casos'], tr);
+
+        var ev = function (nombre, x) { return [nombre, x.n, x.primera, x.ultima, x.cambio.media, x.pctMejoraMedia, pctDe(x.mejoran, x.n), x.mejoran, x.igual, x.empeoran, x.sinDato]; };
+        uni('Evolución clínica', ['Variable', 'n', 'Media primera', 'Media última', 'Cambio medio', '% de mejora de la media', '% de usuarios que mejoran', 'Mejoran', 'Igual', 'Empeoran', 'Sin dato'], [
+          ev('Dolor (PEG 0–10; menos es mejor)', e.dolor), ev('Función global (0–10; más es mejor)', e.funcion), ev('Analgésicos (0–5; menos es mejor)', e.analgesicos),
+          ['Global (dolor baja o función sube)', e.global.n, null, null, null, null, e.global.pctMejoran, e.global.mejoran, e.global.igual, e.global.empeoran, e.global.sinDato]]);
+        uni('Analgésicos por nivel', ['Nivel', 'Primera valoración', 'Última valoración'], e.analgesicos.niveles.map(function (x) { return [ANALG_NIVELES[x.nivel], x.primera, x.ultima]; }));
+
+        uni('Estados hoy', ['Estado', 'Usuarios'], f.estadoActual.items.map(function (x) { return [x.etiqueta, x.n]; }));
+        uni('Entradas por estado y mes', ['Mes', 'Activo', 'En espera', 'Contactará', 'No responde', 'Alta'],
+          f.entradasPorMes.meses.map(function (x) { return [x.mes, x.activo, x.espera, x.contactara, x.noresponde, x.alta]; }));
+        uni('Cambios de estado', ['De', 'A', 'Usuarios'], f.transiciones.lista.map(function (x) { return [x.deEtiqueta, x.aEtiqueta, x.n]; }));
+        uni('Tiempo en cada estado', ['Estado', 'Estancias cerradas', 'Media (días)', 'Mediana (días)'], f.tiempoEnEstado.map(function (x) { return [x.etiqueta, x.n, x.dias.media, x.dias.mediana]; }));
+        return hojas;
+      }
+
+      /** Icono de descarga (PNG) en la cabecera de cada tarjeta que tiene gráfica. Se pone una sola vez por tarjeta. */
+      function botonesPng() {
+        [].slice.call(document.querySelectorAll('.tarjeta')).forEach(function (t) {
+          if (t.querySelector('.btn-png') || !Exportar.tieneGrafica(t)) return;
+          var cab = t.querySelector('header');
+          var b = hijo(cab, 'button', 'btn-png');
+          b.type = 'button'; b.title = 'Descargar esta gráfica (PNG)'; b.setAttribute('aria-label', 'Descargar esta gráfica en PNG');
+          hijo(b, 'span', 'material-symbols-outlined', 'download');
+          b.addEventListener('click', function () {
+            Exportar.fichaPng(t).then(function (blob) { Exportar.descargar(blob, Exportar.nombreSeguro(t.querySelector('h2').textContent) + '.png'); })
+              .catch(function (err) { mostrarAviso('No se pudo exportar la gráfica: ' + err.message); });
+          });
+        });
+      }
+
+      function cerrarMenu() { $('menuExportar').hidden = true; $('btnExportar').setAttribute('aria-expanded', 'false'); }
+      function exportarDatos() {
+        if (!datos) return;
+        try { Exportar.descargar(Exportar.xlsx(construirHojas(datos)), nombreBase() + '.xlsx'); }
+        catch (err) { mostrarAviso('No se pudo crear el Excel: ' + err.message); }
+        cerrarMenu();
+      }
+      function exportarGraficas() {
+        if (!datos) return;
+        var boton = $('expGraficas'), tarjetas = [].slice.call(document.querySelectorAll('.tarjeta')).filter(Exportar.tieneGrafica);
+        boton.disabled = true;
+        var usados = {};
+        tarjetas.reduce(function (cadena, t, i) {
+          return cadena.then(function (lista) {
+            return Exportar.fichaPng(t).then(Exportar.bytesDeBlob).then(function (bytes) {
+              var base = String(i + 1).length < 2 ? '0' + (i + 1) : String(i + 1);
+              lista.push({ nombre: base + '_' + Exportar.nombreSeguro(t.querySelector('h2').textContent) + '.png', datos: bytes });
+              return lista;
+            });
+          });
+        }, Promise.resolve([])).then(function (lista) {
+          Exportar.descargar(Exportar.zip(lista), nombreBase() + '_graficas.zip');
+        }).catch(function (err) { mostrarAviso('No se pudieron exportar las gráficas: ' + err.message); })
+          .then(function () { boton.disabled = false; cerrarMenu(); });
+      }
+
+      // ---------- Controles y carga ----------
+      var datos = null, peticion = 0, temporizador = null, mesesListos = false, opcionesVistas = '';
+
+      function poblarMeses(r) {
+        var sel = $('selMes'), actual = sel.value, tope = r.hoy.slice(0, 7) < r.curso.desde.slice(0, 7) ? r.curso.desde.slice(0, 7) : r.hoy.slice(0, 7);
+        limpiar(sel);
+        var a = +r.curso.desde.slice(0, 4), m = +r.curso.desde.slice(5, 7), ult = r.curso.hasta.slice(0, 7);
+        for (;;) {
+          var clave = a + '-' + pad(m);
+          if (clave > ult || clave > tope) break;
+          var o = hijo(sel, 'option', null, mesLargo(clave)); o.value = clave;
+          m++; if (m > 12) { m = 1; a++; }
+        }
+        sel.value = actual && sel.querySelector('option[value="' + actual + '"]') ? actual : tope;
+        mesesListos = true;
+      }
+      function poblarFiltro(sel, valores, todos) {
+        var actual = sel.value;
+        limpiar(sel);
+        hijo(sel, 'option', null, todos).value = '';
+        valores.forEach(function (v) { hijo(sel, 'option', null, v).value = v; });
+        sel.value = valores.indexOf(actual) !== -1 ? actual : '';
+      }
+      function actualizarVisibilidad() {
+        var modo = $('selPeriodo').value;
+        $('selMes').hidden = modo !== 'mes';
+        $('inDesde').hidden = $('inHasta').hidden = modo !== 'rango';
+        var hay = !!($('fGravedad').value || $('fTipo').value || $('fPatologia').value);
+        $('btnQuitar').hidden = !hay;
+        ['fGravedad', 'fTipo', 'fPatologia'].forEach(function (id) { $(id).classList.toggle('activo', !!$(id).value); });
+      }
+      function armarFiltros() {
+        var f = { gravedad: $('fGravedad').value, tipo: $('fTipo').value, patologia: $('fPatologia').value, umbral: +$('selUmbral').value }, modo = $('selPeriodo').value;
+        if (modo === 'mes' && $('selMes').value) {
+          var m = $('selMes').value;
+          f.desdeISO = m + '-01';
+          f.hastaISO = m + '-' + pad(new Date(+m.slice(0, 4), +m.slice(5, 7), 0).getDate());
+        } else if (modo === 'rango') {
+          var d = $('inDesde').value, h = $('inHasta').value;
+          if (d && h && h < d) return { error: 'La fecha final es anterior a la inicial.' };
+          if (d) f.desdeISO = d;
+          if (h) f.hastaISO = h;
+        }
+        return f;
+      }
+      function mostrarAviso(texto) { $('textoAviso').textContent = texto; $('aviso').hidden = !texto; }
+      function cargando(si) {
+        document.body.classList.toggle('cargando', si);
+        $('principal').setAttribute('aria-busy', si ? 'true' : 'false');
+        $('btnActualizar').disabled = si;
+        $('btnActualizar').classList.toggle('girando', si);
+      }
+
+      function cargar(forzar) {
+        actualizarVisibilidad();
+        var f = armarFiltros();
+        if (f.error) { mostrarAviso(f.error); return; }
+        var n = ++peticion;
+        mostrarAviso('');
+        if (document.body.classList.contains('primera')) pintarEsqueletos();
+        cargando(true);
+        google.script.run
+          .withSuccessHandler(function (r) {
+            if (n !== peticion) return;
+            cargando(false);
+            if (!r || !r.success) { quitarEsqueletos(); mostrarAviso('No se pudo calcular las estadísticas' + (r && r.message ? ': ' + r.message : '.')); return; }
+            datos = r;
+            var claves = JSON.stringify(r.opciones);
+            if (!mesesListos) poblarMeses(r);
+            if (claves !== opcionesVistas) {
+              opcionesVistas = claves;
+              poblarFiltro($('fTipo'), r.opciones.tipos, 'Tipo de ingreso: todos');
+              poblarFiltro($('fPatologia'), r.opciones.patologias, 'Patología: todas');
+              actualizarVisibilidad();
+            }
+            $('textoPeriodo').textContent = fechaES(r.periodo.desde) + ' – ' + fechaES(r.periodo.hasta);
+            pintarBanda(r.periodo);
+            var hora = new Date(r.generadoEn).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+            $('textoActualizado').textContent = 'Datos de las ' + hora + (r.desdeCache ? ' (guardados 10 min)' : '');
+            pintarVistazo(r);
+            pintarKpis(r);
+            pintarGraficos(r);
+            pintarClinica(r);
+            pintarEstados(r);
+            botonesPng();
+            animar = false;
+            document.body.classList.remove('primera');
+          })
+          .withFailureHandler(function (e) {
+            if (n !== peticion) return;
+            cargando(false);
+            quitarEsqueletos();
+            mostrarAviso('No se pudo conectar con el servidor' + (e && e.message ? ': ' + e.message : '.'));
+          })
+          .obtenerDashboardWeb(f, !!forzar);
+      }
+      function cargarPronto() { clearTimeout(temporizador); temporizador = setTimeout(function () { cargar(false); }, 200); }
+
+      ['selPeriodo', 'selMes', 'inDesde', 'inHasta', 'fGravedad', 'fTipo', 'fPatologia', 'selUmbral'].forEach(function (id) { $(id).addEventListener('change', cargarPronto); });
+      $('btnActualizar').addEventListener('click', function () { cargar(true); });
+      $('btnExportar').addEventListener('click', function (ev) {
+        ev.stopPropagation();
+        var abrir = $('menuExportar').hidden;
+        $('menuExportar').hidden = !abrir; $('btnExportar').setAttribute('aria-expanded', abrir ? 'true' : 'false');
+        $('btnExportar').disabled = false;
+      });
+      document.addEventListener('click', function (ev) { if (!$('menuExportar').contains(ev.target)) cerrarMenu(); });
+      document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape') cerrarMenu(); });
+      $('expDatos').addEventListener('click', exportarDatos);
+      $('expGraficas').addEventListener('click', exportarGraficas);
+      [].slice.call(document.querySelectorAll('details.avanzado')).forEach(function (d) {
+        d.addEventListener('toggle', function () { if (d.open) Graficos.refrescar(d); });
+      });
+      $('btnReintentar').addEventListener('click', function () { cargar(false); });
+      $('btnQuitar').addEventListener('click', function () { $('fGravedad').value = $('fTipo').value = $('fPatologia').value = ''; cargarPronto(); });
+
+      // ---------- Tema: automático / oscuro / claro (compartido con las otras pestañas) ----------
+      var TEMAS = ['auto', 'oscuro', 'claro'], ICONOS_TEMA = { auto: 'contrast', oscuro: 'dark_mode', claro: 'light_mode' };
+      function aplicarTema(t, guardar) {
+        if (t === 'auto') document.documentElement.removeAttribute('data-tema'); else document.documentElement.setAttribute('data-tema', t);
+        var b = $('btnTema');
+        limpiar(b);
+        hijo(b, 'span', 'material-symbols-outlined', ICONOS_TEMA[t]);
+        b.title = 'Tema: ' + t + ' (clic para cambiar)';
+        b.dataset.tema = t;
+        if (guardar) { try { localStorage.setItem('temaApp', t); } catch (err) { /* sin almacenamiento */ } }
+      }
+      $('btnTema').addEventListener('click', function () {
+        aplicarTema(TEMAS[(TEMAS.indexOf(this.dataset.tema || 'auto') + 1) % TEMAS.length], true);
+      });
+      (function () {
+        var t = 'auto';
+        try { t = localStorage.getItem('temaApp') || 'auto'; } catch (err) { /* sin almacenamiento */ }
+        aplicarTema(TEMAS.indexOf(t) === -1 ? 'auto' : t, false);
+      })();
+
+      prepararResumenes();
+      convertirDescripciones();
+      cargar(false);

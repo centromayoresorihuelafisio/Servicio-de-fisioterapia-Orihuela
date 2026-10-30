@@ -1,0 +1,465 @@
+      // valoraciones/JS_Valoraciones_Base.html - Valoraciones: datos, tabla, teclado, ficha, grafica, editar y eliminar
+      // Se incluye dentro del unico <script> de valoraciones/Web_Vista, en este orden: JS_Valoraciones_Base, ui/JS_Modal_Deshacer, JS_Valoraciones_Acciones.
+      // Sin scriptlets: include() no los evalua.
+      var PACIENTES = [];
+      var pacienteSeleccionado = null; // clave del usuario (p.clave = su ID paciente) o null
+      var metricaActual = 'funcionGlobal';
+      var filaEnEdicion = null;
+      var idEnEdicion = null, fechaEnEdicion = null; // para que el servidor compruebe que la fila sigue siendo la misma
+      var ordenCampo = null, ordenDir = 1; // 1 = asc, -1 = desc
+      var ultimosFiltrados = [], filaActiva = null;
+      var formularioActivo = false, controladorForm = null, formularioNombre = '';   // formulario de Nueva valoración abierto en la ficha
+
+      // Columnas de la tabla principal. sec = se oculta con la ficha abierta para que la tabla quepa.
+      var COLS = [
+        { k: 'pegDolor', etq: 'PEG Dolor' }, { k: 'pegActividad', etq: 'PEG Actividad' }, { k: 'pegVida', etq: 'PEG Vida' },
+        { k: 'mediaColumna', etq: 'Columna', sec: true }, { k: 'mediaMS', etq: 'M. Superior', sec: true }, { k: 'mediaMI', etq: 'M. Inferior', sec: true },
+        { k: 'funcionGlobal', etq: 'Función Global' }, { k: 'analgesicos', etq: 'Analgésicos', sec: true }
+      ];
+      var METRICAS = [
+        { k: 'pegDolor', etq: 'PEG Dolor' }, { k: 'pegActividad', etq: 'PEG Actividad' }, { k: 'pegVida', etq: 'PEG Vida' },
+        { k: 'analgesicos', etq: 'Analgésicos' }, { k: 'funcionGlobal', etq: 'Función Global' },
+        { k: 'mediaColumna', etq: 'Columna' }, { k: 'mediaMS', etq: 'Miembro Superior' }, { k: 'mediaMI', etq: 'Miembro Inferior' }
+      ];
+      // Máximo de cada escala para la gráfica (Analgésicos es 0-5; el resto 0-10).
+      var ESCALA_MAX = { analgesicos: 5 };
+      var ETQ_CORTA = { pegDolor: 'Dolor', pegActividad: 'Actividad', pegVida: 'Vida', analgesicos: 'Analgés.', mediaColumna: 'Columna', mediaMS: 'M. Sup.', mediaMI: 'M. Inf.', funcionGlobal: 'F. Global' };
+      var ORDEN_MINI = ['pegDolor', 'pegActividad', 'pegVida', 'analgesicos', 'mediaColumna', 'mediaMS', 'mediaMI', 'funcionGlobal'];
+
+      // ---------- Utilidades ----------
+      function normalizar(txt) { return (txt || '').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim(); }
+      function esc(t) { return (t === null || t === undefined ? '' : String(t)).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
+      function resalta(txt, termino) {
+        var s = esc(txt || '');
+        if (!termino) return s;
+        try { return s.replace(new RegExp('(' + termino.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'ig'), '<mark>$1</mark>'); } catch (err) { return s; }
+      }
+      function formatearFechaCorta(fechaISO) {
+        if (!fechaISO) return '—';
+        var partes = fechaISO.split('-'); // yyyy-MM-dd
+        return partes[2] + '/' + partes[1] + '/' + partes[0].slice(2);
+      }
+      function formatearTel(t) { return Telefono.formato(t); }   // regla única: ui/JS_Telefono.html
+      function avatarHtml(nombre, extra) {
+        var n = (nombre || '').toString().trim();
+        if (!n) return '';
+        var p = n.split(/\s+/), ini = (p[0].charAt(0) + (p.length > 1 ? p[1].charAt(0) : p[0].charAt(1))).toUpperCase(), hue = 0, low = n.toLowerCase();
+        for (var i = 0; i < low.length; i++) hue = (hue * 31 + low.charCodeAt(i)) % 360;
+        return '<span class="avatar' + (extra ? ' ' + extra : '') + '" style="--h:' + hue + '">' + esc(ini) + '</span>';
+      }
+      var pendientes = 0;
+      function ocupado(d) { pendientes = Math.max(0, pendientes + d); document.body.classList.toggle('ocupado', pendientes > 0); }
+
+      // ---------- Carga de datos ----------
+      function cargar() {
+        ocupado(1);
+        google.script.run
+          .withSuccessHandler(function(res) {
+            ocupado(-1);
+            if (res.error) { mostrarError(res.error); return; }
+            PACIENTES = res.pacientes || [];
+            if (res.sinId) mostrarAviso(res.sinId + (res.sinId === 1 ? ' valoración no tiene' : ' valoraciones no tienen') + ' ID de usuario y no se muestra(n). Ejecuta asignarIdPacienteEnValoraciones.');
+            render();
+            // Si había un usuario con el ficha abierta, se refresca con los datos nuevos (o se cierra si ya no existe).
+            renderFicha();
+          })
+          .withFailureHandler(function(err) { ocupado(-1); mostrarError(err); })
+          .obtenerValoracionesWeb();
+      }
+      function mostrarError(err) {
+        document.getElementById('tablaWrap').innerHTML =
+          '<div class="estado-vacio"><span class="material-symbols-outlined grande">error</span>No se pudieron cargar las valoraciones.<div>' + esc(err && err.message ? err.message : err) + '</div></div>';
+      }
+
+      // ---------- Píldoras de severidad ----------
+      // La dirección del color depende del tipo de escala (ver valoraciones/Panel_Valoracion.html):
+      // - PEG Dolor/Actividad/Vida: 0-10, ALTO = MALO.
+      // - Columna/M.Superior/M.Inferior/Función Global: 0-10, ALTO = BUENO.
+      // - Analgésicos: 0-5, ALTO = MALO.
+      function claseSeveridadDolor(v) { return v <= 3 ? 'sev-ok' : v <= 6 ? 'sev-medio' : 'sev-alto'; }
+      function claseSeveridadFuncion(v) { return v <= 3 ? 'sev-alto' : v <= 7 ? 'sev-medio' : 'sev-ok'; }
+      function claseSeveridadAnalgesicos(v) { return v <= 2 ? 'sev-ok' : v === 3 ? 'sev-medio' : 'sev-alto'; }
+      var TIPO_METRICA = {
+        pegDolor: 'dolor', pegActividad: 'dolor', pegVida: 'dolor',
+        mediaColumna: 'funcion', mediaMS: 'funcion', mediaMI: 'funcion', funcionGlobal: 'funcion',
+        analgesicos: 'analg'
+      };
+      function claseSeveridad(valor, campo) {
+        var tipo = TIPO_METRICA[campo] || 'dolor';
+        if (tipo === 'funcion') return claseSeveridadFuncion(valor);
+        if (tipo === 'analg') return claseSeveridadAnalgesicos(valor);
+        return claseSeveridadDolor(valor);
+      }
+      function renderPill(valor, campo) {
+        if (valor === null || valor === undefined) return '<span class="badge sev-vacio">—</span>';
+        return '<span class="badge ' + claseSeveridad(valor, campo) + '">' + valor + '</span>';
+      }
+      function chipTipo(tipo) {
+        if (!tipo) return '<span class="vacio">—</span>';
+        var c = normalizar(tipo);
+        return '<span class="tipo-chip ' + (c === 'inicial' ? 'inicial' : c === 'seguimiento' ? 'seguimiento' : c === 'final' ? 'final' : '') + '">' + esc(tipo) + '</span>';
+      }
+
+      // ---------- Evolución respecto a la valoración anterior ----------
+      // Compara las dos últimas valoraciones que tienen valor en esa métrica.
+      // Mejora = sube en escalas de función, baja en dolor y analgésicos.
+      function deltaHtml(historial, campo) {
+        var v = [];
+        for (var i = historial.length - 1; i >= 0 && v.length < 2; i--) {
+          if (historial[i][campo] !== null && historial[i][campo] !== undefined) v.push(historial[i][campo]);
+        }
+        if (v.length < 2) return '<span class="vacio">—</span>';
+        var d = Math.round((v[0] - v[1]) * 10) / 10;
+        var mejora = TIPO_METRICA[campo] === 'funcion' ? d > 0 : d < 0;
+        var cls = d === 0 ? 'igual' : (mejora ? 'mejora' : 'empeora');
+        var ico = d === 0 ? 'remove' : (d > 0 ? 'arrow_upward' : 'arrow_downward');
+        return '<span class="delta ' + cls + '" title="Respecto a la valoración anterior"><span class="material-symbols-outlined">' + ico + '</span>' + (d > 0 ? '+' : '') + d + '</span>';
+      }
+
+      // ---------- Tabla principal ----------
+      function thCol(campo, texto, clase) {
+        var dir = ordenCampo === campo ? (ordenDir === 1 ? 'orden-asc' : 'orden-desc') : '';
+        return '<th class="ordenable ' + (clase || '') + ' ' + dir + '" data-orden="' + campo + '">' + texto + '<span class="material-symbols-outlined">arrow_upward</span></th>';
+      }
+      function claveOrden(p) {
+        if (ordenCampo === 'nombre') return normalizar(p.nombre);
+        if (ordenCampo === 'fecha') return p.ultima.fecha || '';
+        var v = p.ultima[ordenCampo];
+        return (v === null || v === undefined) ? -Infinity : v;
+      }
+      function ordenarFiltrados(lista) {
+        if (!ordenCampo) return lista; // orden del servidor: última valoración más reciente primero
+        return lista.slice().sort(function(a, b) {
+          var x = claveOrden(a), y = claveOrden(b);
+          return (x < y ? -1 : x > y ? 1 : 0) * ordenDir;
+        });
+      }
+
+      function htmlFila(p, termino) {
+        var u = p.ultima, sel = pacienteSeleccionado === p.clave;
+        return '<tr data-nombre="' + esc(p.clave) + '" class="' + (sel ? 'seleccionada' : '') + '">' +
+          '<td class="col-usuario"><div class="celda-u">' + avatarHtml(p.nombre) + '<div class="doble"><div class="u-nombre">' + resalta(p.nombre, termino) + '</div><div class="u-sub">' +
+            (p.dni ? esc(p.dni) + ' · ' : '') + (p.telefono ? esc(formatearTel(p.telefono)) : 'Sin teléfono') + ' · ' + p.numValoraciones + (p.numValoraciones === 1 ? ' valoración' : ' valoraciones') + '</div></div></div></td>' +
+          '<td><div class="doble"><div class="f-fecha">' + formatearFechaCorta(u.fecha) + '</div><div class="c-sub">' + chipTipo(u.tipo) + '</div></div></td>' +
+          COLS.map(function(c) { return '<td' + (c.sec ? ' class="sec"' : '') + '>' + renderPill(u[c.k], c.k) + '</td>'; }).join('') +
+          '<td>' + deltaHtml(p.historial, 'funcionGlobal') + '</td>' +
+          '<td class="notas sec' + (u.notas ? '' : ' vacio') + '" title="' + esc(u.notas || '') + '">' + (u.notas ? esc(u.notas) : '—') + '</td>' +
+          '</tr>';
+      }
+
+      function render() {
+        var termino = document.getElementById('inputBusqueda').value.trim();
+        var terminoNorm = normalizar(termino);
+        var filtrados = PACIENTES.filter(function(p) { return !terminoNorm || normalizar(p.nombre).indexOf(terminoNorm) !== -1; });
+        filtrados = ordenarFiltrados(filtrados);
+        ultimosFiltrados = filtrados;
+        document.getElementById('contador').textContent = filtrados.length + ' de ' + PACIENTES.length;
+
+        var cont = document.getElementById('tablaWrap'), scroll = cont.scrollTop;
+        if (PACIENTES.length === 0) {
+          cont.innerHTML = '<div class="estado-vacio"><span class="material-symbols-outlined grande">monitoring</span>Todavía no hay valoraciones registradas.</div>';
+          return;
+        }
+        if (filtrados.length === 0) {
+          cont.innerHTML = '<div class="estado-vacio"><span class="material-symbols-outlined grande">search_off</span>No se encontró ningún usuario con ese criterio.</div>';
+          return;
+        }
+        cont.innerHTML = '<table><thead><tr>' +
+          thCol('nombre', 'Usuario', 'col-usuario') + thCol('fecha', 'Última valoración') +
+          COLS.map(function(c) { return thCol(c.k, c.etq, c.sec ? 'sec' : ''); }).join('') +
+          '<th title="Variación de Función Global respecto a la valoración anterior">Evolución</th><th class="sec">Notas</th></tr></thead><tbody>' +
+          filtrados.map(function(p) { return htmlFila(p, termino); }).join('') + '</tbody></table>';
+        cont.scrollTop = scroll;
+        marcarFilaActiva();
+      }
+
+      document.getElementById('tablaWrap').addEventListener('click', function(e) {
+        var th = e.target.closest('th.ordenable');
+        if (th) {
+          // Ciclo: dirección inicial → inversa → sin orden (vuelve al orden del servidor).
+          var campo = th.dataset.orden, inicial = campo === 'nombre' ? 1 : -1;
+          if (ordenCampo !== campo) { ordenCampo = campo; ordenDir = inicial; }
+          else if (ordenDir === inicial) ordenDir = -inicial;
+          else { ordenCampo = null; ordenDir = 1; }
+          render();
+          return;
+        }
+        var tr = e.target.closest('tbody tr[data-nombre]');
+        if (!tr) return;
+        var nombre = tr.getAttribute('data-nombre');
+        if (pacienteSeleccionado === nombre) cerrarDetalle(); else mostrarDetalle(nombre);
+      });
+
+      // ---------- Navegación con teclado ----------
+      function marcarFilaActiva() {
+        document.querySelectorAll('tbody tr').forEach(function(tr) { tr.classList.toggle('fila-activa', tr.getAttribute('data-nombre') === filaActiva); });
+      }
+      function moverFilaActiva(delta) {
+        if (!ultimosFiltrados.length) return;
+        var idx = -1;
+        ultimosFiltrados.forEach(function(p, i) { if (p.clave === filaActiva) idx = i; });
+        idx = Math.min(ultimosFiltrados.length - 1, Math.max(0, idx + delta));
+        filaActiva = ultimosFiltrados[idx].clave;
+        marcarFilaActiva();
+        var el = document.querySelector('tbody tr.fila-activa');
+        if (el) el.scrollIntoView({ block: 'nearest' });
+      }
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+          if (document.getElementById('modalEditarOverlay').classList.contains('visible')) { cerrarModalEditar(); return; }
+          if (document.querySelector('.modal-overlay.visible')) return;
+          // Con el formulario abierto, Esc lo cierra (pidiendo confirmación si hay cambios) y vuelve a la ficha
+          if (formularioActivo) { volverDeFormulario(); return; }
+          if (pacienteSeleccionado) cerrarDetalle();
+          else limpiarBusqueda();   // nada más que cerrar: Esc vacía la búsqueda
+          return;
+        }
+        var enCampo = /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName);
+        if (e.key === '/' && !enCampo) { e.preventDefault(); document.getElementById('inputBusqueda').focus(); return; }
+        if (enCampo || document.querySelector('.modal-overlay.visible')) return;
+        if (formularioActivo) return;   // el foco está en el formulario: las flechas y Enter no mueven la tabla
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); moverFilaActiva(e.key === 'ArrowDown' ? 1 : -1); }
+        else if (e.key === 'Enter' && filaActiva) { if (pacienteSeleccionado === filaActiva) cerrarDetalle(); else mostrarDetalle(filaActiva); }
+      });
+
+      // ---------- Ficha lateral (evolución + historial) ----------
+      function pacienteActual() {
+        return PACIENTES.find(function(x) { return x.clave === pacienteSeleccionado; }) || null;
+      }
+      // Antes de cualquier acción que destruiría el formulario abierto (otro usuario, cerrar la ficha…): si hay
+      // cambios sin guardar pregunta; si se acepta, el formulario queda descartado.
+      function hayCambiosSinGuardar() {
+        return !!(formularioActivo && controladorForm && controladorForm.haCambiado && controladorForm.haCambiado());
+      }
+      async function descartarFormularioSiProcede() {
+        if (!hayCambiosSinGuardar()) return true;
+        if (!(await mostrarConfirm('Hay cambios sin guardar en el formulario. ¿Quieres descartarlos?'))) return false;
+        formularioActivo = false; controladorForm = null;
+        return true;
+      }
+      async function mostrarDetalle(nombre) {
+        if (!(await descartarFormularioSiProcede())) return;
+        if (formularioActivo) { formularioActivo = false; controladorForm = null; }
+        if (!PACIENTES.some(function(x) { return x.clave === nombre; })) { cerrarDetalle(); return; }   // `nombre` aquí es la clave
+        pacienteSeleccionado = nombre;
+        filaActiva = nombre;
+        renderFicha();
+        document.querySelectorAll('#tablaWrap tbody tr').forEach(function(tr) { tr.classList.toggle('seleccionada', tr.getAttribute('data-nombre') === nombre); });
+        marcarFilaActiva();
+      }
+      async function cerrarDetalle() {
+        if (!(await descartarFormularioSiProcede())) return;
+        formularioActivo = false; controladorForm = null;
+        pacienteSeleccionado = null;
+        renderFicha();
+        document.querySelectorAll('#tablaWrap tbody tr').forEach(function(tr) { tr.classList.remove('seleccionada'); });
+      }
+
+      function renderFicha() {
+        if (formularioActivo) return;   // el formulario ocupa la ficha: se queda como está hasta que se cierre
+        var el = document.getElementById('ficha'), p = pacienteSeleccionado ? pacienteActual() : null;
+        if (pacienteSeleccionado && !p) pacienteSeleccionado = null; // ya no tiene valoraciones (p.ej. se borró la última)
+        document.body.classList.toggle('con-ficha', !!p);
+        el.classList.toggle('abierta', !!p);
+        el.setAttribute('aria-hidden', p ? 'false' : 'true');
+        if (!p) return;
+        var cuerpo = el.querySelector('.ficha-cuerpo'), scroll = cuerpo ? cuerpo.scrollTop : 0;
+        el.innerHTML = htmlFicha(p);
+        cuerpo = el.querySelector('.ficha-cuerpo');
+        if (cuerpo) cuerpo.scrollTop = scroll;
+        document.querySelectorAll('#tablaWrap tbody tr').forEach(function(tr) { tr.classList.toggle('seleccionada', tr.getAttribute('data-nombre') === p.clave); });
+      }
+
+      function htmlFicha(p) {
+        var u = p.ultima, h = p.historial;
+        var kpi = function(campo, etq) { return '<div class="kpi"><div class="kpi-etq">' + etq + '</div><div class="kpi-val">' + renderPill(u[campo], campo) + deltaHtml(h, campo) + '</div></div>'; };
+        var chips = METRICAS.map(function(m) { return '<button type="button" class="chip-met' + (m.k === metricaActual ? ' activo' : '') + '" title="Ver la evolución de ' + m.etq.toLowerCase() + '" data-metrica="' + m.k + '">' + m.etq + '</button>'; }).join('');
+        return '<div class="ficha-cab">' + avatarHtml(p.nombre, 'grande') + '<div class="ficha-tit"><div class="ficha-nombre">' + esc(p.nombre) + '</div><div class="ficha-sub">' +
+            (p.dni ? esc(p.dni) + ' · ' : '') + (p.telefono ? esc(formatearTel(p.telefono)) : 'Sin teléfono') + ' · ' + p.numValoraciones + (p.numValoraciones === 1 ? ' valoración' : ' valoraciones') + '</div></div>' +
+            '<button type="button" class="ficha-cerrar" data-ficha="cerrar" title="Cerrar (Esc)"><span class="material-symbols-outlined">close</span></button></div>' +
+          '<div class="kpis">' + kpi('funcionGlobal', 'Función Global') + kpi('pegDolor', 'PEG Dolor') + '</div>' +
+          '<div class="ficha-acciones"><button title="Nueva valoración de este usuario" type="button" class="ficha-acc primario" data-acc="nueva"><span class="material-symbols-outlined">assignment</span>Nueva valoración</button>' +
+            (p.telefono ? '<button title="Copiar el teléfono" type="button" class="ficha-acc" data-acc="copiar-tel"><span class="material-symbols-outlined">content_copy</span>Copiar teléfono</button>' : '') + '</div>' +
+          '<div class="ficha-cuerpo">' +
+            '<section class="f-sec"><h3>Evolución</h3><div class="chips-met">' + chips + '</div>' + htmlGrafica(h) + '</section>' +
+            '<section class="f-sec"><h3>Historial</h3>' + h.slice().reverse().map(htmlHistorial).join('') + '</section>' +
+          '</div>';
+      }
+
+      function htmlHistorial(r) {
+        return '<article class="hist"><div class="hist-cab"><span class="f-fecha">' + formatearFechaCorta(r.fecha) + '</span>' + chipTipo(r.tipo) + '<span class="espaciador"></span>' +
+          '<button type="button" class="btn-fila" data-fila="' + r._fila + '" data-accion="editar" title="Editar valoración"><span class="material-symbols-outlined">edit</span></button>' +
+          '<button type="button" class="btn-fila peligro" data-fila="' + r._fila + '" data-accion="eliminar" title="Eliminar valoración"><span class="material-symbols-outlined">delete</span></button></div>' +
+          '<div class="hist-vals">' + ORDEN_MINI.map(function(k) { return '<div class="mv"><span class="mv-etq">' + ETQ_CORTA[k] + '</span>' + renderPill(r[k], k) + '</div>'; }).join('') + '</div>' +
+          (r.notas ? '<div class="hist-notas">' + esc(r.notas) + '</div>' : '') + '</article>';
+      }
+
+      // ---------- Gráfica de evolución (SVG, sin librerías externas) ----------
+      function htmlGrafica(historial) {
+        // Proporción fija: el CSS (width:100% + height:auto) la escala sin distorsión.
+        var W = 480, H = 210, padL = 26, padR = 18, padT = 22, padB = 26, n = historial.length;
+        var puntos = [];
+        historial.forEach(function(h, i) {
+          var v = h[metricaActual];
+          if (v !== null && v !== undefined) puntos.push({ i: i, v: v, fecha: h.fecha, tipo: h.tipo });
+        });
+        if (puntos.length === 0) return '<p class="sin-datos-grafica">Sin datos suficientes para graficar esta métrica.</p>';
+
+        var x = function(i) { return n <= 1 ? (padL + (W - padL - padR) / 2) : padL + (i / (n - 1)) * (W - padL - padR); };
+        var max = ESCALA_MAX[metricaActual] || 10;
+        var y = function(v) { return padT + (1 - v / max) * (H - padT - padB); };
+        var linea = puntos.map(function(p, k) { return (k === 0 ? 'M' : 'L') + x(p.i).toFixed(1) + ',' + y(p.v).toFixed(1); }).join(' ');
+        var area = puntos.length > 1 ? linea + ' L' + x(puntos[puntos.length - 1].i).toFixed(1) + ',' + y(0).toFixed(1) + ' L' + x(puntos[0].i).toFixed(1) + ',' + y(0).toFixed(1) + ' Z' : '';
+        var guias = (max === 5 ? [0, 1, 2, 3, 4, 5] : [0, 5, 10]).map(function(v) {
+          var yy = y(v).toFixed(1);
+          return '<line x1="' + padL + '" x2="' + (W - padR) + '" y1="' + yy + '" y2="' + yy + '" class="guia-grafica" /><text x="2" y="' + (parseFloat(yy) + 4) + '" class="etiqueta-grafica">' + v + '</text>';
+        }).join('');
+        var circulos = puntos.map(function(p) {
+          return '<circle cx="' + x(p.i).toFixed(1) + '" cy="' + y(p.v).toFixed(1) + '" r="5" class="punto-grafica ' + claseSeveridad(p.v, metricaActual) + '"><title>' +
+            formatearFechaCorta(p.fecha) + ' (' + esc(p.tipo) + '): ' + p.v + '</title></circle>';
+        }).join('');
+        var valores = puntos.length <= 8 ? puntos.map(function(p) {
+          return '<text x="' + x(p.i).toFixed(1) + '" y="' + (y(p.v) - 10).toFixed(1) + '" text-anchor="middle" class="valor-grafica">' + p.v + '</text>';
+        }).join('') : '';
+        var fechas = historial.map(function(h, i) {
+          if (n > 6 && i !== 0 && i !== n - 1) return '';
+          var ancla = n === 1 ? 'middle' : (i === 0 ? 'start' : (i === n - 1 ? 'end' : 'middle'));
+          var xx = i === 0 && n > 1 ? padL : (i === n - 1 && n > 1 ? W - padR : x(i));
+          return '<text x="' + xx.toFixed(1) + '" y="' + (H - 6) + '" text-anchor="' + ancla + '" class="etiqueta-grafica">' + formatearFechaCorta(h.fecha) + '</text>';
+        }).join('');
+        return '<svg viewBox="0 0 ' + W + ' ' + H + '" class="grafica-evolucion">' + guias + (area ? '<path d="' + area + '" class="area-grafica" />' : '') +
+          '<path d="' + linea + '" class="linea-grafica" fill="none" />' + circulos + valores + fechas + '</svg>';
+      }
+
+      document.getElementById('ficha').addEventListener('click', function(e) {
+        var t = e.target, c;
+        if (t.closest('[data-ficha="cerrar"]')) { cerrarDetalle(); return; }
+        if ((c = t.closest('[data-metrica]'))) { metricaActual = c.dataset.metrica; renderFicha(); return; }
+        if ((c = t.closest('[data-acc]'))) {
+          if (c.dataset.acc === 'nueva') document.getElementById('btnNuevaValoracion').click();
+          else if (c.dataset.acc === 'copiar-tel') { var p = pacienteActual(); if (p) copiarTexto(Telefono.digitos(p.telefono), 'Teléfono'); }
+          return;
+        }
+        if ((c = t.closest('[data-accion]'))) {
+          var p2 = pacienteActual();
+          if (!p2) return;
+          var fila = parseInt(c.dataset.fila, 10);
+          var registro = p2.historial.find(function(h) { return h._fila === fila; });
+          if (!registro) return;
+          if (c.dataset.accion === 'editar') abrirModalEditar(registro); else eliminarValoracion(registro);
+        }
+      });
+
+      // ---------- Copiar al portapapeles ----------
+      function copiarTexto(txt, etiqueta) {
+        var ok = false;
+        try {
+          var ta = document.createElement('textarea');
+          ta.value = txt; ta.style.cssText = 'position:fixed;opacity:0;top:0;left:0';
+          document.body.appendChild(ta); ta.select(); ok = document.execCommand('copy'); ta.remove();
+        } catch (err) { ok = false; }
+        if (!ok && navigator.clipboard) { navigator.clipboard.writeText(txt); ok = true; }
+        mostrarAviso(ok ? (etiqueta || 'Texto') + ' copiado.' : 'No se pudo copiar.');
+      }
+
+      // ---------- Editar valoración ----------
+      function valorInputONulo_(id) {
+        var v = document.getElementById(id).value;
+        return v === '' ? null : Number(v);
+      }
+      function abrirModalEditar(registro) {
+        filaEnEdicion = registro._fila;
+        var pEd = pacienteActual();
+        idEnEdicion = registro.idPaciente || (pEd ? pEd.idPaciente : '');
+        fechaEnEdicion = registro.fecha || '';
+        document.getElementById('editFecha').value = registro.fecha || '';
+        document.getElementById('editTipo').value = registro.tipo || 'Inicial';
+        document.getElementById('editTelefono').value = Telefono.formato(registro.telefono || '');
+        document.getElementById('editAnalgesicos').value = registro.analgesicos === null ? '' : registro.analgesicos;
+        document.getElementById('editPegDolor').value = registro.pegDolor === null ? '' : registro.pegDolor;
+        document.getElementById('editPegActividad').value = registro.pegActividad === null ? '' : registro.pegActividad;
+        document.getElementById('editPegVida').value = registro.pegVida === null ? '' : registro.pegVida;
+        document.getElementById('editFuncionGlobal').value = registro.funcionGlobal === null ? '' : registro.funcionGlobal;
+        document.getElementById('editMediaColumna').value = registro.mediaColumna === null ? '' : registro.mediaColumna;
+        document.getElementById('editMediaMS').value = registro.mediaMS === null ? '' : registro.mediaMS;
+        document.getElementById('editMediaMI').value = registro.mediaMI === null ? '' : registro.mediaMI;
+        document.getElementById('editNotas').value = registro.notas || '';
+        document.getElementById('modalEditarOverlay').classList.add('visible');
+      }
+      function cerrarModalEditar() {
+        filaEnEdicion = null;
+        idEnEdicion = null;
+        fechaEnEdicion = null;
+        document.getElementById('modalEditarOverlay').classList.remove('visible');
+      }
+      document.getElementById('btnCancelarEdicion').addEventListener('click', cerrarModalEditar);
+
+      document.getElementById('btnGuardarEdicion').addEventListener('click', function() {
+        if (!filaEnEdicion) return;
+        var fecha = document.getElementById('editFecha').value;
+        if (!fecha) { mostrarAviso('La fecha es obligatoria.'); return; }
+
+        var datos = {
+          fila: filaEnEdicion,
+          idPaciente: idEnEdicion,
+          fechaOriginal: fechaEnEdicion,
+          fecha: fecha,
+          tipo: document.getElementById('editTipo').value,
+          telefono: document.getElementById('editTelefono').value,
+          analgesicos: valorInputONulo_('editAnalgesicos'),
+          pegDolor: valorInputONulo_('editPegDolor'),
+          pegActividad: valorInputONulo_('editPegActividad'),
+          pegVida: valorInputONulo_('editPegVida'),
+          funcionGlobal: valorInputONulo_('editFuncionGlobal'),
+          mediaColumna: valorInputONulo_('editMediaColumna'),
+          mediaMS: valorInputONulo_('editMediaMS'),
+          mediaMI: valorInputONulo_('editMediaMI'),
+          notas: document.getElementById('editNotas').value
+        };
+
+        var btn = this;
+        var textoOriginal = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = 'Guardando…';
+        ocupado(1);
+
+        google.script.run
+          .withSuccessHandler(function(res) {
+            ocupado(-1);
+            btn.disabled = false;
+            btn.textContent = textoOriginal;
+            if (!res.success) { mostrarAviso(res.message || 'No se pudo guardar la valoración.'); return; }
+            cerrarModalEditar();
+            mostrarAviso('Valoración actualizada.');
+            cargar();
+          })
+          .withFailureHandler(function(err) {
+            ocupado(-1);
+            btn.disabled = false;
+            btn.textContent = textoOriginal;
+            mostrarAviso('Error al guardar: ' + err);
+          })
+          .actualizarValoracionWeb(datos);
+      });
+
+      // ---------- Eliminar valoración ----------
+      async function eliminarValoracion(registro) {
+        var confirmado = await mostrarConfirm('¿Eliminar esta valoración?');
+        if (!confirmado) return;
+
+        // Foto completa de la valoración ANTES de borrarla, para poder deshacer.
+        var pEl = pacienteActual();
+        var snapshot = Object.assign({ idPaciente: pEl ? pEl.idPaciente : '' }, registro);   // registro.idPaciente (el de esa fila) prevalece
+        ocupado(1);
+
+        google.script.run
+          .withSuccessHandler(function(res) {
+            ocupado(-1);
+            if (!res.success) { mostrarAviso(res.message || 'No se pudo eliminar la valoración.'); return; }
+            cargar();
+            mostrarDeshacer(snapshot, 'Valoración eliminada.');
+          })
+          .withFailureHandler(function(err) { ocupado(-1); mostrarAviso('Error al eliminar: ' + err); })
+          .eliminarValoracionWeb(registro._fila, snapshot.idPaciente, registro.fecha || '');
+      }
+
