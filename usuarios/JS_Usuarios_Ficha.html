@@ -143,7 +143,7 @@
         fijarSeleccion(p);
       }
 
-      // Las acciones reutilizan los botones (ocultos) de la barra, con todos sus flujos ya existentes.
+      // Las acciones llaman a las funciones de usuarios/JS_Usuarios_Acciones (con todos sus flujos).
       async function accionPaciente(acc, fila) {
         var p = TODOS.find(function(x) { return x._fila === fila; });
         if (!p) return;
@@ -166,8 +166,12 @@
         }
         if (!(await descartarFormularioSiProcede())) return;
         fijarSeleccion(p);
-        var btn = document.getElementById(MAPA_ACC[acc]);
-        if (btn) btn.click();
+        if (!pacienteSeleccionado) return;
+        if (acc === 'editar' || acc === 'cita' || acc === 'valoracion') abrirFormularioPanel(acc);
+        else if (acc === 'whatsapp') whatsappSeleccionado();
+        else if (acc === 'alta') darDeAltaSeleccionado();
+        else if (acc === 'crearhc') crearHcSeleccionado();
+        else if (acc === 'eliminar') eliminarUsuarioSeleccionado();
       }
 
       // ---------- Menús flotantes ----------
@@ -356,28 +360,11 @@
         actualizarUiSeleccion();
       }
 
-      var BOTONES_PACIENTE = ['btnEditar','btnEliminarUsuario','btnAlta','btnHistoria','btnWhatsapp','btnCita','btnValoracion']
-        .map(function(id) { return document.getElementById(id); });
-
       function actualizarUiSeleccion() {
-        var info = document.getElementById('seleccionInfo');
-        if (pacienteSeleccionado) {
-          info.style.display = 'flex';
-          document.getElementById('nombreSeleccionado').textContent = pacienteSeleccionado['Nombre'] || '';
-        } else {
-          info.style.display = 'none';
-        }
-        BOTONES_PACIENTE.forEach(function(btn) { btn.disabled = !pacienteSeleccionado; });
         document.querySelectorAll('tbody tr').forEach(function(tr) {
           var fila = parseInt(tr.getAttribute('data-fila'), 10);
           tr.classList.toggle('seleccionada', !!(pacienteSeleccionado && pacienteSeleccionado._fila === fila));
         });
         renderFicha();
       }
-
-      document.getElementById('btnQuitarSeleccion').addEventListener('click', async function(e) {
-        e.stopPropagation();
-        if (!(await descartarFormularioSiProcede())) return;
-        quitarSeleccion();
-      });
 

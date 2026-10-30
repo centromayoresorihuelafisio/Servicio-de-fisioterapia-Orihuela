@@ -17,24 +17,6 @@
          se usa, se elimina otro encima, o se recarga/cambia de pestaña. */
       /* .toast-deshacer: definido en ui/CSS_Global (V3) */
 
-      .seleccion-info {
-        font-size: .78rem;
-        color: var(--md-on-surface-med);
-        margin-left: auto;
-        display: flex;
-        align-items: center;
-        gap: .4rem;
-      }
-      .seleccion-info strong { color: var(--md-primary-dark); }
-      .seleccion-info .btn-quitar {
-        cursor: pointer;
-        color: var(--md-on-surface-low);
-        font-size: 16px;
-        line-height: 1;
-      }
-
-
-
       .tabla-wrap { flex: 1; overflow: auto; }
       table { border-collapse: collapse; width: 100%; min-width: 900px; }
       thead th {
@@ -70,7 +52,6 @@
          Script no se pueden embeber en un iframe (Google lo bloquea). */
       /* (aspecto de la barra de pestanas: ui/CSS_Global) */
       /* ===== Rediseño: filas de dos líneas, ficha lateral, acciones al hover ===== */
-      #btnEditar, #btnEliminarUsuario, #btnAlta, #btnHistoria, #btnWhatsapp, #btnCita, #btnValoracion, #seleccionInfo { display: none !important; }
       .tabla-wrap { scrollbar-width: thin; scrollbar-color: var(--md-outline-strong) transparent; }
       table { min-width: 1100px; }
       tbody td { padding: .55rem .8rem; vertical-align: middle; }

@@ -75,7 +75,7 @@
       });
 
       // ---------- Eliminar usuario ----------
-      document.getElementById('btnEliminarUsuario').addEventListener('click', async function() {
+      async function eliminarUsuarioSeleccionado() {
         if (!pacienteSeleccionado) return;
         var confirmado = await mostrarConfirm('¿Eliminar a ' + pacienteSeleccionado['Nombre'] + '? Se borrará toda su ficha.');
         if (!confirmado) return;
@@ -83,23 +83,18 @@
         // Foto completa de la ficha ANTES de borrarla, para poder deshacer.
         var snapshot = Object.assign({}, pacienteSeleccionado);
 
-        var btn = this;
-        btn.disabled = true;
-
         google.script.run
           .withSuccessHandler(function(res) {
-            btn.disabled = !pacienteSeleccionado;
             if (!res.success) { mostrarAviso(res.message || 'No se pudo eliminar el usuario.'); return; }
             quitarSeleccion();
             cargar();
             mostrarDeshacer(snapshot, 'Usuario eliminado.');
           })
           .withFailureHandler(function(err) {
-            btn.disabled = !pacienteSeleccionado;
             mostrarAviso('Error al eliminar: ' + err);
           })
           .eliminarPacienteWeb(idPaciente(snapshot));
-      });
+      }
 
       function ejecutarDeshacer() {
         if (!ultimaEliminacion || procesandoDeshacer) return;
@@ -144,62 +139,45 @@
       document.getElementById('btnDeshacer').addEventListener('click', ejecutarDeshacer);
 
       // ---------- Dar de alta ----------
-      document.getElementById('btnAlta').addEventListener('click', async function() {
+      async function darDeAltaSeleccionado() {
         if (!pacienteSeleccionado) return;
         var confirmado = await mostrarConfirm('¿Dar de alta a ' + pacienteSeleccionado['Nombre'] + '?');
         if (!confirmado) return;
 
-        var btn = this;
-        var textoOriginal = btn.innerHTML;
-        btn.disabled = true;
-        btn.innerHTML = '<span class="material-symbols-outlined">progress_activity</span> Procesando…';
-
         google.script.run
           .withSuccessHandler(function(res) {
-            btn.innerHTML = textoOriginal;
             mostrarAviso(res.message);
             if (window.HCCache) HCCache.cambioDeUsuario();   // el alta cambia el episodio de la HC
             quitarSeleccion();
             cargar();
           })
           .withFailureHandler(function(err) {
-            btn.disabled = false;
-            btn.innerHTML = textoOriginal;
             mostrarAviso('Error al dar de alta: ' + err);
           })
           .darDeAltaPacienteWeb(idPaciente(pacienteSeleccionado));
-      });
+      }
 
       // ---------- Generar Historia Clínica ----------
-      document.getElementById('btnHistoria').addEventListener('click', function() {
+      function crearHcSeleccionado() {
         if (!pacienteSeleccionado) return;
-
-        var btn = this;
-        var textoOriginal = btn.innerHTML;
-        btn.disabled = true;
-        btn.innerHTML = '<span class="material-symbols-outlined">progress_activity</span> Generando…';
 
         google.script.run
           .withSuccessHandler(function(res) {
-            btn.innerHTML = textoOriginal;
-            btn.disabled = !pacienteSeleccionado;
             mostrarAviso(res.message);
             if (res.success) cargar();
           })
           .withFailureHandler(function(err) {
-            btn.innerHTML = textoOriginal;
-            btn.disabled = !pacienteSeleccionado;
             mostrarAviso('Error al generar la historia clínica: ' + err);
           })
           .generarHistoriaClinicaWeb(idPaciente(pacienteSeleccionado));
-      });
+      }
 
       // ---------- WhatsApp ----------
       // Un solo usuario: ventana con el mensaje predefinido para revisarlo y elegir WhatsApp Web o la app de escritorio.
-      document.getElementById('btnWhatsapp').addEventListener('click', function() {
+      function whatsappSeleccionado() {
         if (!pacienteSeleccionado) return;
         WhatsappDialogo.abrir('datosWhatsappMaestraWeb', [idPaciente(pacienteSeleccionado)], pacienteSeleccionado['Nombre']);
-      });
+      }
       // Al pasar el ratón por el botón de WhatsApp de una fila se piden ya los datos: al hacer clic el diálogo sale con el mensaje listo.
       document.addEventListener('pointerover', function(e) {
         var btn = e.target.closest ? e.target.closest('.btn-whatsapp') : null;
@@ -208,20 +186,7 @@
       });
 
       // ---------- Editar, Cita y Valoración: formularios en el panel lateral ----------
-      document.getElementById('btnEditar').addEventListener('click', function() {
-        if (!pacienteSeleccionado) return;
-        abrirFormularioPanel('editar');
-      });
-
-      document.getElementById('btnCita').addEventListener('click', function() {
-        if (!pacienteSeleccionado) return;
-        abrirFormularioPanel('cita');
-      });
-
-      document.getElementById('btnValoracion').addEventListener('click', function() {
-        if (!pacienteSeleccionado) return;
-        abrirFormularioPanel('valoracion');
-      });
+      // (editar, cita y valoración: accionPaciente llama directamente a abrirFormularioPanel)
 
       var temporizadorBusqueda = null;
       document.getElementById('inputBusqueda').addEventListener('input', function() {
