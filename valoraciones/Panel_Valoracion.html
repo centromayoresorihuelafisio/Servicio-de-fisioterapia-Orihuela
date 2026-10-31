@@ -25,48 +25,14 @@
     /* ── Girador del boton Guardar (md-spin de CSS_Global) ── */
     .pv .spinner { animation: md-spin var(--dur-giro) linear infinite; }
 
-    /* ── Header ── */
-    .pv .page-header {
-      max-width: 860px;
-      margin: 0 auto 1.5rem;
-      display: flex;
-      align-items: center;
-      gap: 1.125rem;
-      padding: .75rem 0;
-      animation: md-entra var(--dur-3) var(--ease) both;
-    }
-    .pv .logo-mark {
-      width: 48px; height: 48px;
-      background: var(--md-primary-container);
-      color: var(--md-primary-dark);
-      border-radius: var(--md-shape-lg);
-      display: grid; place-items: center;
-      flex-shrink: 0;
-    }
-    .pv .logo-mark .ms { font-size: 24px; font-variation-settings: 'FILL' 1; }
-    .pv .header-text h1 {
-      font-size: var(--fs-h); font-weight: 400; color: var(--md-on-surface);
-      line-height: 1.25; letter-spacing: -0.01em;
-    }
-    .pv .header-text p {
-      font-size: var(--fs-md); color: var(--md-on-surface-med); margin-top: .25rem;
-    }
-    .pv .badge-date {
-      margin-left: auto; display: inline-flex; align-items: center; gap: .375rem;
-      font-size: var(--fs-xs); font-weight: 500; color: var(--md-on-surface-med);
-      background: var(--md-surface-variant); border: 1px solid var(--md-outline);
-      padding: .375rem .75rem; border-radius: var(--md-shape-full);
-    }
-
     /* ── Barra de Progreso Sticky ── */
     .pv .progress-wrap {
       position: sticky; top: 0; z-index: var(--z-sticky);
-      background: var(--md-surface); max-width: 860px; margin: 0 auto 1.25rem;
-      padding: 1rem 0; border-bottom: 1px solid var(--md-outline);
+      background: var(--md-surface); border-bottom: 1px solid var(--md-outline);
       animation: md-entra var(--dur-3) var(--ease) both;
     }
     .pv .progress-steps {
-      display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
+      display: flex; align-items: center; margin-bottom: 8px;
     }
     .pv .progress-step {
       display: flex; align-items: center; gap: 6px;
@@ -96,11 +62,9 @@
     /* ── Card Principal M3 ── */
     .pv .card {
       background: var(--md-surface);
-      border-radius: var(--md-shape-lg); box-shadow: var(--md-elev-0);
-      max-width: 860px; margin: 0 auto; overflow: hidden;
-      animation: md-entra var(--dur-3) var(--ease) both;
+      overflow: hidden;
     }
-    .pv .card-section { padding: 2rem 2.25rem; border-bottom: 1px solid var(--md-outline); }
+    .pv .card-section { border-bottom: 1px solid var(--md-outline); }
     .pv .card-section:last-child { border-bottom: none; }
 
     .pv .section-label { display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem; }
@@ -113,8 +77,8 @@
     .pv .section-label-chip .ms { font-size: 16px; color: var(--md-primary); }
     .pv .section-divider { flex: 1; height: 1px; background: var(--md-outline); }
 
-    .pv .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.25rem; }
-    .pv .grid-peg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; }
+    .pv .grid-3 { display: grid; }
+    .pv .grid-peg { display: grid; }
 
     /* ── Autocompletado M3 ── */
     .pv .ms-menu {
@@ -246,7 +210,7 @@
 
     /* ── Submit section M3 ── */
     .pv .submit-section {
-      padding: 2.5rem 2.25rem; background: var(--md-surface);
+      background: var(--md-surface);
       display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.25rem; text-align: center;
     }
     .pv .submit-hint { font-size: var(--fs-xs); color: var(--md-on-surface-med); line-height: 1.5; max-width: 560px; }
@@ -254,8 +218,7 @@
 
     /* ── Message banner M3 ── */
     .pv .msg-banner {
-      display: none; max-width: 860px; margin: 1rem auto 0; padding: 1rem 1.25rem;
-      border-radius: var(--md-shape-sm); font-size: var(--fs-md); font-weight: 500;
+      display: none; font-weight: 500;
       align-items: center; gap: 1rem; animation: md-entra var(--dur-3) var(--ease) both;
     }
     .pv .msg-banner.show { display: flex; }
@@ -265,14 +228,10 @@
     /* ── Responsive ── */
     
       
-      .pv .card { border-radius: var(--md-shape-lg); }
       .pv .card-section { padding: 1.5rem 1.125rem; }
       .pv .grid-3, .pv .grid-peg { grid-template-columns: 1fr; gap: 1.25rem; }
-      .pv .badge-date { display: none; }
       .pv .progress-step span:not(.dot) { display: none; }
       .pv .progress-steps { gap: 4px; }
-      .pv .logo-mark { width: 40px; height: 40px; }
-      .pv .logo-mark .ms { font-size: 20px; }
     
   
 

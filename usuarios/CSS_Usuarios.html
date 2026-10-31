@@ -18,31 +18,28 @@
       /* .toast-deshacer: definido en ui/CSS_Global (V3) */
 
       .tabla-wrap { flex: 1; overflow: auto; }
-      table { border-collapse: collapse; width: 100%; min-width: 900px; }
+      table { border-collapse: collapse; width: 100%; }
       thead th {
         position: sticky; top: 0; background: var(--md-surface-variant); color: var(--md-on-surface-med);
         font-size: var(--fs-2xs); text-transform: uppercase; letter-spacing: .02em; font-weight: 600; text-align: left;
-        padding: .5rem .6rem; border-bottom: 1px solid var(--md-outline); white-space: nowrap; z-index: calc(var(--z-base) + 1);
+        border-bottom: 1px solid var(--md-outline); white-space: nowrap; z-index: calc(var(--z-base) + 1);
       }
       tbody tr { cursor: pointer; background: var(--md-surface); }
       tbody tr:hover { background: var(--md-primary-light); }
       tbody tr.seleccionada { background: var(--md-primary-container) !important; }
 
-      tbody td { padding: .45rem .6rem; border-bottom: 1px solid var(--md-outline); white-space: nowrap; max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
+      tbody td { border-bottom: 1px solid var(--md-outline); white-space: nowrap; max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
       td.nombre { font-weight: 600; }
       td.vacio { color: var(--md-on-surface-low); font-style: italic; }
 
       .badge { font-size: var(--fs-2xs); font-weight: 600; padding: .15rem .55rem; border-radius: var(--md-shape-full); white-space: nowrap; background: var(--md-surface-variant); color: var(--md-on-surface-med); }
       .badge.activo      { background: var(--md-success-bg); color: var(--md-success); }
-      .badge.espera      { background: var(--md-warning-bg); color: var(--md-warning-text); }
-      .badge.contactara  { background: var(--md-error-bg); color: var(--md-error); }
-      .badge.alta        { background: var(--md-purple-bg); color: var(--md-purple); }
+      .badge.espera      { background: var(--md-warning-bg); }
+      .badge.contactara  { background: var(--md-error-bg); }
+      .badge.alta        { background: var(--md-purple-bg); }
       .badge.no-responde { background: var(--md-surface-variant); color: var(--md-on-surface-med); }
 
-      td a.link-hc { color: var(--md-primary); text-decoration: none; font-weight: 500; display: inline-flex; align-items: center; gap: .2rem; }
-      td a.link-hc:hover { text-decoration: underline; }
-
-      .estado-vacio, .estado-carga { text-align: center; color: var(--md-on-surface-med); padding: 3rem 1rem; font-size: var(--fs-md); }
+      .estado-vacio { text-align: center; color: var(--md-on-surface-med); padding: 3rem 1rem; font-size: var(--fs-md); }
 
       /* ---------- Modal propio (sustituye a alert()/confirm() nativos): definido en ui/CSS_Global (V3) ---------- */
 
@@ -68,13 +65,12 @@
       .copiable { cursor: copy; }
       .copiable:hover { text-decoration: underline dotted; }
       .cl-pat { overflow: hidden; text-overflow: ellipsis; }
-      .chip-g { font-size: var(--fs-2xs); font-weight: 600; padding: .1rem .5rem; border-radius: var(--md-shape-full); background: var(--md-surface-variant); color: var(--md-on-surface-med); }
+      .chip-g { font-weight: 600; border-radius: var(--md-shape-full); background: var(--md-surface-variant); color: var(--md-on-surface-med); }
       .chip-g.leve { background: var(--md-success-bg); color: var(--md-success); }
-      .chip-g.moderado { background: var(--md-warning-bg); color: var(--md-warning-text); }
+      .chip-g.moderado { background: var(--md-warning-bg); }
       .chip-g.urgente { background: var(--md-error-bg); color: var(--md-error); }
-      .tipo-ing { font-size: var(--fs-xs); font-weight: 500; color: var(--md-on-surface-med); margin-left: .35rem; }
+      .tipo-ing { font-weight: 500; color: var(--md-on-surface-med); }
       button.badge { border: none; cursor: pointer; font-family: var(--font); display: inline-flex; align-items: center; gap: .1rem; }
-      button.badge .material-symbols-outlined { font-size: 15px; margin-right: -.25rem; opacity: .55; }
       button.badge:hover { background-image: linear-gradient(color-mix(in srgb, currentColor 8%, transparent), color-mix(in srgb, currentColor 8%, transparent)); }
 
       td.acciones-fila { width: 208px; min-width: 208px; max-width: none; overflow: visible; text-align: right; padding-right: .6rem; position: sticky; right: 0; background: inherit; }
@@ -165,10 +161,10 @@
       tbody tr.seleccion-multiple { background: var(--md-primary-light); }
       tbody tr.fila-activa td.col-usuario { box-shadow: inset 3px 0 0 var(--md-on-surface-low); }
 
-      .barra-lote { position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%) translateY(120%); visibility: hidden; transition: transform var(--dur-3) var(--ease), visibility 0s var(--dur-3); z-index: calc(var(--z-popover) + 1);
+      .barra-lote { position: fixed; left: 50%; bottom: 22px; visibility: hidden; z-index: calc(var(--z-popover) + 1);
         display: flex; align-items: center; gap: .6rem; background: var(--md-on-surface); color: var(--md-surface); padding: .6rem .7rem .6rem 1.1rem;
-        border-radius: var(--md-shape-full); box-shadow: var(--md-elev-3); transition: transform var(--dur-3) var(--ease); font-size: var(--fs-sm); }
-      .barra-lote.visible { transform: translateX(-50%) translateY(0); visibility: visible; transition: transform var(--dur-3) var(--ease); }
+        border-radius: var(--md-shape-full); box-shadow: var(--md-elev-3); font-size: var(--fs-sm); }
+      .barra-lote.visible { visibility: visible; transition: transform var(--dur-3) var(--ease); }
       .barra-lote .bl-n { font-weight: 700; }
       .barra-lote button { border: none; background: color-mix(in srgb, currentColor 14%, transparent); color: inherit; border-radius: var(--md-shape-full); padding: .45rem .9rem; font-family: var(--font); font-size: var(--fs-sm); font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: .35rem; }
       .barra-lote button:hover { background: color-mix(in srgb, currentColor 24%, transparent); }
