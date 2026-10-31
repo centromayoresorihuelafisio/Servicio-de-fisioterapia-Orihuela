@@ -65,8 +65,6 @@
       .estado-vacio { display: flex; flex-direction: column; align-items: center; gap: .6rem; text-align: center; color: var(--md-on-surface-med); padding: 3rem 1rem; font-size: var(--fs-md); }
       .estado-vacio .material-symbols-outlined.grande { font-size: 40px; color: var(--md-on-surface-low); }
       .skeleton-fila { display: flex; align-items: center; gap: .7rem; padding: .7rem 1.2rem; border-bottom: 1px solid var(--md-outline); }
-      .sk { background: linear-gradient(90deg, var(--md-surface-variant) 25%, var(--md-outline) 50%, var(--md-surface-variant) 75%); background-size: 200% 100%; animation: sk-anim 1.3s infinite; border-radius: var(--md-shape-sm); }
-      @keyframes sk-anim { from { background-position: 200% 0; } to { background-position: -200% 0; } }
 
       /* ===== Ficha lateral: evolución + historial ===== */
       .ficha { position: fixed; top: 0; right: 0; bottom: 0; width: 520px; max-width: 100%; z-index: var(--z-panel); display: flex; flex-direction: column; background: var(--md-surface); border-left: 1px solid var(--md-outline); box-shadow: var(--md-elev-3); transform: translateX(100%); visibility: hidden; transition: transform var(--dur-3) var(--ease), visibility 0s var(--dur-3); will-change: transform; }
@@ -134,9 +132,6 @@
 
       /* ===== Avisos, modales, progreso ===== */
       /* .toast-deshacer, .toasts y .toast-aviso: definidos en ui/CSS_Global (V3) */
-      .barra-progreso { position: fixed; top: 0; left: 0; right: 0; height: 3px; z-index: var(--z-max); opacity: 0; pointer-events: none; transition: opacity var(--dur-2) var(--ease); background: linear-gradient(90deg, transparent, var(--md-primary), transparent); background-size: 40% 100%; background-repeat: no-repeat; }
-      body.ocupado .barra-progreso { opacity: 1; animation: barrido 1s linear infinite; }
-      @keyframes barrido { from { background-position: -40% 0; } to { background-position: 140% 0; } }
 
       /* .modal-overlay, .modal-box, .modal-mensaje, .modal-botones: definidos en ui/CSS_Global (V3); aqui solo lo propio del cuadro ancho de edicion */
       .modal-box.modal-box-ancho { max-width: 520px; max-height: 90vh; overflow: auto; }

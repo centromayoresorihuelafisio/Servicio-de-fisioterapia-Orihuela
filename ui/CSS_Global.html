@@ -117,12 +117,19 @@
         --md-elev-1: 0 1px 2px rgba(60,64,67,.30), 0 1px 3px 1px rgba(60,64,67,.15);
         --md-elev-2: 0 1px 2px rgba(60,64,67,.30), 0 2px 6px 2px rgba(60,64,67,.15);
         --md-elev-3: 0 4px 8px 3px rgba(60,64,67,.15), 0 1px 3px rgba(60,64,67,.30);
+        --md-elev-lateral: 8px 0 10px -8px var(--md-scrim);   /* solo hacia la derecha: columna fija de una tabla desplazada */
 
         /* --- Movimiento --- */
         --dur-1: 100ms;
         --dur-2: 180ms;
         --dur-3: 280ms;
         --dur-4: 450ms;
+        --dur-destello: 1200ms;   /* senalar una fila que acaba de cambiar: tiene que dar tiempo a verlo */
+        /* Ritmos de lo que se repite sin parar (una vuelta) */
+        --dur-giro:    .8s;
+        --dur-brillo:  1.6s;
+        --dur-barrido: 1s;
+        --dur-latido:  1s;
         --ease:     cubic-bezier(.2, 0, 0, 1);
         --ease-out: cubic-bezier(.4, 0, 1, 1);
 
@@ -139,6 +146,8 @@
       @keyframes md-spin   { to { transform: rotate(360deg); } }
       @keyframes md-entra  { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
       @keyframes md-brillo { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+      @keyframes md-barrido { from { background-position: -40% 0; } to { background-position: 140% 0; } }
+      @keyframes md-latido { 50% { opacity: .35; } }
 
       /* --- Girador de carga (sustituira a pc-spin, pe-spin, nu-spin, pv-spin y spin) --- */
       .md-girador {
@@ -146,7 +155,7 @@
         width: 20px; height: 20px; border-radius: 50%;
         border: 2px solid color-mix(in srgb, var(--md-primary) 25%, transparent);
         border-top-color: var(--md-primary);
-        animation: md-spin .8s linear infinite;
+        animation: md-spin var(--dur-giro) linear infinite;
       }
 
       /* --- Icono de los formularios (<span class="ms">nombre</span>): una sola definicion. Dentro de un boton toma su color. --- */
@@ -186,7 +195,7 @@
       .md-btn[aria-busy="true"]::before {
         content: ""; flex: none; box-sizing: border-box; width: 16px; height: 16px; border-radius: 50%;
         border: 2px solid color-mix(in srgb, currentColor 25%, transparent); border-top-color: currentColor;
-        animation: md-spin .8s linear infinite;
+        animation: md-spin var(--dur-giro) linear infinite;
       }
       .md-btn--tonal   { background: var(--md-primary-container); color: var(--md-primary-dark); }   /* la accion principal: maximo uno por formulario */
       .md-btn--outline { border-color: var(--md-outline-strong); color: var(--md-primary); }
@@ -277,12 +286,20 @@
       }
       .md-chip--sel::before, .md-chip[aria-pressed="true"]::before { content: "\2713"; font-weight: 600; }
 
-      /* --- Esqueleto de carga (se generaliza el de Estadisticas) --- */
+      /* --- Esqueleto de carga: UNICO para toda la app. Alto y ancho los pone cada sitio (1em si no pone nada) --- */
       .md-esqueleto {
-        display: block; min-height: 1em; border-radius: var(--md-shape-sm);
+        display: block; height: 1em; border-radius: var(--md-shape-sm);
         background: linear-gradient(90deg, var(--md-surface-variant) 25%, color-mix(in srgb, var(--md-surface-variant) 55%, var(--md-surface)) 50%, var(--md-surface-variant) 75%);
-        background-size: 200% 100%; animation: md-brillo 1.6s linear infinite;
+        background-size: 200% 100%; animation: md-brillo var(--dur-brillo) linear infinite;
       }
+
+      /* --- Barra fina de actividad arriba de la pagina: se ve mientras body lleve .ocupado --- */
+      .barra-progreso {
+        position: fixed; top: 0; left: 0; right: 0; height: 3px; z-index: var(--z-max);
+        opacity: 0; pointer-events: none; transition: opacity var(--dur-2) var(--ease);
+        background: linear-gradient(90deg, transparent, var(--md-primary), transparent); background-size: 40% 100%; background-repeat: no-repeat;
+      }
+      body.ocupado .barra-progreso { opacity: 1; animation: md-barrido var(--dur-barrido) linear infinite; }
 
       /* --- Avisos y dialogos (V3): UNICA definicion para Usuarios, Agenda y Valoraciones. Seccion 9.5 del sistema. --- */
       :root {
@@ -389,7 +406,6 @@
       /* --- Reducir movimiento (V2): una sola llave. Las cuatro duraciones pasan a casi 0 y todo lo que
              usa --dur-* lo respeta. El girador sigue girando (es informacion), mas despacio. --- */
       @media (prefers-reduced-motion: reduce) {
-        :root { --dur-1: .01ms; --dur-2: .01ms; --dur-3: .01ms; --dur-4: .01ms; }
-        .md-girador, .md-btn[aria-busy="true"]::before { animation-duration: 1.6s; }
+        :root { --dur-1: .01ms; --dur-2: .01ms; --dur-3: .01ms; --dur-4: .01ms; --dur-giro: 1.6s; }
         .md-esqueleto { animation: none; }
       }

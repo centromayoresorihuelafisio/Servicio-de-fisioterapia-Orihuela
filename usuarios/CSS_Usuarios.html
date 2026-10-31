@@ -43,7 +43,6 @@
       td a.link-hc:hover { text-decoration: underline; }
 
       .estado-vacio, .estado-carga { text-align: center; color: var(--md-on-surface-med); padding: 3rem 1rem; font-size: var(--fs-md); }
-      .estado-carga .material-symbols-outlined { font-size: 28px; animation: md-spin 1s linear infinite; display: block; margin: 0 auto .5rem; color: var(--md-primary); }
 
       /* ---------- Modal propio (sustituye a alert()/confirm() nativos): definido en ui/CSS_Global (V3) ---------- */
 
@@ -99,7 +98,7 @@
       @media (max-width: 760px) {
         td.acciones-fila .acc-pill { position: static; transform: none; opacity: 1; pointer-events: auto; box-shadow: none; border: none; background: transparent; padding: 0; }
       }
-      .girando { animation: md-spin 1s linear infinite; display: inline-block; }
+      .girando { animation: md-spin var(--dur-giro) linear infinite; display: inline-block; }
       .btn-fila.con-hc { color: var(--md-primary); }
       .btn-fila.sin-hc .material-symbols-outlined { opacity: .4; }
       @media (hover: none) { .btn-fila { opacity: 1; } }
@@ -142,10 +141,6 @@
       }
 
       /* .toasts y .toast-aviso: definidos en ui/CSS_Global (V3) */
-      .barra-progreso { position: fixed; top: 0; left: 0; right: 0; height: 3px; z-index: var(--z-max); opacity: 0; pointer-events: none; transition: opacity var(--dur-2) var(--ease);
-        background: linear-gradient(90deg, transparent, var(--md-primary), transparent); background-size: 40% 100%; background-repeat: no-repeat; }
-      body.ocupado .barra-progreso { opacity: 1; animation: barrido 1s linear infinite; }
-      @keyframes barrido { from { background-position: -40% 0; } to { background-position: 140% 0; } }
       /* Tema claro / oscuro: los tokens --md-* se definen una sola vez en ui/CSS_Global (con light-dark()) */
       /* ===== Orden, filtros rápidos, selección múltiple, tarjetas móvil, esqueleto ===== */
 
@@ -181,10 +176,8 @@
       .barra-lote .bl-cerrar { background: none; padding: .4rem; }
 
       .skeleton-fila { display: flex; align-items: center; gap: .7rem; padding: .7rem 1.2rem; border-bottom: 1px solid var(--md-outline); }
-      .sk { background: linear-gradient(90deg, var(--md-surface-variant) 25%, var(--md-outline) 50%, var(--md-surface-variant) 75%); background-size: 200% 100%; animation: sk-anim 1.3s infinite; border-radius: var(--md-shape-sm); }
-      @keyframes sk-anim { from { background-position: 200% 0; } to { background-position: -200% 0; } }
       .sk-avatar { width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0; }
-      .sk-linea { height: 11px; border-radius: var(--md-shape-sm); }
+      .sk-linea { height: 11px; }
 
       .estado-vacio { display: flex; flex-direction: column; align-items: center; gap: .6rem; }
       .estado-vacio .material-symbols-outlined.grande { font-size: 40px; color: var(--md-on-surface-low); }

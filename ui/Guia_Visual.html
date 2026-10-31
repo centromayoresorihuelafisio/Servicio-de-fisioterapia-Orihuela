@@ -8,7 +8,7 @@
 <!--
   ui/Guia_Visual.html
   Banco de pruebas visual (decisión D-V7, fase V7): muestra en una sola página todos los componentes del sistema de diseño
-  (colores, letra, botones, campos, chips, avisos, cuadro de diálogo, tarjetas, sombras, carga) tal como los define ui/CSS_Global.
+  (colores, letra, botones, campos, chips, avisos, cuadro de diálogo, tarjetas, sombras, carga, ritmos) tal como los define ui/CSS_Global.
   Sirve para revisar de un vistazo, en claro y en oscuro, que todo sigue igual tras cualquier cambio de estilo.
   Se abre con ?page=guiaVisual (core/WebApp.gs); no tiene pestaña. No lee ni escribe datos.
   El conmutador de tema de arriba solo afecta a esta página: lee el tema guardado ('temaApp') al abrir, pero no lo cambia.
@@ -212,6 +212,18 @@
   </section>
 
   <section class="gv-sec">
+    <h2>Ritmos y movimiento</h2>
+    <p>Transiciones --dur-1 a --dur-4 con --ease; señalar una fila que cambia, --dur-destello; lo que se repite sin parar, --dur-giro, --dur-brillo, --dur-barrido y --dur-latido.</p>
+    <div class="gv-fila">
+      <span class="md-girador" role="status" aria-label="Cargando"></span> <span class="gv-etq">--dur-giro</span>
+      <span class="md-esqueleto" style="width:90px"></span> <span class="gv-etq">--dur-brillo</span>
+      <span class="ms" style="animation:md-latido var(--dur-latido) ease-in-out infinite">save</span> <span class="gv-etq">--dur-latido</span>
+      <button type="button" class="md-btn md-btn--outline" onclick="document.body.classList.toggle('ocupado')">Probar barra de actividad</button> <span class="gv-etq">--dur-barrido</span>
+    </div>
+    <div class="barra-progreso"></div>
+  </section>
+
+  <section class="gv-sec">
     <h2>Avisos y cuadro de diálogo</h2>
     <p>Aviso emergente de cada tono y cuadro de confirmación, tal como salen en las páginas (aquí sin moverse de su sitio).</p>
     <div class="gv-rejilla">
@@ -233,7 +245,7 @@ Se podrá deshacer durante unos segundos.</p>
 
   <section class="gv-sec">
     <h2>Esquinas y sombras</h2>
-    <p>Esquinas --md-shape-* y los cuatro niveles de sombra (en oscuro apenas se ven: manda el borde).</p>
+    <p>Esquinas --md-shape-*, los cuatro niveles de sombra (en oscuro apenas se ven: manda el borde) y la sombra lateral de una columna fija.</p>
     <div class="gv-rejilla">
       <div class="gv-caja" style="border-radius:var(--md-shape-xs)">4 · <span class="gv-etq">--md-shape-xs</span></div>
       <div class="gv-caja" style="border-radius:var(--md-shape-sm)">8 · <span class="gv-etq">--md-shape-sm</span></div>
@@ -243,6 +255,7 @@ Se podrá deshacer durante unos segundos.</p>
       <div class="gv-caja" style="box-shadow:var(--md-elev-1)">Sombra 1 · <span class="gv-etq">--md-elev-1</span></div>
       <div class="gv-caja" style="box-shadow:var(--md-elev-2)">Sombra 2 · <span class="gv-etq">--md-elev-2</span></div>
       <div class="gv-caja" style="box-shadow:var(--md-elev-3)">Sombra 3 · <span class="gv-etq">--md-elev-3</span></div>
+      <div class="gv-caja" style="box-shadow:var(--md-elev-lateral)">Lateral · <span class="gv-etq">--md-elev-lateral</span></div>
     </div>
   </section>
 

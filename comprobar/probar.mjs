@@ -30,6 +30,8 @@ const CASOS = [
   { nombre: 'Color suelto', archivo: 'agenda/CSS_Agenda.html', cambio: alFinal('.prueba-hex { color: #123456; }'), titulo: 'hexadecimales', busca: '#123456' },
   { nombre: 'Color suelto en impresión sigue permitido', archivo: 'agenda/CSS_Agenda.html', cambio: alFinal('@media print { .prueba-hex { color: #123456; } }'), titulo: 'hexadecimales', busca: '#123456', noDebe: true },
   { nombre: 'Girador propio', archivo: 'agenda/CSS_Agenda.html', cambio: alFinal('@keyframes gira { to { transform: rotate(360deg); } }'), titulo: 'girador', busca: 'gira' },
+  { nombre: 'Ritmo de girador escrito a mano', archivo: 'agenda/CSS_Agenda.html', cambio: alFinal('.prueba-giro { animation: md-spin .8s linear infinite; }'), titulo: 'Duraciones sueltas', busca: '.prueba-giro' },
+  { nombre: 'Sombra lateral común sigue permitida', archivo: 'agenda/CSS_Agenda.html', cambio: alFinal('.prueba-lado { box-shadow: var(--md-elev-lateral); }'), titulo: 'Sombras sueltas', busca: '.prueba-lado', noDebe: true },
   { nombre: 'Capa con número', archivo: 'agenda/CSS_Agenda.html', cambio: alFinal('.prueba { z-index: 50; }'), titulo: 'z-index', busca: 'z-index' },
   { nombre: 'Esquina suelta', archivo: 'agenda/CSS_Agenda.html', cambio: alFinal('.prueba { border-radius: 7px; }'), titulo: 'Esquinas', busca: '7px' },
   { nombre: 'Tamaño de letra suelto', archivo: 'agenda/CSS_Agenda.html', cambio: alFinal('.prueba { font-size: 13px; }'), titulo: 'Tamaños de letra', busca: '13px' },

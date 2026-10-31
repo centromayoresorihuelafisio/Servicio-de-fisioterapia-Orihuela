@@ -45,11 +45,11 @@
 
       function htmlEsqueleto() {
         var nombres = [150, 190, 130, 170, 160];
-        function barra(w, r) { return '<span class="esq-barra" style="width:' + w + 'px' + (r ? ';border-radius:' + r : '') + '"></span>'; }
-        function dia() { return '<div class="esq-dia2"><span class="esq-barra esq-circ"></span><span class="esq-col">' + barra(80) + barra(54) + '</span><span class="esq-flex"></span>' + barra(190) + '</div>'; }
+        function barra(w, r) { return '<span class="md-esqueleto esq-barra" style="width:' + w + 'px' + (r ? ';border-radius:' + r : '') + '"></span>'; }
+        function dia() { return '<div class="esq-dia2"><span class="md-esqueleto esq-barra esq-circ"></span><span class="esq-col">' + barra(80) + barra(54) + '</span><span class="esq-flex"></span>' + barra(190) + '</div>'; }
         function filas(n, o) {
           var h = '';
-          for (var i = 0; i < n; i++) h += '<div class="esq-fila2">' + barra(46) + '<span class="esq-barra esq-circ sm"></span>' + barra(nombres[(i + o) % nombres.length]) +
+          for (var i = 0; i < n; i++) h += '<div class="esq-fila2">' + barra(46) + '<span class="md-esqueleto esq-barra esq-circ sm"></span>' + barra(nombres[(i + o) % nombres.length]) +
             '<span class="esq-flex"></span>' + barra(76, '999px') + barra(98, '999px') + '</div>';
           return h;
         }

@@ -308,12 +308,11 @@ anotar('onda', 'Onda (ripple) o scale( en estilos', [
   ...propias.filter(r => /ripple/.test(r.selector)).map(r => deRegla(r)),
 ]);
 // Sin difuminado (tercer número a 0) no es una sombra sino una línea o un anillo.
-const sombraBuena = v => /^(none|inherit|var\(--md-elev-\d\))$/.test(v.replace(/\s*!important/, '')) ||
-  partirArriba(v.replace(/\s*!important/, ''), ',').every(x => /^var\(--md-elev-\d\)$/.test(x) || /^(inset )?(-?[\d.]+(px)? ){2}0( -?[\d.]+(px)?)? /.test(x));
+const sombraBuena = v => /^(none|inherit|var\(--md-elev-(\d|lateral)\))$/.test(v.replace(/\s*!important/, '')) ||
+  partirArriba(v.replace(/\s*!important/, ''), ',').every(x => /^var\(--md-elev-(\d|lateral)\)$/.test(x) || /^(inset )?(-?[\d.]+(px)? ){2}0( -?[\d.]+(px)?)? /.test(x));
 anotar('sombra', 'Sombras sueltas (fuera de --md-elev-*)', decl(/^box-shadow$/).filter(({ r, d }) => !r.impresion && !sombraBuena(d.val)).map(({ r, d }) => deRegla(r, `${r.selector} { box-shadow: ${d.val} }`)));
 anotar('tiempo', 'Duraciones sueltas en transiciones y animaciones (fuera de --dur-*)', decl(/^(transition|animation)(-duration)?$/).filter(({ r, d }) => !r.impresion && /(?<![\w-])(\d*\.)?\d+m?s\b/.test(d.val.replace(/var\([^)]*\)/g, '').replace(/\b0s\b/g, ''))).map(({ r, d }) => {
   const h = deRegla(r, `${r.selector} { ${d.prop}: ${d.val} }`);
-  if (/md-spin \.8s|md-brillo 1\.6s/.test(d.val)) return { ...h, motivo: 'mismo ritmo que la pieza común' };
   if (/infinite/.test(d.val) && !/md-spin/.test(d.val)) return { ...h, motivo: 'animación continua: CSS_Global también usa ritmos fijos' };
   return h;
 }));

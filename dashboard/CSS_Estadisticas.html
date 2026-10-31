@@ -28,7 +28,7 @@
       /* ===== Cabecera (una fila: .cabecera-fila de ui/CSS_Global) y controles ===== */
       select, input[type="date"] { font-size: var(--fs-sm); color: var(--md-on-surface); background: var(--md-surface); border: 1px solid var(--md-outline-strong); border-radius: var(--md-shape-full); padding: .35rem .7rem; min-height: 32px; max-width: 220px; }
       select.activo { background: var(--md-primary-container); border-color: transparent; color: var(--md-primary-dark); }
-      .girando .material-symbols-outlined { animation: md-spin 1s linear infinite; }
+      .girando .material-symbols-outlined { animation: md-spin var(--dur-giro) linear infinite; }
 
       /* ===== Contenido ===== */
       main { flex: 1; overflow: auto; padding: 1rem; transition: opacity var(--dur-2) var(--ease); }
@@ -38,7 +38,7 @@
       .aviso button { margin-left: auto; }
 
       .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: .75rem; margin-bottom: .75rem; }
-      .kpi { background-color: var(--md-surface); background-image: linear-gradient(var(--t-bg, transparent), var(--t-bg, transparent)); border: 1px solid var(--t-bd, var(--md-outline)); border-radius: var(--md-shape-md); padding: .8rem .95rem; min-width: 0; display: flex; flex-direction: column; gap: .15rem; transition: transform .18s ease, box-shadow .18s ease; }
+      .kpi { background-color: var(--md-surface); background-image: linear-gradient(var(--t-bg, transparent), var(--t-bg, transparent)); border: 1px solid var(--t-bd, var(--md-outline)); border-radius: var(--md-shape-md); padding: .8rem .95rem; min-width: 0; display: flex; flex-direction: column; gap: .15rem; transition: transform var(--dur-2) var(--ease), box-shadow var(--dur-2) var(--ease); }
       .kpi-cab { display: flex; align-items: center; gap: .5rem; margin-bottom: .1rem; }
       .kpi-ic { flex: none; width: 28px; height: 28px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; background: var(--t-pista, var(--md-surface-variant)); color: var(--t-ic, var(--md-on-surface-med)); }
       .kpi-ic .material-symbols-outlined { font-size: 18px; }
@@ -56,7 +56,6 @@
       .kpi.con-detalle:hover .kpi-link { text-decoration: underline; }
       .kpi.entra { animation: md-entra var(--dur-3) var(--ease) backwards; animation-delay: calc(var(--i, 0) * var(--dur-1) / 2); }
       .kpi.esqueleto { background-image: none; border-color: var(--md-outline); gap: .55rem; min-height: 112px; }
-      .sk { border-radius: var(--md-shape-sm); background: linear-gradient(90deg, var(--md-surface-variant) 25%, color-mix(in srgb, var(--md-surface-variant) 55%, var(--md-surface)) 50%, var(--md-surface-variant) 75%); background-size: 200% 100%; animation: md-brillo 1.6s linear infinite; }
       .sk-ic { width: 28px; height: 28px; border-radius: 50%; flex: none; }
       .sk-t { height: 10px; width: 60%; }
       .sk-v { height: 26px; width: 42%; }
@@ -143,7 +142,7 @@
       /* Las secciones plegables se abren y cierran con transición de altura (navegadores recientes; en los demás se abren sin animar) */
       @supports selector(::details-content) {
         details.avanzado { interpolate-size: allow-keywords; }
-        details.avanzado::details-content { block-size: 0; overflow: hidden; transition: block-size .28s ease, content-visibility .28s allow-discrete; }
+        details.avanzado::details-content { block-size: 0; overflow: hidden; transition: block-size var(--dur-3) var(--ease), content-visibility var(--dur-3) allow-discrete; }
         details.avanzado[open]::details-content { block-size: auto; }
       }
       .btn-png { margin-left: auto; background: none; border: 0; border-radius: 50%; width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; color: var(--md-on-surface-med); cursor: pointer; }
@@ -173,13 +172,11 @@
       }
 
       /* Respeto a «reducir movimiento» del sistema: sin entradas, brillo de esqueleto, elevación ni giro; el botón «Actualizar» pulsa en vez de girar. */
-      @keyframes pulso { 50% { opacity: .35; } }
       @media (prefers-reduced-motion: reduce) {
         .kpi.entra { animation: none; }
-        .sk { animation: none; }
         .kpi, details.avanzado > summary .chev { transition: none; }
         .kpi.con-detalle:hover { transform: none; }
         .anillo.anima .an-valor { animation: none; }
         details.avanzado::details-content { transition: none; }
-        .girando .material-symbols-outlined { animation: pulso 1.2s ease-in-out infinite; }
+        .girando .material-symbols-outlined { animation: md-latido var(--dur-latido) ease-in-out infinite; }
       }

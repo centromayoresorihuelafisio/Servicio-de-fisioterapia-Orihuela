@@ -465,19 +465,20 @@
         CITAS.forEach(function(c) { nuevo[c._fila] = c._hueco; });
         var reducir = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
         if (!reducir) {
+          var raiz = getComputedStyle(document.documentElement), durDesliza = parseFloat(raiz.getPropertyValue('--dur-3')), durDestello = parseFloat(raiz.getPropertyValue('--dur-destello'));
           flips.forEach(function(f) {
             var el = elFila(f.fila);
             if (!el) return;
             var r = el.getBoundingClientRect(), dx = f.x - r.left, dy = f.y - r.top;
-            if (dx || dy) el.animate([{ transform: 'translate(' + dx + 'px,' + dy + 'px)', opacity: .55 }, { transform: 'none', opacity: 1 }], { duration: 300, easing: 'cubic-bezier(.2,0,0,1)' });
+            if (dx || dy) el.animate([{ transform: 'translate(' + dx + 'px,' + dy + 'px)', opacity: .55 }, { transform: 'none', opacity: 1 }], { duration: durDesliza, easing: raiz.getPropertyValue('--ease').trim() });
           });
           Object.keys(nuevo).forEach(function(k) {
             var antes = estadoHuecoPrevio[k];
             if (antes === undefined || antes === nuevo[k]) return;
             var el = elFila(k);
             if (!el) return;
-            if (nuevo[k]) el.animate([{ opacity: .25 }, { opacity: 1 }], { duration: 260 });
-            else { el.classList.add('recien'); setTimeout(function() { el.classList.remove('recien'); }, 1300); }
+            if (nuevo[k]) el.animate([{ opacity: .25 }, { opacity: 1 }], { duration: durDesliza });
+            else { el.classList.add('recien'); setTimeout(function() { el.classList.remove('recien'); }, durDestello + 100); }
           });
         }
         estadoHuecoPrevio = nuevo;

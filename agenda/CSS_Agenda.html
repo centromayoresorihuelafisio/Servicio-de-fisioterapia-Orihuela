@@ -31,7 +31,6 @@
       .separador { width: 1px; height: 22px; background: var(--md-outline); margin: 0 .25rem; }
 
       /* ---------- Botones (.btn-toolbar: definido en ui/CSS_Global) ---------- */
-      .spin-icon { animation: md-spin 1s linear infinite; }
 
 
       .etiqueta-semana {
@@ -207,11 +206,7 @@
       .esqueleto { background: var(--md-surface); }
       .esq-dia { height: 36px; background: var(--md-surface-variant); }
       .esq-fila { display: flex; align-items: center; gap: 1.5rem; padding: .85rem 1rem; border-bottom: 1px solid var(--md-outline); }
-      .esq-barra {
-        display: block; height: 12px; border-radius: var(--md-shape-sm);
-        background: linear-gradient(90deg, var(--md-surface-variant) 25%, color-mix(in srgb, var(--md-surface-variant) 55%, var(--md-surface)) 50%, var(--md-surface-variant) 75%);
-        background-size: 200% 100%; animation: md-brillo 1.6s linear infinite;
-      }
+      .esq-barra { height: 12px; }
       .esq-flex { flex: 1; }
 
       /* ---------- Modal propio: definido en ui/CSS_Global (V3) ---------- */
@@ -278,9 +273,9 @@
       tbody tr.pasada td { color: var(--md-on-surface-low); }
       tbody tr.pasada td.hora, tbody tr.pasada td:nth-child(2) { color: var(--md-on-surface-med); }
       .pto-t { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-      .pto-t.ahora { background: var(--md-primary); animation: pulso 1.8s infinite; }
+      .pto-t.ahora { background: var(--md-primary); animation: halo-ahora 1.8s infinite; }
       .pto-t.proxima { border: 2px solid var(--md-primary); }
-      @keyframes pulso { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--md-primary) 45%, transparent); } 70%, 100% { box-shadow: 0 0 0 7px transparent; } }
+      @keyframes halo-ahora { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--md-primary) 45%, transparent); } 70%, 100% { box-shadow: 0 0 0 7px transparent; } }
       @media (prefers-reduced-motion: reduce) { .pto-t.ahora { animation: none; } }
       .tag-t { font-size: var(--fs-2xs); font-weight: 700; text-transform: uppercase; letter-spacing: .05em; padding: .05rem .55rem; border-radius: var(--md-shape-full); }
       .tag-t.ahora { background: var(--md-primary); color: var(--md-on-primary); }
@@ -482,7 +477,6 @@
       thead th, thead th:nth-child(1), thead th:nth-child(2) { background-color: var(--md-surface-variant); }
       .chip-ok { color: var(--md-success); } .chip-mal { color: var(--md-error); } .chip-aviso { color: var(--md-warning-text); } .chip-neutro { color: var(--md-on-surface-med); }
       .dia-stats, .dia-hoy { background: color-mix(in srgb, var(--md-surface) 65%, transparent); }
-      .esq-barra { background: linear-gradient(90deg, var(--md-surface-variant) 25%, var(--md-outline) 50%, var(--md-surface-variant) 75%); background-size: 200% 100%; }
 
       /* .toasts y .toast-aviso: definidos en ui/CSS_Global (V3) */
 
@@ -498,10 +492,10 @@
       .ocup .o-reg { background: var(--md-success); } .ocup .o-cita { background: var(--md-primary); }
 
       .ghost-dest { color: var(--md-primary-dark); font-weight: 700; font-size: var(--fs-xs); border-left: 1px solid var(--md-outline); padding-left: .55rem; }
-      .tabla-wrap.desplazado thead th:nth-child(2), .tabla-wrap.desplazado tbody tr:not(.fila-dia):not(.fila-turno):not(.fila-ahora) td:nth-child(2) { box-shadow: 8px 0 10px -8px var(--md-scrim); }
-      tr.saliendo-fila td, .tarjeta.saliendo-fila, .cal-cita.saliendo-fila { opacity: 0; transition: opacity .25s; }
+      .tabla-wrap.desplazado thead th:nth-child(2), .tabla-wrap.desplazado tbody tr:not(.fila-dia):not(.fila-turno):not(.fila-ahora) td:nth-child(2) { box-shadow: var(--md-elev-lateral); }
+      tr.saliendo-fila td, .tarjeta.saliendo-fila, .cal-cita.saliendo-fila { opacity: 0; transition: opacity var(--dur-3) var(--ease); }
       .tarjeta.saliendo-fila { opacity: .5; }
-      tr.recien td, .tarjeta.recien, .cal-cita.recien { animation: flash-mov 1.2s ease-out; }
+      tr.recien td, .tarjeta.recien, .cal-cita.recien { animation: flash-mov var(--dur-destello) ease-out; }
       @keyframes flash-mov { from { box-shadow: inset 0 0 0 999px color-mix(in srgb, var(--md-primary) 28%, transparent); } to { box-shadow: inset 0 0 0 999px transparent; } }
 
       .cal { display: grid; min-width: 760px; background: var(--md-surface); }
