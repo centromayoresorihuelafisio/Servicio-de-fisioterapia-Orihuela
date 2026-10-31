@@ -41,7 +41,7 @@
 .hc /* ---------- layout ---------- */
   .pagina{max-width:1240px;margin:0 auto;padding:22px 24px 70px}
 .hc .cabecera{display:flex;align-items:center;gap:18px;margin-bottom:20px;flex-wrap:wrap}
-.hc .avatar{width:64px;height:64px;border-radius:50%;background:var(--md-primary-container);color:var(--md-primary-dark);display:grid;place-items:center;font-size:23px;font-weight:700;letter-spacing:.02em}
+.hc .avatar{width:64px;height:64px;border-radius:50%;background:var(--md-primary-container);color:var(--md-primary-dark);display:grid;place-items:center;font-size:var(--fs-h);font-weight:700;letter-spacing:.02em}
 .hc .cabecera h1{margin:0;font-size:var(--fs-h);line-height:1.15;font-weight:700;letter-spacing:.005em}
 .hc .meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;align-items:center}
 .hc .chip{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 11px;border-radius:var(--md-shape-full);font-size:var(--fs-sm);font-weight:600;background:var(--md-surface-variant);color:var(--md-on-surface-med)}
@@ -224,7 +224,7 @@
 .hc .tile.asist{grid-column:1/-1;flex-direction:row;align-items:center;flex-wrap:wrap;gap:6px 18px;padding:8px 14px}
 .hc .tile.asist .th{flex:none}
 .hc .tile.asist .asist-filas{display:flex;flex-wrap:wrap;gap:4px 16px;margin:0}
-.hc .tile.asist .asist-fila b{margin-left:5px;font-size:14px}
+.hc .tile.asist .asist-fila b{margin-left:5px;font-size:var(--fs-md)}
 .hc .tile.asist .stack{flex:1 1 110px;min-width:90px}
 .hc .tile.asist .tr{flex:none}
 .hc .tile.asist .v{font-size:var(--fs-title)}
@@ -243,7 +243,7 @@
 .hc [hidden]{display:none!important}
 @container hc (max-width:640px){
   .hc .hc-barra .btn:not(.icon){width:34px;padding:0;justify-content:center}.hc .hc-barra .btn .lbl{display:none}
-  .hc .pagina{padding:14px 12px 50px}.hc .cabecera h1{font-size:var(--fs-h)}.hc .avatar{width:54px;height:54px;font-size:19px}
+  .hc .pagina{padding:14px 12px 50px}.hc .cabecera h1{font-size:var(--fs-h)}.hc .avatar{width:54px;height:54px;font-size:var(--fs-title)}
 }
 @media print{.hc,.hc .hc-scroll{height:auto!important;overflow:visible!important;display:block}.hc .hc-barra{display:none!important}.hc{background:#fff}}
 
@@ -438,7 +438,7 @@ window.PanelHC = {
     return '<span class="acc">' + llamar + chat + '</span>';
   }
   function pintarCampos() {
-    var u = D.usuario, edad = u.edad ? ' <span class="chip" style="height:22px;font-size:12px">' + esc(u.edad) + (/^\d+$/.test(u.edad) ? ' años' : '') + '</span>' : '';
+    var u = D.usuario, edad = u.edad ? ' <span class="chip sm">' + esc(u.edad) + (/^\d+$/.test(u.edad) ? ' años' : '') + '</span>' : '';
     var h = campo('dni', 'DNI', u.dni) + campo('nac', 'Fecha de nacimiento', u.nacimiento, edad) +
       campo('tel', 'Teléfono', Telefono.formato(u.telefono), acciones(u.telefono, true)) + campo('tel', 'Teléfono 2', Telefono.formato(u.telefono2), acciones(u.telefono2, false)) +
       campo('ins', 'Fecha de inscripción', u.inscripcion);
@@ -489,7 +489,7 @@ window.PanelHC = {
     episodios.slice().reverse().forEach(function (e, ri) {
       var i = episodios.length - 1 - ri, enCurso = !e.alta;
       var d = document.createElement('div'); d.className = 'ep' + (enCurso ? ' curso' : '');
-      d.innerHTML = '<div class="t"><strong>Episodio ' + (i + 1) + '</strong><span class="chip ' + (enCurso ? 'ok dot' : '') + '" style="height:22px;font-size:12px">' + (enCurso ? 'En curso' : 'Alta') + '</span>' +
+      d.innerHTML = '<div class="t"><strong>Episodio ' + (i + 1) + '</strong><span class="chip sm ' + (enCurso ? 'ok dot' : '') + '">' + (enCurso ? 'En curso' : 'Alta') + '</span>' +
         '<span class="dur">' + (e.ingreso ? dias(e.ingreso, e.alta) + ' días' : '') + '</span>' +
         '<button type="button" class="ep-del" data-del="' + i + '" title="Eliminar este episodio" aria-label="Eliminar episodio ' + (i + 1) + '">' + svg('papelera') + '</button></div>' +
         '<div class="fechas"><input class="fecha" type="date" data-i="' + i + '" data-k="ingreso" value="' + esc(e.ingreso) + '" aria-label="Ingreso"><span class="flecha">→</span>' +
