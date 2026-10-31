@@ -23,7 +23,6 @@
       /* ---------- Cabecera ---------- */
       .barra { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; min-height: 40px; }
       .espaciador { flex: 1; }
-      .contador { font-size: var(--fs-sm); color: var(--md-on-surface-med); white-space: nowrap; }
 
       .barra-seleccion { display: none; background: var(--md-primary-light); border-radius: var(--md-shape-md); padding: .3rem .6rem; }
       header.top.con-seleccion .barra-principal { display: none; }
@@ -34,11 +33,6 @@
       /* ---------- Botones (.btn-toolbar: definido en ui/CSS_Global) ---------- */
       .spin-icon { animation: md-spin 1s linear infinite; }
 
-      .grupo-nav { display: inline-flex; }
-      .grupo-nav .btn-toolbar { border-radius: 0; margin-left: -1px; position: relative; }
-      .grupo-nav .btn-toolbar:first-child { border-radius: var(--md-shape-full) 0 0 var(--md-shape-full); margin-left: 0; }
-      .grupo-nav .btn-toolbar:last-child { border-radius: 0 var(--md-shape-full) var(--md-shape-full) 0; }
-      .grupo-nav .btn-toolbar:hover, .grupo-nav .btn-toolbar:focus-visible { z-index: var(--z-base); }
 
       .etiqueta-semana {
         font-size: var(--fs-sm); font-weight: 600; color: var(--md-primary-dark); white-space: nowrap;
@@ -834,8 +828,6 @@
         background: var(--md-surface); border: 1px solid var(--md-outline); border-radius: var(--md-shape-full); padding: .35rem .55rem .35rem .4rem; box-shadow: var(--md-elev-3);
         opacity: 0; visibility: hidden; pointer-events: none; transition: opacity var(--dur-3) var(--ease), transform var(--dur-3) var(--ease), visibility 0s var(--dur-3); }
       .barra-seleccion.visible { opacity: 1; visibility: visible; pointer-events: auto; transform: translate(-50%, 0); transition-delay: 0s; }
-      .barra-seleccion .btn-toolbar:not(.peligro) { border-color: transparent; background: transparent; }
-      .barra-seleccion .btn-toolbar:not(.peligro):hover:not(:disabled) { background: var(--md-primary-light); }
       .barra-seleccion .contador-seleccion { padding: 0 .5rem 0 .1rem; white-space: nowrap; }
       .barra-seleccion .separador { background: var(--md-outline); }
       .barra-seleccion .menu { top: auto; bottom: calc(100% + 8px); }

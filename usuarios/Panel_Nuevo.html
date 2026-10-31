@@ -25,10 +25,6 @@
   font-family: var(--font); font-size: var(--fs-md);
 }
 
-.nu .ms { font-family: 'Material Symbols Outlined'; font-weight: 400; font-style: normal; font-size: 20px; line-height: 1; letter-spacing: normal; text-transform: none; display: inline-block; white-space: nowrap; direction: ltr; font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20; user-select: none; flex-shrink: 0; color: var(--md-on-surface-med); }
-.nu .md-btn .ms { color: inherit; font-size: 18px; }   /* el icono del boton toma el color del boton (como en Panel_Valoracion) */
-.nu .ms-sm { font-size: 16px; } .nu .ms-lg { font-size: 22px; }
-.nu .ms-fill { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 20; }
 
 /* ── Cabecera / cuerpo / pie ── */
 .nu .nu-cuerpo { flex: 1; min-height: 0; overflow: auto; }
@@ -50,9 +46,6 @@
 /* ── Campos de texto: .md-campo de CSS_Global; aqui solo lo propio del panel ── */
 .nu .md-campo__etiqueta { max-width: calc(100% - 52px); overflow: hidden; text-overflow: ellipsis; }
 .nu .md-campo__etiqueta .req { color: var(--md-primary); margin-left: 2px; }
-.nu .md-campo.has-value .md-campo__etiqueta { top: 0; font-size: var(--fs-xs); }   /* para la fecha (el navegador siempre muestra algo): lo marca el JavaScript */
-.nu .md-campo:focus-within .md-campo__icono { color: var(--md-primary); }
-.nu .md-campo--error .md-campo__icono { color: var(--md-error); }
 .nu .md-campo__ayuda { display: none; margin-top: 4px; }
 .nu .md-campo--error .md-campo__ayuda { display: block; }
 
@@ -269,10 +262,6 @@ window.PanelNuevo = {
     var guardando = false, guardado = false, inicial = '';
 
     /* ── Campos de texto ── */
-    function sync(el) {
-      var f = el.closest('.md-campo');
-      if (f) f.classList.toggle('has-value', el.value.trim() !== '');
-    }
     function formatPhone(input) { Telefono.escribiendo(input); }   // regla única: ui/JS_Telefono.html
     function setError(el, texto) {
       var f = el.closest('.md-campo'); if (!f) return;
@@ -288,9 +277,8 @@ window.PanelNuevo = {
     var iNombre = q('#nu-nombre'), iDni = q('#nu-dni'), iFi = q('#nu-fi'), iFn = q('#nu-fn'), iTel1 = q('#nu-tel1'), iTel2 = q('#nu-tel2');
     iFi.value = hoyLocal();
     qa('.md-campo input, .md-campo textarea').forEach(function (el) {
-      sync(el);
-      el.addEventListener('input', function () { sync(el); clearError(el); });
-      el.addEventListener('change', function () { sync(el); clearError(el); });
+      el.addEventListener('input', function () { clearError(el); });
+      el.addEventListener('change', function () { clearError(el); });
     });
     iNombre.addEventListener('input', function (e) { if (!e.isComposing) sanitizeName(iNombre); });
     iDni.addEventListener('input', function (e) { if (!e.isComposing) sanitizeDni(iDni); });

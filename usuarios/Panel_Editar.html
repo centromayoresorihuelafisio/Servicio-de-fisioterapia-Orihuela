@@ -44,10 +44,6 @@
 
 /* ── Campo de texto: .md-campo de CSS_Global; aqui solo lo propio del panel ── */
 .pe .field { display: flex; flex-direction: column; position: relative; }
-.pe .md-campo__etiqueta.floated { top: 0; font-size: var(--fs-xs); }   /* para la fecha: el navegador siempre muestra algo, asi que lo marca el JavaScript */
-.pe .md-campo__control:disabled { font-family: var(--font-mono); font-size: var(--fs-sm); color: var(--md-on-surface-med); }
-.pe .md-campo:has(.md-campo__control:disabled) { --md-campo-fondo: var(--md-surface-variant); }
-.pe .md-campo:has(.md-campo__control:disabled) .md-campo__etiqueta { top: 0; font-size: var(--fs-xs); }
 .pe .readonly-badge {
   font-size: var(--fs-2xs); font-weight: 500; letter-spacing: .04em; text-transform: uppercase; color: var(--md-on-surface-low);
   background: var(--md-surface-variant); padding: 1px 6px; border-radius: var(--md-shape-full); margin-left: 4px; vertical-align: middle;
@@ -128,7 +124,7 @@
   <div class="panel-pie">
     <button title="Cerrar sin guardar" type="button" class="md-btn md-btn--text pe-cancelar">Cancelar</button>
     <button title="Revisar los cambios antes de guardar" type="button" class="md-btn md-btn--tonal pe-revisar" disabled>
-      <span class="material-symbols-outlined ic18">visibility</span>Revisar cambios
+      <span class="material-symbols-outlined">visibility</span>Revisar cambios
     </button>
   </div>
 
@@ -144,10 +140,10 @@
     <div class="pe-rev-msg" role="alert"></div>
     <div class="panel-pie">
       <button title="Volver al formulario" type="button" class="md-btn md-btn--text pe-volver">
-        <span class="material-symbols-outlined ic18">arrow_back</span>Volver a editar
+        <span class="material-symbols-outlined">arrow_back</span>Volver a editar
       </button>
       <button title="Guardar los cambios" type="button" class="md-btn md-btn--tonal pe-confirmar">
-        <span class="material-symbols-outlined ic18">check_circle</span>Confirmar y guardar
+        <span class="material-symbols-outlined">check_circle</span>Confirmar y guardar
       </button>
     </div>
   </div>
@@ -246,7 +242,7 @@ window.PanelEditar = {
         '</div></div>';
     }
     function campoTexto(h, idSuffix, icon, val, isDate, isReadOnly) {
-      return '<div class="md-campo md-campo--icono">' +
+      return '<div class="md-campo md-campo--icono' + (isReadOnly ? ' md-campo--dato' : '') + '">' +
         '<span class="material-symbols-outlined md-campo__icono">' + icon + '</span>' +
         '<input class="md-campo__control" type="' + (isDate ? 'date' : 'text') + '" id="pe-field_' + idSuffix + '" name="' + esc(h) + '" value="' + esc(val) + '" placeholder=" "' + (isReadOnly ? ' disabled' : '') + '>' +
         '<label class="md-campo__etiqueta" for="pe-field_' + idSuffix + '">' + esc(h) + (isReadOnly ? '<span class="readonly-badge">Solo lectura</span>' : '') + '</label>' +
@@ -290,12 +286,6 @@ window.PanelEditar = {
     }
 
     /* ── Comportamiento de los campos ── */
-    function syncFloated(inp) {
-      var label = inp.parentElement.querySelector('label.md-campo__etiqueta');
-      var hasVal = inp.value && inp.value.trim() !== '';
-      if (label) label.classList.toggle('floated', !!hasVal);
-      if (inp.type === 'date') inp.classList.toggle('has-value', !!hasVal);
-    }
     function formatPhone(val) { return Telefono.enVivo(val); }   // regla única: ui/JS_Telefono.html (al escribir)
     function byName(name) {
       return Array.prototype.filter.call(form.querySelectorAll('input'), function (el) { return el.name === name; });
@@ -340,9 +330,6 @@ window.PanelEditar = {
 
     function enlazarCampos(headers) {
       form.querySelectorAll('.md-campo input[type="text"], .md-campo input[type="date"]').forEach(function (inp) {
-        syncFloated(inp);
-        inp.addEventListener('input', function () { syncFloated(inp); });
-        inp.addEventListener('change', function () { syncFloated(inp); });
       });
       ['Teléfono 1', 'Teléfono 2'].forEach(function (n) {
         byName(n).forEach(function (inp) {
@@ -440,7 +427,7 @@ window.PanelEditar = {
       capa.classList.remove('visible');
       capa.setAttribute('aria-hidden', 'true');
     }
-    var ETIQUETA_CONFIRMAR = '<span class="material-symbols-outlined ic18">check_circle</span>Confirmar y guardar';
+    var ETIQUETA_CONFIRMAR = '<span class="material-symbols-outlined">check_circle</span>Confirmar y guardar';
     function mostrarErrorRevision(texto) {
       capaMsg.textContent = texto;
       capaMsg.classList.add('visible');

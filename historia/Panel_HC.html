@@ -80,7 +80,6 @@
 .hc .ep .t strong{font-weight:600}
 .hc .ep .fechas{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:6px;margin-top:6px}
 .hc .fecha{height:34px;border:1px solid var(--md-outline-strong);border-radius:var(--md-shape-sm);background:transparent;color:inherit;font:inherit;font-size:var(--fs-sm);padding:0 8px;width:100%;min-width:0}
-.hc .fecha:focus{outline:2px solid var(--md-primary);outline-offset:-1px;border-color:transparent}
 .hc .flecha{color:var(--md-on-surface-low)}
 .hc .dur{font-size:var(--fs-xs);color:var(--md-on-surface-low)}
 .hc .ep-del{margin-left:auto;height:26px;padding:0 8px;border:0;border-radius:var(--md-shape-full);background:transparent;color:var(--md-on-surface-low);font:inherit;font-size:var(--fs-xs);font-weight:600;display:inline-flex;align-items:center;gap:4px;cursor:pointer}
@@ -191,7 +190,7 @@
 .hc .fecha{border:0;padding:0;width:auto;background:none}
 .hc *{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
 .hc .aviso-err{display:none;margin:0 0 16px;padding:10px 14px;border-radius:var(--md-shape-md);background:var(--md-error-bg);color:var(--md-error);font-size:var(--fs-sm)}
-.hc .estado-carga{display:grid;place-items:center;min-height:50vh;color:var(--md-on-surface-low);text-align:center;gap:6px}
+.hc .hc-carga{display:grid;place-items:center;min-height:50vh;color:var(--md-on-surface-low);text-align:center;gap:6px}
 .hc .esq{background:linear-gradient(90deg,var(--md-surface-variant) 25%,color-mix(in srgb,var(--md-surface-variant) 55%,var(--md-surface)) 50%,var(--md-surface-variant) 75%);background-size:200% 100%;animation:md-brillo 1.6s linear infinite;border-radius:var(--md-shape-md)}
 .hc .nota textarea:disabled{opacity:.7}
 .hc .hc-iniciales{box-shadow:0 0 0 3px var(--md-bg),0 0 0 6px var(--aro,var(--md-outline));transition:box-shadow var(--dur-3) var(--ease)}
@@ -261,7 +260,7 @@
     <div class="pagina">
       <div class="solo-papel"><div><b>Centro de Mayores Virgen de Monserrate</b><br><span>Servicio de fisioterapia · Historia clínica</span></div><span id="hc-fechaImpresion"></span></div>
       <div class="aviso-err" id="hc-avisoErr" role="alert"></div>
-      <div id="hc-estadoCarga" class="estado-carga"><div><div class="esq" style="width:260px;height:22px;margin:0 auto 10px"></div><div class="esq" style="width:180px;height:14px;margin:0 auto"></div><p>Cargando historia clínica…</p></div></div>
+      <div id="hc-estadoCarga" class="hc-carga"><div><div class="esq" style="width:260px;height:22px;margin:0 auto 10px"></div><div class="esq" style="width:180px;height:14px;margin:0 auto"></div><p>Cargando historia clínica…</p></div></div>
       <div id="hc-contenido" style="display:none"></div>
     </div>
   </div>

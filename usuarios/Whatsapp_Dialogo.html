@@ -53,8 +53,6 @@
   .wl-icono { width: 30px; height: 30px; border-radius: 50%; border: none; background: transparent; color: var(--md-on-surface-med); cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
     transition: background-color var(--dur-1) var(--ease), color var(--dur-1) var(--ease); }
   .wl-icono:hover, .wl-icono[aria-expanded="true"] { background: var(--md-primary-light); color: var(--md-primary-dark); }
-  /* Mensaje y plantilla: el campo estándar (.md-campo__control) con la etiqueta fija encima */
-  #dlgWl textarea.md-campo__control { min-height: 0; padding: 12px 14px; line-height: 1.45; }
   .wl-plantilla { margin-top: .8rem; border: 1px solid var(--md-outline); border-radius: var(--md-shape-md); padding: .65rem .85rem .8rem; animation: md-entra var(--dur-2) var(--ease); }
   .wl-plantilla .wl-etq { margin-bottom: .2rem; }
   .wl-ayuda { margin: 0 0 .5rem; font-size: var(--fs-xs); color: var(--md-on-surface-low); }
@@ -94,11 +92,11 @@
           <button type="button" class="wl-icono" id="wlBtnPlantilla" title="Editar mensaje de plantilla" aria-label="Editar mensaje de plantilla" aria-expanded="false" aria-controls="wlPlantillaWrap"><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg></button>
         </div>
       </div>
-      <textarea class="md-campo__control" id="wlMensaje" rows="4"></textarea>
+      <div class="md-campo md-campo--compacto"><textarea class="md-campo__control" id="wlMensaje" rows="4"></textarea></div>
       <div class="wl-plantilla" id="wlPlantillaWrap" hidden>
         <label class="wl-etq" for="wlPlantilla">Mensaje de plantilla</label>
         <p class="wl-ayuda" id="wlAyuda"></p>
-        <textarea class="md-campo__control" id="wlPlantilla" rows="3"></textarea>
+        <div class="md-campo md-campo--compacto"><textarea class="md-campo__control" id="wlPlantilla" rows="3"></textarea></div>
       </div>
     </div>
     <div class="wl-resumen" id="wlResumen" hidden></div>
