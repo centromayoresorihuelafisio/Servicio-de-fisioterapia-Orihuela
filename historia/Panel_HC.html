@@ -41,15 +41,15 @@
 .hc /* ---------- layout ---------- */
   .pagina{max-width:1240px;margin:0 auto;padding:22px 24px 70px}
 .hc .cabecera{display:flex;align-items:center;gap:18px;margin-bottom:20px;flex-wrap:wrap}
-.hc .avatar{width:64px;height:64px;border-radius:50%;background:var(--md-primary-container);color:var(--md-primary-dark);display:grid;place-items:center;font-size:var(--fs-h);font-weight:700;letter-spacing:.02em}
+.hc .hc-iniciales{width:64px;height:64px;border-radius:50%;background:var(--md-primary-container);color:var(--md-primary-dark);display:grid;place-items:center;font-size:var(--fs-h);font-weight:700;letter-spacing:.02em}
 .hc .cabecera h1{margin:0;font-size:var(--fs-h);line-height:1.15;font-weight:700;letter-spacing:.005em}
 .hc .meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;align-items:center}
-.hc .chip{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 11px;border-radius:var(--md-shape-full);font-size:var(--fs-sm);font-weight:600;background:var(--md-surface-variant);color:var(--md-on-surface-med)}
-.hc .chip.dot::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
-.hc .chip.ok{background:var(--md-success-bg);color:var(--md-success)}
-.hc .chip.warn{background:var(--md-warning-bg);color:var(--md-warning-text)}
-.hc .chip.info{background:var(--md-primary-light);color:var(--md-primary)}
-.hc .chip.alta{background:var(--md-purple-bg);color:var(--md-purple)}
+.hc .hc-chip{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 11px;border-radius:var(--md-shape-full);font-size:var(--fs-sm);font-weight:600;background:var(--md-surface-variant);color:var(--md-on-surface-med)}
+.hc .hc-chip.dot::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.hc .hc-chip.ok{background:var(--md-success-bg);color:var(--md-success)}
+.hc .hc-chip.warn{background:var(--md-warning-bg);color:var(--md-warning-text)}
+.hc .hc-chip.info{background:var(--md-primary-light);color:var(--md-primary)}
+.hc .hc-chip.alta{background:var(--md-purple-bg);color:var(--md-purple)}
 .hc .rejilla{display:grid;grid-template-columns:300px 1fr;gap:18px;align-items:start}
 .hc .lateral{position:sticky;top:0;display:flex;flex-direction:column;gap:12px}
 @container hc (max-width:980px){.hc .rejilla{grid-template-columns:1fr}
@@ -114,8 +114,8 @@
 .hc .bar{height:6px;border-radius:var(--md-shape-full);background:var(--md-surface-variant);overflow:hidden}
 .hc .bar i{display:block;height:100%;border-radius:var(--md-shape-full);background:var(--md-primary);transition:width var(--dur-4) var(--ease)}
 .hc .tr{display:flex;align-items:center;gap:7px;flex-wrap:wrap;font-size:var(--fs-xs);color:var(--md-on-surface-low)}
-.hc .chip.mal{background:var(--md-error-bg);color:var(--md-error)}
-.hc .chip.sm{height:22px;font-size:var(--fs-xs);padding:0 9px}
+.hc .hc-chip.mal{background:var(--md-error-bg);color:var(--md-error)}
+.hc .hc-chip.sm{height:22px;font-size:var(--fs-xs);padding:0 9px}
 .hc .spark{width:52px;height:24px;overflow:visible;flex:none}
 .hc .spark polyline{fill:none;stroke:var(--md-primary);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .hc .spark circle{fill:var(--md-primary)}
@@ -194,15 +194,15 @@
 .hc .estado-carga{display:grid;place-items:center;min-height:50vh;color:var(--md-on-surface-low);text-align:center;gap:6px}
 .hc .esq{background:linear-gradient(90deg,var(--md-surface-variant) 25%,color-mix(in srgb,var(--md-surface-variant) 55%,var(--md-surface)) 50%,var(--md-surface-variant) 75%);background-size:200% 100%;animation:md-brillo 1.6s linear infinite;border-radius:var(--md-shape-md)}
 .hc .nota textarea:disabled{opacity:.7}
-.hc .avatar{box-shadow:0 0 0 3px var(--md-bg),0 0 0 6px var(--aro,var(--md-outline));transition:box-shadow var(--dur-3) var(--ease)}
-.hc .avatar.ok{--aro:var(--md-success)}
-.hc .avatar.alta{--aro:var(--md-purple)}
-.hc .avatar.warn{--aro:var(--md-warning)}
+.hc .hc-iniciales{box-shadow:0 0 0 3px var(--md-bg),0 0 0 6px var(--aro,var(--md-outline));transition:box-shadow var(--dur-3) var(--ease)}
+.hc .hc-iniciales.ok{--aro:var(--md-success)}
+.hc .hc-iniciales.alta{--aro:var(--md-purple)}
+.hc .hc-iniciales.warn{--aro:var(--md-warning)}
 .hc .cabecera{gap:22px}
 .hc .nota-cab{position:sticky;top:0;z-index:var(--z-base);background:var(--md-surface);border-bottom:1px solid transparent;padding-bottom:10px}
 .hc .nota-cab.pegada{border-bottom-color:color-mix(in srgb,var(--md-outline) 70%,transparent)}
 @media print{.hc .nota-cab{position:static!important}
-.hc .avatar{box-shadow:none}}
+.hc .hc-iniciales{box-shadow:none}}
 .hc .asist-filas{display:grid;gap:5px;margin:2px 0 1px}
 .hc .asist-fila{display:flex;align-items:center;gap:8px;font-size:var(--fs-sm);color:var(--md-on-surface-med)}
 .hc .asist-fila i{width:8px;height:8px;border-radius:50%;flex:none;opacity:.7}
@@ -243,7 +243,7 @@
 .hc [hidden]{display:none!important}
 @container hc (max-width:640px){
   .hc .hc-barra .btn:not(.icon){width:34px;padding:0;justify-content:center}.hc .hc-barra .btn .lbl{display:none}
-  .hc .pagina{padding:14px 12px 50px}.hc .cabecera h1{font-size:var(--fs-h)}.hc .avatar{width:54px;height:54px;font-size:var(--fs-title)}
+  .hc .pagina{padding:14px 12px 50px}.hc .cabecera h1{font-size:var(--fs-h)}.hc .hc-iniciales{width:54px;height:54px;font-size:var(--fs-title)}
 }
 @media print{.hc,.hc .hc-scroll{height:auto!important;overflow:visible!important;display:block}.hc .hc-barra{display:none!important}.hc{background:#fff}}
 
@@ -259,7 +259,7 @@
   </div>
   <div class="hc-scroll">
     <div class="pagina">
-      <div class="solo-papel"><div><b>Centro de Mayores Virgen de Monserrate</b><br><span>Servicio de fisioterapia · Historia clínica</span></div><span id="fechaImpresion"></span></div>
+      <div class="solo-papel"><div><b>Centro de Mayores Virgen de Monserrate</b><br><span>Servicio de fisioterapia · Historia clínica</span></div><span id="hc-fechaImpresion"></span></div>
       <div class="aviso-err" id="hc-avisoErr" role="alert"></div>
       <div id="hc-estadoCarga" class="estado-carga"><div><div class="esq" style="width:260px;height:22px;margin:0 auto 10px"></div><div class="esq" style="width:180px;height:14px;margin:0 auto"></div><p>Cargando historia clínica…</p></div></div>
       <div id="hc-contenido" style="display:none"></div>
@@ -274,7 +274,7 @@
   </div>
   <template class="hc-tpl">
 <header class="cabecera">
-    <div class="avatar" id="hc-avatar"></div>
+    <div class="hc-iniciales" id="hc-avatar"></div>
     <div>
       <h1 id="hc-nombre"></h1>
       <div class="meta" id="hc-meta"></div>
@@ -409,8 +409,8 @@ window.PanelHC = {
   function pintarMeta() {
     var est = D.usuario.estado, t = est.replace(/^[^\p{L}]+/u, '');
     var cls = /alta/i.test(t) ? 'alta' : /activ/i.test(t) ? 'ok' : '';
-    $('avatar').className = 'avatar ' + (cls || '');
-    $('meta').innerHTML = t ? '<span class="chip dot ' + cls + '">' + esc(t) + '</span>' : '';
+    $('avatar').className = 'hc-iniciales ' + (cls || '');
+    $('meta').innerHTML = t ? '<span class="hc-chip dot ' + cls + '">' + esc(t) + '</span>' : '';
   }
   var ICD = {
     dni: 'badge',
@@ -438,7 +438,7 @@ window.PanelHC = {
     return '<span class="acc">' + llamar + chat + '</span>';
   }
   function pintarCampos() {
-    var u = D.usuario, edad = u.edad ? ' <span class="chip sm">' + esc(u.edad) + (/^\d+$/.test(u.edad) ? ' años' : '') + '</span>' : '';
+    var u = D.usuario, edad = u.edad ? ' <span class="hc-chip sm">' + esc(u.edad) + (/^\d+$/.test(u.edad) ? ' años' : '') + '</span>' : '';
     var h = campo('dni', 'DNI', u.dni) + campo('nac', 'Fecha de nacimiento', u.nacimiento, edad) +
       campo('tel', 'Teléfono', Telefono.formato(u.telefono), acciones(u.telefono, true)) + campo('tel', 'Teléfono 2', Telefono.formato(u.telefono2), acciones(u.telefono2, false)) +
       campo('ins', 'Fecha de inscripción', u.inscripcion);
@@ -489,7 +489,7 @@ window.PanelHC = {
     episodios.slice().reverse().forEach(function (e, ri) {
       var i = episodios.length - 1 - ri, enCurso = !e.alta;
       var d = document.createElement('div'); d.className = 'ep' + (enCurso ? ' curso' : '');
-      d.innerHTML = '<div class="t"><strong>Episodio ' + (i + 1) + '</strong><span class="chip sm ' + (enCurso ? 'ok dot' : '') + '">' + (enCurso ? 'En curso' : 'Alta') + '</span>' +
+      d.innerHTML = '<div class="t"><strong>Episodio ' + (i + 1) + '</strong><span class="hc-chip sm ' + (enCurso ? 'ok dot' : '') + '">' + (enCurso ? 'En curso' : 'Alta') + '</span>' +
         '<span class="dur">' + (e.ingreso ? dias(e.ingreso, e.alta) + ' días' : '') + '</span>' +
         '<button type="button" class="ep-del" data-del="' + i + '" title="Eliminar este episodio" aria-label="Eliminar episodio ' + (i + 1) + '">' + svg('papelera') + '</button></div>' +
         '<div class="fechas"><input class="fecha" type="date" data-i="' + i + '" data-k="ingreso" value="' + esc(e.ingreso) + '" aria-label="Ingreso"><span class="flecha">→</span>' +
@@ -565,9 +565,9 @@ window.PanelHC = {
     return '<svg class="spark" viewBox="0 0 ' + w + ' ' + h + '" aria-hidden="true"><polyline points="' + pts.map(function (q) { return q[0].toFixed(1) + ',' + q[1].toFixed(1); }).join(' ') + '"/><circle cx="' + l[0].toFixed(1) + '" cy="' + l[1].toFixed(1) + '" r="2.8"/></svg>';
   }
   function tendencia(a, b, mejorSiMenor, unidad) {
-    var d = b - a; if (Math.abs(d) < 0.05) return '<span class="chip sm">= sin cambio</span>';
+    var d = b - a; if (Math.abs(d) < 0.05) return '<span class="hc-chip sm">= sin cambio</span>';
     var bien = mejorSiMenor ? d < 0 : d > 0;
-    return '<span class="chip sm ' + (bien ? 'ok' : 'mal') + '">' + (d < 0 ? '↓ ' : '↑ ') + n1(Math.abs(d)) + (unidad || '') + '</span>';
+    return '<span class="hc-chip sm ' + (bien ? 'ok' : 'mal') + '">' + (d < 0 ? '↓ ' : '↑ ') + n1(Math.abs(d)) + (unidad || '') + '</span>';
   }
   function tile(icono, cls, titulo, cuerpo) {
     return '<div class="tile"><div class="th"><span class="ic sm ' + cls + '">' + svg(icono) + '</span><span class="k">' + titulo + '</span>' + (cuerpo.spark || '') + '</div>' + cuerpo.html + '</div>';
@@ -590,7 +590,7 @@ window.PanelHC = {
     n = sa.length; u = sa[n - 1]; p = sa[0];
     var ucol = function (v) { return v >= 4 ? 'var(--md-error)' : v === 3 ? 'var(--md-warning)' : 'var(--md-success)'; };
     out += tile('pill', 'pur', 'Analgésicos', n ? { html: '<div class="v txt">' + analgCorto(u.analg) + '<small>' + u.analg + ' / 5</small></div><div class="bar"><i style="width:' + u.analg * 20 + '%;background:' + ucol(u.analg) + '"></i></div><div class="tr">' +
-      (n > 1 ? (u.analg === p.analg ? '<span class="chip sm">= sin cambio</span>' : '<span class="chip sm ' + (u.analg < p.analg ? 'ok' : 'mal') + '">' + (u.analg < p.analg ? '↓ ' : '↑ ') + Math.abs(u.analg - p.analg) + (Math.abs(u.analg - p.analg) === 1 ? ' nivel' : ' niveles') + '</span>') : '') +
+      (n > 1 ? (u.analg === p.analg ? '<span class="hc-chip sm">= sin cambio</span>' : '<span class="hc-chip sm ' + (u.analg < p.analg ? 'ok' : 'mal') + '">' + (u.analg < p.analg ? '↓ ' : '↑ ') + Math.abs(u.analg - p.analg) + (Math.abs(u.analg - p.analg) === 1 ? ' nivel' : ' niveles') + '</span>') : '') +
       '<span>' + (analgDetalle(u.analg) || 'sin consumo') + '</span></div>' + pie(u) } : { html: vacio });
     $('tiles').innerHTML = out + htmlAsistencia();
   }
