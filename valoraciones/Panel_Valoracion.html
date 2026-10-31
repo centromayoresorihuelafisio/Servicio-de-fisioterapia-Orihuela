@@ -14,7 +14,8 @@
        sigue el tema claro / oscuro de la pagina. Los colores del dolor y de los analgesicos (--md-pain-*, --md-analg-*)
        tambien estan definidos alli. Botones .md-btn; el foco con teclado lo da la regla global. */
 
-    .pv *, .pv *::before, .pv *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    /* Con :where() el reinicio no tiene fuerza: nunca pisa las piezas comunes de ui/CSS_Global (.md-btn, .md-campo...) */
+    :where(.pv) *, :where(.pv) *::before, :where(.pv) *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     
 
@@ -61,15 +62,15 @@
     }
     .pv .logo-mark .ms { font-size: 24px; font-variation-settings: 'FILL' 1; }
     .pv .header-text h1 {
-      font-size: 1.5rem; font-weight: 400; color: var(--md-on-surface);
+      font-size: var(--fs-h); font-weight: 400; color: var(--md-on-surface);
       line-height: 1.25; letter-spacing: -0.01em;
     }
     .pv .header-text p {
-      font-size: .875rem; color: var(--md-on-surface-med); margin-top: .25rem;
+      font-size: var(--fs-md); color: var(--md-on-surface-med); margin-top: .25rem;
     }
     .pv .badge-date {
       margin-left: auto; display: inline-flex; align-items: center; gap: .375rem;
-      font-size: .75rem; font-weight: 500; color: var(--md-on-surface-med);
+      font-size: var(--fs-xs); font-weight: 500; color: var(--md-on-surface-med);
       background: var(--md-surface-variant); border: 1px solid var(--md-outline);
       padding: .375rem .75rem; border-radius: var(--md-shape-full);
     }
@@ -86,7 +87,7 @@
     }
     .pv .progress-step {
       display: flex; align-items: center; gap: 6px;
-      font-size: .6875rem; font-weight: 600;
+      font-size: var(--fs-2xs); font-weight: 600;
       letter-spacing: .05em; text-transform: uppercase;
       color: var(--md-on-surface-med); opacity: 0.6;
       transition: opacity var(--dur-2) var(--ease), color var(--dur-2) var(--ease);
@@ -122,7 +123,7 @@
     .pv .section-label { display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem; }
     .pv .section-label-chip {
       display: inline-flex; align-items: center; gap: .5rem;
-      font-size: .75rem; font-weight: 600; letter-spacing: .05em; text-transform: uppercase;
+      font-size: var(--fs-xs); font-weight: 600; letter-spacing: .05em; text-transform: uppercase;
       color: var(--md-primary-dark); background: var(--md-primary-container);
       padding: .375rem 1.25rem .375rem 1rem; border-radius: var(--md-shape-full);
     }
@@ -133,7 +134,6 @@
     .pv .grid-peg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; }
 
     /* ── Autocompletado M3 ── */
-    .pv .ms-autocomplete-wrapper { position: relative; width: 100%; }
     .pv .ms-menu {
       position: absolute; top: 100%; left: 0; right: 0;
       background: var(--md-surface);
@@ -145,7 +145,7 @@
     }
     .pv .ms-menu-item {
       padding: 12px 16px; cursor: pointer;
-      font-size: .875rem; color: var(--md-on-surface);
+      font-size: var(--fs-md); color: var(--md-on-surface);
       border-bottom: 1px solid var(--md-outline);
       transition: background var(--dur-2);
     }
@@ -159,7 +159,7 @@
       padding: 2px; gap: 2px;
     }
     .pv .seg-label {
-      padding: 8px 24px; cursor: pointer; font-size: .875rem; font-weight: 500;
+      padding: 8px 24px; cursor: pointer; font-size: var(--fs-md); font-weight: 500;
       color: var(--md-on-surface-med); border-radius: var(--md-shape-full);
       transition: background-color var(--dur-2) var(--ease), color var(--dur-2) var(--ease);
     }
@@ -169,71 +169,18 @@
       color: var(--md-primary-dark);
     }
 
-    /* ── Textarea M3 ── */
-    .pv .md-textarea {
-      width: 100%; padding: 16px; border: 1px solid var(--md-outline-strong);
-      border-radius: var(--md-shape-md); background: transparent;
-      font-family: var(--font); font-size: 1rem; color: var(--md-on-surface);
-      resize: vertical; min-height: 100px;
-      transition: border-color var(--dur-2) var(--ease);
-    }
-    .pv .md-textarea:focus {
-      border-color: var(--md-primary); border-width: 2px; padding: 15px; outline: none;
-    }
-
-    /* ── M3 Outlined Text Field ── */
-    .pv .md-field { position: relative; display: flex; flex-direction: column; margin-bottom: 0.5rem; }
-    .pv .md-field-inner { position: relative; display: flex; align-items: center; }
-    .pv .md-field-inner .leading-icon {
-      position: absolute; left: 16px; top: 50%; transform: translateY(-50%);
-      color: var(--md-on-surface-med); pointer-events: none; z-index: var(--z-base);
-    }
-    .pv .md-field-inner .leading-icon .ms { font-size: 24px; transition: color var(--dur-2) var(--ease); }
-    
-    .pv .md-field label {
-      position: absolute; left: 48px; top: 50%; transform: translateY(-50%);
-      font-size: 1rem; color: var(--md-on-surface-med); pointer-events: none;
-      background: var(--md-surface); padding: 0 6px;
-      transition: top var(--dur-2) var(--ease), font-size var(--dur-2) var(--ease), color var(--dur-2) var(--ease);
-      z-index: var(--z-base); line-height: 1;
-    }
-    .pv .md-field input:not(:placeholder-shown) ~ label, .pv .md-field input:focus ~ label {
-      top: 0; left: 16px; font-size: .75rem; font-weight: 500; color: var(--md-primary);
-    }
-    .pv .md-field input {
-      width: 100%; padding: 16px 16px 16px 48px; border: 1px solid var(--md-outline-strong);
-      border-radius: var(--md-shape-md); background: transparent;
-      color: var(--md-on-surface); font-family: var(--font); font-size: 1rem;
-      outline: none; transition: border-color var(--dur-2) var(--ease), border-width var(--dur-2) var(--ease);
-    }
-    /* Añadimos CSS para asegurar que visualmente siempre sea mayúscula */
-    .pv #nombreUsuario {
-      text-transform: uppercase;
-    }
-    
-    .pv .md-field input::placeholder { opacity: 0; }
-    .pv .md-field input:hover { border-color: var(--md-on-surface); }
-    .pv .md-field input:focus { border-color: var(--md-primary); border-width: 2px; padding-left: 47px; padding-right: 15px; }
-    .pv .md-field:focus-within .leading-icon .ms { color: var(--md-primary); }
-
-    .pv .md-field .trailing-error {
-      position: absolute; right: 16px; top: 50%; transform: translateY(-50%);
-      color: var(--md-error); pointer-events: none; opacity: 0; transition: opacity var(--dur-2) var(--ease);
-    }
-    .pv .md-field.has-error input { border-color: var(--md-error) !important; border-width: 2px; padding-right: 47px; }
-    .pv .md-field.has-error label { color: var(--md-error) !important; }
-    .pv .md-field.has-error .leading-icon .ms { color: var(--md-error); }
-    .pv .md-field.has-error .trailing-error { opacity: 1; }
+    /* El campo Usuario es el .md-campo común (ui/CSS_Global); aquí solo se muestra en mayúsculas */
+    .pv #nombreUsuario { text-transform: uppercase; }
 
     /* ── Sliders Refinados M3 ── */
     .pv .slider-block { display: flex; flex-direction: column; width: 100%; }
     .pv .slider-label-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
-    .pv .slider-label-text { font-size: .875rem; font-weight: 500; color: var(--md-on-surface); display: flex; align-items: center; gap: 6px; }
+    .pv .slider-label-text { font-size: var(--fs-md); font-weight: 500; color: var(--md-on-surface); display: flex; align-items: center; gap: 6px; }
     .pv .slider-label-text .ms { color: var(--md-primary); }
-    .pv .slider-desc { font-size: .75rem; color: var(--md-on-surface-med); margin-bottom: 12px; line-height: 1.4; }
+    .pv .slider-desc { font-size: var(--fs-xs); color: var(--md-on-surface-med); margin-bottom: 12px; line-height: 1.4; }
 
     .pv .val-chip {
-      font-size: .8125rem; font-weight: 600; font-family: var(--font);
+      font-size: var(--fs-sm); font-weight: 600; font-family: var(--font);
       padding: 4px 12px; border-radius: var(--md-shape-sm); min-width: 44px; text-align: center;
       background: var(--md-surface); color: var(--md-on-surface-med);   /* va sobre la sub-tarjeta (surface-variant) */
       transition: background-color var(--dur-2) var(--ease), color var(--dur-2) var(--ease);
@@ -246,7 +193,7 @@
     .pv .slider-thumb-label {
       position: absolute; top: -22px; left: 0%; transform: translateX(-50%); opacity: 0;
       background: var(--md-primary); color: var(--md-on-primary);
-      font-size: .75rem; font-weight: 500; height: 28px; min-width: 28px; padding: 0 8px;
+      font-size: var(--fs-xs); font-weight: 500; height: 28px; min-width: 28px; padding: 0 8px;
       display: inline-flex; align-items: center; justify-content: center; border-radius: var(--md-shape-full);
       pointer-events: none; transition: opacity var(--dur-1) var(--ease); z-index: calc(var(--z-base) + 1);
     }
@@ -273,18 +220,18 @@
     .pv .m3-range:active::-webkit-slider-thumb { box-shadow: 0 0 0 14px color-mix(in srgb, var(--md-primary) 16%, transparent); }
 
     .pv .slider-ticks { display: flex; justify-content: space-between; padding: 0 2px; margin-top: 4px; }
-    .pv .slider-tick { font-size: .75rem; color: var(--md-on-surface-med); }
+    .pv .slider-tick { font-size: var(--fs-xs); color: var(--md-on-surface-med); }
 
     /* ── Sub-cards M3 Elevación Tonal Estática (No Interactivas) ── */
     .pv .sub-card { background: var(--md-surface-variant); border: none; border-radius: var(--md-shape-lg); padding: 1.5rem; cursor: default; }
-    .pv .sub-card-title { font-size: 1rem; font-weight: 500; color: var(--md-on-surface); display: flex; align-items: center; gap: 8px; margin-bottom: 1.25rem; }
+    .pv .sub-card-title { font-size: var(--fs-lg); font-weight: 500; color: var(--md-on-surface); display: flex; align-items: center; gap: 8px; margin-bottom: 1.25rem; }
     .pv .sub-card-title .ms { color: var(--md-primary); }
-    .pv .sub-card-footer { font-size: .75rem; color: var(--md-on-surface-med); text-align: center; margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid var(--md-outline); }
+    .pv .sub-card-footer { font-size: var(--fs-xs); color: var(--md-on-surface-med); text-align: center; margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid var(--md-outline); }
     .pv .sliders-stack { display: flex; flex-direction: column; gap: 1.25rem; }
 
     /* ── Analgésicos description pill ── */
     .pv .analg-desc {
-      font-size: .875rem; font-weight: 500; text-align: center; padding: .875rem 1rem;
+      font-size: var(--fs-md); font-weight: 500; text-align: center; padding: .875rem 1rem;
       border-radius: var(--md-shape-sm); margin-top: 1rem; transition: background-color var(--dur-2) var(--ease), color var(--dur-2) var(--ease);
       background: var(--md-surface); color: var(--md-on-surface-med); border: none;   /* va sobre la sub-tarjeta (surface-variant) */
     }
@@ -293,7 +240,7 @@
     .pv .summary-toggle {
       width: 100%; background: var(--md-surface-variant); border: none; border-radius: var(--md-shape-md);
       padding: 1rem 1.25rem; display: flex; align-items: center; justify-content: space-between; cursor: pointer;
-      font-family: var(--font); font-size: .9375rem; font-weight: 500; color: var(--md-on-surface);
+      font-family: var(--font); font-size: var(--fs-field); font-weight: 500; color: var(--md-on-surface);
       margin-bottom: 1rem; transition: background var(--dur-2) var(--ease);
     }
     .pv .summary-toggle:hover { background-image: linear-gradient(color-mix(in srgb, currentColor 8%, transparent), color-mix(in srgb, currentColor 8%, transparent)); }
@@ -308,8 +255,8 @@
     .pv .summary-body.open { display: block; }
     .pv .summary-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
     .pv .summary-item { padding: 1rem 1.25rem; border-right: 1px solid var(--md-outline); border-bottom: 1px solid var(--md-outline); }
-    .pv .summary-item__label { font-size: .75rem; color: var(--md-on-surface-med); letter-spacing: .02em; margin-bottom: 4px; }
-    .pv .summary-item__val { font-size: 1.125rem; font-weight: 600; color: var(--md-on-surface); }
+    .pv .summary-item__label { font-size: var(--fs-xs); color: var(--md-on-surface-med); letter-spacing: .02em; margin-bottom: 4px; }
+    .pv .summary-item__val { font-size: var(--fs-title); font-weight: 600; color: var(--md-on-surface); }
     .pv .summary-item__val.low { color: var(--md-pain-low); }
     .pv .summary-item__val.mid { color: var(--md-pain-mid); }
     .pv .summary-item__val.high { color: var(--md-pain-high); }
@@ -320,17 +267,13 @@
       display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.25rem; text-align: center;
     }
     .pv .md-btn .ms { font-size: 18px; }
-    /* El reinicio de arriba (.pv * { padding: 0 }) pisaba el relleno de .md-btn de ui/CSS_Global: se restituye el mismo */
-    .pv .md-btn { padding: 0 20px; }
-    .pv .md-btn--text { padding: 0 12px; }
-    .pv .md-btn--icon { padding: 0; }
-    .pv .submit-hint { font-size: .75rem; color: var(--md-on-surface-med); line-height: 1.5; max-width: 560px; }
+    .pv .submit-hint { font-size: var(--fs-xs); color: var(--md-on-surface-med); line-height: 1.5; max-width: 560px; }
     .pv .submit-hint strong { color: var(--md-primary); }
 
     /* ── Message banner M3 ── */
     .pv .msg-banner {
       display: none; max-width: 860px; margin: 1rem auto 0; padding: 1rem 1.25rem;
-      border-radius: var(--md-shape-sm); font-size: .875rem; font-weight: 500;
+      border-radius: var(--md-shape-sm); font-size: var(--fs-md); font-weight: 500;
       align-items: center; gap: 1rem; animation: md-entra var(--dur-3) var(--ease) both;
     }
     .pv .msg-banner.show { display: flex; }
@@ -348,7 +291,6 @@
       .pv .progress-steps { gap: 4px; }
       .pv .logo-mark { width: 40px; height: 40px; }
       .pv .logo-mark .ms { font-size: 20px; }
-      .pv .header-text h1 { font-size: 1.25rem; }
     
   
 
@@ -361,7 +303,7 @@
 /* Hint bajo el último apartado (el botón Guardar vive ahora en el pie fijo) */
 .pv .submit-section { padding: 1.25rem 1.125rem 1.5rem; }
 /* Banner de resultado: fijo encima del pie, siempre visible aunque el formulario esté scrolleado */
-.pv .msg-banner { flex: none; max-width: none; margin: 0; border-radius: 0; padding: .75rem 1.125rem; font-size: .8125rem; }
+.pv .msg-banner { flex: none; max-width: none; margin: 0; border-radius: 0; padding: .75rem 1.125rem; font-size: var(--fs-sm); }
 /* Pie fijo con Cancelar / Guardar */
 .pv .panel-pie { flex: none; display: flex; align-items: center; justify-content: flex-end; gap: 8px; padding: .7rem 1rem; border-top: 1px solid var(--md-outline); background: var(--md-surface); }
 
@@ -419,32 +361,25 @@
         <div class="grid-3" style="grid-template-columns: 2fr 1fr; gap: 1rem;">
           
           <!-- Autocompletado Nombre -->
-          <div class="md-field" id="fieldNombre">
-            <div class="md-field-inner ms-autocomplete-wrapper">
-              <div class="leading-icon"><span class="ms">search</span></div>
-              <input type="text" id="nombreUsuario" name="nombre" placeholder=" " autocomplete="off">
-              <label for="nombreUsuario">Usuario</label>
-              <div id="autocomplete-list" class="ms-menu"></div>
-              <div class="trailing-error" aria-hidden="true"><span class="ms">error</span></div>
-            </div>
+          <div class="md-campo md-campo--icono" id="fieldNombre">
+            <span class="material-symbols-outlined md-campo__icono">search</span>
+            <input type="text" class="md-campo__control" id="nombreUsuario" name="nombre" placeholder=" " autocomplete="off">
+            <label class="md-campo__etiqueta" for="nombreUsuario">Usuario</label>
+            <div id="autocomplete-list" class="ms-menu"></div>
           </div>
 
           <!-- Teléfono (Solo lectura) -->
-          <div class="md-field">
-            <div class="md-field-inner">
-              <div class="leading-icon"><span class="ms">call</span></div>
-              <input type="text" id="telefonoUsuario" name="telefono" placeholder=" " readonly style="background: var(--md-surface); color: var(--md-on-surface-med);">
-              <label for="telefonoUsuario">Teléfono</label>
-            </div>
+          <div class="md-campo md-campo--icono">
+            <span class="material-symbols-outlined md-campo__icono">call</span>
+            <input type="text" class="md-campo__control" id="telefonoUsuario" name="telefono" placeholder=" " readonly>
+            <label class="md-campo__etiqueta" for="telefonoUsuario">Teléfono</label>
           </div>
 
           <!-- DNI (Solo lectura): identifica al usuario aunque haya otro con el mismo nombre -->
-          <div class="md-field">
-            <div class="md-field-inner">
-              <div class="leading-icon"><span class="ms">badge</span></div>
-              <input type="text" id="dniUsuario" name="dni" placeholder=" " readonly style="background: var(--md-surface); color: var(--md-on-surface-med);">
-              <label for="dniUsuario">DNI</label>
-            </div>
+          <div class="md-campo md-campo--icono">
+            <span class="material-symbols-outlined md-campo__icono">badge</span>
+            <input type="text" class="md-campo__control" id="dniUsuario" name="dni" placeholder=" " readonly>
+            <label class="md-campo__etiqueta" for="dniUsuario">DNI</label>
           </div>
 
         </div>
@@ -653,7 +588,11 @@
           </div>
           <div class="section-divider"></div>
         </div>
-        <textarea id="notasValoracion" name="notas" class="md-textarea" placeholder="Añade observaciones clínicas, banderas rojas o comentarios adicionales..."></textarea>
+        <div class="md-campo">
+          <textarea class="md-campo__control" id="notasValoracion" name="notas" placeholder=" "></textarea>
+          <label class="md-campo__etiqueta" for="notasValoracion">Notas</label>
+          <p class="md-campo__ayuda">Observaciones clínicas, banderas rojas o comentarios adicionales</p>
+        </div>
       </div>
 
       <!-- ── SECCIÓN 5: Guardar ── -->
@@ -756,7 +695,7 @@ window.PanelValoracion = {
         telefonoUsuarioInput.value = ""; 
         dniUsuarioInput.value = "";
         idSeleccionado = '';
-        $('fieldNombre').classList.remove('has-error');
+        $('fieldNombre').classList.remove('md-campo--error');
         updateProgress();
         return; 
       }
@@ -775,7 +714,7 @@ window.PanelValoracion = {
         const repetido = PACIENTES_LISTA.filter(pc => pc.nombre.toUpperCase() === match.nombre.toUpperCase()).length > 1;
         if (repetido) {
           const extra = document.createElement('span');
-          extra.style.cssText = 'margin-left:8px; font-size:.8em; opacity:.7';
+          extra.style.cssText = 'margin-left:8px; font-size:var(--fs-2xs); opacity:.7';
           extra.textContent = '· ' + (match.dni || Telefono.formato(match.telefono) || 'sin DNI');
           item.appendChild(extra);
         }
@@ -791,7 +730,7 @@ window.PanelValoracion = {
       nombreUsuarioInput.value = currentUserName;
       telefonoUsuarioInput.value = Telefono.formato(paciente.telefono || "");
       dniUsuarioInput.value = paciente.dni || "";
-      $('fieldNombre').classList.remove('has-error');
+      $('fieldNombre').classList.remove('md-campo--error');
       closeAllLists();
       updateProgress();
     }
@@ -982,11 +921,11 @@ window.PanelValoracion = {
       // Validar si seleccionó del listado y coincide (o si viene pre-cargado es válido)
       if (!idSeleccionado || !currentUserName || nombreNormalizado !== currentUserName) {
         showMessage('error', 'error', 'Por favor, busca y selecciona un usuario válido del listado.');
-        fieldNombre.classList.add('has-error');
+        fieldNombre.classList.add('md-campo--error');
         nombreUsuarioInput.focus();
         return;
       }
-      fieldNombre.classList.remove('has-error');
+      fieldNombre.classList.remove('md-campo--error');
 
       const form = $('valoracionForm');
       const formData = new FormData(form);
@@ -1082,7 +1021,7 @@ window.PanelValoracion = {
       nombreUsuarioInput.value = nm; currentUserName = nm;
       if (opts.telefono) telefonoUsuarioInput.value = Telefono.formato(opts.telefono);
       if (opts.dni) dniUsuarioInput.value = opts.dni;
-      $('fieldNombre').classList.remove('has-error');
+      $('fieldNombre').classList.remove('md-campo--error');
       updateProgress();
     }
 

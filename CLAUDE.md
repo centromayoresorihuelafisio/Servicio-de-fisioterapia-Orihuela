@@ -14,7 +14,7 @@
 
 ## Cómo trabajar aquí (esto sustituye a la regla del zip de CONTEXTO.md)
 - Edita los archivos directamente en el proyecto. NO me entregues zips ni archivos sueltos: ya no hacen falta.
-- NO hagas commit, NO hagas push, NO cambies de rama y NO ejecutes `clasp push`. Eso lo hago yo con GitHub Desktop y clasp. Estoy trabajando en la rama `unificacion-visual`.
+- NO hagas commit, NO hagas push, NO cambies de rama y NO ejecutes `clasp push`. Eso lo hago yo con GitHub Desktop y clasp. Trabajamos directamente en la rama `main`.
 - Todos los archivos van en LF (unificado el 30-oct-2026). No introduzcas CRLF en ningún archivo, nuevo o existente.
 - Al terminar cada tarea, dame un resumen corto en español con: qué archivos has tocado (con su ruta), si son nuevos o ya existían, qué cambia en pantalla y qué debo probar.
 - Recuérdame que, tras `clasp push`, la Web App necesita una nueva versión de la implementación.
