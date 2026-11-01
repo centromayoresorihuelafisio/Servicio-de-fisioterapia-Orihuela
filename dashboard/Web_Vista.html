@@ -47,7 +47,8 @@
           <option value="urgente">Urgente</option>
         </select>
         <select id="fTipo" aria-label="Tipo de ingreso" title="Filtrar por tipo de ingreso"><option value="">Tipo de ingreso: todos</option></select>
-        <select id="fPatologia" aria-label="Patología" title="Filtrar por patología"><option value="">Patología: todas</option></select>
+        <select id="fZona" aria-label="Zona" title="Filtrar por zona del cuerpo o tipo de patología"><option value="">Zona: todas</option></select>
+        <select id="fPatologia" aria-label="Patología" title="Filtrar por patología (con su código CIE-10)"><option value="">Patología: todas</option></select>
         <button type="button" class="btn-toolbar" id="btnQuitar" hidden><span class="material-symbols-outlined">filter_alt_off</span> Quitar filtros</button>
         <span class="cabecera-espacio"></span>
         <span class="contador" id="textoActualizado"></span>
@@ -207,6 +208,35 @@
             </table>
           </div>
           <p class="nota" id="nFlujo"></p>
+        </article>
+      </section>
+        </div>
+      </details>
+      <details class="avanzado t-verde" id="detDiagnosticos">
+        <summary><span class="material-symbols-outlined chev">expand_more</span> Diagnósticos <small>usuarios, duración y mejora por patología (código CIE-10) y por zona</small></summary>
+        <div class="cuerpo">
+      <p class="seccion-sub">Desglose por la lista oficial de patologías. Respeta el periodo, la gravedad y el tipo de ingreso; ignora los filtros de zona y patología porque es lo que se desglosa. Un usuario con dos patologías cuenta en las dos.</p>
+      <section class="kpis" id="kpisDiag" aria-label="Resumen de diagnósticos"></section>
+      <section class="rejilla">
+        <article class="tarjeta ancha">
+          <header><h2>Usuarios por patología</h2></header>
+          <div id="gDiagPatologia"></div>
+          <p class="nota" id="nDiagPatologia"></p>
+        </article>
+        <article class="tarjeta">
+          <header><h2>Usuarios por zona</h2></header>
+          <div id="gDiagZona"></div>
+          <p class="nota" id="nDiagZona"></p>
+        </article>
+        <article class="tarjeta ancha">
+          <header><h2>Detalle por patología</h2></header>
+          <div class="tabla-scroll">
+            <table class="tabla">
+              <thead><tr><th>Patología</th><th>CIE-10</th><th class="num">Usuarios</th><th class="num">Duración media</th><th class="num">Sesiones medias</th><th class="num">Mejoran</th></tr></thead>
+              <tbody id="cuerpoDiag"></tbody>
+            </table>
+          </div>
+          <p class="nota" id="nDiagTabla"></p>
         </article>
       </section>
         </div>

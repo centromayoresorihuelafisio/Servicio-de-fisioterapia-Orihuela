@@ -44,6 +44,20 @@ function dashPatologias_(p1, p2) {
   return out;
 }
 
+/** Lista oficial (core/Patologias.gs) por nombre sin tildes ni mayúsculas: { clave: { nombre, codigo, grupo } }. */
+function dashMapaPatologias_() {
+  const mapa = {};
+  patologiasLista_().forEach(p => { mapa[dashNorm_(p.nombre)] = p; });
+  return mapa;
+}
+
+/** Zonas (grupos de la lista oficial) a las que pertenecen las patologías de un usuario, sin repetir y en el orden de la lista. */
+function dashZonasDe_(patologias, mapa) {
+  const vistas = {};
+  patologias.forEach(p => { const o = mapa[dashNorm_(p)]; if (o) vistas[o.grupo] = true; });
+  return PATOLOGIAS_GRUPOS.map(g => g.grupo).filter(z => vistas[z]);
+}
+
 // La Maestra se lee una sola vez por llamada de obtenerDashboardWeb: este valor solo vive durante esa llamada
 // (las llamadas sueltas a D1 o D2 la leen cada una, sin memoria).
 let DASH_MEMO_MAESTRA_ = null;
@@ -56,7 +70,10 @@ function dashLeerMaestra_() { return DASH_MEMO_MAESTRA_ || dashLeerMaestraHoja_(
  */
 function dashLeerMaestraHoja_() {
   const hoja = getSS().getSheetByName(SHEETS.MAESTRA);
-  if (!hoja || hoja.getLastRow() < 2) return { pacientes: [], opciones: { gravedades: [], tipos: [], patologias: [] } };
+  const lista = patologiasLista_(), mapaPat = dashMapaPatologias_();
+  // Los filtros de patología y zona ofrecen siempre la lista oficial completa (con código y zona), tenga o no usuarios cada opción.
+  const opcionesPat = { patologias: lista, zonas: PATOLOGIAS_GRUPOS.map(g => g.grupo) };
+  if (!hoja || hoja.getLastRow() < 2) return { pacientes: [], opciones: { gravedades: [], tipos: [], patologias: opcionesPat.patologias, zonas: opcionesPat.zonas } };
   const col = n => obtenerIndiceColumnaPorNombre_(hoja, n);
   const c = { id: col(COLUMNAS.MAESTRA.ID_PACIENTE), nombre: col(COLUMNAS.MAESTRA.NOMBRE), tipo: col(COLUMNAS.MAESTRA.TIPO_INGRESO),
               grav: col(COLUMNAS.MAESTRA.GRAVEDAD), p1: col(DASH_COL_PATOLOGIA_1_), p2: col(DASH_COL_PATOLOGIA_2_),
@@ -64,35 +81,35 @@ function dashLeerMaestraHoja_() {
   if (c.id === -1 || c.nombre === -1) throw new Error('La Maestra no tiene las columnas "' + COLUMNAS.MAESTRA.ID_PACIENTE + '" y "' + COLUMNAS.MAESTRA.NOMBRE + '".');
   const ancho = Math.max.apply(null, Object.keys(c).map(k => c[k])) + 1;
   const dato = (f, i) => i === -1 || f[i] == null ? '' : String(f[i]).trim();
-  const tipos = {}, pats = {}, pacientes = [];
+  const tipos = {}, pacientes = [];
   hoja.getRange(2, 1, hoja.getLastRow() - 1, ancho).getValues().forEach(f => {
     const id = dato(f, c.id), nombre = dato(f, c.nombre);
     if (!id || !nombre) return;
     const tipo = dato(f, c.tipo), pat = dashPatologias_(dato(f, c.p1), dato(f, c.p2));
     if (tipo && !(dashNorm_(tipo) in tipos)) tipos[dashNorm_(tipo)] = tipo;   // si hay variantes de escritura, se queda la primera
-    pat.forEach(p => { if (!(dashNorm_(p) in pats)) pats[dashNorm_(p)] = p; });
     pacientes.push({
-      id: id, nombre: nombre, tipo: tipo, gravedad: dashClaseGravedad_(dato(f, c.grav)), patologias: pat,
+      id: id, nombre: nombre, tipo: tipo, gravedad: dashClaseGravedad_(dato(f, c.grav)), patologias: pat, zonas: dashZonasDe_(pat, mapaPat),
       estado: dato(f, c.estado), enEspera: dashNorm_(dato(f, c.estado)).indexOf('espera') !== -1,
       inscripcion: c.insc === -1 ? '' : dashFechaISO_(f[c.insc])
     });
   });
   const ordenar = m => Object.keys(m).sort().map(k => m[k]);
-  return { pacientes: pacientes, opciones: { gravedades: ['leve', 'moderado', 'urgente'], tipos: ordenar(tipos), patologias: ordenar(pats) } };
+  return { pacientes: pacientes, opciones: { gravedades: ['leve', 'moderado', 'urgente'], tipos: ordenar(tipos), patologias: opcionesPat.patologias, zonas: opcionesPat.zonas } };
 }
 
 /**
- * IDs de los usuarios que cumplen los filtros { gravedad, tipo, patologia } (vacío = sin filtrar): { id: true }.
+ * IDs de los usuarios que cumplen los filtros { gravedad, tipo, patologia, zona } (vacío = sin filtrar): { id: true }.
  * Devuelve null si no hay ningún filtro (todas las citas con ID entran, incluso las de usuarios ya borrados).
  */
 function dashIdsFiltrados_(pacientes, filtros) {
-  const g = dashNorm_(filtros.gravedad), t = dashNorm_(filtros.tipo), p = dashNorm_(filtros.patologia);
-  if (!g && !t && !p) return null;
+  const g = dashNorm_(filtros.gravedad), t = dashNorm_(filtros.tipo), p = dashNorm_(filtros.patologia), z = dashNorm_(filtros.zona);
+  if (!g && !t && !p && !z) return null;
   const ids = {};
   pacientes.forEach(u => {
     if (g && u.gravedad !== g) return;
     if (t && dashNorm_(u.tipo) !== t) return;
     if (p && u.patologias.map(dashNorm_).indexOf(p) === -1) return;
+    if (z && u.zonas.map(dashNorm_).indexOf(z) === -1) return;
     ids[u.id] = true;
   });
   return ids;
@@ -140,7 +157,7 @@ function obtenerDashboardCitasWeb(filtros) {
 
     return {
       success: true, hoy: hoy, periodo: { desde: desde, hasta: hasta },
-      filtros: { gravedad: dashNorm_(filtros.gravedad), tipo: String(filtros.tipo || '').trim(), patologia: String(filtros.patologia || '').trim(), umbral: r.reincidentes.umbral },
+      filtros: { gravedad: dashNorm_(filtros.gravedad), tipo: String(filtros.tipo || '').trim(), patologia: String(filtros.patologia || '').trim(), zona: String(filtros.zona || '').trim(), umbral: r.reincidentes.umbral },
       opciones: maestra.opciones, ocupacion: r.ocupacion, faltas: r.faltas, atendidos: r.atendidos, abandonos: r.abandonos, reincidentes: r.reincidentes,
       diagnostico: { citasEnPeriodo: citas.length, citasSinId: sinId, fueraDeParrilla: r.ocupacion.fueraDeParrilla, festivos: Object.keys(festivos).length }
     };
@@ -209,7 +226,7 @@ function obtenerDashboardPacientesWeb(filtros) {
 
     return {
       success: true, hoy: hoy, periodo: { desde: desde, hasta: hasta }, curso: curso.etiqueta,
-      filtros: { gravedad: dashNorm_(filtros.gravedad), tipo: String(filtros.tipo || '').trim(), patologia: String(filtros.patologia || '').trim() },
+      filtros: { gravedad: dashNorm_(filtros.gravedad), tipo: String(filtros.tipo || '').trim(), patologia: String(filtros.patologia || '').trim(), zona: String(filtros.zona || '').trim() },
       opciones: maestra.opciones, listaEspera: r.listaEspera, tiempoEspera: r.tiempoEspera, porMes: r.porMes, duracion: r.duracion, sesiones: r.sesiones,
       diagnostico: { pacientes: pacientes.length, episodios: episodios.length, episodiosSinPaciente: lectura.sinPaciente, citasLeidas: citas.length }
     };
@@ -376,28 +393,76 @@ function dashboardProbarFlujo() {
 }
 
 // ================================================================================
+// D5 — diagnósticos (sección 15 de CONTEXTO.md)
+// ================================================================================
+
+/**
+ * Fase D5: usuarios, duración, sesiones y mejora por patología (código CIE-10) y por zona, sobre la lista oficial de core/Patologias.gs.
+ * Respeta periodo, gravedad y tipo de ingreso; IGNORA los filtros de patología y zona (es lo que se desglosa).
+ * @param {{desdeISO?:string, hastaISO?:string, gravedad?:string, tipo?:string}=} filtros  Periodo por defecto: el curso completo de hoy.
+ * @return {{success:boolean, message?:string, periodo?:Object, diagnosticos?:Object}}
+ */
+function obtenerDashboardDiagnosticosWeb(filtros) {
+  try {
+    filtros = filtros || {};
+    const hoy = dashHoy_();
+    const curso = dashCursoDe_(hoy, DASH_CURSO_INICIO_);
+    const desde = dashFechaValida_(filtros.desdeISO) || curso.desde;
+    const hasta = dashFechaValida_(filtros.hastaISO) || curso.hasta;
+    if (hasta < desde) return { success: false, message: 'La fecha final es anterior a la inicial.' };
+    if ((dashFechaUTC_(hasta) - dashFechaUTC_(desde)) / 86400000 > DASH_MAX_DIAS_) return { success: false, message: 'El periodo es demasiado largo.' };
+
+    const maestra = dashLeerMaestra_();
+    const ids = dashIdsFiltrados_(maestra.pacientes, { gravedad: filtros.gravedad, tipo: filtros.tipo });
+    const pacientes = ids ? maestra.pacientes.filter(u => ids[u.id] === true) : maestra.pacientes;
+    const episodios = dashLeerEpisodios_().episodios.filter(ep => !ids || ids[ep.idPaciente] === true);
+    const citas = citasLeer_({ desdeISO: DASH_CURSO_INICIO_ }).filter(c => c.idPaciente && (!ids || ids[c.idPaciente] === true));
+    const valoraciones = dashLeerValoraciones_().filas.filter(v => !ids || ids[v.idPaciente] === true);
+
+    const diagnosticos = dashCalcularDiagnosticos_({
+      pacientes: pacientes, episodios: episodios, citas: citas, valoraciones: valoraciones, lista: patologiasLista_(),
+      zonas: PATOLOGIAS_GRUPOS.map(g => g.grupo), desde: desde, hasta: hasta, hoy: hoy, cursoInicio: DASH_CURSO_INICIO_, norm: dashNorm_
+    });
+    return { success: true, periodo: { desde: desde, hasta: hasta }, diagnosticos: diagnosticos };
+  } catch (e) {
+    Logger.log('Error en obtenerDashboardDiagnosticosWeb: ' + e.message);
+    return { success: false, message: e.message };
+  }
+}
+
+/** Herramienta de EDITOR (no llamable desde la web): ejecuta D5 con los valores por defecto y escribe un resumen en el registro. */
+function dashboardProbarDiagnosticos() {
+  const r = obtenerDashboardDiagnosticosWeb({});
+  if (!r.success) { Logger.log('Error: ' + r.message); return; }
+  const d = r.diagnosticos;
+  Logger.log('Periodo ' + r.periodo.desde + ' a ' + r.periodo.hasta + ': ' + d.usuarios + ' usuarios con ingreso (sin diagnóstico: ' + d.sinDiagnostico + ', no reconocidos: ' + d.noReconocidos + ')');
+  Logger.log('Por zona: ' + d.zonas.map(z => z.zona + ' ' + z.n).join(' · '));
+  Logger.log('Top 10: ' + d.patologias.slice(0, 10).map(p => p.nombre + ' (' + p.codigo + ') ' + p.usuarios).join(' · '));
+}
+
+// ================================================================================
 // D3 — endpoint de la página: D1 + D2 con caché
 // ================================================================================
 
 const DASH_CACHE_SEGUNDOS_ = 600;      // decisión del dueño (23-oct-2026): 10 minutos + botón «Actualizar»
-const DASH_CACHE_PREFIJO_ = 'dash6:';   // súbelo cuando cambie la forma de la respuesta, para no servir cachés con la forma vieja
+const DASH_CACHE_PREFIJO_ = 'dash7:';   // súbelo cuando cambie la forma de la respuesta, para no servir cachés con la forma vieja
 const DASH_CACHE_MAX_CARACTERES_ = 90000;   // CacheService admite 100 KB por valor
 
 /** Clave de caché de unos filtros ya normalizados (el periodo siempre va resuelto, así que el valor por defecto comparte clave). */
 function dashClaveCache_(f) {
-  const texto = JSON.stringify([f.desdeISO, f.hastaISO, dashNorm_(f.gravedad), dashNorm_(f.tipo), dashNorm_(f.patologia), Number(f.umbral) || 0]);
+  const texto = JSON.stringify([f.desdeISO, f.hastaISO, dashNorm_(f.gravedad), dashNorm_(f.tipo), dashNorm_(f.patologia), dashNorm_(f.zona), Number(f.umbral) || 0]);
   const dig = Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, texto, Utilities.Charset.UTF_8);
   return DASH_CACHE_PREFIJO_ + dig.map(b => ('0' + (b & 0xff).toString(16)).slice(-2)).join('');
 }
 
 /**
- * Todo lo que pinta la página del dashboard, en una sola llamada (D1 + D2 + D4a + D4b), ya agregado (nunca filas).
+ * Todo lo que pinta la página del dashboard, en una sola llamada (D1 + D2 + D4a + D4b + D5), ya agregado (nunca filas).
  * Guarda el resultado en CacheService 10 minutos por filtros; `forzar` (botón «Actualizar») se salta la caché y la renueva.
  * @param {{desdeISO?:string, hastaISO?:string, gravedad?:string, tipo?:string, patologia?:string, umbral?:number}=} filtros
  *   Periodo por defecto: el curso completo de hoy (septiembre a julio).
  * @param {boolean=} forzar
  * @return {{success:boolean, message?:string, hoy?:string, curso?:{desde:string,hasta:string,etiqueta:string}, periodo?:Object,
- *   filtros?:Object, opciones?:Object, citas?:{ocupacion,faltas,atendidos,abandonos,reincidentes,diagnostico}, usuarios?:Object, clinica?:{evolucion,diagnostico}, estados?:{flujo,diagnostico},
+ *   filtros?:Object, opciones?:Object, citas?:{ocupacion,faltas,atendidos,abandonos,reincidentes,diagnostico}, usuarios?:Object, clinica?:{evolucion,diagnostico}, estados?:{flujo,diagnostico}, diagnosticos?:Object,
  *   generadoEn?:string, desdeCache?:boolean}}
  */
 function obtenerDashboardWeb(filtros, forzar) {
@@ -408,7 +473,7 @@ function obtenerDashboardWeb(filtros, forzar) {
     const f = {
       desdeISO: dashFechaValida_(filtros.desdeISO) || curso.desde,
       hastaISO: dashFechaValida_(filtros.hastaISO) || curso.hasta,
-      gravedad: filtros.gravedad, tipo: filtros.tipo, patologia: filtros.patologia, umbral: Number(filtros.umbral) || 0
+      gravedad: filtros.gravedad, tipo: filtros.tipo, patologia: filtros.patologia, zona: filtros.zona, umbral: Number(filtros.umbral) || 0
     };
     const cache = CacheService.getScriptCache(), clave = dashClaveCache_(f);
     if (!forzar) {
@@ -420,7 +485,7 @@ function obtenerDashboardWeb(filtros, forzar) {
 
     DASH_MEMO_MAESTRA_ = null;
     DASH_MEMO_MAESTRA_ = dashLeerMaestraHoja_();
-    let citas, pac, cli, flu;
+    let citas, pac, cli, flu, dia;
     try {
       citas = obtenerDashboardCitasWeb(f);
       if (!citas.success) return citas;
@@ -430,6 +495,8 @@ function obtenerDashboardWeb(filtros, forzar) {
       if (!cli.success) return cli;
       flu = obtenerDashboardFlujoWeb(f);
       if (!flu.success) return flu;
+      dia = obtenerDashboardDiagnosticosWeb(f);
+      if (!dia.success) return dia;
     } finally {
       DASH_MEMO_MAESTRA_ = null;
     }
@@ -440,6 +507,7 @@ function obtenerDashboardWeb(filtros, forzar) {
       pacientes: { listaEspera: pac.listaEspera, tiempoEspera: pac.tiempoEspera, porMes: pac.porMes, duracion: pac.duracion, sesiones: pac.sesiones, diagnostico: pac.diagnostico },
       clinica: { evolucion: cli.evolucion, diagnostico: cli.diagnostico },
       estados: { flujo: flu.flujo, diagnostico: flu.diagnostico },
+      diagnosticos: dia.diagnosticos,
       generadoEn: new Date().toISOString(), desdeCache: false
     };
     try {

@@ -54,7 +54,10 @@
         'Activos hoy': { tono: 'azul', icono: 'how_to_reg' },
         'En espera hoy': { tono: 'ambar', icono: 'hourglass_top' },
         'Cambios de estado': { tono: 'azul', icono: 'swap_horiz' },
-        'Tiempo en Activo': { tono: 'azul', icono: 'timer' }
+        'Tiempo en Activo': { tono: 'azul', icono: 'timer' },
+        'Usuarios con ingreso': { tono: 'azul', icono: 'groups' },
+        'Patología más frecuente': { tono: 'verde', icono: 'healing' },
+        'Zona más frecuente': { tono: 'verde', icono: 'accessibility_new' }
       };
       // El valor llega ya formateado («72,5 %»): se vuelve a leer como número para dibujar el anillo; «—» (sin datos) deja el anillo vacío.
       function pctDeTexto(texto) {
@@ -104,7 +107,7 @@
       }
 
       // Esqueletos grises de la primera carga (los sustituyen las propias funciones pintar*, que vacían cada contenedor).
-      var ESQUELETOS = { kpisPart: 6, kpisEval: 3, kpis: 7, kpisClinica: 4, kpisFlujo: 4 };
+      var ESQUELETOS = { kpisPart: 6, kpisEval: 3, kpis: 7, kpisClinica: 4, kpisFlujo: 4, kpisDiag: 3 };
       function pintarEsqueletos() {
         Object.keys(ESQUELETOS).forEach(function (id) {
           var c = $(id);
@@ -274,7 +277,7 @@
         if (modo === 'mes') nombre = $('selMes').value ? mesLargo($('selMes').value) : 'Un mes';
         else if (modo === 'rango') nombre = 'Rango de fechas';
         chipBanda(b, 'azul', 'calendar_month', nombre + ' · ' + fechaES(periodo.desde) + ' – ' + fechaES(periodo.hasta));
-        [['fGravedad', 'Gravedad', 'priority_high'], ['fTipo', 'Tipo de ingreso', 'input'], ['fPatologia', 'Patología', 'healing']].forEach(function (x) {
+        [['fGravedad', 'Gravedad', 'priority_high'], ['fTipo', 'Tipo de ingreso', 'input'], ['fZona', 'Zona', 'accessibility_new'], ['fPatologia', 'Patología', 'healing']].forEach(function (x) {
           var sel = $(x[0]);
           if (!sel.value) return;
           var tono = x[0] === 'fGravedad' ? ({ leve: 'verde', moderado: 'ambar', urgente: 'rojo' }[sel.value] || 'azul') : 'azul';

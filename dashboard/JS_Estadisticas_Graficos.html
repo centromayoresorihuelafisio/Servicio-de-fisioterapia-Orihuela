@@ -210,6 +210,48 @@
       }
       function dashEtiqueta(c) { return { activo: 'Activo', espera: 'En espera', contactara: 'Contactará', noresponde: 'No responde', alta: 'Alta' }[c]; }
 
+      // ---------- Diagnósticos ----------
+      function pintarDiagnosticos(r) {
+        var d = r.diagnosticos, filas = d.patologias, conUsuarios = filas.filter(function (x) { return x.usuarios > 0; });
+        var zonaTop = d.zonas.slice().sort(function (a, b) { return b.n - a.n; })[0];
+        limpiar($('kpisDiag'));
+        resumen('detDiagnosticos', plural(d.usuarios, 'usuario', 'usuarios') + ' · ' + plural(conUsuarios.length, 'patología', 'patologías') + (zonaTop && zonaTop.n ? ' · más: ' + zonaTop.zona : ''));
+        var k = function () { kpiEn.apply(null, ['kpisDiag'].concat([].slice.call(arguments))); };
+        k('Usuarios con ingreso', num(d.usuarios), 'En el periodo', 'Usuarios con algún episodio cuyo ingreso cae en el periodo',
+          avisos([d.sinDiagnostico ? plural(d.sinDiagnostico, 'usuario sin patología', 'usuarios sin patología') : '', d.noReconocidos ? plural(d.noReconocidos, 'usuario con una patología fuera de la lista', 'usuarios con una patología fuera de la lista') : '']));
+        k('Patología más frecuente', conUsuarios.length ? conUsuarios[0].nombre : '—', conUsuarios.length ? conUsuarios[0].codigo + ' · ' + plural(conUsuarios[0].usuarios, 'usuario', 'usuarios') : '',
+          'Entre las ' + conUsuarios.length + ' patologías con usuarios en el periodo', '');
+        k('Zona más frecuente', zonaTop && zonaTop.n ? zonaTop.zona : '—', zonaTop && zonaTop.n ? plural(zonaTop.n, 'usuario', 'usuarios') : '', 'Cada usuario cuenta una vez por zona', '');
+
+        Graficos.montar($('gDiagPatologia'), 'barrasH', {
+          items: conUsuarios.map(function (x) { return { etiqueta: x.nombre + ' · ' + x.codigo, valor: x.usuarios, clase: 0 }; }),
+          formato: num, vacio: 'Ningún usuario con ingreso en el periodo tiene patología.', descripcion: 'Usuarios por patología, de más a menos'
+        });
+        nota('nDiagPatologia', 'Usuarios con ingreso en el periodo, por patología (código CIE-10). Un usuario con dos patologías cuenta en las dos. Pasa el ratón por una barra para ver el nombre completo.');
+
+        Graficos.montar($('gDiagZona'), 'barrasH', {
+          items: d.zonas.map(function (x) { return { etiqueta: x.zona, valor: x.n, clase: 1 }; }),
+          formato: num, vacio: 'Ningún usuario con ingreso en el periodo tiene patología.', descripcion: 'Usuarios por zona'
+        });
+        nota('nDiagZona', 'Cada usuario cuenta una vez en cada zona en la que tenga alguna patología.');
+
+        var cuerpo = $('cuerpoDiag');
+        limpiar(cuerpo);
+        if (!filas.length) { var vacia = hijo(cuerpo, 'tr'), td = hijo(vacia, 'td', null, 'Sin datos de patologías en el periodo.'); td.colSpan = 6; }
+        var dato = function (v, n, f) { return n ? f(v) : '—'; };
+        filas.forEach(function (x) {
+          var tr = hijo(cuerpo, 'tr'), pocos = x.usuarios < d.pocosDatos;
+          var c = hijo(tr, 'td', null, x.nombre);
+          if (pocos) { c.title = 'Pocos datos: menos de ' + d.pocosDatos + ' usuarios en el periodo'; hijo(c, 'small', null, ' · pocos datos'); }
+          hijo(tr, 'td', null, x.codigo);
+          hijo(tr, 'td', 'num', String(x.usuarios));
+          hijo(tr, 'td', 'num', dato(x.duracion.media, x.duracion.n, dias)).title = 'n = ' + x.duracion.n + ' altas en el periodo';
+          hijo(tr, 'td', 'num', dato(x.sesiones.media, x.sesiones.n, num)).title = 'n = ' + x.sesiones.n + ' episodios cerrados';
+          hijo(tr, 'td', 'num', dato(x.mejora.pct, x.mejora.n, pct)).title = x.mejora.mejoran + ' de ' + x.mejora.n + ' usuarios con 2 o más valoraciones';
+        });
+        nota('nDiagTabla', 'Usuarios: ingresos en el periodo. Duración y sesiones: episodios con alta en el periodo (sesiones, solo desde el ' + fechaES(r.pacientes.sesiones.desde) + '). Mejoran: usuarios cuya última valoración cae en el periodo y cuyo dolor baja o función sube. Pasa el ratón por cada cifra para ver su n.');
+      }
+
       // ---------- Exportar ----------
       function nombreBase() {
         return 'estadisticas_fisioterapia_' + datos.periodo.desde + '_' + datos.periodo.hasta;
@@ -226,7 +268,7 @@
           indicadores.map(function (i) { return [i.grupo, i.titulo, i.valor, i.unidad, i.detalle]; }));
         uni('Periodo y filtros', ['Concepto', 'Valor'], [
           ['Desde', fechaES(r.periodo.desde)], ['Hasta', fechaES(r.periodo.hasta)], ['Gravedad', filtros.gravedad || 'todas'],
-          ['Tipo de ingreso', filtros.tipo || 'todos'], ['Patología', filtros.patologia || 'todas'], ['Datos generados', new Date(r.generadoEn).toLocaleString('es-ES')]]);
+          ['Tipo de ingreso', filtros.tipo || 'todos'], ['Zona', filtros.zona || 'todas'], ['Patología', filtros.patologia || 'todas'], ['Datos generados', new Date(r.generadoEn).toLocaleString('es-ES')]]);
 
         var filaOc = function (x) { return [x.huecos, x.reservadas, x.efectivas, x.pctReservada, x.pctEfectiva]; };
         var cabOc = ['Huecos abiertos', 'Citas reservadas', 'Citas asistidas', '% ocupación reservada', '% ocupación efectiva'];
@@ -256,6 +298,10 @@
           ['Global (dolor baja o función sube)', e.global.n, null, null, null, null, e.global.pctMejoran, e.global.mejoran, e.global.igual, e.global.empeoran, e.global.sinDato]]);
         uni('Analgésicos por nivel', ['Nivel', 'Primera valoración', 'Última valoración'], e.analgesicos.niveles.map(function (x) { return [ANALG_NIVELES[x.nivel], x.primera, x.ultima]; }));
 
+        var dg = r.diagnosticos;
+        uni('Diagnósticos', ['Patología', 'Código CIE-10', 'Zona', 'Usuarios', 'Duración media (días)', 'Altas medidas', 'Sesiones medias', 'Episodios medidos', '% que mejoran', 'Usuarios comparados'],
+          dg.patologias.map(function (x) { return [x.nombre, x.codigo, x.zona, x.usuarios, x.duracion.media, x.duracion.n, x.sesiones.media, x.sesiones.n, x.mejora.pct, x.mejora.n]; }));
+        uni('Diagnósticos por zona', ['Zona', 'Usuarios'], dg.zonas.map(function (x) { return [x.zona, x.n]; }));
         uni('Estados hoy', ['Estado', 'Usuarios'], f.estadoActual.items.map(function (x) { return [x.etiqueta, x.n]; }));
         uni('Entradas por estado y mes', ['Mes', 'Activo', 'En espera', 'Contactará', 'No responde', 'Alta'],
           f.entradasPorMes.meses.map(function (x) { return [x.mes, x.activo, x.espera, x.contactara, x.noresponde, x.alta]; }));
@@ -321,6 +367,17 @@
         sel.value = actual && sel.querySelector('option[value="' + actual + '"]') ? actual : tope;
         mesesListos = true;
       }
+      /** Desplegable de patologías: agrupadas por zona, con el código CIE-10 al lado; el valor es el nombre (lo que se guarda en la hoja). */
+      function poblarPatologias(sel, lista, todos) {
+        var actual = sel.value, grupo = null, gr = null;
+        limpiar(sel);
+        hijo(sel, 'option', null, todos).value = '';
+        lista.forEach(function (p) {
+          if (p.grupo !== grupo) { grupo = p.grupo; gr = hijo(sel, 'optgroup'); gr.label = grupo; }
+          hijo(gr, 'option', null, p.nombre + ' (' + p.codigo + ')').value = p.nombre;
+        });
+        sel.value = lista.some(function (p) { return p.nombre === actual; }) ? actual : '';
+      }
       function poblarFiltro(sel, valores, todos) {
         var actual = sel.value;
         limpiar(sel);
@@ -332,12 +389,12 @@
         var modo = $('selPeriodo').value;
         $('selMes').hidden = modo !== 'mes';
         $('inDesde').hidden = $('inHasta').hidden = modo !== 'rango';
-        var hay = !!($('fGravedad').value || $('fTipo').value || $('fPatologia').value);
+        var hay = !!($('fGravedad').value || $('fTipo').value || $('fZona').value || $('fPatologia').value);
         $('btnQuitar').hidden = !hay;
-        ['fGravedad', 'fTipo', 'fPatologia'].forEach(function (id) { $(id).classList.toggle('activo', !!$(id).value); });
+        ['fGravedad', 'fTipo', 'fZona', 'fPatologia'].forEach(function (id) { $(id).classList.toggle('activo', !!$(id).value); });
       }
       function armarFiltros() {
-        var f = { gravedad: $('fGravedad').value, tipo: $('fTipo').value, patologia: $('fPatologia').value, umbral: +$('selUmbral').value }, modo = $('selPeriodo').value;
+        var f = { gravedad: $('fGravedad').value, tipo: $('fTipo').value, zona: $('fZona').value, patologia: $('fPatologia').value, umbral: +$('selUmbral').value }, modo = $('selPeriodo').value;
         if (modo === 'mes' && $('selMes').value) {
           var m = $('selMes').value;
           f.desdeISO = m + '-01';
@@ -377,7 +434,8 @@
             if (claves !== opcionesVistas) {
               opcionesVistas = claves;
               poblarFiltro($('fTipo'), r.opciones.tipos, 'Tipo de ingreso: todos');
-              poblarFiltro($('fPatologia'), r.opciones.patologias, 'Patología: todas');
+              poblarFiltro($('fZona'), r.opciones.zonas, 'Zona: todas');
+              poblarPatologias($('fPatologia'), r.opciones.patologias, 'Patología: todas');
               actualizarVisibilidad();
             }
             $('textoPeriodo').textContent = fechaES(r.periodo.desde) + ' – ' + fechaES(r.periodo.hasta);
@@ -389,6 +447,7 @@
             pintarGraficos(r);
             pintarClinica(r);
             pintarEstados(r);
+            pintarDiagnosticos(r);
             botonesPng();
             animar = false;
             document.body.classList.remove('primera');
@@ -403,7 +462,7 @@
       }
       function cargarPronto() { clearTimeout(temporizador); temporizador = setTimeout(function () { cargar(false); }, 200); }
 
-      ['selPeriodo', 'selMes', 'inDesde', 'inHasta', 'fGravedad', 'fTipo', 'fPatologia', 'selUmbral'].forEach(function (id) { $(id).addEventListener('change', cargarPronto); });
+      ['selPeriodo', 'selMes', 'inDesde', 'inHasta', 'fGravedad', 'fTipo', 'fZona', 'fPatologia', 'selUmbral'].forEach(function (id) { $(id).addEventListener('change', cargarPronto); });
       $('btnActualizar').addEventListener('click', function () { cargar(true); });
       $('btnExportar').addEventListener('click', function (ev) {
         ev.stopPropagation();
@@ -419,7 +478,7 @@
         d.addEventListener('toggle', function () { if (d.open) Graficos.refrescar(d); });
       });
       $('btnReintentar').addEventListener('click', function () { cargar(false); });
-      $('btnQuitar').addEventListener('click', function () { $('fGravedad').value = $('fTipo').value = $('fPatologia').value = ''; cargarPronto(); });
+      $('btnQuitar').addEventListener('click', function () { $('fGravedad').value = $('fTipo').value = $('fZona').value = $('fPatologia').value = ''; cargarPronto(); });
 
       // ---------- Tema: automático / oscuro / claro (compartido con las otras pestañas) ----------
       var TEMAS = ['auto', 'oscuro', 'claro'], ICONOS_TEMA = { auto: 'contrast', oscuro: 'dark_mode', claro: 'light_mode' };

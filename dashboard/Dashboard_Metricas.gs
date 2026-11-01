@@ -499,3 +499,75 @@ function dashCalcularFlujo_(e) {
     datos: { desde: primeraFecha, cambiosReales: reales.length, cambiosEnPeriodo: enPeriodo.length, filasSiembra: siembra, estanciasAbiertas: abiertas, estanciasIncoherentes: incoherentes }
   };
 }
+
+// ================================================================================
+// D5 — DIAGNÓSTICOS (CONTEXTO.md, sección 15)
+// ================================================================================
+// Reglas (fáciles de cambiar aquí):
+//  · Un usuario con dos patologías cuenta en las dos (y una sola vez en cada zona).
+//  · «Usuarios» de cada patología = usuarios con algún episodio cuyo INGRESO cae en el periodo. Las otras columnas usan sus propias reglas,
+//    las mismas que sus gráficas de siempre: duración y sesiones = episodios con ALTA en el periodo (D2); % que mejoran = usuarios cuya
+//    ÚLTIMA valoración cae en el periodo (D4). Cada una lleva su propio «n».
+//  · Las patologías que no están en la lista oficial se agrupan en `noReconocidos`; los usuarios sin patología en `sinDiagnostico`.
+// ================================================================================
+
+const DASH_POCOS_DATOS_ = 5;   // por debajo de este n, la tabla avisa de «pocos datos»
+
+/**
+ * Cálculo de D5. Todo llega ya filtrado por Gravedad y Tipo de Ingreso (NO por patología ni zona: es lo que se desglosa).
+ * @param {{pacientes:Array<{id:string,patologias:string[],zonas:string[],enEspera:boolean,inscripcion:string}>, episodios:Array, citas:Array,
+ *   valoraciones:Array, lista:Array<{nombre:string,codigo:string,grupo:string}>, zonas:string[], desde:string, hasta:string, hoy:string,
+ *   cursoInicio:string, norm:function(string):string}} e   `lista` = lista oficial; `norm` = quita tildes y mayúsculas.
+ */
+function dashCalcularDiagnosticos_(e) {
+  const enPeriodo = f => !!f && f >= e.desde && f <= e.hasta;
+  const conIngreso = Object.create(null);
+  e.episodios.forEach(ep => { if (enPeriodo(ep.ingreso)) conIngreso[ep.idPaciente] = true; });
+
+  const porClave = Object.create(null);
+  e.lista.forEach(p => { porClave[e.norm(p.nombre)] = { p: p, ids: [], usuarios: 0 }; });
+  const zonaN = Object.create(null);
+  e.zonas.forEach(z => { zonaN[z] = 0; });
+  let usuarios = 0, sinDiagnostico = 0, noReconocidos = 0;
+
+  e.pacientes.forEach(u => {
+    const claves = [];
+    let desconocida = false;
+    u.patologias.forEach(n => { const k = e.norm(n); if (porClave[k]) { if (claves.indexOf(k) === -1) claves.push(k); } else desconocida = true; });
+    claves.forEach(k => { porClave[k].ids.push(u.id); });
+    const entra = conIngreso[u.id] === true;
+    if (!entra) return;
+    usuarios++;
+    if (!u.patologias.length) sinDiagnostico++;
+    else if (desconocida && !claves.length) noReconocidos++;
+    claves.forEach(k => { porClave[k].usuarios++; });
+    u.zonas.forEach(z => { if (z in zonaN) zonaN[z]++; });
+  });
+
+  const filas = [];
+  Object.keys(porClave).forEach(k => {
+    const g = porClave[k];
+    if (!g.ids.length) return;
+    const set = Object.create(null);
+    g.ids.forEach(id => { set[id] = true; });
+    const pacs = e.pacientes.filter(u => set[u.id] === true);
+    const pr = dashCalcularPacientes_({
+      pacientes: pacs, episodios: e.episodios.filter(ep => set[ep.idPaciente] === true), citas: e.citas.filter(c => set[c.idPaciente] === true),
+      desde: e.desde, hasta: e.hasta, hoy: e.hoy, cursoInicio: e.cursoInicio
+    });
+    const ev = dashCalcularEvolucion_({ valoraciones: e.valoraciones.filter(v => set[v.idPaciente] === true), desde: e.desde, hasta: e.hasta });
+    if (!g.usuarios && !pr.duracion.n && !ev.global.n) return;
+    filas.push({
+      nombre: g.p.nombre, codigo: g.p.codigo, zona: g.p.grupo, usuarios: g.usuarios,
+      duracion: { n: pr.duracion.n, media: pr.duracion.dias.media },
+      sesiones: { n: pr.sesiones.n, media: pr.sesiones.porEpisodio.media },
+      mejora: { n: ev.global.n, mejoran: ev.global.mejoran, pct: ev.global.pctMejoran }
+    });
+  });
+  filas.sort((a, b) => b.usuarios - a.usuarios || a.nombre.localeCompare(b.nombre, 'es'));
+
+  return {
+    usuarios: usuarios, sinDiagnostico: sinDiagnostico, noReconocidos: noReconocidos, pocosDatos: DASH_POCOS_DATOS_,
+    patologias: filas, zonas: e.zonas.map(z => ({ zona: z, n: zonaN[z] }))
+  };
+}
