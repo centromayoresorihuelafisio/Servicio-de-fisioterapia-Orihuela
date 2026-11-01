@@ -38,6 +38,7 @@ const EXCEPCIONES = [
   { c: 'contorno', archivo: 'agenda/CSS_Agenda.html', texto: '.input-celda', motivo: 'el campo editable de la celda ya se distingue por su borde y su sombra' },
   { c: 'contorno', archivo: 'agenda/CSS_Agenda.html', texto: '.su-buscar', motivo: 'buscador dentro de un menú recién abierto: el foco es siempre suyo y se ve el cursor' },
   { c: 'contorno', archivo: 'usuarios/Panel_Nuevo.html', texto: '.ms-search-input', motivo: 'buscador dentro de un menú recién abierto: el foco es siempre suyo y se ve el cursor' },
+  { c: 'contorno', archivo: 'usuarios/Panel_Editar.html', texto: '.ms-search-input', motivo: 'buscador dentro de un menú recién abierto: el foco es siempre suyo y se ve el cursor' },
   { c: 'foco', archivo: 'ui/CSS_Ficha.html', motivo: 'solo mete el anillo común hacia dentro, porque la fila ocupa todo el ancho' },
   { c: 'foco', archivo: 'usuarios/CSS_Usuarios.html', texto: '.menu-item', motivo: 'solo mete el anillo común hacia dentro, porque la fila ocupa todo el ancho' },
   { c: 'foco', archivo: 'usuarios/Panel_Nuevo.html', texto: ':has(input:focus-visible)', motivo: 'el control real está oculto: el anillo va en su contenedor' },

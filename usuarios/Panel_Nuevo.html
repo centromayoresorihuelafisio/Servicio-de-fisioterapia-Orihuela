@@ -80,6 +80,9 @@
 .nu .ms-item:hover { background: var(--md-primary-light); }
 .nu .ms-item:has(input:checked), .nu .ms-item.selected { background: var(--md-primary-container); font-weight: 500; }
 .nu .ms-item input[type="checkbox"] { width: 17px; height: 17px; accent-color: var(--md-primary); cursor: pointer; flex-shrink: 0; margin: 0; }
+.nu .ms-nombre { flex: 1; min-width: 0; }
+.nu .ms-cod { flex: none; font-size: var(--fs-xs); color: var(--md-on-surface-med); font-variant-numeric: tabular-nums; }
+.nu .ms-grupo { position: sticky; top: 0; z-index: var(--z-base); padding: .45rem 1rem; font-size: var(--fs-2xs); font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--md-primary-dark); background: var(--md-primary-light); }
 .nu .ms-item-hidden { display: none !important; }
 .nu .ms-vacio { padding: .8rem 1rem; font-size: var(--fs-sm); color: var(--md-on-surface-med); display: none; }
 
@@ -157,7 +160,6 @@
 window.PanelNuevo = {
   abrir: function (host, opts) {
     opts = opts || {};
-    var PATOLOGIAS = ["MS","MI","Dolor Crónico","Cervicalgia","Dorsalgia","Lumbalgia","Omalgia","Coxalgia","Gonalgia","Tendinopatía","Fascitis Plantar","Traumatismo","Caída","Fractura","Luxación","Esguince","Prótesis Hombro","Prótesis Rodilla","Estabilidad","Debilidad Muscular","Limitación Funcional","Alteración Marcha","Hernia Discal","Radiculopatía MS","Radiculopatía MI","Estenosis Medular","Parkinson","Esclerosis","Ictus","Linfedema","Cardiopatía","Enfermedad Respiratoria","Cáncer","Otro"];
     var SEVERITY_MAP = [
       { label: GRAVEDAD_PACIENTE.LEVE, cls: 'leve', min: 0, max: 3 },
       { label: GRAVEDAD_PACIENTE.MODERADO, cls: 'moderado', min: 4, max: 6 },
@@ -345,19 +347,32 @@ window.PanelNuevo = {
         disp.textContent = sel.length ? sel.join(', ') : '— Selecciona —';
         toggle.classList.toggle('has-value', sel.length > 0);
       }
-      PATOLOGIAS.forEach(function (p) {
-        var l = document.createElement('label'); l.className = 'ms-item';
+      // Opciones agrupadas por zona; en la hoja se guarda solo el nombre (cb.value), el código es solo para mostrar.
+      var grupoActual = null;
+      PATOLOGIAS_LISTA.forEach(function (pat) {
+        var p = pat.nombre;
+        if (pat.grupo !== grupoActual) {
+          grupoActual = pat.grupo;
+          var cab = document.createElement('div'); cab.className = 'ms-grupo'; cab.setAttribute('role', 'presentation'); cab.textContent = grupoActual; wrap.appendChild(cab);
+        }
+        var l = document.createElement('label'); l.className = 'ms-item'; l.dataset.grupo = pat.grupo;
         var cb = document.createElement('input'); cb.type = 'checkbox'; cb.name = nombre; cb.value = p;
-        l.appendChild(cb); l.appendChild(document.createTextNode(p)); wrap.appendChild(l);
+        var nom = document.createElement('span'); nom.className = 'ms-nombre'; nom.textContent = p;
+        var cod = document.createElement('span'); cod.className = 'ms-cod'; cod.textContent = pat.codigo;
+        l.appendChild(cb); l.appendChild(nom); l.appendChild(cod); wrap.appendChild(l);
         cb.addEventListener('change', actualizar);
       });
       buscar.addEventListener('click', function (e) { e.stopPropagation(); });
       buscar.addEventListener('input', function () {
-        var t = normalizar(buscar.value), visibles = 0;
-        wrap.querySelectorAll('.ms-item').forEach(function (it) {
-          var oculto = t.length > 0 && normalizar(it.textContent).indexOf(t) === -1;
-          it.classList.toggle('ms-item-hidden', oculto); if (!oculto) visibles++;
+        var t = normalizar(buscar.value), visibles = 0, cabActual = null, hayEnGrupo = false;
+        function cerrarGrupo() { if (cabActual) cabActual.classList.toggle('ms-item-hidden', t.length > 0 && !hayEnGrupo); }
+        // Se busca por nombre, código CIE-10 y zona; la cabecera de zona solo se ve si le queda alguna opción.
+        Array.prototype.forEach.call(wrap.children, function (it) {
+          if (it.classList.contains('ms-grupo')) { cerrarGrupo(); cabActual = it; hayEnGrupo = false; return; }
+          var oculto = t.length > 0 && normalizar(it.textContent + ' ' + it.dataset.grupo).indexOf(t) === -1;
+          it.classList.toggle('ms-item-hidden', oculto); if (!oculto) { visibles++; hayEnGrupo = true; }
         });
+        cerrarGrupo();
         vacio.style.display = visibles ? 'none' : 'block';
       });
       activarToggle(toggle, menu);

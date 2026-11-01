@@ -87,6 +87,13 @@
 .pe .ms-item { display: flex; align-items: center; gap: 12px; padding: 11px 16px; cursor: pointer; font-size: var(--fs-md); color: var(--md-on-surface); transition: background var(--dur-1) var(--ease); }
 .pe .ms-item:hover { background: var(--md-primary-light); }
 .pe .ms-item:has(input:checked), .pe .ms-item.ms-selected { background: var(--md-primary-container); font-weight: 500; }
+.pe .ms-search-wrap { position: sticky; top: 0; z-index: var(--z-base); display: flex; align-items: center; gap: .5rem; padding: .6rem .85rem .5rem; border-bottom: 1px solid var(--md-outline); background: var(--md-surface); color: var(--md-on-surface-med); }
+.pe .ms-search-input { flex: 1; border: none; background: transparent; font-family: var(--font); font-size: var(--fs-md); color: var(--md-on-surface); outline: none; padding: .125rem 0; }
+.pe .ms-nombre { flex: 1; min-width: 0; }
+.pe .ms-cod { flex: none; font-size: var(--fs-xs); color: var(--md-on-surface-med); font-variant-numeric: tabular-nums; }
+.pe .ms-grupo { padding: .45rem 1rem; font-size: var(--fs-2xs); font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--md-primary-dark); background: var(--md-primary-light); }
+.pe .ms-vacio { display: none; padding: .8rem 1rem; font-size: var(--fs-sm); color: var(--md-on-surface-med); }
+.pe .ms-item-hidden { display: none !important; }
 .pe .ms-item input[type="checkbox"] { width: 16px; height: 16px; min-width: 16px; accent-color: var(--md-primary); cursor: pointer; flex-shrink: 0; padding: 0; border: none; background: none; }
 
 /* ── Pie fijo (los botones son .md-btn de CSS_Global) ── */
@@ -172,7 +179,6 @@ window.PanelEditar = {
       for (var i = 0; i < opciones.length; i++) if (sinEmojiTxt(opciones[i]).toLowerCase() === n) return opciones[i];
       return val;
     }
-    var OPCIONES_PATOLOGIA = ["MS","MI","Dolor Crónico","Cervicalgia","Dorsalgia","Lumbalgia","Omalgia","Coxalgia","Gonalgia","Tendinopatía","Fascitis Plantar","Traumatismo","Caída","Fractura","Luxación","Esguince","Prótesis Hombro","Prótesis Rodilla","Estabilidad","Debilidad Muscular","Limitación Funcional","Alteración Marcha","Hernia Discal","Radiculopatía MS","Radiculopatía MI","Estenosis Medular","Parkinson","Esclerosis","Ictus","Linfedema","Cardiopatía","Enfermedad Respiratoria","Cáncer","Otro"];
     var SECCIONES = [
       { name: "Datos Personales",       fields: ["Nombre","DNI","Fecha nacimiento","Fecha inscripción"] },
       { name: "Estado y Clasificación", fields: ["Estado","Gravedad","Tipo de Ingreso"] },
@@ -236,10 +242,39 @@ window.PanelEditar = {
           '<span class="material-symbols-outlined ic20 ms-arrow">expand_more</span>' +
         '</div>' +
         '<div class="ms-menu" id="pe-menu' + idSuffix + '">' +
-          OPCIONES_PATOLOGIA.map(function (opt) {
-            return '<label class="ms-item"><input type="checkbox" name="' + esc(h) + '" value="' + esc(opt) + '"' + (selVals.indexOf(opt) !== -1 ? ' checked' : '') + '>' + esc(opt) + '</label>';
-          }).join('') +
+          '<div class="ms-search-wrap"><span class="material-symbols-outlined ic18">search</span><input class="ms-search-input" type="text" placeholder="Buscar patología…" aria-label="Buscar patología" autocomplete="off"></div>' +
+          // Valores antiguos que ya no están en la lista oficial: se muestran marcados para no perderlos al guardar (se revisan en la herramienta de la sección 15).
+          opcionesPatologia(h, selVals) +
+          '<div class="ms-vacio">Sin resultados</div>' +
         '</div></div>';
+    }
+    // Opciones agrupadas por zona, con el código CIE-10 al lado; el valor guardado es solo el nombre.
+    function opcionesPatologia(h, selVals) {
+      function opcion(nombre, codigo, grupo) {
+        return '<label class="ms-item" data-grupo="' + esc(grupo) + '"><input type="checkbox" name="' + esc(h) + '" value="' + esc(nombre) + '"' + (selVals.indexOf(nombre) !== -1 ? ' checked' : '') + '>' +
+          '<span class="ms-nombre">' + esc(nombre) + '</span>' + (codigo ? '<span class="ms-cod">' + esc(codigo) + '</span>' : '') + '</label>';
+      }
+      var antiguos = selVals.filter(function (v) { return v !== '' && !PATOLOGIAS_LISTA.some(function (p) { return p.nombre === v; }); });
+      var html = antiguos.length ? '<div class="ms-grupo">Valor antiguo (sin código)</div>' + antiguos.map(function (v) { return opcion(v, '', 'Valor antiguo'); }).join('') : '';
+      var grupoActual = null;
+      PATOLOGIAS_LISTA.forEach(function (p) {
+        if (p.grupo !== grupoActual) { grupoActual = p.grupo; html += '<div class="ms-grupo">' + esc(grupoActual) + '</div>'; }
+        html += opcion(p.nombre, p.codigo, p.grupo);
+      });
+      return html;
+    }
+    // Buscador del desplegable: por nombre, código y zona; la cabecera de zona solo se ve si le queda alguna opción.
+    function filtrarPatologias(menu, texto) {
+      var t = texto.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim(), visibles = 0, cab = null, hay = false;
+      function cerrarGrupo() { if (cab) cab.classList.toggle('ms-item-hidden', t.length > 0 && !hay); }
+      Array.prototype.forEach.call(menu.children, function (it) {
+        if (it.classList.contains('ms-grupo')) { cerrarGrupo(); cab = it; hay = false; return; }
+        if (!it.classList.contains('ms-item')) return;
+        var oculto = t.length > 0 && (it.textContent + ' ' + it.dataset.grupo).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').indexOf(t) === -1;
+        it.classList.toggle('ms-item-hidden', oculto); if (!oculto) { visibles++; hay = true; }
+      });
+      cerrarGrupo();
+      var v = menu.querySelector('.ms-vacio'); if (v) v.style.display = visibles ? 'none' : 'block';
     }
     function campoTexto(h, idSuffix, icon, val, isDate, isReadOnly) {
       return '<div class="md-campo md-campo--icono' + (isReadOnly ? ' md-campo--dato' : '') + '">' +
@@ -303,6 +338,8 @@ window.PanelEditar = {
         m.classList.remove('open');
         var tg = m.parentElement.querySelector('.ms-toggle');
         if (tg) tg.classList.remove('open');
+        var s = m.querySelector('.ms-search-input');
+        if (s && s.value) { s.value = ''; filtrarPatologias(m, ''); }
       });
       return hubo;
     }
@@ -315,6 +352,7 @@ window.PanelEditar = {
         toggle.classList.add('open');
         // el menú puede abrirse junto al borde inferior: lo traemos a la vista
         menu.scrollIntoView({ block: 'nearest' });
+        var s = menu.querySelector('.ms-search-input'); if (s) setTimeout(function () { s.focus(); }, 30);
       }
     }
     function elegirUnico(item) {
@@ -355,6 +393,9 @@ window.PanelEditar = {
       var it = e.target.closest('.ms-item[data-val]');
       if (it) { elegirUnico(it); return; }
       if (!e.target.closest('.multiselect')) cerrarMenus();
+    });
+    pe.addEventListener('input', function (e) {
+      if (e.target.classList.contains('ms-search-input')) filtrarPatologias(e.target.closest('.ms-menu'), e.target.value);
     });
     pe.addEventListener('change', function (e) {
       var cb = e.target;
