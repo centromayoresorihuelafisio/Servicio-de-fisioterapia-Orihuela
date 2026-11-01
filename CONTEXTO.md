@@ -35,7 +35,7 @@ Verificado leyendo el código (última revisión completa: 22-oct-2026). "POR CO
 **Glosario**: Maestra = hoja "Base de Datos Maestra" (un usuario/paciente por fila). ID paciente = identificador estable (UUID) de cada fila de la Maestra, columna "ID paciente" al final; no depende del DNI ni del nombre, nunca se edita a mano y es la clave con la que se enlazan citas, historial y HC (Valoraciones enlaza por ID desde el lote B, 22-oct-2026; sección 11). Citas = hoja "Citas": una fila por cita real, única fuente de las citas desde el corte del 21-oct-2026. Agenda AAAA-AAAA = hoja del curso 2026-2027, congelada como ARCHIVO (protegida con aviso; nadie la lee ni la escribe). HC = Historia clínica: ficha web (hojas "Historias Clínicas" y "Episodios HC", clave ID HC en formato UUID) enlazada desde la columna "Historia clínica" de la Maestra (`?page=hc&id=ID_HC`); los Docs originales ya no se usan (sección 10). Alta = `darDeAltaPaciente`/`darDeAltaPacienteWeb`: marca el alta y anota la fecha de alta del episodio abierto en "Episodios HC" con `hcAltaEnHoja_` (`usuarios/Alta.gs`).
 
 ## 1. Qué es
-Gestión de un servicio de fisioterapia sobre **Google Sheets + Apps Script** (V8, `Europe/Madrid`). Base de datos de usuarios, agenda de citas, valoraciones e historias clínicas (fichas web en hojas). Uso personal del profesional. **Seguridad: decisión del dueño** — la app es personal, hecha a su medida y para su uso exclusivo (solo él la usa). No propongas medidas de seguridad ni de acceso multiusuario (autenticación, roles, `ANYONE_ANONYMOUS`, `LockService` por concurrencia entre usuarios…) salvo que él lo pida. **El dueño no es programador**: la app se ha construido con "vibe coding" con Claude. Explica los cambios en lenguaje llano y entrega archivos completos o cambios fáciles de pegar. Se usa **solo como Web App** (Usuarios, Agenda, Valoraciones, HC). La hoja ya no tiene menús, diálogos ni `onEdit` (retirados el 22-oct-2026) y no se edita a mano.
+Gestión de un servicio de fisioterapia sobre **Google Sheets + Apps Script** (V8, `Europe/Madrid`). Base de datos de usuarios, agenda de citas, valoraciones e historias clínicas (fichas web en hojas). Uso personal del profesional. **Seguridad: decisión del dueño** — la app es personal, hecha a su medida y para su uso exclusivo (solo él la usa). No propongas medidas de seguridad ni de acceso multiusuario (autenticación, roles, `ANYONE_ANONYMOUS`, `LockService` por concurrencia entre usuarios…) salvo que él lo pida. **Lo ha pedido el 1-nov-2026 por su baja: el control de acceso, los roles y el registro se planifican en la sección 17.** **El dueño no es programador**: la app se ha construido con "vibe coding" con Claude. Explica los cambios en lenguaje llano y entrega archivos completos o cambios fáciles de pegar. Se usa **solo como Web App** (Usuarios, Agenda, Valoraciones, HC). La hoja ya no tiene menús, diálogos ni `onEdit` (retirados el 22-oct-2026) y no se edita a mano.
 
 ## 2. Mapa de carpetas
 Los archivos están en subcarpetas; en el editor de Apps Script son prefijos (`agenda/Web_Vista`). Convención: `X.gs` = servidor, `X_Vista.html` / `Panel_*.html` / `Dialogo_*.html` = interfaz.
@@ -271,3 +271,167 @@ Fases (una conversación cada una, según 0.1 A; no se empieza una sin haber com
 - **Conversación 3 · Usuarios ya existentes** — HECHA el 1-nov-2026: aplicada la revisión y la herramienta ya no encuentra nada por revisar (901 valores coinciden con la lista oficial, 0 pendientes; 419 de 500 usuarios tienen alguna patología). La herramienta de revisión y su hoja se borraron el 1-nov-2026 (viven en `git log`). Decisiones del dueño para los nombres antiguos: Caída→Alteración del equilibrio, MS y MI se quitan, Limitación Funcional→Fragilidad o deterioro funcional, Enfermedad Respiratoria→Otra enfermedad respiratoria, Hernia Discal→lumbar, Esclerosis→múltiple, Tendinopatía→de otra localización, Esguince y Luxación→«otras zonas».
 - **Conversación 4 · Estadísticas** — HECHA y comprobada por el dueño el 1-nov-2026. Filtros «Zona» (nuevo) y «Patología» de `?page=dashboard`: ofrecen siempre la lista oficial completa (`opciones.patologias` = `patologiasLista_()` y `opciones.zonas` = grupos de `PATOLOGIAS_GRUPOS`); la patología se muestra agrupada por zona con el código CIE-10 y su valor sigue siendo el nombre; cada usuario de la Maestra lleva `zonas` (`dashZonasDe_`). Sección plegable «Diagnósticos» (`details#detDiagnosticos`): 3 indicadores, barras de usuarios por patología (con código) y por zona, y tabla por patología (usuarios, duración media, sesiones medias, % que mejoran, aviso «pocos datos» con menos de 5 usuarios, `DASH_POCOS_DATOS_`). Cálculo en `dashCalcularDiagnosticos_` (`Dashboard_Metricas.gs`, reglas en su cabecera D5), endpoint `obtenerDashboardDiagnosticosWeb`, pintado en `pintarDiagnosticos` (`JS_Estadisticas_Graficos.html`). Esta sección respeta periodo, gravedad y tipo de ingreso e IGNORA los filtros Zona y Patología (es lo que desglosa); el resto de la pestaña sí los aplica. Excel con hojas «Diagnósticos» y «Diagnósticos por zona». Caché subida a `dash7:`. Herramienta de editor: `dashboardProbarDiagnosticos`.
 El plan de la sección 15 está completo.
+
+## 16. Programas de ejercicios para casa (trazado el 1-nov-2026; POSPUESTO por decisión del dueño el 1-nov-2026)
+**Pospuesto hasta que el dueño tenga una biblioteca de imágenes.** No se empieza ninguna conversación de esta sección, tampoco la 1, hasta que él lo pida. Al retomar, se parte de `ejercicios/Biblioteca_imagenes.md`.
+Objetivo: una biblioteca de ejercicios con imagen y descripción, y un programa por usuario para imprimir en una hoja A4. Solo papel: sin app ni portal para el usuario, sin vídeos y sin seguimiento. Las plantillas por patología quedan para más adelante.
+Decisiones del dueño (1-nov-2026) sobre las imágenes: dibujos hechos con IA, con el estilo de la imagen de muestra que eligió: línea de tinta y color plano sobre fondo blanco, sin texto ni logotipos. Cada ejercicio lleva una sola imagen apaisada con dos posturas: inicio a la izquierda y movimiento a la derecha. Personaje confirmado por el dueño: hombre de unos 72 años, complexión normal, pelo blanco corto, camiseta azul, pantalón corto gris oscuro, calcetines blancos y zapatillas azules. Las imágenes las genera el dueño, porque Claude Code no tiene generador; debe revisar cada una (manos, pies, agarre, postura segura, mismo personaje) y las condiciones de uso de su generador. Si un ejercicio no sale bien, plan B: foto propia pasada a dibujo de líneas. No se usan imágenes de Physitrack, Fisify, WorkoutLabs ni otras webs sin licencia.
+Datos previstos: hojas «Ejercicios», «Programas» y «Programa ejercicios», enlazadas por ID paciente; imágenes en una carpeta de Drive, reducidas al subirlas y servidas por la app, sin compartirlas públicamente. Las zonas son las de `PATOLOGIAS_GRUPOS`. Un ejercicio se retira, no se borra, para no romper programas antiguos. La impresión sigue el modelo de `historia/HC_Vista` (`&imprimir=1`). Hace falta el visto bueno expreso del dueño para tocar `core/WebApp.gs`, además de añadir la pestaña en las cuatro páginas.
+Fases (una conversación cada una, según 0.1 A; no se empieza una sin haber comprobado la anterior):
+- **Conversación 1 · Biblioteca** — PENDIENTE. Hojas, pestaña «Ejercicios», y añadir o editar ejercicios con imagen.
+- **Conversación 2 · Contenido inicial** — POSPUESTA (1-nov-2026): lista propuesta de 42 ejercicios, textos de 3 pruebas y control de avance en `ejercicios/Biblioteca_imagenes.md`; lista sin aprobar y 0 imágenes hechas. Claude redacta los textos, el dueño los revisa y aporta las imágenes.
+- **Conversación 3 · Programa por usuario** — PENDIENTE. Botón en la ficha, biblioteca filtrada por la zona de su patología, pautas por ejercicio y programas guardados.
+- **Conversación 4 · Hoja impresa** — PENDIENTE. Diseño A4 con letra grande, reimpresión y enlace desde la Historia clínica.
+
+## 17. Control de acceso, roles y registro (trazado el 1-nov-2026; PLAN PENDIENTE DE APROBAR; no se ha tocado código)
+Estado (1-nov-2026): ninguna fase empezada. El dueño retoma el 2-nov-2026. **Las 14 decisiones de 17.8 siguen TODAS abiertas: las recomendaciones no son decisiones tomadas.** No se empieza la fase 1 sin el visto bueno del dueño a este plan y a lo marcado en 17.8. Los nombres de funciones nuevas (`api`, `llamar`, `soloPropietario_`…) son propuestas: aún no existen.
+Para retomar, frase exacta: «Lee CLAUDE.md y la sección 0 de CONTEXTO.md, repasa conmigo las decisiones de la sección 17.8 y, cuando las cerremos, haz la conversación 1 de la sección 17.»
+
+### 17.1 Objetivo y motivo
+El dueño se va de baja por paternidad en unas semanas y otra persona usará la app. Hoy la Web App es «Ejecutar como: yo» y «Acceso: cualquiera, incluso anónimo»: quien tenga la URL entra y puede ver y cambiar datos clínicos. Con cuentas Gmail, `Session.getActiveUser()` no sirve para saber quién entra. Objetivos: (1) login propio con usuario y contraseña, sin depender de Google; sin sesión válida no se ve nada; (2) roles administrador y usuario; (3) pestaña Configuración solo para el administrador, empezando por los accesos; (4) registro de los cambios importantes.
+
+### 17.2 Decisiones del dueño (no se cambian sin consultarle)
+- Se mantiene «Ejecutar como: yo». Las hojas siguen privadas y solo suyas.
+- **Una sola puerta**: todas las funciones del servidor pasan a privadas (terminadas en `_`). La única pública para el navegador es `api(token, accion, datos)`: valida la sesión, comprueba que el rol llega al mínimo de la acción, ejecuta la función de la lista blanca `ACCIONES` (ej. `guardarCita: { fn: guardarCita_, rol: 'usuario', registrar: true }`), captura errores y devuelve `{ ok, datos }` o `{ ok: false, error }`. Lo que no está en `ACCIONES` no se ejecuta.
+- En el navegador, `llamar(accion, datos)` devuelve una Promise, añade el token y, si la sesión no vale, muestra el login. Sustituye a todas las llamadas `google.script.run`.
+- Lo que se lance desde fuera de la web sigue público y empieza con `soloPropietario_()`: `Session.getActiveUser().getEmail()` no vacío e igual a `Session.getEffectiveUser().getEmail()`; si no, error.
+- La interfaz oculta pestañas y botones por rol solo por comodidad: la seguridad está en el servidor y el rol nunca se toma del navegador.
+- **Administrador** (el dueño): todo, incluidos Estadísticas, Configuración y las herramientas. **Usuario** (el sustituto): pestañas Usuarios, Agenda y Valoraciones; ve y edita fichas e historias, añade usuarios, da altas y da citas; no ve Estadísticas, Configuración ni administración. **«Ver como usuario»** para que el administrador compruebe lo que ve el sustituto sin cerrar sesión.
+- Hoja **«Accesos»** (protegida): usuario, nombre, hash, sal, rol, activo, caduca (opcional), debeCambiarPassword, creado, ultimoAcceso, intentosFallidos, bloqueadoHasta.
+- Contraseñas: nunca en texto plano; SHA-256 con sal aleatoria por usuario e iteraciones (las que quepan para que el login tarde menos de 1 s, medidas en Apps Script). La temporal obliga a cambiarla al entrar.
+- Sesiones: token aleatorio en `CacheService`; caducidad por inactividad de unos 60 minutos, renovada con cada llamada; máximo absoluto por día; botón de cerrar sesión. Rol y estado activo se recomprueban contra «Accesos» con una caché corta. El token va en `localStorage`, compartido con las demás ventanas de la app.
+- Fuerza bruta: tras 5 fallos, bloqueo de 15 minutos y correo al propietario con `MailApp`.
+- Hoja **«Registro»** (solo añadir filas, protegida): fecha, usuario, rol, accion, entidad, detalle (antes/después en JSON cuando aplique), resultado. Registra: logins correctos y fallidos, cierres de sesión y bloqueos; acciones denegadas por rol; cambios en Accesos; usuarios añadidos, eliminados o dados de alta; ediciones de HC; citas borradas y acciones en bloque de la Agenda; uso de herramientas de administración.
+- Configuración mínima: sección Accesos (listar, crear con contraseña temporal, activar/desactivar, eliminar, cambiar rol, restablecer contraseña, fecha de caducidad) y sección Registro (tabla con filtros por fecha, usuario y acción), preparada para crecer.
+- Diseño coherente con la app (`ui/CSS_Global`, sección 13); login limpio, con tema oscuro.
+- Reglas: no cambiar cabeceras de hojas existentes; no borrar archivos ni subir a GitHub sin preguntar; fase a fase; `CONTEXTO.md` al día al terminar cada una.
+
+### 17.3 Lo que ha salido al revisar el código (cambia o matiza lo previsto)
+1. **`doGet` no puede leer `localStorage`**: el token vive en el navegador y `doGet` se ejecuta en el servidor antes de que exista la página. No puede decidir si hay sesión salvo que el token viaje en la URL, y eso no se debe hacer (queda en el historial y en los enlaces). Solución propuesta en 17.5.
+2. **Ninguna plantilla mete datos de usuarios en el HTML**. Los scriptlets solo ponen `baseUrl`, listas fijas (`incluirEstados`, `incluirPatologias`), `include` / `incluirPanel` y, en `historia/HC_Vista`, `idHC`, `idPaciente` e `imprimir` de la URL. Los datos llegan siempre después, por llamadas al servidor. Esto permite la solución sencilla de 17.5.
+3. **Hueco en `historia/HC_Vista`**: `idPaciente` e `id` se escriben dentro de un `<script>` sin filtrar. Un enlace trucado podría ejecutar código en el navegador y robar el token. Se arregla en la fase 1 dejando solo letras, números y guiones (como ya hace `obtenerHCWeb` con `idHC`).
+4. **No hay menús ni activadores**: ni `addItem`, ni `newTrigger`, ni `onOpen`/`onEdit`. El grupo «menús y activadores» es en realidad «lo que se ejecuta a mano desde el editor». Las funciones `_` no salen en el desplegable del editor, así que esas siguen públicas con `soloPropietario_()`.
+5. **Faltan permisos en `appsscript.json`**: `MailApp` necesita `script.send_mail` y `Session...getEmail()` necesita `userinfo.email`; hoy no están. Al añadirlos, el dueño tendrá que volver a autorizar. Sin este paso, el aviso por correo falla y `soloPropietario_()` podría fallar también, así que se comprueba al principio de la fase 1.
+6. **Dos funciones parecen privadas y no lo son**: `_ejecutarAltaEnFila` y `_generarHistoriaClinicaEnFila`. Solo es privado el `_` al FINAL; la línea de la sección 6 sobre el prefijo `_` se corregirá en la fase 2.
+7. **`ACCIONES` no puede ser una constante que apunte a funciones de otros archivos**: Apps Script carga los archivos en orden y la función aún podría no existir (el mismo aviso que hay en `dashboard/Dashboard_Metricas.gs`). Se construirá dentro de una función, al usarse.
+8. **La Agenda pregunta cada 4 segundos** por cambios (`obtenerVersionAgendaWeb`), y además hay recargas automáticas de fichas e HC. Si eso renovase la sesión, una pestaña abierta nunca caducaría. En `ACCIONES` llevarán `renueva: false`.
+9. **La HC se guarda sola 1 segundo después de dejar de escribir** (`guardarTextoHCWeb`). Registrar cada guardado llenaría «Registro»: se agrupará (una fila por usuario, HC y campo cada 30 minutos). Una HC admite hasta 45.000 caracteres y una celda 50.000, así que el antes/después completo no cabe (ver 17.8).
+10. **`eliminarPacienteWeb` borra la fila de verdad** (`deleteRow`). El «deshacer» depende de los datos que guarda la pantalla: al cerrarla ya no se puede recuperar desde la app. Ver 17.8.
+11. **El mensaje de WhatsApp dice «soy Fabio»** (`_plantillaWhatsapp_`): el sustituto se presentaría con el nombre del dueño. Ver 17.8. Además, `configurarMensajeWhatsapp` usa `getUi()`, que probablemente falla desde el editor ahora que no hay menús (POR COMPROBAR).
+12. **Los usuarios nuevos se guardan en los Contactos de Google del dueño** (`crearContactoGoogle`), también los que añada el sustituto.
+13. **Faltan bloqueos para dos personas a la vez**: `actualizarPaciente`, `guardarPaciente`, `eliminarPacienteWeb`, `restaurarPacienteWeb`, `ordenarPacientes`, `procesarValoracion`, las funciones de editar, borrar y restaurar valoración (dos de ellas trabajan por número de fila) y Recordatorios no usan `LockService`. Con un solo usuario apenas importaba. Ver 17.8.
+14. **`api()` no debe tener el bloqueo del script mientras ejecuta la acción**: `agenda/Citas_Datos.gs` lo toma por su cuenta (sección 4).
+15. **`llamar` ya existe como nombre local** en `agenda/Panel_Recordatorios.html` (función con otro significado) y en `historia/Panel_HC.html` (variable): hay que renombrar esos locales. `ACCIONES` también existe dentro de `historia/Panel_HC.html`, solo en el navegador; ahí no choca.
+16. Las únicas ventanas que abre la app son `?page=hc` (y su versión de imprimir), con `noopener`. Hay que comprobar en la fase 1 que comparten sesión. Si la sesión caduca a mitad de un formulario, el login sale encima de la página sin recargarla, para no perder lo escrito.
+
+### 17.4 Inventario (revisado el 1-nov-2026)
+289 funciones globales en los `.gs`: 194 ya privadas y **95 públicas**. 67 líneas con `google.script.run` en 21 archivos HTML, 2 de ellas con el nombre de la función en una variable (`usuarios/Whatsapp_Dialogo`, que recibe el nombre como texto, y `agenda/Panel_Recordatorios`).
+
+**a) Se llaman desde el HTML → `ACCIONES` (50). Rol `usuario` salvo indicación; `R` = se registra.**
+- Usuarios: `obtenerBaseDatosCompletaWeb`, `obtenerDatosEdicionPaciente`, `actualizarPaciente` R, `guardarPaciente` R, `eliminarPacienteWeb` R (rol: 17.8), `eliminarPacientesLoteWeb` R (rol: 17.8), `restaurarPacienteWeb` R, `cambiarEstadoPacienteWeb`, `cambiarEstadoLoteWeb` R, `ordenarPacientes`, `darDeAltaPacienteWeb` R, `datosWhatsappMaestraWeb`.
+- Historia clínica: `obtenerHCWeb`, `obtenerHCsActivasWeb` (sin renovar), `guardarTextoHCWeb` R (agrupado), `guardarEpisodiosHCWeb` R, `generarHistoriaClinicaWeb` R, `generarHistoriaClinicaRegistroUsuario` R.
+- Agenda: `obtenerAgendaSemanaWeb`, `obtenerVersionAgendaWeb` (sin renovar), `actualizarCampoAgendaWeb`, `asignarPacienteHuecoWeb`, `obtenerUsuariosParaCitaWeb`, `moverCitaWeb`, `intercambiarCitasWeb`, `copiarVariasCitasWeb` R, `eliminarDatosFilaAgendaWeb` R, `eliminarVariasCitasWeb` R, `restaurarCitasWeb` R, `darDeAltaPacienteParaAgendaWeb` R, `datosWhatsappLoteAgendaWeb`, `obtenerSemanasYHuecos`, `guardarCitasMultiples`, `obtenerDisponibilidadWeb`, `aplicarDisponibilidadWeb`, `obtenerRecordatoriosWeb`, `guardarRecordatorioWeb`, `alternarRecordatorioWeb`, `eliminarRecordatorioWeb`.
+- Valoraciones: `obtenerValoracionesWeb`, `obtenerValoracionesUsuarioWeb`, `obtenerPacientesParaAutocompletar`, `procesarValoracion`, `actualizarValoracionWeb`, `eliminarValoracionWeb` (propuesto R), `restaurarValoracionWeb` (propuesto R).
+- Compartidas: `obtenerFichasUsuariosWeb` (sin renovar), `obtenerFichaUsuarioWeb`, `obtenerPanelWeb` (panel: solo código, sin datos).
+- Administrador: `obtenerDashboardWeb`.
+- Nuevas: login, cerrar sesión, cambiar contraseña y «Ver como usuario»; las de Accesos y Registro serán de administrador.
+
+**b) Se ejecutan a mano desde el editor → siguen públicas con `soloPropietario_()` y registro (11), más `doGet`**: `configurarMensajeWhatsapp`, `sincronizarContactosGoogle`, `revisarParesIdsPaciente`, `asignarIdsPaciente`, `revisarIdPacienteEnHC`, `asignarIdPacienteEnHC`, `revisarIdPacienteEnValoraciones`, `asignarIdPacienteEnValoraciones`, `exportarProyectoAUnicoArchivo`, `sembrarHistorialEstado`, `verificarHistorialEstado`. `doGet` es público por obligación y no lleva `soloPropietario_()`: lo usa todo el mundo.
+
+**c) Internas → pasan a privadas (25)**
+- Solo desde plantillas (hay que cambiar el scriptlet en cada página): `include` (unas 60 veces), `incluirPanel`, `incluirEstados`, `incluirPatologias`.
+- Utilidades: `getSS` (usada en 22 archivos), `parseFecha`, `normalizarTexto`, `normalizarFormatoNombre`, `normalizarNombreUsuario`, `normalizarDniUsuario`, `normalizarTelefono`, `extraerUrlHistoriaClinica`.
+- Del resto: `construirIndiceWeb`, `servirFichaHCWeb`, `obtenerDashboardCitasWeb`, `obtenerDashboardPacientesWeb`, `obtenerDashboardEvolucionWeb`, `obtenerDashboardFlujoWeb`, `obtenerDashboardDiagnosticosWeb`, `_generarHistoriaClinicaEnFila`, `_ejecutarAltaEnFila`, `crearContactoGoogle`, `obtenerTodosLosContactosGoogle`, `verificarExistenciaContacto`, `prepararDatosFilaParaEdicion`.
+
+**d) Sin uso → se propone retirarlas; no se borra nada todavía (8)**: `generarUrlWhatsappParaAgendaWeb` y `generarUrlWhatsappWeb` (junto con la privada que las une en `agenda/Web_Escritura_Citas.gs`), `buscarUsuarioPorDniWeb`, `buscarPosiblesDuplicadosWeb`, `dashboardProbarCitas`, `dashboardProbarPacientes`, `dashboardProbarFlujo`, `dashboardProbarDiagnosticos`. Otros restos: la rama `page === 'citas'` de `doGet`, la última línea de `doGet`, `prepararContexto_` y `ui/JS_Cierre_Formulario.html` (ninguna página lo incluye).
+
+**Páginas de `doGet`**
+| `?page=` | Archivo | Scriptlets | Datos de usuarios en el HTML | Quién |
+|---|---|---|---|---|
+| `baseDatos` (por defecto) | `usuarios/BaseDatos_Vista` | `baseUrl`, listas fijas, includes | No | usuario |
+| `agenda` | `agenda/Web_Vista` | `baseUrl`, estados, includes | No | usuario |
+| `valoraciones` | `valoraciones/Web_Vista` | `baseUrl`, includes | No | usuario |
+| `hc` | `historia/HC_Vista` | IDs de la URL, `baseUrl`, includes | No (filtrar IDs, 17.3) | usuario |
+| `dashboard` | `dashboard/Web_Vista` | `baseUrl`, includes | No | administrador |
+| `guiaVisual` | `ui/Guia_Visual` | includes | No | administrador |
+| otro valor | `construirIndiceWeb` | sin plantilla | No; lista de páginas | pasa a llevar a Usuarios |
+| `configuracion` (nueva) | por crear | `baseUrl`, includes | No | administrador |
+
+### 17.5 Propuesta para `doGet` y las páginas: «portero en la página» (17.8)
+`doGet` sirve la página como ahora, porque no contiene datos, y cada página incluye arriba una pieza común nueva con `llamar()`, el login y un cierre opaco. Sin token, solo se ve el login. Con token, la primera llamada lo valida; si no vale, sale el login. Las llamadas hechas mientras tanto esperan en cola y siguen solas al entrar, así que no hay que reescribir el arranque de cada pestaña. Las páginas de administrador devuelven al usuario a Usuarios, porque el servidor le deniega sus datos.
+- Ventajas: casi no toca `core/WebApp.gs`, no añade espera al cambiar de pestaña y vale igual para la ventana de la HC.
+- Inconveniente: alguien sin sesión podría leer el código de las pantallas (diseño y programación), pero ningún dato de usuarios. No hay claves en ese código.
+- Alternativa más estricta, no recomendada: una página vacía que descarga el resto tras validar. Oculta también el código, pero cada cambio de pestaña pasa por el servidor dos veces y es más delicada.
+
+### 17.6 Detalles técnicos
+- `api` recibe los argumentos en una lista (`datos` = `[idPaciente, valor]`) y los pasa tal cual, para no reescribir las funciones que reciben varios. Los errores conservan su texto, y `llamar` usa `.then(ok, fallo)`, igual que los manejadores actuales.
+- Respuesta de `api`: incluye el rol efectivo para que la pantalla oculte lo que corresponda sin otra llamada.
+- Sesión en `CacheService`: el límite de 6 horas no estorba porque cada entrada dura 60 minutos y se reescribe al usarla; la fecha de creación guardada dentro impone el máximo absoluto. Google puede vaciar la caché antes de tiempo: en ese caso se pide login encima de la pantalla y se reintenta la llamada.
+- Caché corta de «Accesos»: 60 segundos. Los cambios hechos desde Configuración la limpian y se aplican en la acción siguiente; los hechos a mano en la hoja tardan hasta 60 segundos.
+- «Ver como usuario»: se guarda en la sesión del servidor y solo puede rebajar el rol. El Registro anota siempre al usuario real.
+- Bloqueo: mensaje de error igual para usuario inexistente y contraseña errónea; también se cuentan los fallos de usuarios inexistentes; un correo por bloqueo. Apps Script no da la dirección IP: el bloqueo es por usuario.
+- Primer administrador: función de editor con `soloPropietario_()` que genera una contraseña temporal, visible en el registro de ejecución y de cambio obligatorio. La misma vía sirve para recuperar el acceso del administrador.
+- «Registro» nunca guarda contraseñas ni el contenido de `datos` del login. Si el registro falla, la operación sigue, como en `historialRegistrar_`. Las protecciones de hoja evitan descuidos del dueño: el script se ejecuta como él y puede escribir igualmente.
+
+### 17.7 Riesgos
+- **La app sigue abierta hasta el final de la fase 5**: las fases 1 a 4 se prueban en la implementación de prueba; la real no cambia. Tampoco sirve de nada a medias: basta una función pública olvidada para saltarse el login. Por eso el cambio real se hace una sola vez, al terminar, y conviene empezar ya.
+- **Otras implementaciones**: la de prueba u otras antiguas con «cualquiera» siguen abiertas con su código. En la fase 5 hay que revisarlas y archivar las que sobren.
+- **Volver atrás puede reabrir la puerta**: cualquier versión anterior al login vuelve a dejar la app abierta a quien tenga la URL (17.9).
+- **Una errata rompe una pantalla**: renombrar 75 funciones y cambiar 67 líneas de llamadas puede dejar alguna sin actualizar. Se reduce con la comprobación automática de la fase 2 y probando pestaña por pestaña.
+- **Pruebas sobre datos reales**: la implementación de prueba usa la misma hoja. Se prueba con un usuario ficticio.
+- **Contraseñas caseras**: SHA-256 con iteraciones protege menos que los sistemas específicos, sobre todo porque Apps Script admite pocas. La seguridad real depende de que la hoja siga privada y de usar contraseñas largas.
+- **Bloqueo intencionado**: alguien que conozca un nombre de usuario puede bloquearlo 15 minutos una y otra vez. Se ve en el correo y en «Registro».
+- **Sesión en ordenador compartido**: si el sustituto no cierra sesión, sigue abierta hasta 60 minutos.
+- **Lentitud**: cada llamada suma una lectura de caché y, si toca, de «Accesos»; se medirá en la fase 1.
+- **Protección de datos**: son datos de salud en una cuenta personal de Gmail y ahora los trata una segunda persona. Este plan mejora mucho la situación, pero no sustituye a lo que pida el centro o su responsable de protección de datos: conviene preguntárselo antes de la baja.
+
+### 17.8 Pendiente de confirmar (decide el dueño; entre paréntesis, la recomendación)
+1. **Portero en la página** (17.5) en lugar de que `doGet` decida. (Sí.)
+2. **Eliminar usuarios**: hoy se borra la fila de verdad. Marcarlos como eliminados exigiría una columna nueva o un estado nuevo. (Solo el administrador elimina; el sustituto da el alta. Es lo más sencillo y no cambia cabeceras.)
+3. **Disponibilidad, Recordatorios y «Ordenar»** para el rol usuario. (Sí: son trabajo diario.)
+4. **Historia clínica en «Registro»**: el texto completo duplicaría datos clínicos y no cabe. (Guardar quién, cuándo, qué campo y cuántos caracteres antes y después; para recuperar texto, el historial de versiones de Google Sheets.)
+5. **Registrar también quién consulta una HC**, no solo quién la edita. Pediste registrar cambios, pero en datos de salud puede ser exigible. (Preguntar al centro; si no hay respuesta, registrar la apertura de cada HC una vez cada 30 minutos.)
+6. **Mensaje de WhatsApp**: «soy Fabio». (Que use el nombre de la persona que tiene la sesión.)
+7. **Contactos de Google**: seguir guardando en tu cuenta los usuarios que añada el sustituto. (Sí.)
+8. **Bloqueos para dos personas a la vez** (17.3, punto 13). (Añadirlos en la fase 2: el trabajo es pequeño y evita cruces de datos si entráis a la vez.)
+9. **Retirar lo de la lista d)** y los restos de `doGet`. (Sí, al final de la fase 2; se retira primero de `doGet` y `ui/JS_Cierre_Formulario.html` se borra solo con tu permiso.)
+10. **Máximo absoluto de sesión**. (12 horas.)
+11. **Longitud mínima de contraseña**. (10 caracteres.)
+12. **`core/WebApp.gs`** hay que tocarlo en las fases 1 y 2: `CLAUDE.md` pide tu visto bueno expreso. **`CLAUDE.md`** dice además que no se propongan medidas de seguridad: conviene actualizarlo. ¿Autorizas ambas cosas?
+13. **Datos para la entrega**: fecha de inicio de la baja, nombre de usuario y nombre del sustituto, fecha de caducidad de su acceso y si estarás localizable. También, qué implementaciones existen y si la de prueba es la de `/dev` o una con versión: la de `/dev` solo la abres tú, así que el sustituto necesitará otra.
+14. **Interruptor «cerrar todo»** (17.9, nivel 3). (Sí.)
+
+### 17.9 Plan de emergencia (borrador; se completa en la fase 5)
+Regla: ninguna opción deja la app abierta sin login. De menos a más grave:
+1. **Desactivar a una persona**: en Configuración o, desde el móvil, poniendo `activo` en FALSO en la hoja «Accesos». Tarda hasta 60 segundos. Riesgo: esa persona no puede trabajar hasta que se reactive.
+2. **Suspender a los no administradores**: un interruptor en Configuración y en una función de editor que guarda `ACCESOS_SUSPENDIDOS` en las propiedades del script. Solo entra el administrador. Riesgo: se para el trabajo del sustituto.
+3. **Cerrar la app a todos**: interruptor de editor (`APP_CERRADA`); `doGet` y `api` muestran solo un aviso. Para sospechas de intrusión. Riesgo: nadie entra y solo se reabre desde el editor, con ordenador.
+4. **Volver a una versión anterior CON login**: Implementar > Administrar implementaciones > editar > elegir versión. La URL no cambia y los datos no se tocan, porque las hojas no dependen de la versión. Es lo adecuado si una versión nueva falla. Riesgo: se pierden los arreglos posteriores; hace falta ordenador. En la fase 5 se anota el número de la versión buena.
+5. **NO usar como emergencia**: volver a una versión anterior al login. Funcionaría, pero la app quedaría abierta a cualquiera con la URL. Tampoco hay que archivar la implementación real si se quiere conservar la URL.
+Si el sustituto olvida la contraseña o se queda sin acceso, solo el administrador puede restablecerla, y hace falta poder hacerlo desde el móvil; se comprobará en la fase 5. Hay que acordar antes cómo te localiza y qué hace si no estás disponible.
+
+### 17.10 Fases
+Según la sección 0.1 A, cada conversación termina cuando el dueño la comprueba. Antes de cada una, commit en GitHub Desktop. Se prueba en la implementación de prueba. Frase para empezar: «Lee CLAUDE.md y la sección 0 de CONTEXTO.md y haz la <conversación> de la sección 17.»
+
+**Fase 1 · Base (conversación 1)**
+Tareas: añadir permisos a `appsscript.json` y reautorizar; comprobar `soloPropietario_()` desde el editor y desde la web; medir iteraciones; crear hojas «Accesos» y «Registro» y el primer administrador; contraseñas, sesiones, `api()`, `ACCIONES`, registro y bloqueo por fuerza bruta en archivos nuevos (`acceso/`); crear `llamar()`, login y cambio de contraseña en un archivo común de `ui/`; incluirlo en todas las páginas; filtrar IDs en `historia/HC_Vista`.
+Cómo probar: entrar bien y mal; 5 fallos bloquean y llega el correo; la contraseña temporal obliga a cambiarla; cerrar sesión; caducidad a los 60 minutos; una ventana de HC comparte sesión; un `api` con acción inventada o sin token se rechaza y queda en «Registro»; login por debajo de 1 s; tema claro y oscuro. Aviso: en esta fase las funciones antiguas siguen abiertas.
+
+**Fase 2 · Cerrar puertas, pestaña por pestaña (conversaciones 2 a 4)**
+Regla de transición: una función se renombra cuando todas sus llamadas ya usan `llamar()`. Tras cada bloque se prueba la pestaña entera antes de seguir.
+- Conversación 2: comprobación automática en `comprobar/coherencia.mjs` (ningún `google.script.run` fuera de `llamar`; toda función pública en lista permitida; todo `llamar` existe en `ACCIONES`; los `llamar` locales renombrados); piezas comunes (`ui/JS_Paneles_Diferidos`, `ui/JS_Valoraciones_Cache`, `ui/JS_HC_Cache`, `usuarios/Whatsapp_Dialogo`); Estadísticas; Valoraciones.
+- Conversación 3: Usuarios, formularios Nuevo y Editar, Historia clínica.
+- Conversación 4: Agenda (la pestaña con más llamadas), con Dar cita, Disponibilidad y Recordatorios; `soloPropietario_()` en herramientas y editor; pasar a privadas las internas (lista c); retirar lo aprobado de la lista d); revisión final.
+Cómo probar: en cada pestaña, cargar, crear, editar, eliminar y deshacer, y cada función del panel lateral. Revisión final: la comprobación automática dice que las únicas públicas son `doGet`, `api` y las del editor; una función antigua llamada desde la consola del navegador falla; las herramientas siguen funcionando desde el editor; `node comprobar/coherencia.mjs` y `node comprobar/probar.mjs` en orden.
+
+**Fase 3 · Interfaz por rol y «Ver como usuario» (conversación 5)**
+Tareas: ocultar pestañas y botones por rol (la barra está repetida en las cuatro `*_Vista`: unificarla en una pieza común, según 0.1 B); menú de sesión con nombre y cerrar sesión; «Ver como usuario» con aviso visible y vuelta atrás; página no permitida → vuelta a Usuarios con aviso.
+Cómo probar: con una cuenta de usuario no aparecen Estadísticas ni Configuración y, forzando la URL, no llega ningún dato; desactivar o cambiar el rol se aplica en la acción siguiente; «Ver como usuario» muestra lo mismo y «Registro» anota al usuario real.
+
+**Fase 4 · Configuración mínima (conversación 6)**
+Tareas: `?page=configuracion` con secciones ampliables (cada una, un archivo); Accesos completo; Registro con filtros en el servidor y solo las filas recientes; interruptores de 17.9; entrada en `ui/Guia_Visual` si hay piezas nuevas.
+Cómo probar: todas las operaciones de Accesos y su fila en «Registro»; no se puede dejar la app sin administrador activo; filtros; interruptores; tema claro y oscuro; un usuario no puede entrar ni llamar a estas acciones.
+
+**Fase 5 · Prueba y entrega (conversación 7)**
+Tareas: revisión completa; versión fija en la implementación real, con la misma URL (Implementar > Administrar implementaciones > editar > Nueva versión); revisar y archivar otras implementaciones; crear la cuenta del sustituto y hacer la prueba con él **al menos una semana antes de la baja**; guía breve de uso; plan de emergencia definitivo, con el número de la versión buena; probar la recuperación desde el móvil; actualizar las secciones 1, 2, 3, 5, 6, 7, 8 y 9 y `CLAUDE.md`.
+Cómo probar: entrando con la URL de siempre en una ventana de incógnito, solo se ve el login; una jornada normal del sustituto; simulacro de los niveles 1, 2 y 4 de 17.9; «Registro» refleja todo.
