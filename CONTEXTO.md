@@ -285,9 +285,9 @@ Fases (una conversación cada una, según 0.1 A; no se empieza una sin haber com
 - **Conversación 3 · Programa por usuario** — PENDIENTE. Botón en la ficha, biblioteca filtrada por la zona de su patología, pautas por ejercicio y programas guardados.
 - **Conversación 4 · Hoja impresa** — PENDIENTE. Diseño A4 con letra grande, reimpresión y enlace desde la Historia clínica.
 
-## 17. Control de acceso, roles y registro (trazado el 1-nov-2026; plan APROBADO el 2-nov-2026; EN CURSO en la rama `control-acceso`)
-Estado (2-nov-2026): **conversación 1 (fase 1) en la rama `control-acceso`: el dueño ejecutó las funciones de editor y dio por buenas las pruebas el 2-nov-2026; el login y el botón «Cerrar sesión» retocados también están dados por buenos; solo falta el correo de bloqueo, que falló por falta de autorización del permiso `script.send_mail` (se resuelve ejecutando `accesoProbarCorreo` desde el editor).** Las decisiones de 17.8 están cerradas. Todo el trabajo de esta sección va en esa rama, sin tocar `main`, y se sube con `clasp push` estando en ella; la versión real no se actualiza hasta la fase 5. La baja empieza el **17-nov-2026**.
-Para seguir, cuando la fase 1 esté comprobada: «Lee CLAUDE.md y la sección 0 de CONTEXTO.md y haz la conversación 2 de la sección 17 en la rama control-acceso.»
+## 17. Control de acceso, roles y registro (trazado el 1-nov-2026; plan APROBADO el 2-nov-2026; fase 1 HECHA y comprobada; EN CURSO en la rama `control-acceso`)
+Estado (2-nov-2026): **conversación 1 (fase 1) HECHA y comprobada por el dueño en la implementación de prueba, en la rama `control-acceso`. Sigue la conversación 2.** Las decisiones de 17.8 están cerradas. Todo el trabajo de esta sección va en esa rama, sin tocar `main`, y se sube con `clasp push` estando en ella; la versión real no se actualiza hasta la fase 5. La baja empieza el **17-nov-2026**.
+Para seguir: «Lee CLAUDE.md y la sección 0 de CONTEXTO.md y haz la conversación 2 de la sección 17 en la rama control-acceso.»
 
 ### 17.1 Objetivo y motivo
 El dueño se va de baja por paternidad en unas semanas y otra persona usará la app. Hoy la Web App es «Ejecutar como: yo» y «Acceso: cualquiera, incluso anónimo»: quien tenga la URL entra y puede ver y cambiar datos clínicos. Con cuentas Gmail, `Session.getActiveUser()` no sirve para saber quién entra. Objetivos: (1) login propio con usuario y contraseña, sin depender de Google; sin sesión válida no se ve nada; (2) roles administrador y usuario; (3) pestaña Configuración solo para el administrador, empezando por los accesos; (4) registro de los cambios importantes.
@@ -418,7 +418,7 @@ Si el sustituto olvida la contraseña o se queda sin acceso, solo el administrad
 ### 17.10 Fases
 Según la sección 0.1 A, cada conversación termina cuando el dueño la comprueba. Antes de cada una, commit en GitHub Desktop. Se prueba en la implementación de prueba. Frase para empezar: «Lee CLAUDE.md y la sección 0 de CONTEXTO.md y haz la <conversación> de la sección 17.»
 
-**Fase 1 · Base (conversación 1): hecha el 2-nov-2026; falta comprobar el correo de bloqueo (ver el estado al principio de esta sección)**
+**Fase 1 · Base (conversación 1): HECHA y comprobada (2-nov-2026)**
 A mano, en el editor y en este orden: `accesoPrepararHojas`, `accesoComprobarPropietario`, `accesoMedirIteraciones`, `accesoCrearAdministrador` (da la contraseña temporal en el registro de ejecución). Las pruebas de acción inventada y llamada sin sesión están en `?page=pruebaAcceso`. El botón «Cerrar sesión» está en la barra de pestañas (lo pone `ui/Acceso`); la fase 3 lo pasa al menú de sesión. Si cambia la medida de iteraciones, cada contraseña se actualiza sola en su siguiente entrada.
 Cómo probar: entrar bien y mal; 5 fallos bloquean y llega el correo; la contraseña temporal obliga a cambiarla; cerrar sesión; caducidad a los 60 minutos; una ventana de HC comparte sesión; un `api` con acción inventada o sin token se rechaza y queda en «Registro»; login por debajo de 1 s; tema claro y oscuro. Aviso: en esta fase las funciones antiguas siguen abiertas.
 
