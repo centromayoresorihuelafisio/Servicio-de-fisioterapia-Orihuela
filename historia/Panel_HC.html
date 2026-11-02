@@ -443,7 +443,7 @@ window.PanelHC = {
     if (epiEnVuelo) { epiRepetir = true; return; }
     epiEnVuelo = true;
     var lista = copiaEpi(episodios), firma = firmaEpi(lista);
-    google.script.run.withSuccessHandler(function (r) {
+    llamar('guardarEpisodiosHCWeb', [D.id, lista, baseEpi]).then(function (r) {
       if (r && r.success) { baseEpi = firma; error(''); sincronizarCache(); terminarEpi(); return; }
       if (r && r.conflicto) {                     // otra ventana cambió los episodios: se muestran los actuales y no se pisa nada
         clearTimeout(tmrEpi); epiArmado = false; epiRepetir = false;
@@ -453,9 +453,9 @@ window.PanelHC = {
         return;
       }
       terminarEpi(); falloGuardado(r && r.message); if (window.HCCache) HCCache.invalidar(D.id);
-    }).withFailureHandler(function (e) {
+    }, function (e) {
       terminarEpi(); falloGuardado(e && e.message); if (window.HCCache) HCCache.invalidar(D.id);
-    }).guardarEpisodiosHCWeb(D.id, lista, baseEpi);
+    });
   }
   function pintarEpisodios() {
     var c = $('episodios'); c.innerHTML = '';
@@ -508,7 +508,7 @@ window.PanelHC = {
         if (!ok) return;
         var html = btn.innerHTML; btn.disabled = true; btn.textContent = 'Procesando…';
         var fin = function () { btn.disabled = false; btn.innerHTML = html; };
-        google.script.run.withSuccessHandler(function (res) {
+        llamar('darDeAltaPacienteWeb', [u.idPaciente]).then(function (res) {
           fin();
           aviso((res && res.message) || (res && res.success ? 'Alta realizada' : 'No se pudo dar de alta.'));
           if (res && res.success) {
@@ -516,8 +516,7 @@ window.PanelHC = {
             refrescar(true);
             if (opts.alCambiar) { try { opts.alCambiar('alta'); } catch (e) { /* no crítico */ } }
           }
-        }).withFailureHandler(function (e) { fin(); aviso('Error al dar de alta: ' + (e && e.message ? e.message : e)); })
-          .darDeAltaPacienteWeb(u.idPaciente);
+        }, function (e) { fin(); aviso('Error al dar de alta: ' + (e && e.message ? e.message : e)); });
       });
     };
     $('btnNuevo').onclick = function () { episodios.push({ ingreso: hoyISO(), alta: '', nota: '' }); guardarEpisodios(); pintarEpisodios(); pintarTiles(); };
@@ -607,13 +606,12 @@ window.PanelHC = {
       var t = $(campo); if (!t || !sucio[campo]) return ok();
       sucio[campo] = false; guardando(true);
       var enviado = t.value;
-      google.script.run.withSuccessHandler(function (r) {
+      llamar('guardarTextoHCWeb', [D.id, campo, t.value, D.modificado]).then(function (r) {
         guardando(false);
         if (r.success) { D.modificado = r.modificado; D[campo] = enviado; error(''); errorGuardado = false; pintarEditado(); sincronizarCache(); }
         else { sucio[campo] = true; falloGuardado(r.message); if (window.HCCache) HCCache.invalidar(D.id); if (r.conflicto) { $('historia').disabled = true; $('tratamiento').disabled = true; } }
         ok();
-      }).withFailureHandler(function (e) { guardando(false); sucio[campo] = true; falloGuardado(e && e.message); ok(); })
-        .guardarTextoHCWeb(D.id, campo, t.value, D.modificado);
+      }, function (e) { guardando(false); sucio[campo] = true; falloGuardado(e && e.message); ok(); });
     }); });
   }
   function pintarNotas() {
@@ -687,11 +685,10 @@ window.PanelHC = {
     var pre = window.HCCache ? HCCache.obtener(PARAMS.id, PARAMS.idPaciente) : null;
     if (pre) {
       pintar(pre);                                   // al instante, sin esperar al servidor
-      if (pre._obsoleta) google.script.run.withSuccessHandler(revalidar).withFailureHandler(function () { /* sin red: se queda lo de la caché */ })
-        .obtenerHCWeb(PARAMS.id, PARAMS.idPaciente);
+      if (pre._obsoleta) llamar('obtenerHCWeb', [PARAMS.id, PARAMS.idPaciente]).then(revalidar, function () { /* sin red: se queda lo de la caché */ });
       return;
     }
-    google.script.run.withSuccessHandler(alRecibir).withFailureHandler(function (e) { fallo(e && e.message); }).obtenerHCWeb(PARAMS.id, PARAMS.idPaciente);
+    llamar('obtenerHCWeb', [PARAMS.id, PARAMS.idPaciente]).then(alRecibir, function (e) { fallo(e && e.message); });
   }
   /* ---------- funciones de la app dentro de la historia (hoja lateral) ---------- */
   // Valoración, Dar cita y Editar reutilizan los paneles de la app (PanelValoraciones / PanelCita / PanelEditar): se montan en una
@@ -714,9 +711,8 @@ window.PanelHC = {
   var forzarEpi = false;   // true solo durante un refresco que debe repintar los episodios aunque se haya tocado algo (tras dar el alta)
   function refrescar(forzarEpisodios) {   // vuelve a pedir la historia (por ID) y deja que revalidar() actualice lo que haya cambiado
     if (!D || !D.id) return;
-    google.script.run.withSuccessHandler(function (f) { if (f && f.success && root.isConnected) { forzarEpi = !!forzarEpisodios; try { revalidar(f); } finally { forzarEpi = false; } } })
-      .withFailureHandler(function () { /* se queda lo que hay en pantalla */ })
-      .obtenerHCWeb(D.id, '');
+    llamar('obtenerHCWeb', [D.id, '']).then(function (f) { if (f && f.success && root.isConnected) { forzarEpi = !!forzarEpisodios; try { revalidar(f); } finally { forzarEpi = false; } } },
+      function () { /* se queda lo que hay en pantalla */ });
   }
   function accion(tipo) {
     if (!D || subHost) return;

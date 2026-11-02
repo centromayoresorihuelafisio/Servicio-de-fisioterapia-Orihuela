@@ -8,7 +8,7 @@
  * Cada usuario incluye `_fila`: el número de fila real en la hoja, necesario
  * como referencia de la tabla (selección, orden). Para actuar sobre un usuario el cliente envía su "ID paciente", nunca `_fila`.
  */
-function obtenerBaseDatosCompletaWeb() {
+function obtenerBaseDatosCompletaWeb_() {
   try {
     const ss = getSS();
     const sheet = ss.getSheetByName(SHEETS.MAESTRA);
@@ -83,12 +83,43 @@ function obtenerBaseDatosCompletaWeb() {
 }
 
 /**
- * Borra por completo la fila de un usuario en la Maestra (borrado real de la fila, no solo de su contenido). Se localiza
- * por su ID paciente: no depende del número de fila (la hoja se reordena) ni del nombre. Es una acción irreversible: no
- * toca las hojas de Agenda ni Valoraciones, así que si ese usuario tenía citas o valoraciones seguirán apareciendo ahí
- * con su nombre.
+ * Copia de filas de la Maestra antes de borrarlas, para "Registro" (decisión 2 de la sección 17.8). Tiene la misma forma
+ * que la ficha del cliente (cabecera: valor, fechas dd/MM/yyyy, la URL de la Historia Clínica y `_fila`), así que
+ * restaurarPacienteWeb_ puede volver a darla de alta tal cual.
  */
-function eliminarPacienteWeb(idPaciente) {
+function copiaFilasMaestra_(sheet, filas) {
+  const lastCol = sheet.getLastColumn();
+  const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(h => h.toString().trim());
+  const colHC = headers.indexOf(COLUMNAS.MAESTRA.HISTORIA_CLINICA);
+  const tz = Session.getScriptTimeZone();
+  return filas.map(fila => {
+    const rango = sheet.getRange(fila, 1, 1, lastCol);
+    const valores = rango.getValues()[0];
+    const enlaceHC = colHC !== -1 ? rango.getCell(1, colHC + 1).getRichTextValue() : null;
+    const copia = { _fila: fila };
+    headers.forEach((h, i) => {
+      if (!h) return;
+      let v = valores[i];
+      if (i === colHC) v = (enlaceHC && enlaceHC.getLinkUrl()) || String(v || '').trim();
+      else if (Object.prototype.toString.call(v) === '[object Date]') v = Utilities.formatDate(v, tz, 'dd/MM/yyyy');
+      copia[h] = v;
+    });
+    return copia;
+  });
+}
+
+/** Filas de "Registro" con la copia completa de cada usuario borrado (las anota api, acceso/Api.gs). */
+function registroCopiasMaestra_(copias) {
+  return copias.map(c => ({ entidad: String(c[COLUMNAS.MAESTRA.ID_PACIENTE] || ''), detalle: JSON.stringify(c) }));
+}
+
+/**
+ * Borra por completo la fila de un usuario en la Maestra (borrado real de la fila, no solo de su contenido). Se localiza
+ * por su ID paciente: no depende del número de fila (la hoja se reordena) ni del nombre. No toca las hojas de Agenda ni
+ * Valoraciones, así que si ese usuario tenía citas o valoraciones seguirán apareciendo ahí con su nombre. Antes de
+ * borrar guarda la fila completa en "Registro" para poder recuperarla.
+ */
+function eliminarPacienteWeb_(idPaciente) {
   try {
     const ss = getSS();
     const sheet = ss.getSheetByName(SHEETS.MAESTRA);
@@ -97,8 +128,9 @@ function eliminarPacienteWeb(idPaciente) {
     const fila = filaMaestraPorId_(sheet, idPaciente);
     if (!fila) return { success: false, message: 'Ese usuario ya no está en Usuarios. Recarga la página.' };
 
+    const copias = copiaFilasMaestra_(sheet, [fila]);
     sheet.deleteRow(fila);
-    return { success: true, message: 'Usuario eliminado correctamente.' };
+    return { success: true, message: 'Usuario eliminado correctamente.', _registro: registroCopiasMaestra_(copias) };
   } catch (e) {
     Logger.log('Error en eliminarPacienteWeb: ' + e.message);
     return { success: false, message: e.message };
@@ -123,7 +155,7 @@ function eliminarPacienteWeb(idPaciente) {
  * @param {object} datosPaciente La ficha completa tal cual la tenía el
  *   cliente (incluye _fila, la fila original que ocupaba).
  */
-function restaurarPacienteWeb(datosPaciente) {
+function restaurarPacienteWeb_(datosPaciente) {
   try {
     const ss = getSS();
     const sheet = ss.getSheetByName(SHEETS.MAESTRA);
@@ -182,7 +214,7 @@ function fechaTextoADate_(valor) {
  * actualiza también fechas, tipo de ingreso y la Historia Clínica.
  * El usuario se localiza por su ID paciente: no depende del número de fila (que cambia al ordenar) ni del nombre.
  */
-function cambiarEstadoPacienteWeb(idPaciente, nuevoEstado) {
+function cambiarEstadoPacienteWeb_(idPaciente, nuevoEstado) {
   const r = cambiarEstadoPacienteSinOrden_(idPaciente, nuevoEstado);   // el bloqueo ya está liberado al volver
   if (r.success && r._cambios) {
     const orden = ordenarPacientesSiProcede_(r._cambios);
@@ -234,7 +266,7 @@ function cambiarEstadoPacienteSinOrden_(idPaciente, nuevoEstado) {
  * Usuarios). "Alta" se rechaza aquí: el cliente ya evita
  * enviarla, pero se comprueba también en el servidor por si acaso.
  */
-function cambiarEstadoLoteWeb(idsPaciente, nuevoEstado) {
+function cambiarEstadoLoteWeb_(idsPaciente, nuevoEstado) {
   const r = cambiarEstadoLoteSinOrden_(idsPaciente, nuevoEstado);   // el bloqueo ya está liberado al volver
   if (r.success && r._cambios) {
     const orden = ordenarPacientesSiProcede_(r._cambios);
@@ -291,12 +323,12 @@ function cambiarEstadoLoteSinOrden_(idsPaciente, nuevoEstado) {
 /**
  * Elimina varios usuarios de la Maestra a la vez (borrado real de fila, no solo de contenido), localizados por su ID
  * paciente. Borra de abajo hacia arriba para que borrar una fila no desplace el número de las que faltan.
- * Igual que eliminarPacienteWeb: no toca Agenda ni Valoraciones.
+ * Igual que eliminarPacienteWeb_: no toca Agenda ni Valoraciones y guarda en "Registro" una copia de cada fila.
  *
  * Todo o nada: si CUALQUIER ID ya no está en la Maestra no se borra ninguno (el cliente guarda una copia de cada ficha
  * para poder deshacer, y no debe restaurar a alguien que ya no estaba).
  */
-function eliminarPacientesLoteWeb(idsPaciente) {
+function eliminarPacientesLoteWeb_(idsPaciente) {
   if (!Array.isArray(idsPaciente) || idsPaciente.length === 0) return { success: false, message: 'No hay usuarios seleccionados.' };
 
   const lock = LockService.getScriptLock();
@@ -316,9 +348,10 @@ function eliminarPacientesLoteWeb(idsPaciente) {
       return { success: false, message: 'La lista ha cambiado desde que se cargó. Recarga la página e inténtalo de nuevo.' };
     }
 
+    const copias = copiaFilasMaestra_(sheet, filas);
     filas.sort((a, b) => b - a).forEach(f => sheet.deleteRow(f));
 
-    return { success: true, message: filas.length + (filas.length === 1 ? ' usuario eliminado.' : ' usuarios eliminados.') };
+    return { success: true, message: filas.length + (filas.length === 1 ? ' usuario eliminado.' : ' usuarios eliminados.'), _registro: registroCopiasMaestra_(copias) };
   } catch (e) {
     Logger.log('Error en eliminarPacientesLoteWeb: ' + e.message);
     return { success: false, message: e.message };

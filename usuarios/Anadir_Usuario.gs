@@ -140,7 +140,7 @@ function _nombresParecidos_(a, b) {
 /**
  * Guarda los datos del usuario recibidos del formulario HTML en la hoja de cálculo.
  */
-function guardarPaciente(datos) {
+function guardarPaciente_(datos) {
   Logger.log('*** INICIO DE LA FUNCIÓN guardarPaciente ***');
 
   const ss = getSS()
@@ -184,7 +184,7 @@ function guardarPaciente(datos) {
       }
 
       // Si es una fecha (YYYY-MM-DD), convertir a objeto fecha para Sheets — mismo
-      // patrón que actualizarPaciente (usuarios/Editar_Usuario.gs). El <input type="date">
+      // patrón que actualizarPaciente_ (usuarios/Editar_Usuario.gs). El <input type="date">
       // del formulario manda el valor como texto, y sin esto se guardaría como texto
       // en la hoja (parseFecha no lo reconoce como fecha real).
       if (typeof valor === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(valor)) {
@@ -248,8 +248,8 @@ function guardarPaciente(datos) {
     // --- NUEVA LÓGICA: ORDENACIÓN AUTOMÁTICA ---
     // Llamamos a la función de ordenación para que el nuevo usuario 
     // se posicione inmediatamente según su prioridad (puntuación en columna A)
-    if (typeof ordenarPacientes === "function") {
-      ordenarPacientes();
+    if (typeof ordenarPacientes_ === "function") {
+      ordenarPacientes_();
     }
 
     // --- NUEVA LÓGICA: CREACIÓN DE CONTACTO EN GOOGLE ---
@@ -336,7 +336,7 @@ function crearContactoGoogle(nombre, telefono) {
  * @param {Object} patientData - Datos del formulario enviados desde el frontend (con `idPaciente`).
  * @return {Object} Respuesta con el estado de la operación y la URL de la ficha.
  */
-function generarHistoriaClinicaRegistroUsuario(patientData) {
+function generarHistoriaClinicaRegistroUsuario_(patientData) {
   try {
     const ss = getSS()
     const sheet = ss.getSheetByName(SHEETS.MAESTRA);

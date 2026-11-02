@@ -5,7 +5,7 @@
  * Qué hace: añade a la Maestra una columna "ID paciente" (COLUMNAS.MAESTRA.ID_PACIENTE) y rellena cada
  * usuario que aún no tenga uno con un identificador único (UUID, como el ID HC). El ID no depende del
  * DNI ni del nombre, así que no cambia nunca. Para los usuarios que se creen después, lo genera
- * guardarPaciente (usuarios/Anadir_Usuario.gs).
+ * guardarPaciente_ (usuarios/Anadir_Usuario.gs).
  *
  * Seguridad:
  *   - ANTES de asignar, busca pares sospechosos de duplicado (mismo DNI, mismo teléfono o nombres casi

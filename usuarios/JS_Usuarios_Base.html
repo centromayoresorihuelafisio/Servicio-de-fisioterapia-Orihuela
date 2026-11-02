@@ -14,8 +14,8 @@
 
       // ---------- Carga de datos ----------
       function cargar(alReanclar) {
-        google.script.run
-          .withSuccessHandler(function(res) {
+        llamar('obtenerBaseDatosCompletaWeb')
+          .then(function(res) {
             if (res.error) { mostrarError(res.error); return; }
             HEADERS = res.headers || [];
             TODOS = res.pacientes || [];
@@ -25,9 +25,7 @@
             construirMenusFiltro();
             render();
             renderFicha();
-          })
-          .withFailureHandler(mostrarError)
-          .obtenerBaseDatosCompletaWeb();
+          }, mostrarError);
       }
 
       function mostrarError(err) {
@@ -400,8 +398,8 @@
         var antes = {};
         filas.forEach(function(f) { var p = TODOS.find(function(x) { return x._fila === f; }); if (p) { antes[f] = p[hEst]; p[hEst] = valor; } });
         render();
-        google.script.run
-          .withSuccessHandler(function(res) {
+        llamar('cambiarEstadoLoteWeb', [filas.map(idDeFila), valor])
+          .then(function(res) {
             if (!res || !res.success) {
               filas.forEach(function(f) { var p = TODOS.find(function(x) { return x._fila === f; }); if (p && f in antes) p[hEst] = antes[f]; });
               render();
@@ -410,9 +408,7 @@
             }
             mostrarAviso('Estado cambiado a ' + textoEstado(valor) + ' en ' + filas.length + (filas.length === 1 ? ' usuario.' : ' usuarios.'));
             if (res.ordenado) cargar();   // el servidor reordenó la hoja: se recarga para ver el orden nuevo (la selección y la ficha se reanclan por ID)
-          })
-          .withFailureHandler(function(err) { cargar(); mostrarAviso('Error al cambiar el estado: ' + err); })
-          .cambiarEstadoLoteWeb(filas.map(idDeFila), valor);
+          }, function(err) { cargar(); mostrarAviso('Error al cambiar el estado: ' + err); });
       }
 
       document.getElementById('bloteEliminar').addEventListener('click', async function() {
@@ -424,16 +420,14 @@
         var copias = filas.map(function(f) { return TODOS.find(function(x) { return x._fila === f; }); })
           .filter(Boolean).map(function(p) { return Object.assign({}, p); })
           .sort(function(a, b) { return a._fila - b._fila; });
-        google.script.run
-          .withSuccessHandler(function(res) {
+        llamar('eliminarPacientesLoteWeb', [copias.map(idPaciente)])
+          .then(function(res) {
             seleccionMultiple.clear();
             actualizarBarraLote();
             cargar();
             if (res && res.success && copias.length) mostrarDeshacer(copias, (res.message) || (copias.length + (copias.length === 1 ? ' usuario eliminado.' : ' usuarios eliminados.')));
             else mostrarAviso((res && res.message) || (res && res.success ? 'Usuarios eliminados.' : 'No se pudo eliminar.'));
-          })
-          .withFailureHandler(function(err) { cargar(); mostrarAviso('Error al eliminar: ' + err); })
-          .eliminarPacientesLoteWeb(copias.map(idPaciente));
+          }, function(err) { cargar(); mostrarAviso('Error al eliminar: ' + err); });
       });
 
       // ---------- Navegación por teclado ----------

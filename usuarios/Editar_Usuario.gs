@@ -1,7 +1,7 @@
 /**
  * Lee una fila de la Maestra y la deja lista para el formulario de edición
  * (cabeceras + valores, con las fechas convertidas a "yyyy-MM-dd" para que
- * los <input type="date"> las reconozcan). La usa obtenerDatosEdicionPaciente (panel de edición).
+ * los <input type="date"> las reconozcan). La usa obtenerDatosEdicionPaciente_ (panel de edición).
  */
 function prepararDatosFilaParaEdicion(sheet, rowIdx) {
   const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
@@ -22,7 +22,7 @@ function prepararDatosFilaParaEdicion(sheet, rowIdx) {
  * (usuarios/Panel_Editar.html). Devuelve lo mismo que prepararDatosFilaParaEdicion(). El usuario se localiza por su
  * ID paciente, así que no hay riesgo de editar a otra persona si la hoja se ha reordenado.
  */
-function obtenerDatosEdicionPaciente(idPaciente) {
+function obtenerDatosEdicionPaciente_(idPaciente) {
   const sheet = getSS().getSheetByName(SHEETS.MAESTRA);
   if (!sheet) throw new Error('No se encontró la hoja "' + SHEETS.MAESTRA + '".');
   const fila = filaMaestraPorId_(sheet, idPaciente);
@@ -33,7 +33,7 @@ function obtenerDatosEdicionPaciente(idPaciente) {
 /**
  * Procesa la actualización de los datos en la hoja de cálculo.
  */
-function actualizarPaciente(updatedData, idPaciente) {
+function actualizarPaciente_(updatedData, idPaciente) {
   const ss = getSS();
   const sheet = ss.getSheetByName(SHEETS.MAESTRA);
   // La fila se localiza por el ID paciente (no por un número de fila que pudo cambiar al reordenar).
@@ -115,7 +115,7 @@ function actualizarPaciente(updatedData, idPaciente) {
 
   // Reordenar solo si cambió algo que cuenta en la puntuación: Estado, Tipo de ingreso y Gravedad (ya van en cambiosHistorial)
   // o una de las dos fechas (Fecha de inscripción, Última visita), que se comparan aquí porque no están en el historial.
-  // La Última visita se busca igual que en ordenarPacientes (sin acentos y por "contiene"), porque no está en COLUMNAS.
+  // La Última visita se busca igual que en ordenarPacientes_ (sin acentos y por "contiene"), porque no está en COLUMNAS.
   const normCab = (h) => h.toString().trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   const idxFechas = [headers.indexOf(COLUMNAS.MAESTRA.FECHA_INSCRIPCION), headers.findIndex(h => normCab(h).includes("ultima visita"))].filter(i => i !== -1);
   const claveFecha = (v) => { const d = parseFecha(v); return d ? d.getTime() : String(v === null || v === undefined ? '' : v).trim(); };

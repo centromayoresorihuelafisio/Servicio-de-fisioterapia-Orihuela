@@ -8,10 +8,15 @@
  * en orden y las funciones de otros archivos podrían no existir todavía.
  *   rol:      'publica' (sin sesión) | 'usuario' | 'administrador'
  *   registrar: anota la acción en "Registro"
+ *   entidad:  (args, resultado) => a quién afecta, para la columna "entidad" de "Registro" (si falta, 'api')
+ *   detalle:  (args, resultado) => texto breve para "detalle"
  *   renueva:  false si la llamada no debe alargar la sesión (preguntas automáticas de las pantallas)
  *   conTemporal: se admite mientras la contraseña sea temporal
+ * Una acción puede devolver `_registro: [{ entidad, detalle }]` para anotar una fila por elemento (p. ej. la copia de
+ * cada usuario eliminado); api lo quita antes de responder al navegador.
  */
 function accesoAcciones_() {
+  const id = COLUMNAS.MAESTRA.ID_PACIENTE;
   return {
     iniciarSesion:     { fn: accesoIniciarSesion_, rol: 'publica' },
     comprobarSesion:   { fn: sesionComprobar_, rol: 'usuario' },
@@ -35,8 +40,42 @@ function accesoAcciones_() {
     procesarValoracion:                { fn: procesarValoracion_, rol: 'usuario' },
     actualizarValoracionWeb:           { fn: actualizarValoracionWeb_, rol: 'usuario' },
     eliminarValoracionWeb:             { fn: eliminarValoracionWeb_, rol: 'usuario', registrar: true },
-    restaurarValoracionWeb:            { fn: restaurarValoracionWeb_, rol: 'usuario', registrar: true }
+    restaurarValoracionWeb:            { fn: restaurarValoracionWeb_, rol: 'usuario', registrar: true },
+
+    // Usuarios (eliminar es solo del administrador: decisión 2 de 17.8)
+    obtenerBaseDatosCompletaWeb: { fn: obtenerBaseDatosCompletaWeb_, rol: 'usuario' },
+    obtenerDatosEdicionPaciente: { fn: obtenerDatosEdicionPaciente_, rol: 'usuario' },
+    actualizarPaciente:          { fn: actualizarPaciente_, rol: 'usuario', registrar: true, entidad: a => a[1] },
+    guardarPaciente:             { fn: guardarPaciente_, rol: 'usuario', registrar: true, entidad: (a, r) => r && r.idPaciente },
+    eliminarPacienteWeb:         { fn: eliminarPacienteWeb_, rol: 'administrador', registrar: true },
+    eliminarPacientesLoteWeb:    { fn: eliminarPacientesLoteWeb_, rol: 'administrador', registrar: true },
+    restaurarPacienteWeb:        { fn: restaurarPacienteWeb_, rol: 'usuario', registrar: true, entidad: a => a[0] && a[0][id] },
+    cambiarEstadoPacienteWeb:    { fn: cambiarEstadoPacienteWeb_, rol: 'usuario' },
+    cambiarEstadoLoteWeb:        { fn: cambiarEstadoLoteWeb_, rol: 'usuario', registrar: true, entidad: a => (a[0] || []).join(', '), detalle: a => a[1] },
+    ordenarPacientes:            { fn: ordenarPacientes_, rol: 'usuario' },
+    darDeAltaPacienteWeb:        { fn: darDeAltaPacienteWeb_, rol: 'usuario', registrar: true, entidad: a => a[0] },
+    obtenerFichasUsuariosWeb:    { fn: obtenerFichasUsuariosWeb_, rol: 'usuario', renueva: false },
+    obtenerFichaUsuarioWeb:      { fn: obtenerFichaUsuarioWeb_, rol: 'usuario' },
+
+    // Historia clínica (los textos se anotan agrupados desde guardarTextoHCWeb_: 17.3, punto 9)
+    obtenerHCWeb:                          { fn: obtenerHCWeb_, rol: 'usuario' },
+    guardarTextoHCWeb:                     { fn: guardarTextoHCWeb_, rol: 'usuario' },
+    guardarEpisodiosHCWeb:                 { fn: guardarEpisodiosHCWeb_, rol: 'usuario', registrar: true, entidad: a => a[0], detalle: a => JSON.stringify(a[1] || []) },
+    generarHistoriaClinicaWeb:             { fn: generarHistoriaClinicaWeb_, rol: 'usuario', registrar: true, entidad: a => a[0] },
+    generarHistoriaClinicaRegistroUsuario: { fn: generarHistoriaClinicaRegistroUsuario_, rol: 'usuario', registrar: true, entidad: a => a[0] && a[0].idPaciente }
   };
+}
+
+/** Anota en "Registro" una acción con `registrar`, con su entidad y detalle si la acción los define. */
+function apiRegistrar_(def, sesion, nombre, args, resultado, filas) {
+  const fallo = resultado && resultado.success === false;
+  if (fallo) { registroAnotar_(sesion.usuario, sesion.rol, nombre, 'api', resultado.message, 'error'); return; }
+  if (Array.isArray(filas) && filas.length) {
+    filas.forEach(f => registroAnotar_(sesion.usuario, sesion.rol, nombre, f.entidad || 'api', f.detalle, 'ok'));
+    return;
+  }
+  const leer = fn => { try { return fn ? fn(args, resultado) : ''; } catch (e) { return ''; } };
+  registroAnotar_(sesion.usuario, sesion.rol, nombre, leer(def.entidad) || 'api', leer(def.detalle), 'ok');
 }
 
 /** Prepara la sesión de la llamada con los datos actuales de su cuenta, o devuelve null si ya no vale. */
@@ -83,10 +122,9 @@ function api(token, accion, datos) {
     sesionEnCurso_ = sesion;
     if (def.renueva !== false) sesionRenovar_(sesion);
     const resultado = def.fn.apply(null, args);
-    if (def.registrar) {
-      const fallo = resultado && resultado.success === false;
-      registroAnotar_(quien, rol, nombre, 'api', fallo ? resultado.message : '', fallo ? 'error' : 'ok');
-    }
+    const filas = resultado && resultado._registro;
+    if (filas) delete resultado._registro;
+    if (def.registrar) apiRegistrar_(def, sesion, nombre, args, resultado, filas);
     return { ok: true, datos: resultado, rol: sesion.rol };
   } catch (e) {
     if (sesion && sesionEnCurso_) registroAnotar_(sesion.usuario, sesion.rol, nombre, 'api', e.message, 'error');

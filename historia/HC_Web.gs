@@ -76,7 +76,7 @@ function hcFilaMaestraPorIdPaciente_(maestra, idPaciente) { return filaMaestraPo
  * @param {string} idHC ID de la historia (col. 1 de "Historias Clínicas"; el que lleva el enlace ?page=hc&id=).
  * @param {string=} idPaciente ID paciente (Maestra). Se usa si no hay ID HC: la historia es la que lleva ese ID en su col. 8.
  */
-function obtenerHCWeb(idHC, idPaciente) {
+function obtenerHCWeb_(idHC, idPaciente) {
   try {
     idHC = String(idHC || '').replace(/[^\w-]/g, '');
     idPaciente = String(idPaciente || '').trim();
@@ -369,7 +369,7 @@ function obtenerHCsActivasWeb_() {
  * si otra pestaña lo cambió entretanto, NO se sobrescribe y se avisa del conflicto.
  * @return {{success:boolean, conflicto?:boolean, modificado?:number, message?:string}}
  */
-function guardarTextoHCWeb(id, campo, texto, modificadoBase) {
+function guardarTextoHCWeb_(id, campo, texto, modificadoBase) {
   const col = campo === 'historia' ? HC_WEB_.COL.HISTORIA : campo === 'tratamiento' ? HC_WEB_.COL.TRATAMIENTO : 0;
   if (!col) return { success: false, message: 'Campo no válido.' };
   texto = String(texto === null || texto === undefined ? '' : texto);
@@ -386,6 +386,7 @@ function guardarTextoHCWeb(id, campo, texto, modificadoBase) {
         message: 'Esta historia se ha modificado desde otra pestaña. Recarga la ficha para no perder cambios.' };
     }
     const celda = h.hc.getRange(fila, col);
+    const antes = String(celda.getValue()).length;
     celda.setNumberFormat('@');          // texto plano: que Sheets no convierta "=..." en fórmula ni fechas en fecha
     celda.setValue(texto);
     const ahora = new Date();
@@ -393,6 +394,7 @@ function guardarTextoHCWeb(id, campo, texto, modificadoBase) {
     SpreadsheetApp.flush();
     // Comprobación: lo escrito debe leerse igual.
     if (String(celda.getValue()) !== texto) return { success: false, message: 'La hoja no guardó el texto tal cual. No se ha perdido el original en pantalla.' };
+    registroTextoHC_(id, campo, antes, texto.length);
     return { success: true, modificado: hcMs_(celdaMod.getValue()) };
   } catch (e) {
     Logger.log('Error en guardarTextoHCWeb: ' + e.message);
@@ -415,7 +417,7 @@ function hcFirmaEpisodios_(lista) {
  * `firmaBase` (opcional) es la firma de los episodios tal como la ficha los tenía al cargar o al guardar por última vez:
  * si no coincide con lo que hay en la hoja, NO se escribe y se devuelve {conflicto:true, episodios:[...actuales]}.
  */
-function guardarEpisodiosHCWeb(id, episodios, firmaBase) {
+function guardarEpisodiosHCWeb_(id, episodios, firmaBase) {
   const lock = LockService.getScriptLock();
   if (!lock.tryLock(10000)) return { success: false, message: 'La hoja está ocupada. Inténtalo de nuevo.' };
   try {

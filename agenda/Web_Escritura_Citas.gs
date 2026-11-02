@@ -60,7 +60,7 @@ function darDeAltaDesdeCitasWeb_(idCita) {
   const cita = citaPorIdDesdeCitasWeb_(idCita);
   if (!cita) return { success: false, message: 'La cita ya no existe (¿la ha cambiado otra persona?).' };
   if (!cita.idPaciente) return { success: false, message: 'Esa cita no tiene un usuario enlazado (falta el ID paciente).' };
-  return darDeAltaPacienteWeb(cita.idPaciente);
+  return darDeAltaPacienteWeb_(cita.idPaciente);
 }
 
 /**
@@ -176,7 +176,7 @@ function asignarPacienteDesdeCitasWeb_(claveHueco, idPaciente) {
     const cambioEstado = actualizarEstadoPorIdDesdeCitasWeb_(p.idPaciente, ESTADOS_PACIENTE.ACTIVO, 'Asignar hueco');
     let ingresoRegistrado = false;
     try { if (p.hc) ingresoRegistrado = hcRegistrarPrimeraCita_(p.hc, m[1]); } catch (eIng) { Logger.log('asignarPacienteDesdeCitasWeb_: ingreso automático: ' + eIng.message); }
-    if (cambioEstado === 'cambiado') { try { ordenarPacientes(); } catch (eOrd) { Logger.log('asignarPacienteDesdeCitasWeb_: ordenar: ' + eOrd.message); } }
+    if (cambioEstado === 'cambiado') { try { ordenarPacientes_(); } catch (eOrd) { Logger.log('asignarPacienteDesdeCitasWeb_: ordenar: ' + eOrd.message); } }
     return { success: true, usuario: p.nombre, telefono: p.telefono, historiaClinica: p.hc, ingresoRegistrado: ingresoRegistrado, id: r.cita.id };
   } catch (e) {
     Logger.log('Error en asignarPacienteDesdeCitasWeb_: ' + e.message);
@@ -373,7 +373,7 @@ function guardarCitasMultiplesDesdeCitasWeb_(formData) {
     actualizarEstadoPorIdDesdeCitasWeb_(p.idPaciente, ESTADOS_PACIENTE.ACTIVO, 'Dar cita');
     let ingresoRegistrado = false;
     try { ingresoRegistrado = !!(p.hc && hcRegistrarPrimeraCita_(p.hc, lista[0].fechaISO)); } catch (eIng) { Logger.log('guardarCitasMultiplesDesdeCitasWeb_: ingreso automático: ' + eIng.message); }
-    try { ordenarPacientes(); } catch (eOrd) { Logger.log('guardarCitasMultiplesDesdeCitasWeb_: ordenar: ' + eOrd.message); }
+    try { ordenarPacientes_(); } catch (eOrd) { Logger.log('guardarCitasMultiplesDesdeCitasWeb_: ordenar: ' + eOrd.message); }
 
     let message = 'Registro exitoso de **' + r.creadas.length + '** cita(s).';
     message += '<br>Estado de **' + p.nombre + '** actualizado a **' + ESTADOS_PACIENTE.ACTIVO + '** e Historia Clínica vinculada.';

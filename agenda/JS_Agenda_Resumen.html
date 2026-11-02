@@ -148,8 +148,8 @@
       function cargarFichas() {
         if (FICHAS.cargando) return;
         FICHAS.cargando = true;
-        google.script.run
-          .withSuccessHandler(function(res) {
+        llamar('obtenerFichasUsuariosWeb')
+          .then(function(res) {
             FICHAS.cargando = false;
             if (!res || !res.success) return;
             FICHAS.headers = res.headers || [];
@@ -158,11 +158,9 @@
             // La lista del selector de huecos sale de las mismas fichas (no se lee la Maestra otra vez) e incluye a los homónimos.
             if (res.usuarios) { var primera = !USUARIOS_HUECO; USUARIOS_HUECO = SelectorUsuario.preparar(res.usuarios); if (primera) SelectorUsuario.refrescar(); }
             repintarFichaAbierta();                         // si la ficha abierta cambió en la hoja, se actualiza al momento
-          })
-          .withFailureHandler(function() {
+          }, function() {
             FICHAS.cargando = false;   // no crítico: se reintenta en el próximo ciclo
-          })
-          .obtenerFichasUsuariosWeb();
+          });
       }
 
       // ---------- Estado del usuario desde la ficha (chip pulsable, como en Usuarios) ----------
@@ -186,17 +184,15 @@
         p[hEst] = valor;
         repintarFichaAbierta();
         function revertir(msg) { p[hEst] = antes; repintarFichaAbierta(); mostrarAviso(msg); }
-        google.script.run
-          .withSuccessHandler(function(r) {
+        llamar('cambiarEstadoPacienteWeb', [p['ID paciente'], valor])
+          .then(function(r) {
             if (!r || !r.success) { revertir((r && r.message) || 'No se pudo cambiar el estado.'); cargarFichas(); return; }
             mostrarAviso('Estado cambiado a ' + FichaUsuario.textoEstado(valor) + '.');
             // Avisa a las otras ventanas (Usuarios, Valoraciones), igual que los formularios al guardar.
             try { localStorage.setItem('pacienteActualizado', JSON.stringify({ guardado: true, ts: Date.now() })); } catch (err) { /* sin almacenamiento: no es crítico */ }
             if (window.HCCache) HCCache.cambioDeUsuario();   // un usuario nuevo en Activo entra en la precarga de HC
             if (r.ordenado) cargarFichas();   // el servidor reordenó la Maestra: las fichas en memoria (y el orden de sus listas) se refrescan
-          })
-          .withFailureHandler(function(err) { revertir('Error al cambiar el estado: ' + err); })
-          .cambiarEstadoPacienteWeb(p['ID paciente'], valor);
+          }, function(err) { revertir('Error al cambiar el estado: ' + err); });
       }
       // Alta desde la ficha: usa la cita del usuario en la semana mostrada (mismo proceso que el botón Alta de la fila).
       function altaDesdeFicha(nombre) {
@@ -222,8 +218,8 @@
           } else {
             // Respaldo: fichas aún sin cargar, o usuario dado de alta después de la última carga.
             FichaUsuario.pintar(caja, FichaUsuario.mensaje(nombre, 'Cargando…'));
-            google.script.run
-              .withSuccessHandler(function(res) {
+            llamar('obtenerFichaUsuarioWeb', [nombre])
+              .then(function(res) {
                 if (panelClave !== clave) return;
                 if (!res || !res.success) { error((res && res.message) || 'No se pudo cargar la ficha.'); return; }
                 if (FICHAS.porNombre) {                                  // se guarda para la próxima vez
@@ -231,9 +227,7 @@
                   FICHAS.porNombre[claveFicha(nombre)] = res.paciente;
                 }
                 pintar(res);
-              })
-              .withFailureHandler(function(err) { if (panelClave === clave) error('Error al cargar la ficha: ' + err); })
-              .obtenerFichaUsuarioWeb(nombre);
+              }, function(err) { if (panelClave === clave) error('Error al cargar la ficha: ' + err); });
           }
 
           cont.addEventListener('click', function(e) {

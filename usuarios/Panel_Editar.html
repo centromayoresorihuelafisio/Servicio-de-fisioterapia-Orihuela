@@ -486,19 +486,17 @@ window.PanelEditar = {
     function enviarCambios() {
       var data = recogerDatos();
       btnConfirmar.setAttribute('aria-busy', 'true'); btnConfirmar.textContent = 'Guardando…';
-      google.script.run
-        .withSuccessHandler(function () {
+      llamar('actualizarPaciente', [data, opts.idPaciente])
+        .then(function () {
           guardando = false;
           originalData = recogerDatos();   // ya guardado: cerrar no debe pedir confirmación
           btnConfirmar.removeAttribute('aria-busy'); btnConfirmar.innerHTML = '<span class="material-symbols-outlined">check_circle</span>Guardado';
           setTimeout(function () { if (opts.onGuardado) opts.onGuardado(); }, 600);
-        })
-        .withFailureHandler(function (err) {
+        }, function (err) {
           guardando = false;
           mostrarErrorRevision('Error al guardar: ' + (err && err.message ? err.message : err));
           btnConfirmar.removeAttribute('aria-busy'); btnVolver.disabled = false; btnConfirmar.innerHTML = ETIQUETA_CONFIRMAR;
-        })
-        .actualizarPaciente(data, opts.idPaciente);
+        });
     }
 
     btnCancelar.addEventListener('click', function () { if (opts.onCancelar) opts.onCancelar(); });
@@ -510,18 +508,16 @@ window.PanelEditar = {
     function mostrarEstado(texto, esError) {
       form.innerHTML = '<div class="pe-estado' + (esError ? ' error' : '') + '">' + esc(texto) + '</div>';
     }
-    google.script.run
-      .withSuccessHandler(function (d) {
+    llamar('obtenerDatosEdicionPaciente', [opts.idPaciente])
+      .then(function (d) {
         construirFormulario(d.headers, d.rowData);
         enlazarCampos(d.headers);
         originalData = recogerDatos();
         cargado = true;
         btnRevisar.disabled = false;
-      })
-      .withFailureHandler(function (err) {
+      }, function (err) {
         mostrarEstado('No se pudo cargar el usuario: ' + (err && err.message ? err.message : err), true);
-      })
-      .obtenerDatosEdicionPaciente(opts.idPaciente);
+      });
 
     return {
       haCambiado: function () { return cargado && !guardando && contarCambios(recogerDatos()) > 0; },

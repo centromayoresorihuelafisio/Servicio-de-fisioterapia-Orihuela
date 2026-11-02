@@ -58,20 +58,18 @@
         btn.disabled = true;
         icono.textContent = 'progress_activity';
         icono.classList.add('girando');
-        google.script.run
-          .withSuccessHandler(function() {
+        llamar('ordenarPacientes')
+          .then(function() {
             btn.disabled = false;
             icono.textContent = 'sort';
             icono.classList.remove('girando');
             cargar();
-          })
-          .withFailureHandler(function(err) {
+          }, function(err) {
             btn.disabled = false;
             icono.textContent = 'sort';
             icono.classList.remove('girando');
             mostrarAviso('Error al ordenar: ' + err);
-          })
-          .ordenarPacientes();
+          });
       });
 
       // ---------- Eliminar usuario ----------
@@ -83,17 +81,15 @@
         // Foto completa de la ficha ANTES de borrarla, para poder deshacer.
         var snapshot = Object.assign({}, pacienteSeleccionado);
 
-        google.script.run
-          .withSuccessHandler(function(res) {
+        llamar('eliminarPacienteWeb', [idPaciente(snapshot)])
+          .then(function(res) {
             if (!res.success) { mostrarAviso(res.message || 'No se pudo eliminar el usuario.'); return; }
             quitarSeleccion();
             cargar();
             mostrarDeshacer(snapshot, 'Usuario eliminado.');
-          })
-          .withFailureHandler(function(err) {
+          }, function(err) {
             mostrarAviso('Error al eliminar: ' + err);
-          })
-          .eliminarPacienteWeb(idPaciente(snapshot));
+          });
       }
 
       function ejecutarDeshacer() {
@@ -102,18 +98,16 @@
         var snapshot = ultimaEliminacion;
         if (Array.isArray(snapshot)) { restaurarEnCadena(snapshot, 0); return; } // eliminación en lote
 
-        google.script.run
-          .withSuccessHandler(function(res) {
+        llamar('restaurarPacienteWeb', [snapshot])
+          .then(function(res) {
             procesandoDeshacer = false;
             if (!res.success) { mostrarAviso(res.message || 'No se pudo deshacer.'); return; } // el botón sigue disponible para reintentar
             ocultarDeshacer();
             cargar();
-          })
-          .withFailureHandler(function(err) {
+          }, function(err) {
             procesandoDeshacer = false;
             mostrarAviso('Error al deshacer: ' + err); // el botón sigue disponible para reintentar
-          })
-          .restaurarPacienteWeb(snapshot);
+          });
       }
 
       // Restaura una lista de fichas de una en una (en orden de fila); si una falla, conserva las pendientes para reintentar.
@@ -126,13 +120,11 @@
           return;
         }
         function fallo(msg) { procesandoDeshacer = false; ultimaEliminacion = lista.slice(i); cargar(); mostrarAviso(msg); }
-        google.script.run
-          .withSuccessHandler(function(res) {
+        llamar('restaurarPacienteWeb', [lista[i]])
+          .then(function(res) {
             if (!res || !res.success) { fallo((res && res.message) || 'No se pudieron restaurar todos los usuarios.'); return; }
             restaurarEnCadena(lista, i + 1);
-          })
-          .withFailureHandler(function(err) { fallo('Error al deshacer: ' + err); })
-          .restaurarPacienteWeb(lista[i]);
+          }, function(err) { fallo('Error al deshacer: ' + err); });
       }
 
       document.getElementById('toastDeshacerBtn').addEventListener('click', ejecutarDeshacer);
@@ -144,32 +136,28 @@
         var confirmado = await mostrarConfirm('¿Dar de alta a ' + pacienteSeleccionado['Nombre'] + '?');
         if (!confirmado) return;
 
-        google.script.run
-          .withSuccessHandler(function(res) {
+        llamar('darDeAltaPacienteWeb', [idPaciente(pacienteSeleccionado)])
+          .then(function(res) {
             mostrarAviso(res.message);
             if (window.HCCache) HCCache.cambioDeUsuario();   // el alta cambia el episodio de la HC
             quitarSeleccion();
             cargar();
-          })
-          .withFailureHandler(function(err) {
+          }, function(err) {
             mostrarAviso('Error al dar de alta: ' + err);
-          })
-          .darDeAltaPacienteWeb(idPaciente(pacienteSeleccionado));
+          });
       }
 
       // ---------- Generar Historia Clínica ----------
       function crearHcSeleccionado() {
         if (!pacienteSeleccionado) return;
 
-        google.script.run
-          .withSuccessHandler(function(res) {
+        llamar('generarHistoriaClinicaWeb', [idPaciente(pacienteSeleccionado)])
+          .then(function(res) {
             mostrarAviso(res.message);
             if (res.success) cargar();
-          })
-          .withFailureHandler(function(err) {
+          }, function(err) {
             mostrarAviso('Error al generar la historia clínica: ' + err);
-          })
-          .generarHistoriaClinicaWeb(idPaciente(pacienteSeleccionado));
+          });
       }
 
       // ---------- WhatsApp ----------

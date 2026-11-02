@@ -4,8 +4,8 @@
  * RENDIMIENTO: antes cada clic en un nombre llamaba al servidor, que releía la
  * La Maestra completa (con todas sus columnas y el rich text de Historia
  * clínica) solo para devolver UNA ficha. Ahora el cliente (agenda/Web_Vista.html)
- * pide TODAS las fichas de una vez, en segundo plano, con obtenerFichasUsuariosWeb()
- * y abre el panel desde memoria. obtenerFichaUsuarioWeb() queda solo como
+ * pide TODAS las fichas de una vez, en segundo plano, con obtenerFichasUsuariosWeb_()
+ * y abre el panel desde memoria. obtenerFichaUsuarioWeb_() queda solo como
  * respaldo (usuario dado de alta después de la última carga, o carga aún en curso).
  *
  * El cliente puede pedir solo algunas columnas (parámetro `campos`). Hoy la ficha
@@ -14,7 +14,7 @@
  * historia se abre desde la fila de la Agenda, no desde estos datos.
  *
  * Cada ficha lleva siempre "ID paciente" (aunque `campos` no lo pida) para poder cambiar el Estado
- * desde la ficha con cambiarEstadoPacienteWeb(idPaciente, estado): el servidor localiza la fila
+ * desde la ficha con cambiarEstadoPacienteWeb_(idPaciente, estado): el servidor localiza la fila
  * por ese ID, así que no importa que la hoja se haya reordenado desde la carga.
  */
 
@@ -24,7 +24,7 @@
  * primero, igual que hacía la búsqueda individual.
  * @param {string[]=} campos Cabeceras que necesita el cliente. Si se omite, todas.
  */
-function obtenerFichasUsuariosWeb(campos) {
+function obtenerFichasUsuariosWeb_(campos) {
   try {
     const bd = leerMaestraParaFicha_(campos);
     if (bd.error) return { success: false, message: bd.error };
@@ -79,7 +79,7 @@ function usuariosParaSelectorDesdeMaestra_(pacientes) {
  * @param {string} nombre
  * @param {string[]=} campos Cabeceras que necesita el cliente. Si se omite, todas.
  */
-function obtenerFichaUsuarioWeb(nombre, campos) {
+function obtenerFichaUsuarioWeb_(nombre, campos) {
   try {
     const objetivo = normalizarNombreFicha_(nombre);
     if (!objetivo) return { success: false, message: 'La cita no tiene usuario asignado.' };

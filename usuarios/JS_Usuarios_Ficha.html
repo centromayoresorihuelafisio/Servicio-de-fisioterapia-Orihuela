@@ -265,15 +265,13 @@
         p[hEst] = valor;
         refrescarVista();
         function revertir(msg) { p[hEst] = antes; refrescarVista(); mostrarAviso(msg); }
-        google.script.run
-          .withSuccessHandler(function(res) {
+        llamar('cambiarEstadoPacienteWeb', [idPaciente(p), valor])
+          .then(function(res) {
             if (!res || !res.success) { revertir((res && res.message) || 'No se pudo cambiar el estado.'); return; }
             mostrarAviso('Estado cambiado a ' + textoEstado(valor) + '.');
             if (window.HCCache) HCCache.cambioDeUsuario();   // un usuario nuevo en Activo entra en la precarga de HC
             if (res.ordenado) cargar();   // el servidor reordenó la hoja: se recarga para ver el orden nuevo (la ficha se reancla por ID)
-          })
-          .withFailureHandler(function(err) { revertir('Error al cambiar el estado: ' + err); })
-          .cambiarEstadoPacienteWeb(idPaciente(p), valor);
+          }, function(err) { revertir('Error al cambiar el estado: ' + err); });
       }
 
       // ---------- Copiar al portapapeles ----------

@@ -12,12 +12,15 @@ function generarUrlWhatsappWeb(idPaciente) {
   return { success: true, url: "https://web.whatsapp.com/send?phone=" + it.telefono + "&text=" + encodeURIComponent(msj) };
 }
 
+// Sin nombres: la app la usan varias personas (decisión 6 de la sección 17.8).
+const WHATSAPP_PLANTILLA_POR_DEFECTO_ = "Hola {{nombre}}, soy el fisioterapeuta del centro de mayores.";
+
 /**
  * Plantilla de mensaje configurada (con {{nombre}}) o la de por defecto.
  */
 function _plantillaWhatsapp_() {
   const scriptProperties = PropertiesService.getScriptProperties();
-  return scriptProperties.getProperty(PROP_KEYS.WHATSAPP_MESSAGE) || "Hola {{nombre}}, soy Fabio, el fisioterapeuta del centro de mayores.";
+  return scriptProperties.getProperty(PROP_KEYS.WHATSAPP_MESSAGE) || WHATSAPP_PLANTILLA_POR_DEFECTO_;
 }
 
 /**

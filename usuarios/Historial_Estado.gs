@@ -9,8 +9,8 @@
  *   Hoja "Historial Estado" (SHEETS.HISTORIAL): ID paciente | Fecha y hora | Campo | Valor anterior | Valor nuevo | Origen.
  *
  * Regla: TODO cambio de esos campos pasa por historialRegistrar_ (no hay respaldo por onEdit). Llamado desde:
- *   cambiarEstadoPacienteWeb / cambiarEstadoLoteWeb (usuarios/BaseDatos.gs), _ejecutarAltaEnFila (usuarios/Alta.gs),
- *   actualizarPaciente (usuarios/Editar_Usuario.gs), guardarPaciente (usuarios/Anadir_Usuario.gs) y
+ *   cambiarEstadoPacienteWeb_ / cambiarEstadoLoteWeb_ (usuarios/BaseDatos.gs), _ejecutarAltaEnFila (usuarios/Alta.gs),
+ *   actualizarPaciente_ (usuarios/Editar_Usuario.gs), guardarPaciente_ (usuarios/Anadir_Usuario.gs) y
  *   actualizarEstadoPorIdDesdeCitasWeb_ (agenda/Web_Escritura_Citas.gs, "Dar cita" y "Asignar hueco").
  *   Cualquier función nueva que cambie esos campos de la Maestra debe llamarla igual.
  *

@@ -64,11 +64,9 @@ const PUBLICAS = {
 };
 // Transición de la fase 2 (17.10): cada conversación quita lo suyo. Una entrada que ya no hace falta se avisa, para que la lista solo baje.
 const HTML_PENDIENTE = {
-  'usuarios/JS_Usuarios_Base.html': 3, 'usuarios/JS_Usuarios_Acciones.html': 3, 'usuarios/JS_Usuarios_Ficha.html': 3, 'usuarios/Panel_Editar.html': 3, 'usuarios/Panel_Nuevo.html': 3, 'historia/Panel_HC.html': 3,
   'agenda/JS_Agenda_Base.html': 4, 'agenda/JS_Agenda_Edicion.html': 4, 'agenda/JS_Agenda_Resumen.html': 4, 'agenda/JS_Agenda_Vistas.html': 4, 'agenda/Panel_Cita.html': 4, 'agenda/Panel_Recordatorios.html': 4,
 };
 const FN_PENDIENTE = {
-  3: 'obtenerBaseDatosCompletaWeb obtenerDatosEdicionPaciente actualizarPaciente guardarPaciente eliminarPacienteWeb eliminarPacientesLoteWeb restaurarPacienteWeb cambiarEstadoPacienteWeb cambiarEstadoLoteWeb ordenarPacientes darDeAltaPacienteWeb obtenerHCWeb guardarTextoHCWeb guardarEpisodiosHCWeb generarHistoriaClinicaWeb generarHistoriaClinicaRegistroUsuario obtenerFichasUsuariosWeb obtenerFichaUsuarioWeb',
   4: 'obtenerAgendaSemanaWeb obtenerVersionAgendaWeb actualizarCampoAgendaWeb asignarPacienteHuecoWeb obtenerUsuariosParaCitaWeb moverCitaWeb intercambiarCitasWeb copiarVariasCitasWeb eliminarDatosFilaAgendaWeb eliminarVariasCitasWeb restaurarCitasWeb darDeAltaPacienteParaAgendaWeb obtenerSemanasYHuecos guardarCitasMultiples obtenerDisponibilidadWeb aplicarDisponibilidadWeb obtenerRecordatoriosWeb guardarRecordatorioWeb alternarRecordatorioWeb eliminarRecordatorioWeb ' +
     'include incluirPanel incluirEstados incluirPatologias getSS parseFecha normalizarTexto normalizarFormatoNombre normalizarNombreUsuario normalizarDniUsuario normalizarTelefono extraerUrlHistoriaClinica construirIndiceWeb servirFichaHCWeb obtenerDashboardCitasWeb obtenerDashboardPacientesWeb obtenerDashboardEvolucionWeb obtenerDashboardFlujoWeb obtenerDashboardDiagnosticosWeb _generarHistoriaClinicaEnFila _ejecutarAltaEnFila crearContactoGoogle obtenerTodosLosContactosGoogle verificarExistenciaContacto prepararDatosFilaParaEdicion ' +
     'generarUrlWhatsappParaAgendaWeb generarUrlWhatsappWeb buscarUsuarioPorDniWeb buscarPosiblesDuplicadosWeb dashboardProbarCitas dashboardProbarPacientes dashboardProbarFlujo dashboardProbarDiagnosticos',

@@ -5,7 +5,7 @@
  * soltar su LockService (no se sabe si el bloqueo admite reentrada). Solo se pueden dejar sin reordenar los cambios que no
  * tocan Estado, Tipo de ingreso, Gravedad, Fecha de inscripción ni Última visita.
  */
-function ordenarPacientes() {
+function ordenarPacientes_() {
   const ss = getSS();
   const sheet = ss.getSheetByName(SHEETS.MAESTRA);
   if (!sheet) return { success: false, message: 'No se encontró la hoja "' + SHEETS.MAESTRA + '".' };
@@ -149,7 +149,7 @@ function ordenarPacientesSiProcede_(cambios, inscripcionCambio) {
   const hay = inscripcionCambio === true || (cambios || []).some(c => c && clave(c.antes) !== clave(c.despues));
   if (!hay) return { success: true, ordenado: false, message: 'No hizo falta reordenar.' };
   try {
-    const r = ordenarPacientes();
+    const r = ordenarPacientes_();
     return { success: r.success !== false, ordenado: r.success !== false, message: r.message };
   } catch (e) {
     Logger.log('ordenarPacientesSiProcede_: ' + e.message);

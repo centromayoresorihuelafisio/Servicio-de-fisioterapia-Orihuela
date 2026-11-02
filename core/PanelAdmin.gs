@@ -1,23 +1,14 @@
 /**
- * OPCIÓN 1: Cambiar directamente el mensaje predefinido de WhatsApp.
+ * Mensaje predefinido de WhatsApp. Se ejecuta a mano desde el editor: muestra en el registro de ejecución el mensaje
+ * que había y deja el de por defecto, sin nombres (decisión 6 de la sección 17.8). Para escribir otro texto:
+ * Configuración del proyecto > Propiedades de la secuencia de comandos > WHATSAPP_MESSAGE ({{nombre}} pone el nombre).
  */
 function configurarMensajeWhatsapp() {
-  const ui = SpreadsheetApp.getUi();
+  soloPropietario_();
   const scriptProperties = PropertiesService.getScriptProperties();
-  const currentWhatsapp = scriptProperties.getProperty(PROP_KEYS.WHATSAPP_MESSAGE) || 'Hola, soy Fabio...';
-  
-  const promptWhatsapp = ui.prompt(
-    'Configurar: Mensaje de WhatsApp',
-    'Introduce el nuevo texto base para los envíos de WhatsApp:\n\n' +
-    'Actual: "' + currentWhatsapp + '"',
-    ui.ButtonSet.OK_CANCEL
-  );
-  
-  if (promptWhatsapp.getSelectedButton() === ui.Button.OK) {
-    const nuevoMsj = promptWhatsapp.getResponseText().trim();
-    if (nuevoMsj !== '') {
-      scriptProperties.setProperty(PROP_KEYS.WHATSAPP_MESSAGE, nuevoMsj);
-      SpreadsheetApp.getActiveSpreadsheet().toast("Mensaje de WhatsApp actualizado.", "Configuración");
-    }
-  }
+  const anterior = scriptProperties.getProperty(PROP_KEYS.WHATSAPP_MESSAGE);
+  scriptProperties.setProperty(PROP_KEYS.WHATSAPP_MESSAGE, WHATSAPP_PLANTILLA_POR_DEFECTO_);
+  registroAnotar_('(propietario)', 'administrador', 'configurarMensajeWhatsapp', 'Propiedades', 'Desde el editor', 'ok');
+  Logger.log('Mensaje anterior: ' + (anterior || '(ninguno: se usaba el de por defecto)'));
+  Logger.log('Mensaje nuevo: ' + WHATSAPP_PLANTILLA_POR_DEFECTO_);
 }

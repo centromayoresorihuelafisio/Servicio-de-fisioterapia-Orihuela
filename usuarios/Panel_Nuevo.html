@@ -620,8 +620,8 @@ window.PanelNuevo = {
     }
     function guardar(datos) {
       guardando = true; ponerBotonGuardando(true);
-      google.script.run
-        .withSuccessHandler(function (res) {
+      llamar('guardarPaciente', [datos])
+        .then(function (res) {
           guardando = false;
           if (res && res.success) {
             guardado = true;
@@ -636,8 +636,8 @@ window.PanelNuevo = {
               // y enlazada en la Maestra, o la lista se recarga sin el enlace y el usuario aparece sin historia.
               guardando = true;
               mostrarMsg((res.message || 'Usuario guardado correctamente.') + ' Creando la historia clínica…', 'success');
-              google.script.run
-                .withSuccessHandler(function (r) {
+              llamar('generarHistoriaClinicaRegistroUsuario', [Object.assign({}, datos, { idPaciente: res.idPaciente })])
+                .then(function (r) {
                   guardando = false;
                   if (r && r.success) console.log('Historia clínica creada:', r.url);
                   else {
@@ -645,14 +645,12 @@ window.PanelNuevo = {
                     mostrarMsg('Usuario guardado, pero no se pudo crear la historia clínica: ' + ((r && r.message) || 'error desconocido') + ' Puedes crearla desde su ficha.', 'error');
                   }
                   avisarGuardado(r && r.success ? 300 : 3500);
-                })
-                .withFailureHandler(function (err) {
+                }, function (err) {
                   guardando = false;
                   console.error('No se pudo crear la historia clínica:', err);
                   mostrarMsg('Usuario guardado, pero no se pudo crear la historia clínica: ' + (err && err.message ? err.message : err) + ' Puedes crearla desde su ficha.', 'error');
                   avisarGuardado(3500);
-                })
-                .generarHistoriaClinicaRegistroUsuario(Object.assign({}, datos, { idPaciente: res.idPaciente }));
+                });
             } else {
               avisarGuardado(900);
             }
@@ -660,12 +658,10 @@ window.PanelNuevo = {
             ponerBotonGuardando(false);
             mostrarMsg((res && res.message) || 'No se pudo guardar el usuario.', 'error');
           }
-        })
-        .withFailureHandler(function (err) {
+        }, function (err) {
           guardando = false; ponerBotonGuardando(false);
           mostrarMsg('Error al guardar el usuario: ' + (err && err.message ? err.message : err), 'error');
-        })
-        .guardarPaciente(datos);
+        });
     }
     btnGuardar.addEventListener('click', enviar);
 

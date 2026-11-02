@@ -2,7 +2,7 @@
  * Versión web-safe: da de alta al usuario de `fila`, para usar desde el
  * botón "Dar de Alta" de Usuarios.
  */
-function darDeAltaPacienteWeb(idPaciente) {
+function darDeAltaPacienteWeb_(idPaciente) {
   const ss = getSS();
   const sheet = ss.getSheetByName(SHEETS.MAESTRA);
   if (!sheet) return { success: false, message: "No se encontró la hoja 'Base de Datos Maestra'." };
@@ -10,7 +10,7 @@ function darDeAltaPacienteWeb(idPaciente) {
   if (!rowIdx) return { success: false, message: "Ese usuario ya no está en Usuarios. Recarga la página." };
 
   const resultado = _ejecutarAltaEnFila(sheet, rowIdx);
-  if (resultado.success) ordenarPacientes();
+  if (resultado.success) ordenarPacientes_();
   return resultado;
 }
 

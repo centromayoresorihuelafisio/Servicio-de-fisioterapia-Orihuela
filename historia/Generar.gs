@@ -2,7 +2,7 @@
  * Versión web-safe: genera la historia clínica del usuario de `fila`,
  * para usar desde el botón "Historia Clínica" de Usuarios.
  */
-function generarHistoriaClinicaWeb(idPaciente) {
+function generarHistoriaClinicaWeb_(idPaciente) {
   const ss = getSS();
   const sheet = ss.getSheetByName(SHEETS.MAESTRA);
   if (!sheet) return { success: false, message: "Error: La hoja 'Base de Datos Maestra' no existe." };
