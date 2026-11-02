@@ -355,6 +355,38 @@
       nav.tabs-cambio a.tab-cambio.activo { background: var(--md-primary-container); color: var(--md-primary-dark); cursor: default; }
       nav.tabs-cambio a.tab-cambio .material-symbols-outlined { font-size: 18px; }
 
+      /* Lo que solo ve el administrador (data-rol="administrador"): ui/Acceso marca <html data-rol-acceso> con el rol que
+         confirma el servidor. Mientras no se sepa, no se ve. Es comodidad: la seguridad está en api() (17.2). */
+      html:not([data-rol-acceso="administrador"]) [data-rol="administrador"] { display: none !important; }
+
+      /* Menú de sesión y aviso de «Ver como usuario», a la derecha de la barra de pestañas (ui/Pestanas, fase 3 de 17.10) */
+      nav.tabs-cambio .sesion-vercomo {
+        margin-left: auto; align-self: center; display: inline-flex; align-items: center; gap: .4rem; margin-bottom: .5rem; padding-left: .75rem;
+        background: var(--md-warning-bg); color: var(--md-warning-text); border: 1px solid var(--md-warning); border-radius: var(--md-shape-full);
+        font-family: var(--font); font-size: var(--fs-sm); font-weight: 600; white-space: nowrap;
+      }
+      nav.tabs-cambio .sesion-vercomo[hidden] { display: none; }
+      nav.tabs-cambio .sesion-vercomo .material-symbols-outlined { font-size: 18px; }
+      nav.tabs-cambio .sesion-vercomo .md-btn { height: 30px; color: var(--md-warning-text); }
+      .sesion-menu { position: relative; margin-left: auto; align-self: center; margin-bottom: .5rem; }
+      .sesion-vercomo:not([hidden]) + .sesion-menu { margin-left: .5rem; }
+      .sesion-boton { height: 32px; gap: .35rem; color: var(--md-on-surface-med); }
+      .sesion-lista {
+        position: absolute; top: calc(100% + 4px); right: 0; z-index: var(--z-popover); min-width: 220px; padding: .3rem;
+        display: flex; flex-direction: column; background: var(--md-surface); border: 1px solid var(--md-outline);
+        border-radius: var(--md-shape-md); box-shadow: var(--md-elev-2);
+      }
+      .sesion-lista[hidden] { display: none; }
+      .sesion-quien { padding: .45rem .7rem .55rem; font-family: var(--font); margin-bottom: .2rem; border-bottom: 1px solid var(--md-outline); font-size: var(--fs-xs); color: var(--md-on-surface-med); }
+      .sesion-opcion {
+        display: flex; align-items: center; gap: .6rem; width: 100%; padding: .5rem .7rem; border: none; background: none; text-align: left;
+        border-radius: var(--md-shape-sm); font-family: var(--font); font-size: var(--fs-sm); color: var(--md-on-surface); cursor: pointer;
+      }
+      .sesion-opcion[hidden] { display: none; }
+      .sesion-opcion:hover { background: var(--md-surface-variant); }
+      .sesion-opcion:focus-visible { outline-offset: -2px; background: var(--md-surface-variant); }
+      .sesion-opcion .material-symbols-outlined { font-size: 18px; color: var(--md-on-surface-med); }
+
       header.top { background: var(--md-surface); border-bottom: 1px solid var(--md-outline); flex-shrink: 0; box-shadow: var(--md-elev-1); position: relative; z-index: var(--z-sticky); padding: .6rem 1rem; }
       /* Cabecera comun en UNA fila (solo se parte si no cabe), mismo orden en las cuatro pestanas:
          titulo · buscador · controles propios de la pestana · espacio · herramientas y Deshacer · tema · accion principal (a la derecha) */

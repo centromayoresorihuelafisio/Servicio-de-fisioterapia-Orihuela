@@ -16,13 +16,8 @@
     </style>
   </head>
   <body>
-    <?!= include_('ui/Acceso'); ?>
-    <nav class="tabs-cambio">
-      <a class="tab-cambio" title="Ir a Usuarios" href="<?= baseUrl ?>?page=baseDatos" target="_top"><span class="material-symbols-outlined">folder_shared</span>Usuarios</a>
-      <a class="tab-cambio" title="Ir a la Agenda" href="<?= baseUrl ?>?page=agenda" target="_top"><span class="material-symbols-outlined">calendar_month</span>Agenda</a>
-      <a class="tab-cambio activo" title="Ir a Valoraciones" href="<?= baseUrl ?>?page=valoraciones" target="_top"><span class="material-symbols-outlined">monitoring</span>Valoraciones</a>
-      <a class="tab-cambio" title="Ir a Estadísticas" href="<?= baseUrl ?>?page=dashboard" target="_top"><span class="material-symbols-outlined">dashboard</span>Estadísticas</a>
-    </nav>
+    <?!= incluirAcceso_('valoraciones'); ?>
+    <?!= incluirPestanas_('valoraciones'); ?>
     <header class="top">
       <!-- Cabecera comun: titulo · buscador · espacio · Deshacer · tema · accion principal (ui/CSS_Global .cabecera-fila) -->
       <div class="cabecera-fila">

@@ -31,7 +31,7 @@ function sesionLeer_(token) {
 }
 
 function sesionRenovar_(sesion) {
-  const copia = { usuario: sesion.usuario, creada: sesion.creada };
+  const copia = { usuario: sesion.usuario, creada: sesion.creada, verComo: sesion.verComo || '' };
   CacheService.getScriptCache().put('ses_' + sesion.token, JSON.stringify(copia), SESION_INACTIVIDAD_S_);
 }
 
@@ -43,12 +43,28 @@ function sesionBorrar_(token) {
 function sesionCerrar_() {
   const sesion = sesionActual_();
   sesionBorrar_(sesion.token);
-  registroAnotar_(sesion.usuario, sesion.rol, 'logout', 'Accesos', '', 'ok');
+  registroAnotar_(sesion.usuario, sesion.rolAnotar, 'logout', 'Accesos', '', 'ok');
   return { hecho: true };
 }
 
-/** Acción de la puerta única: confirma que la sesión vale y dice quién es. */
+/** Acción de la puerta única: confirma que la sesión vale y dice quién es (rol = el que se aplica; rolReal = el de su cuenta). */
 function sesionComprobar_() {
   const sesion = sesionActual_();
-  return { usuario: sesion.usuario, nombre: sesion.nombre, rol: sesion.rol };
+  return { usuario: sesion.usuario, nombre: sesion.nombre, rol: sesion.rol, rolReal: sesion.rolReal, verComo: sesion.rol !== sesion.rolReal };
+}
+
+/**
+ * Acción de la puerta única: «Ver como usuario» (17.6). Con un rol, la sesión pasa a usarlo; sin él, vuelve al de la cuenta.
+ * Solo puede rebajar el rol y vale para todas las ventanas de la sesión. «Registro» sigue anotando al usuario real.
+ */
+function sesionVerComo_(rol) {
+  const sesion = sesionActual_();
+  const pedido = String(rol || '');
+  if (pedido && !(ACCESO_ROLES_[pedido] < ACCESO_ROLES_[sesion.rolReal])) {
+    throw new Error('Solo se puede ver la aplicación con un rol inferior al tuyo.');
+  }
+  sesion.verComo = pedido;
+  sesionRenovar_(sesion);
+  sesion.rol = pedido || sesion.rolReal;
+  return sesionComprobar_();
 }

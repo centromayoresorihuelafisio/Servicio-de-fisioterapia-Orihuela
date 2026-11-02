@@ -40,7 +40,7 @@
 </style>
 </head>
 <body>
-<?!= include_('ui/Acceso'); ?>
+<?!= incluirAcceso_('guiaVisual'); ?>
 <header class="gv-cab">
   <span class="material-symbols-outlined" aria-hidden="true">palette</span>
   <h1>Guía visual</h1>
@@ -127,6 +127,25 @@
       <button type="button" class="md-btn md-btn--tonal" disabled>Desactivado</button>
       <button type="button" class="md-btn md-btn--tonal" aria-busy="true">Guardando…</button>
     </div>
+  </section>
+
+  <section class="gv-sec">
+    <h2>Barra de pestañas y menú de sesión</h2>
+    <p>La barra común (ui/Pestanas) de verdad, con tu sesión: Estadísticas solo se ve con el rol administrador. Debajo, el aviso de «Ver como usuario» y el menú abierto, de muestra.</p>
+    <?!= incluirPestanas_(''); ?>
+    <nav class="tabs-cambio" aria-label="Muestra con «Ver como usuario»" style="margin-top:16px;padding-bottom:150px">
+      <a class="tab-cambio activo"><span class="material-symbols-outlined" aria-hidden="true">folder_shared</span>Usuarios</a>
+      <a class="tab-cambio"><span class="material-symbols-outlined" aria-hidden="true">calendar_month</span>Agenda</a>
+      <span class="sesion-vercomo"><span class="material-symbols-outlined" aria-hidden="true">visibility</span>Viendo como usuario <button type="button" class="md-btn md-btn--text">Volver a administrador</button></span>
+      <div class="sesion-menu">
+        <button type="button" class="md-btn md-btn--text sesion-boton" aria-expanded="true"><span class="material-symbols-outlined" aria-hidden="true">account_circle</span>Nombre<span class="material-symbols-outlined" aria-hidden="true">expand_more</span></button>
+        <div class="sesion-lista">
+          <p class="sesion-quien">usuario · administrador</p>
+          <button type="button" class="sesion-opcion"><span class="material-symbols-outlined" aria-hidden="true">visibility</span>Ver como usuario</button>
+          <button type="button" class="sesion-opcion"><span class="material-symbols-outlined" aria-hidden="true">logout</span>Cerrar sesión</button>
+        </div>
+      </div>
+    </nav>
   </section>
 
   <section class="gv-sec">

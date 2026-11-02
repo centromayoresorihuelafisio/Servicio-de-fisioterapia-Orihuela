@@ -45,13 +45,8 @@
     </style>
   </head>
   <body>
-    <?!= include_('ui/Acceso'); ?>
-    <nav class="tabs-cambio">
-      <a class="tab-cambio activo" title="Ir a Usuarios" href="<?= baseUrl ?>?page=baseDatos" target="_top"><span class="material-symbols-outlined">folder_shared</span>Usuarios</a>
-      <a class="tab-cambio" title="Ir a la Agenda" href="<?= baseUrl ?>?page=agenda" target="_top"><span class="material-symbols-outlined">calendar_month</span>Agenda</a>
-      <a class="tab-cambio" title="Ir a Valoraciones" href="<?= baseUrl ?>?page=valoraciones" target="_top"><span class="material-symbols-outlined">monitoring</span>Valoraciones</a>
-      <a class="tab-cambio" title="Ir a Estadísticas" href="<?= baseUrl ?>?page=dashboard" target="_top"><span class="material-symbols-outlined">dashboard</span>Estadísticas</a>
-    </nav>
+    <?!= incluirAcceso_('baseDatos'); ?>
+    <?!= incluirPestanas_('baseDatos'); ?>
     <header class="top">
       <!-- Cabecera comun: titulo · buscador · filtros · espacio · herramientas · tema · accion principal (ui/CSS_Global .cabecera-fila).
            .barra-herramientas se conserva porque el JavaScript vigila sus botones (indicador de "ocupado"). -->
@@ -82,7 +77,7 @@
 
     <div class="barra-lote" id="barraLote"><span class="bl-n"><span id="bloteN">0</span> seleccionados</span>
       <button title="Cambiar el estado de los usuarios marcados" type="button" id="bloteEstado"><span class="material-symbols-outlined">label</span>Cambiar estado</button>
-      <button title="Eliminar los usuarios marcados" type="button" class="peligro" id="bloteEliminar"><span class="material-symbols-outlined">delete</span>Eliminar</button>
+      <button title="Eliminar los usuarios marcados" type="button" class="peligro" id="bloteEliminar" data-rol="administrador"><span class="material-symbols-outlined">delete</span>Eliminar</button>
       <button type="button" class="bl-cerrar" id="bloteCancelar" title="Cancelar selección"><span class="material-symbols-outlined">close</span></button>
     </div>
 

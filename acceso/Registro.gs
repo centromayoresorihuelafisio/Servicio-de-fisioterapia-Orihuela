@@ -46,7 +46,7 @@ function registroTextoHC_(idHC, campo, antes, despues) {
         return;
       }
     }
-    registroAnotar_(sesion.usuario, sesion.rol, 'guardarTextoHCWeb', idHC, JSON.stringify({ campo: campo, antes: antes, despues: despues }), 'ok');
+    registroAnotar_(sesion.usuario, sesion.rolAnotar, 'guardarTextoHCWeb', idHC, JSON.stringify({ campo: campo, antes: antes, despues: despues }), 'ok');
     const nueva = { fila: hoja.getLastRow(), antes: antes, desde: Date.now() };
     cache.put(clave, JSON.stringify(nueva), Math.ceil(REGISTRO_HC_AGRUPAR_MS_ / 1000));
   } catch (e) {

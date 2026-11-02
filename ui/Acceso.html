@@ -1,9 +1,12 @@
 <!--
   ui/Acceso.html
   Portero común de todas las páginas (CONTEXTO.md, 17.5): login, cambio de contraseña temporal y llamar(accion, datos).
-  Se incluye justo después de abrir body, fuera de cualquier script: el cierre opaco ya está pintado antes de que cargue
-  el resto de la página y solo se retira si hay un token guardado. Si la sesión caduca, sale encima de la pantalla
-  sin recargarla, para no perder lo escrito, y las llamadas pendientes siguen solas al entrar.
+  Lo pone incluirAcceso_ (core/WebApp.gs) justo después de abrir body, fuera de cualquier script: el cierre opaco ya está
+  pintado antes de que cargue el resto de la página y solo se retira si hay un token guardado. Si la sesión caduca, sale
+  encima de la pantalla sin recargarla, para no perder lo escrito, y las llamadas pendientes siguen solas al entrar.
+  Fase 3 (17.10): con el rol que devuelve el servidor marca <html data-rol-acceso> (ui/CSS_Global oculta lo de
+  data-rol="administrador"), maneja el menú de sesión y «Ver como usuario» de ui/Pestanas y, si la página pide más rol,
+  vuelve a Usuarios con un aviso. Es comodidad: la seguridad está en api(), que nunca toma el rol del navegador.
 -->
 <style>
   .acceso-cierre {
@@ -18,7 +21,6 @@
   .acceso-tarjeta h1 { margin: 0; font-size: var(--fs-h); font-weight: 500; }
   .acceso-tarjeta p { margin: 0; font-size: var(--fs-md); color: var(--md-on-surface-med); }
   .acceso-tarjeta .acceso-error { color: var(--md-error); min-height: 1.3em; }
-  .acceso-salir { margin-left: auto; height: 32px; }
   @media print { .acceso-cierre { display: none; } }
 </style>
 <div class="acceso-cierre" id="acceso-cierre" role="dialog" aria-modal="true" aria-label="Acceso a la aplicación">
@@ -56,10 +58,21 @@
     <p class="acceso-error" id="acceso-cambio-error" role="alert"></p>
     <button class="md-btn md-btn--tonal" type="submit">Guardar y entrar</button>
   </form>
+  <div class="acceso-tarjeta" id="acceso-denegada" hidden>
+    <h1>Página solo para el administrador</h1>
+    <p>Con tu usuario no puedes abrir esta página. Te llevamos a Usuarios.</p>
+    <a class="md-btn md-btn--tonal" href="<?= baseUrl ?>?page=baseDatos" target="_top">Ir a Usuarios</a>
+  </div>
 </div>
 <script>
   (function () {
     var CLAVE = 'tokenAcceso';
+    var CLAVE_PERFIL = 'perfilAcceso';   // último perfil conocido, solo para pintar la barra sin esperar al servidor
+    var CLAVE_AVISO = 'avisoAcceso';     // aviso que se enseña al llegar a Usuarios desde una página no permitida
+    var URL_USUARIOS = <?!= JSON.stringify(baseUrl + '?page=baseDatos') ?>;
+    var ROL_PAGINA = <?!= JSON.stringify(rolPagina) ?>;
+    var NIVEL = { usuario: 1, administrador: 2 };
+    var perfil = null;                   // { usuario, nombre, rol, rolReal, verComo }; rol = el que se aplica
     var cierre = document.getElementById('acceso-cierre');
     var formLogin = document.getElementById('acceso-login');
     var formCambio = document.getElementById('acceso-cambio');
@@ -77,6 +90,68 @@
       try { if (t) localStorage.setItem(CLAVE, t); else localStorage.removeItem(CLAVE); } catch (err) { /* sin almacenamiento */ }
     }
     function $(id) { return document.getElementById(id); }
+    function leerAlmacen(clave) {
+      try { return localStorage.getItem(clave); } catch (err) { return null; }
+    }
+    function guardarAlmacen(clave, valor) {
+      try { if (valor) localStorage.setItem(clave, valor); else localStorage.removeItem(clave); } catch (err) { /* sin almacenamiento */ }
+    }
+
+    /** Aviso breve abajo, con las piezas comunes .toasts y .toast-aviso. */
+    function avisar(texto) {
+      var caja = document.createElement('div');
+      caja.className = 'toasts';
+      var t = document.createElement('div');
+      t.className = 'toast-aviso';
+      t.setAttribute('role', 'status');
+      t.textContent = texto;
+      caja.appendChild(t);
+      document.body.appendChild(caja);
+      setTimeout(function () { t.classList.add('saliendo'); setTimeout(function () { caja.remove(); }, 400); }, 6000);
+    }
+
+    // ---------- Rol y menú de sesión ----------
+    function puede(rol) { return !!perfil && (NIVEL[perfil.rol] || 0) >= (NIVEL[rol] || 99); }
+
+    /** Pinta el menú de sesión de ui/Pestanas (si la página lo tiene) con el perfil actual. */
+    function pintarSesion() {
+      if (!$('sesionBoton')) return;
+      $('sesionNombre').textContent = perfil ? (perfil.nombre || perfil.usuario) : 'Sesión';
+      $('sesionQuien').textContent = perfil ? perfil.usuario + ' · ' + perfil.rolReal : '';
+      $('sesionVerUsuario').hidden = !perfil || perfil.rolReal !== 'administrador' || perfil.verComo;
+      $('sesionVerComo').hidden = !perfil || !perfil.verComo;
+    }
+
+    /** Página no permitida: tapa la pantalla con el aviso y vuelve a Usuarios (si el navegador no deja, queda el botón). */
+    function volverAUsuarios() {
+      esperando = true;   // las llamadas de esta página ya no deben salir
+      pantallaPedida = 'denegada';
+      cierre.hidden = false;
+      formLogin.hidden = true;
+      formCambio.hidden = true;
+      $('acceso-denegada').hidden = false;
+      aislarPagina();
+      guardarAlmacen(CLAVE_AVISO, 'Esa página es solo para el administrador: has vuelto a Usuarios.');
+      try { window.top.location.href = URL_USUARIOS; } catch (err) { /* queda el botón «Ir a Usuarios» */ }
+    }
+
+    /**
+     * Aplica un perfil. delServidor = recién confirmado por el servidor: solo entonces se decide si la página se puede ver.
+     * Avisa a la pantalla con el evento 'acceso:rol' para que repinte lo que dibuja ella (p. ej. los botones de eliminar).
+     */
+    function aplicarPerfil(p, delServidor) {
+      var antes = perfil ? perfil.rol : '';
+      perfil = p ? { usuario: p.usuario, nombre: p.nombre, rol: p.rol, rolReal: p.rolReal || p.rol, verComo: !!p.verComo } : null;
+      guardarAlmacen(CLAVE_PERFIL, perfil ? JSON.stringify(perfil) : '');
+      document.documentElement.setAttribute('data-rol-acceso', perfil ? perfil.rol : '');
+      pintarSesion();
+      if ((perfil ? perfil.rol : '') !== antes) document.dispatchEvent(new CustomEvent('acceso:rol', { detail: perfil }));
+      if (delServidor && perfil && !puede(ROL_PAGINA)) volverAUsuarios();
+    }
+
+    function refrescarPerfil() {
+      window.llamar('comprobarSesion').then(function (p) { aplicarPerfil(p, true); }, function () { /* si la sesión no vale, enviar ya ha pedido el login */ });
+    }
 
     /** Llamada directa al servidor, sin cola: la usan el login y lo que tiene que pasar con el cierre puesto. */
     function directa(accion, datos, alTerminar) {
@@ -90,7 +165,12 @@
       if (esperando) { cola.push(p); return; }
       var tokenUsado = leerToken();
       directa(p.accion, p.datos, function (r) {
-        if (r.ok) { p.resolver(r.datos); return; }
+        if (r.ok) {
+          // El servidor dice en cada respuesta el rol que aplica: si ha cambiado (otro rol, «Ver como»...), se repinta.
+          if (r.rol && (!perfil || r.rol !== perfil.rol) && p.accion !== 'comprobarSesion' && p.accion !== 'verComo') refrescarPerfil();
+          p.resolver(r.datos);
+          return;
+        }
         if (r.codigo === 'SESION') {
           if (leerToken() !== tokenUsado) { enviar(p); return; }   // respuesta tardía: ya se ha entrado de nuevo
           guardarToken(''); cola.push(p); pedir('login'); return;
@@ -118,6 +198,7 @@
 
     function pedir(pantalla) {
       esperando = true;
+      if (pantallaPedida === 'denegada') return;  // la página ya va camino de Usuarios
       if (pantalla === pantallaPedida) return;   // varias llamadas pueden caducar a la vez: el foco no debe saltar mientras se escribe
       pantallaPedida = pantalla;
       cierre.hidden = false;
@@ -154,6 +235,8 @@
         $('acceso-password').value = '';
         if (!r.ok) { aviso.textContent = r.error; $('acceso-password').focus(); return; }
         guardarToken(r.datos.token);
+        aplicarPerfil(r.datos, true);
+        if (pantallaPedida === 'denegada') return;   // esta página no es para su rol: ya va camino de Usuarios
         if (r.datos.debeCambiar) pedir('cambio'); else soltar();
       });
     });
@@ -175,27 +258,49 @@
     // Los atajos de teclado de las páginas no deben reaccionar a lo que se escribe aquí.
     cierre.addEventListener('keydown', function (ev) { ev.stopPropagation(); });
 
-    window.Acceso = {
-      cerrarSesion: function () {
-        directa('cerrarSesion', [], function () { guardarToken(''); pedir('login'); });
-      }
-    };
+    function cerrarSesion() {
+      directa('cerrarSesion', [], function () { guardarToken(''); aplicarPerfil(null); pedir('login'); });
+    }
 
-    // Botón de cerrar sesión en la barra de pestañas; la página de la HC no tiene barra.
+    function verComo(rol) {
+      window.llamar('verComo', [rol]).then(function (p) {
+        aplicarPerfil(p, true);
+        avisar(p.verComo ? 'Ahora ves la aplicación como la ve un usuario.' : 'Has vuelto a ver la aplicación como administrador.');
+      }, function (err) { avisar(err.message); });
+    }
+
+    /** Lo que las pantallas pueden usar: Acceso.puede('administrador') para lo que dibujan ellas. */
+    window.Acceso = { cerrarSesion: cerrarSesion, puede: puede };
+
+    // Menú de sesión de la barra de pestañas (ui/Pestanas); la página de la HC no tiene barra.
     document.addEventListener('DOMContentLoaded', function () {
-      var barra = document.querySelector('nav.tabs-cambio');
-      if (!barra) return;
-      var salir = document.createElement('button');
-      salir.type = 'button';
-      salir.className = 'md-btn md-btn--text acceso-salir';
-      salir.textContent = 'Cerrar sesión';
-      salir.addEventListener('click', window.Acceso.cerrarSesion);
-      barra.appendChild(salir);
+      var aviso = leerAlmacen(CLAVE_AVISO);
+      if (aviso) { guardarAlmacen(CLAVE_AVISO, ''); avisar(aviso); }
+      var boton = $('sesionBoton');
+      if (!boton) return;
+      var lista = $('sesionLista');
+      function abrir(si) {
+        lista.hidden = !si;
+        boton.setAttribute('aria-expanded', si ? 'true' : 'false');
+        if (si) { var primero = lista.querySelector('button:not([hidden])'); if (primero) primero.focus(); }
+      }
+      boton.addEventListener('click', function () { abrir(lista.hidden); });
+      lista.addEventListener('keydown', function (ev) {
+        if (ev.key === 'Escape') { ev.stopPropagation(); abrir(false); boton.focus(); }
+      });
+      document.addEventListener('click', function (ev) { if (!lista.hidden && !ev.target.closest('.sesion-menu')) abrir(false); }, true);
+      $('sesionSalir').addEventListener('click', function () { abrir(false); cerrarSesion(); });
+      $('sesionVerUsuario').addEventListener('click', function () { abrir(false); verComo('usuario'); });
+      $('sesionVolver').addEventListener('click', function () { verComo(''); });
+      pintarSesion();
     });
+
+    // Último perfil conocido: la barra se pinta ya; el servidor lo confirma o lo corrige en la primera llamada.
+    try { aplicarPerfil(JSON.parse(leerAlmacen(CLAVE_PERFIL) || 'null')); } catch (err) { aplicarPerfil(null); }
 
     if (leerToken()) {
       cierre.hidden = true;
-      window.llamar('comprobarSesion').catch(function () { /* si la sesión no vale, enviar ya ha pedido el login */ });
+      refrescarPerfil();
     } else {
       esperando = true;
       document.addEventListener('DOMContentLoaded', function () { if (esperando) pedir('login'); });

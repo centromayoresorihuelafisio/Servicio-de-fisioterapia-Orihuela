@@ -22,6 +22,7 @@ function accesoAcciones_() {
     comprobarSesion:   { fn: sesionComprobar_, rol: 'usuario' },
     cerrarSesion:      { fn: sesionCerrar_, rol: 'usuario', conTemporal: true },
     cambiarPassword:   { fn: accesoCambiarPassword_, rol: 'usuario', conTemporal: true },
+    verComo:           { fn: sesionVerComo_, rol: 'usuario', registrar: true, entidad: () => 'Accesos', detalle: a => a[0] || 'volver a su rol' },
     diagnosticoAcceso: { fn: accesoDiagnostico_, rol: 'administrador', registrar: true },
 
     // Piezas comunes
@@ -92,13 +93,13 @@ function accesoAcciones_() {
 /** Anota en "Registro" una acción con `registrar`, con su entidad y detalle si la acción los define. */
 function apiRegistrar_(def, sesion, nombre, args, resultado, filas) {
   const fallo = resultado && resultado.success === false;
-  if (fallo) { registroAnotar_(sesion.usuario, sesion.rol, nombre, 'api', resultado.message, 'error'); return; }
+  if (fallo) { registroAnotar_(sesion.usuario, sesion.rolAnotar, nombre, 'api', resultado.message, 'error'); return; }
   if (Array.isArray(filas) && filas.length) {
-    filas.forEach(f => registroAnotar_(sesion.usuario, sesion.rol, nombre, f.entidad || 'api', f.detalle, 'ok'));
+    filas.forEach(f => registroAnotar_(sesion.usuario, sesion.rolAnotar, nombre, f.entidad || 'api', f.detalle, 'ok'));
     return;
   }
   const leer = fn => { try { return fn ? fn(args, resultado) : ''; } catch (e) { return ''; } };
-  registroAnotar_(sesion.usuario, sesion.rol, nombre, leer(def.entidad) || 'api', leer(def.detalle), 'ok');
+  registroAnotar_(sesion.usuario, sesion.rolAnotar, nombre, leer(def.entidad) || 'api', leer(def.detalle), 'ok');
 }
 
 /** Prepara la sesión de la llamada con los datos actuales de su cuenta, o devuelve null si ya no vale. */
@@ -108,7 +109,11 @@ function apiResolverSesion_(token) {
   const perfil = accesoPerfil_(sesion.usuario);
   if (!accesoVigente_(perfil)) { sesionBorrar_(sesion.token); return null; }
   sesion.nombre = perfil.nombre;
-  sesion.rol = perfil.rol;
+  sesion.rolReal = perfil.rol;
+  // «Ver como usuario» solo rebaja el rol; «Registro» anota el real y, si hace falta, con cuál se estaba viendo.
+  const rebajado = sesion.verComo && ACCESO_ROLES_[sesion.verComo] < ACCESO_ROLES_[perfil.rol];
+  sesion.rol = rebajado ? sesion.verComo : perfil.rol;
+  sesion.rolAnotar = rebajado ? perfil.rol + ' (como ' + sesion.verComo + ')' : perfil.rol;
   sesion.debeCambiar = perfil.debeCambiar;
   return sesion;
 }
@@ -122,7 +127,7 @@ function api(token, accion, datos) {
     const def = Object.prototype.hasOwnProperty.call(acciones, nombre) ? acciones[nombre] : null;
     sesion = apiResolverSesion_(token);
     const quien = sesion ? sesion.usuario : '(sin sesión)';
-    const rol = sesion ? sesion.rol : '';
+    const rol = sesion ? sesion.rolAnotar : '';
 
     if (!def) {
       registroAnotar_(quien, rol, 'accion_desconocida', 'api', nombre, 'denegado');
@@ -148,9 +153,9 @@ function api(token, accion, datos) {
     const filas = resultado && resultado._registro;
     if (filas) delete resultado._registro;
     if (def.registrar) apiRegistrar_(def, sesion, nombre, args, resultado, filas);
-    return { ok: true, datos: resultado, rol: sesion.rol };
+    return { ok: true, datos: resultado, rol: sesion.rol };   // el rol que se aplica: la pantalla oculta lo que no le toca (17.6)
   } catch (e) {
-    if (sesion && sesionEnCurso_) registroAnotar_(sesion.usuario, sesion.rol, nombre, 'api', e.message, 'error');
+    if (sesion && sesionEnCurso_) registroAnotar_(sesion.usuario, sesion.rolAnotar, nombre, 'api', e.message, 'error');
     return { ok: false, error: e.message };
   }
 }

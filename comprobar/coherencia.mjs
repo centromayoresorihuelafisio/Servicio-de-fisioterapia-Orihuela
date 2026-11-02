@@ -178,10 +178,14 @@ const propias = reglas.filter(r => r.archivo !== GLOBAL);
 const propiasPantalla = propias.filter(r => !r.impresion);
 
 // ===== Páginas y lo que cada una incluye =====
+// Piezas que se incluyen con una función propia en vez de con su ruta (core/WebApp.gs, fase 3 de la sección 17).
+const PIEZAS_FIJAS = { incluirAcceso_: 'ui/Acceso.html', incluirPestanas_: 'ui/Pestanas.html' };
 const incluidos = new Map();
 for (const [f, t] of textoDe) {
   if (!f.endsWith('.html')) continue;
-  const lista = [...t.matchAll(/<\?!?=\s*(?:include_|incluirPanel_)\(\s*'([^']+)'/g)].map(m => m[1] + '.html').filter(x => textoDe.has(x));
+  const lista = [...t.matchAll(/<\?!?=\s*(?:include_|incluirPanel_)\(\s*'([^']+)'/g)].map(m => m[1] + '.html')
+    .concat(Object.entries(PIEZAS_FIJAS).filter(([fn]) => t.includes(fn + '(')).map(([, x]) => x))
+    .filter(x => textoDe.has(x));
   incluidos.set(f, lista);
 }
 const raices = [...incluidos.keys()].filter(f => /(_Vista|Guia_Visual)\.html$/.test(f) && ![...incluidos.values()].some(l => l.includes(f)));

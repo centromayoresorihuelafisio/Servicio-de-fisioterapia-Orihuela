@@ -90,19 +90,48 @@ function obtenerPanelWeb_(archivo) {
  * Router de la Web App. Sirve una página HTML distinta según el parámetro ?page=.
  * Sin parámetro, o con uno desconocido, sirve Usuarios.
  * Añadir una página nueva es solo añadir una entrada a este mapa.
+ *   rol:     el mínimo para verla (sin él, 'usuario'). Solo es comodidad: los datos los protege api() (17.5).
+ *   pestana: icono y ayuda de su pestaña en la barra común (ui/Pestanas), en este orden; sin él, no tiene pestaña.
  *
  * Ejemplos de URL:
  *   https://script.google.com/macros/s/AAAA.../exec                → Usuarios
  *   https://script.google.com/macros/s/AAAA.../exec?page=agenda
  */
 const PAGINAS_WEB = {
-  baseDatos:     { archivo: 'usuarios/BaseDatos_Vista', titulo: 'Usuarios' },
-  agenda:        { archivo: 'agenda/Web_Vista',         titulo: 'Agenda' },
-  valoraciones:  { archivo: 'valoraciones/Web_Vista',   titulo: 'Valoraciones' },
-  dashboard:     { archivo: 'dashboard/Web_Vista',      titulo: 'Estadísticas' },
-  guiaVisual:    { archivo: 'ui/Guia_Visual',           titulo: 'Guía visual' },        // banco de pruebas visual (D-V7); sin pestaña
-  pruebaAcceso:  { archivo: 'acceso/Prueba_Vista',      titulo: 'Prueba de acceso' }    // comprobación del control de acceso (sección 17); se retira en la fase 5
+  baseDatos:     { archivo: 'usuarios/BaseDatos_Vista', titulo: 'Usuarios',     pestana: { icono: 'folder_shared', ayuda: 'Ir a Usuarios' } },
+  agenda:        { archivo: 'agenda/Web_Vista',         titulo: 'Agenda',       pestana: { icono: 'calendar_month', ayuda: 'Ir a la Agenda' } },
+  valoraciones:  { archivo: 'valoraciones/Web_Vista',   titulo: 'Valoraciones', pestana: { icono: 'monitoring', ayuda: 'Ir a Valoraciones' } },
+  dashboard:     { archivo: 'dashboard/Web_Vista',      titulo: 'Estadísticas', pestana: { icono: 'dashboard', ayuda: 'Ir a Estadísticas' }, rol: 'administrador' },
+  guiaVisual:    { archivo: 'ui/Guia_Visual',           titulo: 'Guía visual',      rol: 'administrador' },   // banco de pruebas visual (D-V7); sin pestaña
+  pruebaAcceso:  { archivo: 'acceso/Prueba_Vista',      titulo: 'Prueba de acceso', rol: 'administrador' }    // comprobación del control de acceso (sección 17); se retira en la fase 5
 };
+
+/**
+ * Portero común (ui/Acceso) de una página: se pone justo después de abrir body, con la clave de PAGINAS_WEB
+ * (o 'hc'). Le pasa la URL de la Web App y el rol mínimo de la página, para volver a Usuarios si no le toca.
+ *   <?!= incluirAcceso_('agenda'); ?>
+ */
+function incluirAcceso_(pagina) {
+  const t = HtmlService.createTemplateFromFile('ui/Acceso');
+  t.baseUrl = ScriptApp.getService().getUrl();
+  t.rolPagina = (PAGINAS_WEB[pagina] && PAGINAS_WEB[pagina].rol) || 'usuario';
+  return t.evaluate().getContent();
+}
+
+/**
+ * Barra de pestañas común (ui/Pestanas), con la de la página marcada y el menú de sesión. Va justo después del portero.
+ *   <?!= incluirPestanas_('agenda'); ?>
+ */
+function incluirPestanas_(pagina) {
+  const t = HtmlService.createTemplateFromFile('ui/Pestanas');
+  const baseUrl = ScriptApp.getService().getUrl();
+  t.pestanas = Object.keys(PAGINAS_WEB).filter(k => PAGINAS_WEB[k].pestana).map(k => {
+    const p = PAGINAS_WEB[k];
+    return { url: baseUrl + '?page=' + k, titulo: p.titulo, icono: p.pestana.icono, ayuda: p.pestana.ayuda,
+      activo: k === pagina ? 'activo' : '', rol: p.rol || 'usuario' };
+  });
+  return t.evaluate().getContent();
+}
 
 function doGet(e) {
   const pedida = (e && e.parameter && e.parameter.page) || 'baseDatos';

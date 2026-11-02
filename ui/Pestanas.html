@@ -1,0 +1,25 @@
+<!--
+  ui/Pestanas.html
+  Barra de pestañas común de las cuatro pantallas, con el menú de sesión (CONTEXTO.md, 17.10, fase 3).
+  La sirve incluirPestanas_ (core/WebApp.gs) a partir de PAGINAS_WEB; el menú lo maneja ui/Acceso.
+  Las pestañas con data-rol="administrador" solo se ven con ese rol (ui/CSS_Global): es comodidad, no seguridad.
+-->
+<nav class="tabs-cambio">
+<? pestanas.forEach(function (p) { ?>
+  <a class="tab-cambio <?= p.activo ?>" title="<?= p.ayuda ?>" href="<?= p.url ?>" target="_top" data-rol="<?= p.rol ?>"><span class="material-symbols-outlined"><?= p.icono ?></span><?= p.titulo ?></a>
+<? }); ?>
+  <span class="sesion-vercomo" id="sesionVerComo" role="status" hidden>
+    <span class="material-symbols-outlined" aria-hidden="true">visibility</span>Viendo como usuario
+    <button type="button" class="md-btn md-btn--text" id="sesionVolver">Volver a administrador</button>
+  </span>
+  <div class="sesion-menu">
+    <button type="button" class="md-btn md-btn--text sesion-boton" id="sesionBoton" aria-haspopup="menu" aria-expanded="false" aria-controls="sesionLista" title="Sesión">
+      <span class="material-symbols-outlined" aria-hidden="true">account_circle</span><span id="sesionNombre">Sesión</span><span class="material-symbols-outlined" aria-hidden="true">expand_more</span>
+    </button>
+    <div class="sesion-lista" id="sesionLista" role="menu" hidden>
+      <p class="sesion-quien" id="sesionQuien"></p>
+      <button type="button" class="sesion-opcion" role="menuitem" id="sesionVerUsuario" hidden><span class="material-symbols-outlined" aria-hidden="true">visibility</span>Ver como usuario</button>
+      <button type="button" class="sesion-opcion" role="menuitem" id="sesionSalir"><span class="material-symbols-outlined" aria-hidden="true">logout</span>Cerrar sesión</button>
+    </div>
+  </div>
+</nav>
