@@ -1,0 +1,183 @@
+<!--
+  ui/Acceso.html
+  Portero común de todas las páginas (CONTEXTO.md, 17.5): login, cambio de contraseña temporal y llamar(accion, datos).
+  Se incluye justo después de abrir body, fuera de cualquier script: el cierre opaco ya está pintado antes de que cargue
+  el resto de la página y solo se retira si hay un token guardado. Si la sesión caduca, sale encima de la pantalla
+  sin recargarla, para no perder lo escrito, y las llamadas pendientes siguen solas al entrar.
+-->
+<style>
+  .acceso-cierre {
+    position: fixed; inset: 0; z-index: var(--z-max); display: flex; align-items: center; justify-content: center;
+    padding: 16px; background: var(--md-bg); color: var(--md-on-surface); font-family: var(--font);
+  }
+  .acceso-cierre[hidden], .acceso-tarjeta[hidden] { display: none; }
+  .acceso-tarjeta {
+    display: flex; flex-direction: column; gap: 16px; box-sizing: border-box; width: 100%; max-width: 360px; padding: 32px;
+    background: var(--md-surface); border-radius: var(--md-shape-xl); box-shadow: var(--md-elev-2);
+  }
+  .acceso-tarjeta h1 { margin: 0; font-size: var(--fs-h); font-weight: 500; }
+  .acceso-tarjeta p { margin: 0; font-size: var(--fs-md); color: var(--md-on-surface-med); }
+  .acceso-tarjeta .acceso-error { color: var(--md-error); min-height: 1.3em; }
+  @media print { .acceso-cierre { display: none; } }
+</style>
+<div class="acceso-cierre" id="acceso-cierre" role="dialog" aria-modal="true" aria-label="Acceso a la aplicación">
+  <form class="acceso-tarjeta" id="acceso-login" autocomplete="on">
+    <h1>Fisioterapia Orihuela</h1>
+    <p>Escribe tu usuario y tu contraseña.</p>
+    <div class="md-campo md-campo--icono">
+      <span class="material-symbols-outlined md-campo__icono" aria-hidden="true">person</span>
+      <input class="md-campo__control" id="acceso-usuario" placeholder=" " autocomplete="username" maxlength="60">
+      <label class="md-campo__etiqueta" for="acceso-usuario">Usuario</label>
+    </div>
+    <div class="md-campo md-campo--icono">
+      <span class="material-symbols-outlined md-campo__icono" aria-hidden="true">lock</span>
+      <input class="md-campo__control" id="acceso-password" type="password" placeholder=" " autocomplete="current-password">
+      <label class="md-campo__etiqueta" for="acceso-password">Contraseña</label>
+    </div>
+    <p class="acceso-error" id="acceso-login-error" role="alert"></p>
+    <button class="md-btn md-btn--tonal" type="submit">Entrar</button>
+  </form>
+  <form class="acceso-tarjeta" id="acceso-cambio" hidden>
+    <h1>Cambia la contraseña</h1>
+    <p>Debes elegir una contraseña o un PIN nuevo antes de seguir.</p>
+    <div class="md-campo">
+      <input class="md-campo__control" id="acceso-actual" type="password" placeholder=" " autocomplete="current-password">
+      <label class="md-campo__etiqueta" for="acceso-actual">Contraseña actual</label>
+    </div>
+    <div class="md-campo">
+      <input class="md-campo__control" id="acceso-nueva" type="password" placeholder=" " autocomplete="new-password">
+      <label class="md-campo__etiqueta" for="acceso-nueva">Contraseña nueva</label>
+    </div>
+    <div class="md-campo">
+      <input class="md-campo__control" id="acceso-repite" type="password" placeholder=" " autocomplete="new-password">
+      <label class="md-campo__etiqueta" for="acceso-repite">Repite la contraseña nueva</label>
+    </div>
+    <p class="acceso-error" id="acceso-cambio-error" role="alert"></p>
+    <button class="md-btn md-btn--tonal" type="submit">Guardar y entrar</button>
+  </form>
+</div>
+<script>
+  (function () {
+    var CLAVE = 'tokenAcceso';
+    var cierre = document.getElementById('acceso-cierre');
+    var formLogin = document.getElementById('acceso-login');
+    var formCambio = document.getElementById('acceso-cambio');
+    var tokenMemoria = '';
+    var esperando = false;   // true mientras el cierre está puesto: las llamadas nuevas esperan en la cola
+    var cola = [];
+    var desactivados = [];
+
+    function leerToken() {
+      try { return localStorage.getItem(CLAVE) || tokenMemoria; } catch (err) { return tokenMemoria; }
+    }
+    function guardarToken(t) {
+      tokenMemoria = t;
+      try { if (t) localStorage.setItem(CLAVE, t); else localStorage.removeItem(CLAVE); } catch (err) { /* sin almacenamiento */ }
+    }
+    function $(id) { return document.getElementById(id); }
+
+    /** Llamada directa al servidor, sin cola: la usan el login y lo que tiene que pasar con el cierre puesto. */
+    function directa(accion, datos, alTerminar) {
+      google.script.run
+        .withSuccessHandler(function (r) { alTerminar(r || { ok: false, error: 'El servidor no ha respondido.' }); })
+        .withFailureHandler(function (err) { alTerminar({ ok: false, error: err.message }); })
+        .api(leerToken(), accion, datos);
+    }
+
+    function enviar(p) {
+      if (esperando) { cola.push(p); return; }
+      directa(p.accion, p.datos, function (r) {
+        if (r.ok) { p.resolver(r.datos); return; }
+        if (r.codigo === 'SESION') { guardarToken(''); cola.push(p); pedir('login'); return; }
+        if (r.codigo === 'CAMBIO_PASSWORD') { cola.push(p); pedir('cambio'); return; }
+        var error = new Error(r.error);
+        error.codigo = r.codigo;
+        p.rechazar(error);
+      });
+    }
+
+    /** Llama a una acción del servidor. Devuelve una Promise; datos es la lista de argumentos de la acción. */
+    window.llamar = function (accion, datos) {
+      return new Promise(function (resolver, rechazar) {
+        enviar({ accion: accion, datos: datos || [], resolver: resolver, rechazar: rechazar });
+      });
+    };
+
+    /** Deja inerte lo que hay detrás del cierre, para que el tabulador no llegue a la página. */
+    function aislarPagina() {
+      Array.prototype.forEach.call(document.body.children, function (el) {
+        if (el !== cierre && !el.inert) { el.inert = true; desactivados.push(el); }
+      });
+    }
+
+    function pedir(pantalla) {
+      esperando = true;
+      cierre.hidden = false;
+      formLogin.hidden = pantalla !== 'login';
+      formCambio.hidden = pantalla !== 'cambio';
+      aislarPagina();
+      $(pantalla === 'login' ? 'acceso-usuario' : 'acceso-actual').focus();
+    }
+
+    function soltar() {
+      esperando = false;
+      cierre.hidden = true;
+      formLogin.reset();
+      formCambio.reset();
+      desactivados.forEach(function (el) { el.inert = false; });
+      desactivados = [];
+      var pendientes = cola;
+      cola = [];
+      pendientes.forEach(enviar);
+    }
+
+    function ocupado(form, si) {
+      form.querySelector('button').setAttribute('aria-busy', si ? 'true' : 'false');
+    }
+
+    formLogin.addEventListener('submit', function (ev) {
+      ev.preventDefault();
+      var aviso = $('acceso-login-error');
+      aviso.textContent = '';
+      ocupado(formLogin, true);
+      directa('iniciarSesion', [$('acceso-usuario').value, $('acceso-password').value], function (r) {
+        ocupado(formLogin, false);
+        $('acceso-password').value = '';
+        if (!r.ok) { aviso.textContent = r.error; $('acceso-password').focus(); return; }
+        guardarToken(r.datos.token);
+        if (r.datos.debeCambiar) pedir('cambio'); else soltar();
+      });
+    });
+
+    formCambio.addEventListener('submit', function (ev) {
+      ev.preventDefault();
+      var aviso = $('acceso-cambio-error');
+      aviso.textContent = '';
+      if ($('acceso-nueva').value !== $('acceso-repite').value) { aviso.textContent = 'Las dos contraseñas nuevas no coinciden.'; return; }
+      ocupado(formCambio, true);
+      directa('cambiarPassword', [$('acceso-actual').value, $('acceso-nueva').value], function (r) {
+        ocupado(formCambio, false);
+        if (r.ok) { soltar(); return; }
+        if (r.codigo === 'SESION') { guardarToken(''); pedir('login'); return; }
+        aviso.textContent = r.error;
+      });
+    });
+
+    // Los atajos de teclado de las páginas no deben reaccionar a lo que se escribe aquí.
+    cierre.addEventListener('keydown', function (ev) { ev.stopPropagation(); });
+
+    window.Acceso = {
+      cerrarSesion: function () {
+        directa('cerrarSesion', [], function () { guardarToken(''); pedir('login'); });
+      }
+    };
+
+    if (leerToken()) {
+      cierre.hidden = true;
+      window.llamar('comprobarSesion').catch(function () { /* si la sesión no vale, enviar ya ha pedido el login */ });
+    } else {
+      esperando = true;
+      document.addEventListener('DOMContentLoaded', function () { if (esperando) pedir('login'); });
+    }
+  })();
+</script>

@@ -21,8 +21,10 @@ const HC_WEB_ = {
 /** Sirve la página de la ficha: ?page=hc&id=ID_HC  (o &idPaciente=ID_PACIENTE si no hay ID HC). */
 function servirFichaHCWeb(parametros) {
   const t = HtmlService.createTemplateFromFile('historia/HC_Vista');
-  t.idHC = (parametros && parametros.id) || '';                       // ID HC (?page=hc&id=)
-  t.idPaciente = (parametros && parametros.idPaciente) || '';         // ID paciente (?page=hc&idPaciente=), si no hay ID HC
+  // Los IDs llegan de la URL y se escriben dentro de un <script>: solo letras, números y guiones (CONTEXTO.md, 17.3).
+  const soloId = v => String(v || '').replace(/[^\w-]/g, '');
+  t.idHC = soloId(parametros && parametros.id);                       // ID HC (?page=hc&id=)
+  t.idPaciente = soloId(parametros && parametros.idPaciente);         // ID paciente (?page=hc&idPaciente=), si no hay ID HC
   t.imprimir = !!(parametros && String(parametros.imprimir) === '1');
   t.baseUrl = ScriptApp.getService().getUrl();
   return t.evaluate().setTitle('Historia clínica').addMetaTag('viewport', 'width=device-width, initial-scale=1');

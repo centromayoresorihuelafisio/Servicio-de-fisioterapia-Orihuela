@@ -9,7 +9,9 @@ const SHEETS = {
   VALORACIONES: "Valoraciones",
   RECORDATORIOS: "Recordatorios",
   HISTORIAL: "Historial Estado",  // cambios de Estado / Tipo de Ingreso / Gravedad (usuarios/Historial_Estado.gs, CONTEXTO.md sección 11, paso 4)
-  CITAS: "Citas"                  // tabla plana de citas (agenda/Citas_Datos.gs, CONTEXTO.md sección 11, paso 6). Desde el corte (21-oct-2026) es la única fuente de las citas
+  CITAS: "Citas",                 // tabla plana de citas (agenda/Citas_Datos.gs, CONTEXTO.md sección 11, paso 6). Desde el corte (21-oct-2026) es la única fuente de las citas
+  ACCESOS: "Accesos",             // cuentas de la app (acceso/Cuentas.gs, CONTEXTO.md sección 17)
+  REGISTRO: "Registro"            // solo se añaden filas (acceso/Registro.gs, CONTEXTO.md sección 17)
 };
 
 /**
@@ -20,7 +22,8 @@ const SHEETS = {
  * rompería la lectura sin ningún aviso. Ahora hay una única fuente por clave.
  */
 const PROP_KEYS = {
-  WHATSAPP_MESSAGE: "WHATSAPP_MESSAGE"
+  WHATSAPP_MESSAGE: "WHATSAPP_MESSAGE",
+  ACCESO_ITERACIONES: "ACCESO_ITERACIONES"
 };
 
 /**
