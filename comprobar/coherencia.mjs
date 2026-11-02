@@ -48,7 +48,6 @@ const EXCEPCIONES = [
   { c: 'reinicio', archivo: 'agenda/Panel_Cita.html', texto: '.pc-hoja-cuerpo', motivo: 'solo min-height: 0 para que la hoja haga scroll: colocación' },
   { c: 'fuga', archivo: 'ui/CSS_Ficha.html', motivo: 'piezas fu-* de la ficha, reutilizadas a propósito' },
   { c: 'puerta', archivo: 'ui/Acceso.html', motivo: 'es la propia llamar(), la única que habla con el servidor' },
-  { c: 'puerta', archivo: 'acceso/Prueba_Vista.html', motivo: 'prueba de llamada sin sesión (se retira en la fase 5)' },
 ];
 
 // ===== Una sola puerta (sección 17): lo que puede quedar público y lo que aún falta por pasar a llamar() =====
@@ -516,7 +515,7 @@ for (const h of buscar(LLAMADAS, { incluirGlobal: true })) {
   const [, literal, variable] = new RegExp(LLAMADAS.source).exec(h.texto) || [];
   if (literal ? acciones.has(literal) : !h.texto.includes('(')) continue;
   if (literal) hallAccion.push({ ...h, texto: literal });
-  else hallAccion.push({ ...h, texto: variable || h.texto, motivo: h.archivo === 'usuarios/Whatsapp_Dialogo.html' ? 'recibe la acción de quien abre el diálogo, que sí se comprueba' : h.archivo === 'acceso/Prueba_Vista.html' ? 'página de prueba de acciones inventadas (se retira en la fase 5)' : undefined });
+  else hallAccion.push({ ...h, texto: variable || h.texto, motivo: h.archivo === 'usuarios/Whatsapp_Dialogo.html' ? 'recibe la acción de quien abre el diálogo, que sí se comprueba' : undefined });
 }
 anotar('accion', 'llamar() a acciones que no están en ACCIONES', hallAccion, acciones.size ? '' : 'NO SE HA PODIDO LEER accesoAcciones_');
 

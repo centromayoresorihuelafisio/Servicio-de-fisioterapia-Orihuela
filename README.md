@@ -2,7 +2,7 @@
 
 Gestión del servicio de fisioterapia con **Google Sheets + Google Apps Script**: base de datos de usuarios, agenda de citas (hoja plana "Citas"), valoraciones e historias clínicas (fichas web en hojas, sin Docs). Este repositorio es la copia de seguridad del código.
 
-Se usa como **Web App** (`doGet`): Agenda, Usuarios y Valoraciones como pestañas de una aplicación web, de uso personal. La hoja es solo la base de datos: no tiene menús ni diálogos.
+Se usa como **Web App** (`doGet`): Usuarios, Agenda, Valoraciones, Estadísticas y Configuración como pestañas de una aplicación web, con usuario y contraseña propios y dos roles (administrador y usuario). La hoja es solo la base de datos: no tiene menús ni diálogos. Guía para el sustituto: `GUIA_SUSTITUTO.md`; entrega y plan de emergencia: `ENTREGA_Y_EMERGENCIA.md`.
 
 ## Estructura del proyecto
 
@@ -13,7 +13,9 @@ Se usa como **Web App** (`doGet`): Agenda, Usuarios y Valoraciones como pestaña
 | `agenda/` | Capa de datos de la hoja "Citas" (`Citas_Datos.gs`), vista web de la Agenda, formulario de cita, disponibilidad y recordatorios |
 | `valoraciones/` | Formulario de valoración y vista web de evolución |
 | `historia/` | Historia clínica como ficha web (`HC_Web.gs`, `Panel_HC.html`, `HC_Vista.html`) y creación de HC (`Generar.gs`) |
-| `ui/` | Piezas compartidas de interfaz: CSS global, ficha lateral de usuario, selector de fecha, login y modal de deshacer |
+| `ui/` | Piezas compartidas de interfaz: CSS global, ficha lateral de usuario, selector de fecha, login, barra de pestañas y modal de deshacer |
+| `acceso/` | Control de acceso: puerta única `api`, cuentas, sesiones, «Registro» y funciones del editor |
+| `configuracion/` | Pestaña Configuración (solo administrador): accesos, registro y emergencia |
 | `herramientas/` | Utilidades esporádicas o de un solo uso (asignar IDs, backup…) |
 
 Convención de archivos: `X.gs` es la lógica del servidor y `X_Vista.html` (o `Panel_*.html`, `Dialogo_*.html`) su interfaz. Los `.html` que empiezan por `JS_` o `CSS_` se incluyen en otras vistas con `include_()`.
@@ -27,7 +29,8 @@ El router está en `core/WebApp.gs` y sirve cada página según `?page=`. Sin pa
 | `baseDatos` (por defecto) | Usuarios |
 | `agenda` | Agenda |
 | `valoraciones` | Valoraciones |
-| `dashboard` | Estadísticas |
+| `dashboard` | Estadísticas (solo administrador) |
+| `configuracion` | Configuración (solo administrador) |
 | `hc&id=ID_HC` | Historia clínica (ficha web) |
 
 ## Paneles de formulario bajo demanda

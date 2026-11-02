@@ -22,7 +22,6 @@ function accesoAcciones_() {
     cerrarSesion:      { fn: sesionCerrar_, rol: 'usuario', conTemporal: true },
     cambiarPassword:   { fn: accesoCambiarPassword_, rol: 'usuario', conTemporal: true },
     verComo:           { fn: sesionVerComo_, rol: 'usuario', registrar: true, entidad: () => 'Accesos', detalle: a => a[0] || 'volver a su rol' },
-    diagnosticoAcceso: { fn: accesoDiagnostico_, rol: 'administrador', registrar: true },
 
     // Piezas comunes
     obtenerPanelWeb:            { fn: obtenerPanelWeb_, rol: 'usuario' },

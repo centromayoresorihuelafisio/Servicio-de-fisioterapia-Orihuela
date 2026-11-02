@@ -116,10 +116,3 @@ function accesoAbrirApp() {
   accesoPonerInterruptor_(PROP_KEYS.APP_CERRADA, false);
   Logger.log('App abierta de nuevo: se entra con usuario y contraseña, como siempre.');
 }
-
-/** Acción de administrador para la página de prueba: dice si esta ejecución se reconoce como propietario. */
-function accesoDiagnostico_() {
-  let propietario = true;
-  try { soloPropietario_(); } catch (e) { propietario = false; }
-  return { propietario: propietario, iteraciones: accesoIteraciones_() };
-}

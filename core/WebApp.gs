@@ -1,7 +1,8 @@
 // Punto de entrada para acceder a formularios desde fuera de la hoja de cálculo.
-// Despliegue: Implementar > Nueva implementación > Aplicación web
+// Despliegue: Implementar > Administrar implementaciones > editar > Nueva versión (la URL no cambia)
 //   Ejecutar como: Yo
-//   Quién tiene acceso: Solo yo
+//   Quién tiene acceso: Cualquier usuario. La puerta es el login propio (acceso/, CONTEXTO.md, sección 17):
+//   sin sesión, las páginas solo enseñan el login y api() no da ningún dato.
 // ================================================================================
 
 // ID de la hoja de cálculo. Ahora es solo un RESPALDO: getSS_() usa antes la hoja a la
@@ -103,8 +104,7 @@ const PAGINAS_WEB = {
   valoraciones:  { archivo: 'valoraciones/Web_Vista',   titulo: 'Valoraciones', pestana: { icono: 'monitoring', ayuda: 'Ir a Valoraciones' } },
   dashboard:     { archivo: 'dashboard/Web_Vista',      titulo: 'Estadísticas', pestana: { icono: 'dashboard', ayuda: 'Ir a Estadísticas' }, rol: 'administrador' },
   configuracion: { archivo: 'configuracion/Web_Vista',  titulo: 'Configuración', pestana: { icono: 'settings', ayuda: 'Ir a Configuración' }, rol: 'administrador' },
-  guiaVisual:    { archivo: 'ui/Guia_Visual',           titulo: 'Guía visual',      rol: 'administrador' },   // banco de pruebas visual (D-V7); sin pestaña
-  pruebaAcceso:  { archivo: 'acceso/Prueba_Vista',      titulo: 'Prueba de acceso', rol: 'administrador' }    // comprobación del control de acceso (sección 17); se retira en la fase 5
+  guiaVisual:    { archivo: 'ui/Guia_Visual',           titulo: 'Guía visual', rol: 'administrador' }   // banco de pruebas visual (D-V7); sin pestaña
 };
 
 /**
