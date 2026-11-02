@@ -243,8 +243,8 @@
 
       function contenidoIcono(icono) { return icono === 'whatsapp' ? SVG_WHATSAPP : '<span class="material-symbols-outlined">' + icono + '</span>'; }
 
-      function btnFila(acc, p, icono, titulo, extra) {
-        return '<button type="button" class="btn-fila ' + (extra || '') + (icono === 'whatsapp' ? ' btn-whatsapp' : '') + '" data-acc="' + acc + '" data-fila="' + p._fila + '" title="' + esc(titulo) + '">' + contenidoIcono(icono) + '</button>';
+      function btnFila(acc, p, icono, titulo, extra, atributos) {
+        return '<button type="button" class="btn-fila ' + (extra || '') + (icono === 'whatsapp' ? ' btn-whatsapp' : '') + '" data-acc="' + acc + '" data-fila="' + p._fila + '" title="' + esc(titulo) + '"' + (atributos || '') + '>' + contenidoIcono(icono) + '</button>';
       }
 
       function resalta(txt, termino) {
@@ -275,7 +275,9 @@
           '<td data-label="Inscripción">' + (dato(p, 'Fecha inscripción') ? esc(dato(p, 'Fecha inscripción')) : '<span class="vacio">—</span>') + '</td>' +
           '<td class="acciones-fila"><span class="acc-pill">' +
             btnFila('hc', p, 'description', tieneHC ? 'Abrir Historia Clínica' : 'Sin Historia Clínica · clic para crearla', tieneHC ? 'con-hc' : 'sin-hc') +
-            btnFila('whatsapp', p, 'whatsapp', 'Abrir WhatsApp') + btnFila('cita', p, 'event', 'Nueva cita') + btnFila('editar', p, 'edit', 'Editar') + btnFila('mas', p, 'more_vert', 'Más acciones') +
+            btnFila('whatsapp', p, 'whatsapp', 'Abrir WhatsApp') + btnFila('cita', p, 'event', 'Nueva cita') + btnFila('editar', p, 'edit', 'Editar') +
+            btnFila('valoracion', p, 'assignment', 'Valoración') + btnFila('alta', p, 'how_to_reg', 'Dar de alta') +
+            btnFila('eliminar', p, 'delete', 'Eliminar usuario', 'peligro', ' data-rol="administrador"') +   // eliminar es solo del administrador (decisión 2 de 17.8)
           '</span></td></tr>';
       }
 

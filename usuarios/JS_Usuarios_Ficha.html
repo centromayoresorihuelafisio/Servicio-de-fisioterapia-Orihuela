@@ -227,22 +227,6 @@
       document.addEventListener('click', function(e) { if (menuItems && !e.target.closest('#menuFlotante')) cerrarMenu(); }, true);
       document.getElementById('tablaWrap').addEventListener('scroll', cerrarMenu, { passive: true });
 
-      function menuMas(fila, ancla) {
-        var p = TODOS.find(function(x) { return x._fila === fila; });
-        if (!p) return;
-        var tieneHC = esUrl(COL_HISTORIA ? p[COL_HISTORIA] : '');
-        var a = function(acc) { return function() { accionPaciente(acc, fila); }; };
-        var admin = Acceso.puede('administrador');   // eliminar es solo del administrador (decisión 2 de 17.8)
-        abrirMenu([
-          { icono: 'assignment', texto: 'Valoración', fn: a('valoracion') },
-          { sep: true },
-          tieneHC ? null : { icono: 'note_add', texto: 'Crear Historia Clínica', fn: a('crearhc') },
-          { icono: 'how_to_reg', texto: 'Dar de alta', fn: a('alta') },
-          admin ? { sep: true } : null,
-          admin ? { icono: 'delete', texto: 'Eliminar usuario', peligro: true, fn: a('eliminar') } : null
-        ].filter(Boolean), ancla);
-      }
-
       // ---------- Cambio de estado en línea ----------
       function estadosDisponibles() {
         return FichaUsuario.estadosDisponibles(TODOS.map(function(p) { return p['Estado']; }));
@@ -348,8 +332,7 @@
         if ((c = t.closest('.estado-btn'))) { e.stopPropagation(); menuEstado(Number(c.dataset.estadoFila), c); return; }
         if ((c = t.closest('.btn-fila'))) {
           e.stopPropagation();
-          var f = Number(c.dataset.fila);
-          if (c.dataset.acc === 'mas') menuMas(f, c); else accionPaciente(c.dataset.acc, f);
+          accionPaciente(c.dataset.acc, Number(c.dataset.fila));
           return;
         }
         var tr = t.closest('tbody tr[data-fila]');
