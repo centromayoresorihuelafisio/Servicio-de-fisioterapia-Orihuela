@@ -67,8 +67,9 @@
           document.getElementById('tablaWrap').innerHTML = htmlEsqueleto();
         }
 
-        google.script.run
-          .withSuccessHandler(function(res) {
+        // La recarga silenciosa no alarga la sesión: la lanzan también el sondeo y los avisos de otras ventanas (17.3, punto 8).
+        (silencioso ? llamar('refrescarAgendaSemanaWeb', [fechaISO || null]) : llamar('obtenerAgendaSemanaWeb', [fechaISO || null]))
+          .then(function(res) {
             if (res.error) { mostrarError(res.error); return; }
             HEADERS = res.headers || [];
             HEADERS_VISIBLES = HEADERS.filter(function(h) { return COLUMNAS_OCULTAS.indexOf(normalizar(h)) === -1; });
@@ -83,9 +84,7 @@
             }
             render();
             if (irAHoy) scrollAHoy();
-          })
-          .withFailureHandler(mostrarError)
-          .obtenerAgendaSemanaWeb(fechaISO || null);
+          }, mostrarError);
       }
 
       // Coloca la cabecera del día de hoy justo bajo el encabezado de columnas,
@@ -250,14 +249,12 @@
         cita['Asistencia'] = valor;            // respuesta inmediata; se revierte si el servidor falla
         render();
         function revertir(msg) { cita['Asistencia'] = previo; render(); mostrarAviso(msg); }
-        google.script.run
-          .withSuccessHandler(function(res) {
+        llamar('actualizarCampoAgendaWeb', [fila, 'Asistencia', valor])
+          .then(function(res) {
             if (!res || !res.success) { revertir((res && res.message) || 'No se pudo guardar el cambio.'); return; }
             // Tabla nueva: "quitar" = Pendiente y Pendiente se muestra vacío, igual que al recargar la semana.
             if (res.asistencia !== undefined && res.asistencia !== cita['Asistencia']) { cita['Asistencia'] = res.asistencia; render(); }
-          })
-          .withFailureHandler(function(err) { revertir('Error al guardar: ' + err); })
-          .actualizarCampoAgendaWeb(fila, 'Asistencia', valor);
+          }, function(err) { revertir('Error al guardar: ' + err); });
       }
 
       function badgeSesion(v, etiqueta) {
@@ -306,10 +303,9 @@
           if (cita) { cita['Sesión'] = p.previo; render(); }
           mostrarAviso(msg);
         }
-        google.script.run
-          .withSuccessHandler(function(res) { if (!res || !res.success) revertir((res && res.message) || 'No se pudo guardar el cambio.'); })
-          .withFailureHandler(function(err) { revertir('Error al guardar: ' + err); })
-          .actualizarCampoAgendaWeb(fila, 'Sesión', p.valor);
+        llamar('actualizarCampoAgendaWeb', [fila, 'Sesión', p.valor])
+          .then(function(res) { if (!res || !res.success) revertir((res && res.message) || 'No se pudo guardar el cambio.'); },
+            function(err) { revertir('Error al guardar: ' + err); });
       }
 
       // Quita emojis del texto que viene de la hoja (el icono del chip ya indica el estado).

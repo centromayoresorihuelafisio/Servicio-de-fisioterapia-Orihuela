@@ -1,17 +1,3 @@
-/**
- * Versión web-safe: genera la URL de WhatsApp para el usuario de `fila`,
- * para usar desde el botón "WhatsApp" de Usuarios. Devuelve la
- * URL y el cliente hace window.open con ella.
- */
-function generarUrlWhatsappWeb(idPaciente) {
-  const d = datosWhatsappMaestraWeb_([idPaciente]);
-  if (!d.success) return { success: false, message: d.message };
-  const it = d.items[0];
-  if (!it || it.error) return { success: false, message: (it && it.error) || 'Usuario no encontrado.' };
-  const msj = d.plantilla.replace(/{{nombre}}/g, it.primerNombre);
-  return { success: true, url: "https://web.whatsapp.com/send?phone=" + it.telefono + "&text=" + encodeURIComponent(msj) };
-}
-
 // Sin nombres: la app la usan varias personas (decisión 6 de la sección 17.8).
 const WHATSAPP_PLANTILLA_POR_DEFECTO_ = "Hola {{nombre}}, soy el fisioterapeuta del centro de mayores.";
 
@@ -54,7 +40,7 @@ function _primerNombreWhatsapp_(nombreCompleto) {
  */
 function datosWhatsappMaestraWeb_(idsPaciente) {
   try {
-    const hoja = getSS().getSheetByName(SHEETS.MAESTRA);
+    const hoja = getSS_().getSheetByName(SHEETS.MAESTRA);
     if (!hoja) return { success: false, message: "No se encontró la hoja 'Base de Datos Maestra'." };
 
     const idxNombre = obtenerIndiceColumnaPorNombre_(hoja, COLUMNAS.MAESTRA.NOMBRE);

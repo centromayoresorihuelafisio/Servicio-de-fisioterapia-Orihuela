@@ -105,7 +105,7 @@ function obtenerFichaUsuarioWeb_(nombre, campos) {
  * con la fecha de nacimiento (valor crudo de la celda) y se añade si el cliente la pide o no filtra columnas.
  */
 function leerMaestraParaFicha_(campos) {
-  const sheet = getSS().getSheetByName(SHEETS.MAESTRA);
+  const sheet = getSS_().getSheetByName(SHEETS.MAESTRA);
   if (!sheet) return { headers: [], pacientes: [], error: 'No se encontró la hoja "' + SHEETS.MAESTRA + '".' };
 
   const lastRow = sheet.getLastRow();

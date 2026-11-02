@@ -3,20 +3,20 @@
  * para usar desde el botón "Historia Clínica" de Usuarios.
  */
 function generarHistoriaClinicaWeb_(idPaciente) {
-  const ss = getSS();
+  const ss = getSS_();
   const sheet = ss.getSheetByName(SHEETS.MAESTRA);
   if (!sheet) return { success: false, message: "Error: La hoja 'Base de Datos Maestra' no existe." };
   const rowIndex = filaMaestraPorId_(sheet, idPaciente);   // por ID paciente: el número de fila cambia al reordenar
   if (!rowIndex) return { success: false, message: "Ese usuario ya no está en Usuarios. Recarga la página." };
 
-  return _generarHistoriaClinicaEnFila(sheet, rowIndex);
+  return generarHistoriaClinicaEnFila_(sheet, rowIndex);
 }
 
 /**
  * Lógica compartida: crea la historia clínica (ficha web) del usuario de la fila indicada y
  * enlaza el resultado en la columna "Historia clínica" de esa fila.
  */
-function _generarHistoriaClinicaEnFila(sheet, rowIndex) {
+function generarHistoriaClinicaEnFila_(sheet, rowIndex) {
   const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0].map(h => h.toString().trim());
   const data = sheet.getRange(rowIndex, 1, 1, headers.length).getValues()[0];
 
@@ -31,12 +31,12 @@ function _generarHistoriaClinicaEnFila(sheet, rowIndex) {
   // antes, cada clic en "Historia Clínica" (o un reenvío del formulario de
   // alta) creaba un documento nuevo en Drive y machacaba el enlace anterior,
   // dejando el documento viejo huérfano y sin que nadie se enterase.
-  // Se comprueba con extraerUrlHistoriaClinica() para cubrir los tres
+  // Se comprueba con extraerUrlHistoriaClinica_() para cubrir los tres
   // formatos posibles de celda: Rich Text, fórmula =HIPERVINCULO() y texto plano.
   const colIndex = headers.findIndex(h => h.toLowerCase() === COLUMNAS.MAESTRA.HISTORIA_CLINICA.toLowerCase());
   if (colIndex !== -1) {
     const celdaHC = sheet.getRange(rowIndex, colIndex + 1);
-    const urlExistente = extraerUrlHistoriaClinica(
+    const urlExistente = extraerUrlHistoriaClinica_(
       data[colIndex],
       celdaHC.getRichTextValue(),
       celdaHC.getFormula()

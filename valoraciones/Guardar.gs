@@ -5,7 +5,7 @@
  * cada valoración y los nombres que muestra la página Valoraciones.
  */
 function leerPacientesMaestra_() {
-  const sheet = getSS().getSheetByName(SHEETS.MAESTRA);
+  const sheet = getSS_().getSheetByName(SHEETS.MAESTRA);
   if (!sheet) return [];
   const lastRow = sheet.getLastRow();
   if (lastRow < 2) return [];
@@ -54,7 +54,7 @@ function obtenerPacientesParaAutocompletar_() {
   }
 }
 
-// NOTA: normalizarFormatoNombre() se centralizó en core/Utils.gs (14/07/2026) para
+// NOTA: normalizarFormatoNombre_() se centralizó en core/Utils.gs (14/07/2026) para
 // eliminar la definición duplicada que existía aquí. Ver core/Utils.gs — misma lógica, fuente única.
 
 /**
@@ -67,7 +67,7 @@ function procesarValoracion_(data) {
   const lock = LockService.getScriptLock();
   try {
     lock.waitLock(10000);
-    const ss = getSS();
+    const ss = getSS_();
     const sheet = ss.getSheetByName(SHEETS.VALORACIONES);
     if (!sheet) throw new Error("No se encontró la hoja 'Valoraciones'.");
 
@@ -87,7 +87,7 @@ function procesarValoracion_(data) {
     // 1. Usuario: el formulario envía SOLO su ID paciente; nombre, DNI y teléfono salen de la Maestra.
     const paciente = pacienteMaestraPorId_(data.idPaciente);
     if (!paciente) throw new Error("No se encontró al usuario en Usuarios (ID paciente). Elígelo de la lista.");
-    const nombreFinal = normalizarFormatoNombre(paciente.nombre) || paciente.nombre;
+    const nombreFinal = normalizarFormatoNombre_(paciente.nombre) || paciente.nombre;
     const dni = paciente.dni;
     const telefono = telefonoNormalizar_(paciente.telefono);   // solo dígitos (regla única, core/Utils.gs)
 

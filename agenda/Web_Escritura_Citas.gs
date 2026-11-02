@@ -88,14 +88,6 @@ function datosWhatsappLoteDesdeCitasWeb_(ids) {
   return { success: true, plantilla: r.plantilla, items: r.items.concat(errores), duplicados: r.duplicados };
 }
 
-/** URL de WhatsApp de la persona de una cita (la usa generarUrlWhatsappParaAgendaWeb; hoy el cliente no la llama). */
-function generarUrlWhatsappDesdeCitasWeb_(idCita) {
-  const cita = citaPorIdDesdeCitasWeb_(idCita);
-  if (!cita) return { success: false, message: 'La cita ya no existe.' };
-  if (!cita.idPaciente) return { success: false, message: 'Esa cita no tiene un usuario enlazado.' };
-  return generarUrlWhatsappWeb(cita.idPaciente);
-}
-
 // ============================================================================= Tanda 2: mover e intercambiar
 
 /**
@@ -126,7 +118,7 @@ function intercambiarDesdeCitasWeb_(idA, idB) {
 function pacientePorIdDesdeCitasWeb_(idBruto) {
   const id = String(idBruto === null || idBruto === undefined ? '' : idBruto).trim();
   if (!id) return { ok: false, message: 'Elige un usuario de la lista.' };
-  const hoja = getSS().getSheetByName(SHEETS.MAESTRA);
+  const hoja = getSS_().getSheetByName(SHEETS.MAESTRA);
   if (!hoja || hoja.getLastRow() < 2) return { ok: false, message: 'No se encontró la Base de Datos Maestra.' };
   const fila = filaMaestraPorId_(hoja, id);
   if (!fila) return { ok: false, message: 'Ese usuario ya no está en Usuarios. Recarga la página.' };
@@ -140,7 +132,7 @@ function pacientePorIdDesdeCitasWeb_(idBruto) {
  * Devuelve false si falla, 'igual' si ya tenía ese Estado (no escribe) y 'cambiado' si lo ha cambiado. */
 function actualizarEstadoPorIdDesdeCitasWeb_(idPaciente, nuevoEstado, origen) {
   try {
-    const hoja = getSS().getSheetByName(SHEETS.MAESTRA);
+    const hoja = getSS_().getSheetByName(SHEETS.MAESTRA);
     if (!hoja) return false;
     const fila = filaMaestraPorId_(hoja, idPaciente);
     if (!fila) return false;

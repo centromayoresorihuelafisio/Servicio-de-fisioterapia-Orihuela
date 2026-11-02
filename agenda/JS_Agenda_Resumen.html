@@ -71,15 +71,13 @@
       }
 
       function cargarRecordatorios() {
-        google.script.run
-          .withSuccessHandler(function(res) {
+        llamar('obtenerRecordatoriosWeb')
+          .then(function(res) {
             if (!res || !res.success) return;
             RECORDATORIOS = res.recordatorios || [];
             if (panelAbierto && panelClave === 'recordatorios' && controladorPanel && controladorPanel.actualizar) controladorPanel.actualizar(RECORDATORIOS);
             refrescarRecordatorios();
-          })
-          .withFailureHandler(function() { /* no crítico */ })
-          .obtenerRecordatoriosWeb();
+          }, function() { /* no crítico */ });
       }
 
       // Sin argumentos alterna el panel; { fecha } abre el formulario para ese día; { editarId } edita uno.

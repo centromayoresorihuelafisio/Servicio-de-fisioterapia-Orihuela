@@ -9,7 +9,7 @@
  *   Hoja "Historial Estado" (SHEETS.HISTORIAL): ID paciente | Fecha y hora | Campo | Valor anterior | Valor nuevo | Origen.
  *
  * Regla: TODO cambio de esos campos pasa por historialRegistrar_ (no hay respaldo por onEdit). Llamado desde:
- *   cambiarEstadoPacienteWeb_ / cambiarEstadoLoteWeb_ (usuarios/BaseDatos.gs), _ejecutarAltaEnFila (usuarios/Alta.gs),
+ *   cambiarEstadoPacienteWeb_ / cambiarEstadoLoteWeb_ (usuarios/BaseDatos.gs), ejecutarAltaEnFila_ (usuarios/Alta.gs),
  *   actualizarPaciente_ (usuarios/Editar_Usuario.gs), guardarPaciente_ (usuarios/Anadir_Usuario.gs) y
  *   actualizarEstadoPorIdDesdeCitasWeb_ (agenda/Web_Escritura_Citas.gs, "Dar cita" y "Asignar hueco").
  *   Cualquier función nueva que cambie esos campos de la Maestra debe llamarla igual.
@@ -23,7 +23,7 @@
  *      (salta los usuarios ya sembrados).
  *   2. `verificarHistorialEstado`: solo lectura; úsala cuando quieras comprobar que no se ha perdido ningún cambio.
  *
- * Reutiliza SIN modificar: getSS (core/WebApp.gs), SHEETS, COLUMNAS, HISTORIAL_CAMPOS, ESTADOS_PACIENTE (core/Config.gs),
+ * Reutiliza SIN modificar: getSS_ (core/WebApp.gs), SHEETS, COLUMNAS, HISTORIAL_CAMPOS, ESTADOS_PACIENTE (core/Config.gs),
  * HC_WEB_, hcAISO_ y hcDeISO_ (historia/HC_Web.gs). Nombres con prefijo historial / HIST_ para no chocar en el ámbito global.
  */
 
@@ -81,7 +81,7 @@ function historialRegistrar_(cambios, origen) {
       filas.push([id, ahora, c.campo, antes, despues, origen || '']);
     });
     if (!filas.length) return 0;
-    return historialEscribir_(historialAsegurarHoja_(getSS()), filas);
+    return historialEscribir_(historialAsegurarHoja_(getSS_()), filas);
   } catch (e) {
     Logger.log('ERROR en historialRegistrar_ (' + origen + '): ' + e.message);
     return 0;
@@ -114,7 +114,8 @@ function historialCambiosEnFila_(headers, filaAntes, filaDespues) {
  * Idempotente por usuario: salta los que ya tienen alguna fila "Siembra". Solo escribe "Historial Estado".
  */
 function sembrarHistorialEstado() {
-  const ss = getSS();
+  soloPropietario_('sembrarHistorialEstado');
+  const ss = getSS_();
   const maestra = ss.getSheetByName(SHEETS.MAESTRA);
   if (!maestra) throw new Error('No se encontró la hoja "' + SHEETS.MAESTRA + '".');
   const datos = maestra.getDataRange().getValues();
@@ -196,7 +197,8 @@ function sembrarHistorialEstado() {
  * registro de ejecuciones y en un aviso.
  */
 function verificarHistorialEstado() {
-  const ss = getSS();
+  soloPropietario_('verificarHistorialEstado');
+  const ss = getSS_();
   const maestra = ss.getSheetByName(SHEETS.MAESTRA), hoja = ss.getSheetByName(SHEETS.HISTORIAL);
   if (!maestra) throw new Error('No se encontró la hoja "' + SHEETS.MAESTRA + '".');
   if (!hoja || hoja.getLastRow() < 2) { Logger.log('El historial está vacío: ejecuta sembrarHistorialEstado.'); return { vacio: true }; }

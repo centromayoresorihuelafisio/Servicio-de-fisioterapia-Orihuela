@@ -3,16 +3,17 @@
  * y añade aquellos nombres que no existan previamente.
  */
 function sincronizarContactosGoogle() {
+  soloPropietario_('sincronizarContactosGoogle');
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   ss.toast("Obteniendo contactos existentes de Google...", "Sincronización", 5);
 
-  // OJO: obtenerTodosLosContactosGoogle() se tragaba en silencio cualquier
+  // OJO: obtenerTodosLosContactosGoogle_() se tragaba en silencio cualquier
   // fallo al listar los contactos (devolvía un array vacío igual si iba bien
   // que si la API fallaba). Si eso fallaba, aquí se creían "0 contactos
   // existentes" y se intentaba recrear a TODO el mundo — y si el fallo era
   // de permisos/API, esa recreación también fallaba, resultando en "0
   // creados" sin ninguna pista de qué pasó. Ahora se distingue el caso.
-  const resultadoLista = obtenerTodosLosContactosGoogle();
+  const resultadoLista = obtenerTodosLosContactosGoogle_();
   if (!resultadoLista.success) {
     SpreadsheetApp.getUi().alert(
       'No se pudo conectar con Google Contacts:\n\n' + resultadoLista.message +
@@ -68,20 +69,20 @@ function sincronizarContactosGoogle() {
       continue; // Ignorar filas sin nombre válido
     }
 
-    const existe = verificarExistenciaContacto(nombrePaciente, telefonoPaciente, contactosExistentes);
+    const existe = verificarExistenciaContacto_(nombrePaciente, telefonoPaciente, contactosExistentes);
 
     if (!existe) {
-      // Antes: 'exito' era siempre undefined porque crearContactoGoogle() no
+      // Antes: 'exito' era siempre undefined porque crearContactoGoogle_() no
       // devolvía nada — este bloque nunca se ejecutaba y el contador de
       // creados se quedaba siempre a 0, aunque el contacto sí se hubiera
       // creado (o hubiera fallado, no había forma de saberlo desde aquí).
-      const resultado = crearContactoGoogle(nombrePaciente, telefonoPaciente);
+      const resultado = crearContactoGoogle_(nombrePaciente, telefonoPaciente);
       if (resultado.success) {
         creadosCount++;
         // Añadimos el nuevo contacto a nuestra lista en memoria para evitar crear duplicados de nombres idénticos en la misma hoja
         contactosExistentes.push({
-          nombreNormalizado: normalizarTexto(nombrePaciente),
-          telefonos: telefonoPaciente ? [normalizarTelefono(telefonoPaciente)] : []
+          nombreNormalizado: normalizarTexto_(nombrePaciente),
+          telefonos: telefonoPaciente ? [normalizarTelefono_(telefonoPaciente)] : []
         });
       } else {
         errores.push({ nombre: nombrePaciente, message: resultado.message });
@@ -113,7 +114,7 @@ function sincronizarContactosGoogle() {
  *   devolvía un array vacío indistinguible de "no tienes contactos" — el
  *   fallo quedaba solo en el registro de ejecuciones. Ahora se distingue.
  */
-function obtenerTodosLosContactosGoogle() {
+function obtenerTodosLosContactosGoogle_() {
   let contactos = [];
   let tokenPagina = '';
   
@@ -134,12 +135,12 @@ function obtenerTodosLosContactosGoogle() {
           
           let telefonos = [];
           if (conexion.phoneNumbers) {
-            telefonos = conexion.phoneNumbers.map(p => normalizarTelefono(p.value));
+            telefonos = conexion.phoneNumbers.map(p => normalizarTelefono_(p.value));
           }
           
           if (nombreCompleto) {
             contactos.push({
-              nombreNormalizado: normalizarTexto(nombreCompleto),
+              nombreNormalizado: normalizarTexto_(nombreCompleto),
               telefonos: telefonos
             });
           }
@@ -164,9 +165,9 @@ function obtenerTodosLosContactosGoogle() {
  * @param {Array<Object>} listaGoogle Lista de contactos estructurados de Google.
  * @return {boolean} True si ya existe un contacto equivalente, false en caso contrario.
  */
-function verificarExistenciaContacto(nombre, telefono, listaGoogle) {
-  const nombreNorm = normalizarTexto(nombre);
-  const telNorm = normalizarTelefono(telefono);
+function verificarExistenciaContacto_(nombre, telefono, listaGoogle) {
+  const nombreNorm = normalizarTexto_(nombre);
+  const telNorm = normalizarTelefono_(telefono);
 
   for (let i = 0; i < listaGoogle.length; i++) {
     const contacto = listaGoogle[i];
@@ -184,14 +185,14 @@ function verificarExistenciaContacto(nombre, telefono, listaGoogle) {
   return false;
 }
 
-// NOTA: normalizarTexto() se centralizó en core/Utils.gs (14/07/2026) para eliminar la
+// NOTA: normalizarTexto_() se centralizó en core/Utils.gs (14/07/2026) para eliminar la
 // definición duplicada que existía aquí. Ver core/Utils.gs — misma lógica, fuente única.
 
 /**
  * Clave para COMPARAR teléfonos (duplicados, contactos de Google): solo dígitos y sin el prefijo de España.
  * Se apoya en la regla única `telefonoNormalizar_` (core/Utils.gs); aquí solo se le quita el "+" de los extranjeros.
  */
-function normalizarTelefono(telefono) {
+function normalizarTelefono_(telefono) {
   if (!telefono) return '';
   return telefonoNormalizar_(telefono).replace(/\D/g, '');
 }

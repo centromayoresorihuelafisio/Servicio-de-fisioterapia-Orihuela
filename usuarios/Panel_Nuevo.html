@@ -470,7 +470,7 @@ window.PanelNuevo = {
     }
 
     /* ── Coincidencias con usuarios ya existentes (comprobación local) ── */
-    // Misma regla que buscarPosiblesDuplicadosWeb e Informe_Duplicados (usuarios/*.gs): si cambia allí, hay que cambiarla aquí.
+    // Misma regla que idPac_buscarPares_ (herramientas/Asignar_IDs_Paciente.gs) y _nombresParecidos_ (usuarios/Anadir_Usuario.gs): si cambia allí, hay que cambiarla aquí.
     //  · DNI: igual. · Teléfono: igual a alguno de los dos de la ficha (sin espacios ni prefijo 34, mínimo 9 dígitos).
     //  · Nombre: mismas palabras en cualquier orden, sin partículas; parecido si comparten ≥2 y son más de la mitad de las del más corto.
     var PARTICULAS = ['DE', 'DEL', 'LA', 'LAS', 'LOS', 'EL', 'Y', 'E'];

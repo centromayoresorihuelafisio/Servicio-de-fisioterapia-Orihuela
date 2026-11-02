@@ -11,13 +11,13 @@
       *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
       button, input, select { font-family: inherit; line-height: inherit; }
 
-      <?!= include('ui/CSS_Global'); ?>
-      <?!= include('ui/CSS_Ficha'); ?>
-      <?!= include('agenda/CSS_Agenda'); ?>
+      <?!= include_('ui/CSS_Global'); ?>
+      <?!= include_('ui/CSS_Ficha'); ?>
+      <?!= include_('agenda/CSS_Agenda'); ?>
     </style>
   </head>
   <body>
-    <?!= include('ui/Acceso'); ?>
+    <?!= include_('ui/Acceso'); ?>
     <nav class="tabs-cambio">
       <a class="tab-cambio" title="Ir a Usuarios" href="<?= baseUrl ?>?page=baseDatos" target="_top"><span class="material-symbols-outlined">folder_shared</span>Usuarios</a>
       <a class="tab-cambio activo" title="Ir a la Agenda" href="<?= baseUrl ?>?page=agenda" target="_top"><span class="material-symbols-outlined">calendar_month</span>Agenda</a>
@@ -143,23 +143,23 @@
     </div>
     <aside class="ficha" id="ficha" aria-hidden="true"></aside>
 
-    <?!= include('usuarios/Whatsapp_Dialogo'); ?>
-    <?!= include('ui/Modal_Deshacer'); ?>
-    <?!= include('ui/JS_Formato_Nombre'); ?>
-    <?!= include('ui/JS_Telefono'); ?>
-    <?!= include('ui/JS_Valoraciones_Cache'); ?>
-    <?!= include('ui/JS_HC_Cache'); ?>
-    <?!= incluirEstados(); ?>
-    <?!= include('ui/JS_Ficha'); ?>
-    <?!= include('ui/JS_Selector_Fecha'); ?>
-    <?!= include('ui/JS_Paneles_Diferidos'); ?>
-    <?!= incluirPanel('historia/Panel_HC', 'PanelHC'); ?>
-    <?!= incluirPanel('valoraciones/Panel_Valoracion', 'PanelValoracion'); ?>
-    <?!= incluirPanel('valoraciones/Panel_Valoraciones', 'PanelValoraciones'); ?>
-    <?!= incluirPanel('usuarios/Panel_Editar', 'PanelEditar'); ?>
-    <?!= incluirPanel('agenda/Panel_Cita', 'PanelCita'); ?>
-<?!= incluirPanel('agenda/Panel_Disponibilidad', 'PanelDisponibilidad'); ?>
-    <?!= include('agenda/Panel_Recordatorios'); ?>
+    <?!= include_('usuarios/Whatsapp_Dialogo'); ?>
+    <?!= include_('ui/Modal_Deshacer'); ?>
+    <?!= include_('ui/JS_Formato_Nombre'); ?>
+    <?!= include_('ui/JS_Telefono'); ?>
+    <?!= include_('ui/JS_Valoraciones_Cache'); ?>
+    <?!= include_('ui/JS_HC_Cache'); ?>
+    <?!= incluirEstados_(); ?>
+    <?!= include_('ui/JS_Ficha'); ?>
+    <?!= include_('ui/JS_Selector_Fecha'); ?>
+    <?!= include_('ui/JS_Paneles_Diferidos'); ?>
+    <?!= incluirPanel_('historia/Panel_HC', 'PanelHC'); ?>
+    <?!= incluirPanel_('valoraciones/Panel_Valoracion', 'PanelValoracion'); ?>
+    <?!= incluirPanel_('valoraciones/Panel_Valoraciones', 'PanelValoraciones'); ?>
+    <?!= incluirPanel_('usuarios/Panel_Editar', 'PanelEditar'); ?>
+    <?!= incluirPanel_('agenda/Panel_Cita', 'PanelCita'); ?>
+<?!= incluirPanel_('agenda/Panel_Disponibilidad', 'PanelDisponibilidad'); ?>
+    <?!= include_('agenda/Panel_Recordatorios'); ?>
 
     <div class="toast-deshacer" id="toastMover">
       <span id="toastMoverTexto"></span>
@@ -170,11 +170,11 @@
       // Direccion de la app: se deja aqui porque include() no evalua scriptlets en los archivos incluidos.
       var URL_BASE_WEB = <?!= JSON.stringify(baseUrl) ?>;
 
-      <?!= include('agenda/JS_Agenda_Base'); ?>
-      <?!= include('ui/JS_Modal_Deshacer'); ?>
-      <?!= include('agenda/JS_Agenda_Edicion'); ?>
-      <?!= include('agenda/JS_Agenda_Vistas'); ?>
-      <?!= include('agenda/JS_Agenda_Resumen'); ?>
+      <?!= include_('agenda/JS_Agenda_Base'); ?>
+      <?!= include_('ui/JS_Modal_Deshacer'); ?>
+      <?!= include_('agenda/JS_Agenda_Edicion'); ?>
+      <?!= include_('agenda/JS_Agenda_Vistas'); ?>
+      <?!= include_('agenda/JS_Agenda_Resumen'); ?>
     </script>
   </body>
 </html>

@@ -158,15 +158,13 @@
         function pedirRespaldo() {
           if (pidiendo) return;
           pidiendo = true;
-          google.script.run
-            .withSuccessHandler(function(res) {
+          llamar('obtenerUsuariosParaCitaWeb')
+            .then(function(res) {
               pidiendo = false;
               if (res && res.success) { if (!USUARIOS_HUECO) USUARIOS_HUECO = preparar(res.usuarios); mensajeError = ''; }
               else mensajeError = (res && res.message) || 'No se pudo cargar la lista de usuarios.';
               pintar();
-            })
-            .withFailureHandler(function() { pidiendo = false; mensajeError = 'No se pudo cargar la lista de usuarios.'; pintar(); })
-            .obtenerUsuariosParaCitaWeb();
+            }, function() { pidiendo = false; mensajeError = 'No se pudo cargar la lista de usuarios.'; pintar(); });
         }
 
         function abrir(ancla) {
@@ -256,34 +254,30 @@
 
       function guardarCampoSilencioso(fila, campo, valor, td) {
         mostrarEstadoGuardado(td, 'progreso');
-        google.script.run
-          .withSuccessHandler(function(res) {
+        llamar('actualizarCampoAgendaWeb', [fila, campo, valor])
+          .then(function(res) {
             var cita = CITAS.find(function(c) { return c._fila == fila; });
             if (cita) cita[campo] = valor;
             mostrarEstadoGuardado(td, res.success ? 'ok' : 'fallo');
-          })
-          .withFailureHandler(function() { mostrarEstadoGuardado(td, 'fallo'); })
-          .actualizarCampoAgendaWeb(fila, campo, valor);
+          }, function() { mostrarEstadoGuardado(td, 'fallo'); });
       }
 
       function guardarCampo(fila, campo, valor) {
-        google.script.run
-          .withSuccessHandler(function(res) {
+        llamar('actualizarCampoAgendaWeb', [fila, campo, valor])
+          .then(function(res) {
             if (!res.success) { mostrarAviso(res.message || 'No se pudo guardar el cambio.'); render(); return; }
             var cita = CITAS.find(function(c) { return c._fila == fila; });
             if (cita) cita[campo] = valor;
             render();
-          })
-          .withFailureHandler(function(err) {
+          }, function(err) {
             mostrarAviso('Error al guardar: ' + err);
             render();
-          })
-          .actualizarCampoAgendaWeb(fila, campo, valor);
+          });
       }
 
       function asignarPaciente(fila, idPaciente) {
-        google.script.run
-          .withSuccessHandler(function(res) {
+        llamar('asignarPacienteHuecoWeb', [fila, idPaciente])
+          .then(function(res) {
             if (!res.success) { mostrarAviso(res.message || 'No se pudo asignar el usuario.'); if (modoCitasNuevo()) cargar(semanaActual, true); else render(); return; }
             // Asignar un hueco pone al usuario en Activo y el servidor reordena la Maestra: se actualiza la lista del selector y se refrescan las fichas.
             var uSel = USUARIOS_HUECO ? USUARIOS_HUECO.find(function(u) { return u.id === idPaciente; }) : null;
@@ -302,12 +296,10 @@
             }
             if (res.ingresoRegistrado && window.HCCache) HCCache.cambioDeUsuario();   // la HC cambió (ingreso = primera cita)
             render();
-          })
-          .withFailureHandler(function(err) {
+          }, function(err) {
             mostrarAviso('Error al asignar el usuario: ' + err);
             render();
-          })
-          .asignarPacienteHuecoWeb(fila, idPaciente);
+          });
       }
 
       async function manejarBorrarFila(fila) {
@@ -318,8 +310,8 @@
         marcarSaliendo(fila);
         var snapshot = citaOriginal ? [{ fila: fila, valores: Object.assign({}, citaOriginal) }] : null;
 
-        google.script.run
-          .withSuccessHandler(function(res) {
+        llamar('eliminarDatosFilaAgendaWeb', [fila])
+          .then(function(res) {
             if (!res.success) { mostrarAviso(res.message || 'No se pudo liberar el hueco.'); render(); return; }
             if (res.snapshots) {   // tabla nueva: se borra la fila; se recarga la semana y Deshacer usa las fotos del servidor (con ID)
               cargar(semanaActual, true);
@@ -340,12 +332,10 @@
             render();
             actualizarBotonesSeleccion();
             if (snapshot) mostrarDeshacer(snapshot, 'Cita eliminada.');
-          })
-          .withFailureHandler(function(err) {
+          }, function(err) {
             mostrarAviso('Error: ' + err);
             render();
-          })
-          .eliminarDatosFilaAgendaWeb(fila);
+          });
       }
 
       // ---------- Eliminar varias citas ----------
@@ -360,17 +350,15 @@
         sel.forEach(function(c) { marcarSaliendo(c._fila); });
         var filas = sel.map(function(c) { return c._fila; });
 
-        google.script.run
-          .withSuccessHandler(function(res) {
+        llamar('eliminarVariasCitasWeb', [filas])
+          .then(function(res) {
             if (!res.success) { mostrarAviso(res.message || 'No se pudieron eliminar las citas.'); return; }
             mostrarAviso(res.message);
             quitarSeleccion();
             cargar(semanaActual, true);
             var fotos = res.snapshots || snapshot;   // tabla nueva: fotos del servidor (con ID); hoja vieja: las del cliente
             mostrarDeshacer(fotos, fotos.length === 1 ? 'Cita eliminada.' : fotos.length + ' citas eliminadas.');
-          })
-          .withFailureHandler(function(err) { mostrarAviso('Error: ' + err); })
-          .eliminarVariasCitasWeb(filas);
+          }, function(err) { mostrarAviso('Error: ' + err); });
       }
 
       document.getElementById('btnEliminarCitas').addEventListener('click', manejarEliminarSeleccionadas);
@@ -380,18 +368,16 @@
         procesandoDeshacer = true;
         var snapshot = ultimaEliminacion;
 
-        google.script.run
-          .withSuccessHandler(function(res) {
+        llamar('restaurarCitasWeb', [snapshot])
+          .then(function(res) {
             procesandoDeshacer = false;
             if (!res.success) { mostrarAviso(res.message || 'No se pudo deshacer.'); return; }
             ocultarDeshacer();
             cargar(semanaActual, true);
-          })
-          .withFailureHandler(function(err) {
+          }, function(err) {
             procesandoDeshacer = false;
             mostrarAviso('Error al deshacer: ' + err);
-          })
-          .restaurarCitasWeb(snapshot);
+          });
       }
 
       document.getElementById('toastDeshacerBtn').addEventListener('click', ejecutarDeshacer);
@@ -658,10 +644,10 @@
             semana: semanaActual,
             hoy: hoyISO,
             obtener: function(desde, hasta) {
-              return new Promise(function(ok, ko) { google.script.run.withSuccessHandler(ok).withFailureHandler(ko).obtenerDisponibilidadWeb(desde, hasta); });
+              return llamar('obtenerDisponibilidadWeb', [desde, hasta]);
             },
             aplicar: function(datos) {
-              return new Promise(function(ok, ko) { google.script.run.withSuccessHandler(ok).withFailureHandler(ko).aplicarDisponibilidadWeb(datos); });
+              return llamar('aplicarDisponibilidadWeb', [datos]);
             },
             onAplicado: function(res) {
               mostrarAviso((res && res.mensaje) || 'Disponibilidad actualizada');
@@ -708,10 +694,8 @@
         var confirmado = await mostrarConfirm('¿Dar de alta a ' + nombre + '?');
         if (!confirmado) return;
 
-        google.script.run
-          .withSuccessHandler(function(res) { mostrarAviso(res.message); if (window.HCCache) HCCache.cambioDeUsuario(); })
-          .withFailureHandler(function(err) { mostrarAviso('Error al dar de alta: ' + err); })
-          .darDeAltaPacienteParaAgendaWeb(fila);
+        llamar('darDeAltaPacienteParaAgendaWeb', [fila])
+          .then(function(res) { mostrarAviso(res.message); if (window.HCCache) HCCache.cambioDeUsuario(); }, function(err) { mostrarAviso('Error al dar de alta: ' + err); });
       }
 
       document.getElementById('btnValoracion').addEventListener('click', function() {
@@ -738,8 +722,8 @@
         if (sel.length === 0) return;
         var items = sel.map(function(c) { return { fila: c._fila, doble: doble }; });
 
-        google.script.run
-          .withSuccessHandler(async function(res) {
+        llamar('copiarVariasCitasWeb', [items, !!forzar])
+          .then(async function(res) {
             if (res.ocupado && !forzar) {
               var confirmado = await mostrarConfirm(res.message);
               if (confirmado) manejarCopiarSeleccionadas(doble, true);
@@ -749,9 +733,7 @@
             mostrarAviso(res.message);
             quitarSeleccion();
             cargar(semanaActual, true);
-          })
-          .withFailureHandler(function(err) { mostrarAviso('Error: ' + err); })
-          .copiarVariasCitasWeb(items, !!forzar);
+          }, function(err) { mostrarAviso('Error: ' + err); });
       }
 
       document.getElementById('btnCopiarCita').addEventListener('click', function() { manejarCopiarSeleccionadas(false, false); });
@@ -780,8 +762,8 @@
           return;
         }
 
-        google.script.run
-          .withSuccessHandler(async function(res) {
+        llamar('copiarVariasCitasWeb', [items, !!forzar])
+          .then(async function(res) {
             if (res.ocupado && !forzar) {
               var confirmado = await mostrarConfirm(res.message);
               if (confirmado) manejarCopiarSemana(true);
@@ -790,9 +772,7 @@
             if (!res.success) { mostrarAviso(res.message || 'No se pudo copiar la semana.'); return; }
             mostrarAviso(res.message);
             cargar(semanaActual, true);
-          })
-          .withFailureHandler(function(err) { mostrarAviso('Error: ' + err); })
-          .copiarVariasCitasWeb(items, !!forzar);
+          }, function(err) { mostrarAviso('Error: ' + err); });
       }
 
       document.getElementById('btnCopiarSemana').addEventListener('click', function() { manejarCopiarSemana(false); });

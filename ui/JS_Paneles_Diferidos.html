@@ -2,8 +2,8 @@
   ui/JS_Paneles_Diferidos.html
   Carga bajo demanda los paneles de formulario (Panel_Valoracion, Panel_Editar, Panel_Cita, Panel_Nuevo)
   para que las páginas pesen mucho menos al abrirse. Se incluye UNA vez en cada página, antes de los paneles:
-      <?!= include('ui/JS_Paneles_Diferidos'); ?>
-      <?!= incluirPanel('valoraciones/Panel_Valoracion', 'PanelValoracion'); ?>
+      <?!= include_('ui/JS_Paneles_Diferidos'); ?>
+      <?!= incluirPanel_('valoraciones/Panel_Valoracion', 'PanelValoracion'); ?>
   Con PANELES_BAJO_DEMANDA = true (core/Config.gs), incluirPanel() deja en la página un resguardo
   (window.PanelValoracion = { abrir }) en lugar del panel entero. El primer abrir():
     · si el panel ya está descargado, lo abre igual que siempre (síncrono);

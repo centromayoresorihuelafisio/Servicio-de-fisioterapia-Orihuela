@@ -3,7 +3,7 @@
  *
  * FUNCIONES PURAS: reciben datos ya leídos (arrays, funciones) y devuelven números. No tocan hojas, ni `Session`, ni `Utilities`,
  * así que se prueban en Node con datos inventados. La lectura de las hojas, los filtros de usuario y la función llamable
- * (`obtenerDashboardCitasWeb`) están en dashboard/Dashboard_Datos.gs.
+ * (`obtenerDashboardCitasWeb_`) están en dashboard/Dashboard_Datos.gs.
  *
  * Definiciones (decisiones del dueño, sección 11):
  *  · Hueco abierto = parrilla del día (lunes-viernes 08:00-14:00 y lunes-jueves 16:00-20:00, cada 30 min) menos las horas
@@ -18,7 +18,7 @@
  *  · Con filtros de usuario la ocupación es la parte de la capacidad total que ocupa ese grupo: los huecos no dependen del usuario.
  */
 
-const DASH_MAX_DIAS_ = 400;          // periodo máximo que acepta obtenerDashboardCitasWeb
+const DASH_MAX_DIAS_ = 400;          // periodo máximo que acepta obtenerDashboardCitasWeb_
 const DASH_UMBRAL_REINCIDENTE_ = 2;
 const DASH_UMBRAL_ABANDONO_ = 3;    // decisión del dueño (26-oct-2026): «abandono» = más de 2 citas «No asistido» (3 o más) en el periodo
 const DASH_DIAS_ = { 1: 'Lunes', 2: 'Martes', 3: 'Miércoles', 4: 'Jueves', 5: 'Viernes' };

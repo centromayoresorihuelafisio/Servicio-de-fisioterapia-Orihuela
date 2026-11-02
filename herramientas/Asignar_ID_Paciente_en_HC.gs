@@ -24,8 +24,8 @@
  *   2. `asignarIdPacienteEnHC`: rellena la columna y escribe el informe con los casos que no ha podido resolver.
  *   Requisito: la Maestra ya tiene la columna "ID paciente" rellena (paso 3, `asignarIdsPaciente`).
  *
- * Reutiliza SIN modificar: HC_WEB_, hcIdDeUrl_ y hcNorm_ (historia/HC_Web.gs), extraerUrlHistoriaClinica (core/Utils.gs),
- * getSS (core/WebApp.gs), SHEETS y COLUMNAS (core/Config.gs).
+ * Reutiliza SIN modificar: HC_WEB_, hcIdDeUrl_ y hcNorm_ (historia/HC_Web.gs), extraerUrlHistoriaClinica_ (core/Utils.gs),
+ * getSS_ (core/WebApp.gs), SHEETS y COLUMNAS (core/Config.gs).
  *
  * Archivo nuevo en herramientas/. Todos los nombres llevan el prefijo idpHC_ / IDP_HC_ para no chocar con el ámbito
  * global compartido del proyecto. Se puede borrar cuando ya no haga falta (la hoja de informe también).
@@ -40,14 +40,14 @@ const IDP_HC_ = {
 // ----------------------------------------------------------------------------- puntos de entrada
 
 /** SOLO LECTURA: calcula qué se asignaría y escribe el informe. No cambia "Historias Clínicas". */
-function revisarIdPacienteEnHC() { idpHC_ejecutar_(false); }
+function revisarIdPacienteEnHC() { soloPropietario_('revisarIdPacienteEnHC'); idpHC_ejecutar_(false); }
 
 /** Rellena la columna "ID paciente" de "Historias Clínicas" y escribe el informe. */
-function asignarIdPacienteEnHC() { idpHC_ejecutar_(true); }
+function asignarIdPacienteEnHC() { soloPropietario_('asignarIdPacienteEnHC'); idpHC_ejecutar_(true); }
 
 function idpHC_ejecutar_(escribir) {
   const t0 = Date.now();
-  const ss = getSS();
+  const ss = getSS_();
   let an, res = null;
 
   if (escribir) {
@@ -111,7 +111,7 @@ function idpHC_analizar_(ss) {
     const u = { fila: i + 1, nombre: nombre, idPaciente: String(valoresM[i][cId] || '').trim(), enlazaHC: false };
     if (!u.idPaciente) sinIdPaciente.push(u);
     (porNombre[hcNorm_(nombre)] = porNombre[hcNorm_(nombre)] || []).push(u);
-    const url = extraerUrlHistoriaClinica(valoresM[i][cHC], ricos[i - 1][0], formulas[i - 1][0]);
+    const url = extraerUrlHistoriaClinica_(valoresM[i][cHC], ricos[i - 1][0], formulas[i - 1][0]);
     const idHC = hcIdDeUrl_(url);
     if (idHC) { u.enlazaHC = true; (porHC[idHC] = porHC[idHC] || []).push(u); }
     else if (url) enlacesNoWeb.push({ fila: u.fila, nombre: nombre, url: url });

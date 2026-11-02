@@ -2,10 +2,10 @@
 // dashboard/Dashboard_Datos.gs — LECTURA de datos, filtros y endpoint del dashboard (CONTEXTO.md, sección 11,
 // «Plan del dashboard»). El cálculo vive en dashboard/Dashboard_Metricas.gs (funciones puras).
 //
-// Fase D1 (citas): obtenerDashboardCitasWeb(filtros) → ocupación, faltas y reincidentes ya agregados (nunca filas).
-// Fase D2 (usuarios y episodios): obtenerDashboardPacientesWeb(filtros) → lista y tiempo de espera, altas e inscripciones por
+// Fase D1 (citas): obtenerDashboardCitasWeb_(filtros) → ocupación, faltas y reincidentes ya agregados (nunca filas).
+// Fase D2 (usuarios y episodios): obtenerDashboardPacientesWeb_(filtros) → lista y tiempo de espera, altas e inscripciones por
 // mes, duración del tratamiento y sesiones asistidas, ya agregados (nunca filas).
-// Fase D4 (evolución clínica): obtenerDashboardEvolucionWeb(filtros) → primera frente a última valoración (dolor, función, analgésicos).
+// Fase D4 (evolución clínica): obtenerDashboardEvolucionWeb_(filtros) → primera frente a última valoración (dolor, función, analgésicos).
 // Fase D3 (página): obtenerDashboardWeb_(filtros, forzar) → D1 + D2 + D4 en una sola respuesta, con caché de 10 minutos por filtros.
 // Cada hoja se lee UNA vez por llamada: "Citas" (citasLeer_), Maestra, "Historias Clínicas" (solo 2 columnas), "Episodios HC",
 // Disponibilidad y Recordatorios.
@@ -69,7 +69,7 @@ function dashLeerMaestra_() { return DASH_MEMO_MAESTRA_ || dashLeerMaestraHoja_(
  * los filtros (para los menús de la web).
  */
 function dashLeerMaestraHoja_() {
-  const hoja = getSS().getSheetByName(SHEETS.MAESTRA);
+  const hoja = getSS_().getSheetByName(SHEETS.MAESTRA);
   const lista = patologiasLista_(), mapaPat = dashMapaPatologias_();
   // Los filtros de patología y zona ofrecen siempre la lista oficial completa (con código y zona), tenga o no usuarios cada opción.
   const opcionesPat = { patologias: lista, zonas: PATOLOGIAS_GRUPOS.map(g => g.grupo) };
@@ -129,7 +129,7 @@ function dashFestivos_() {
  * @return {{success:boolean, message?:string, hoy?:string, periodo?:Object, filtros?:Object, opciones?:Object,
  *   ocupacion?:Object, faltas?:Object, reincidentes?:Object, diagnostico?:Object}}
  */
-function obtenerDashboardCitasWeb(filtros) {
+function obtenerDashboardCitasWeb_(filtros) {
   try {
     filtros = filtros || {};
     const hoy = dashHoy_();
@@ -162,7 +162,7 @@ function obtenerDashboardCitasWeb(filtros) {
       diagnostico: { citasEnPeriodo: citas.length, citasSinId: sinId, fueraDeParrilla: r.ocupacion.fueraDeParrilla, festivos: Object.keys(festivos).length }
     };
   } catch (e) {
-    Logger.log('Error en obtenerDashboardCitasWeb: ' + e.message);
+    Logger.log('Error en obtenerDashboardCitasWeb_: ' + e.message);
     return { success: false, message: e.message };
   }
 }
@@ -174,7 +174,7 @@ function obtenerDashboardCitasWeb(filtros) {
  */
 function dashLeerEpisodios_() {
   const salida = { episodios: [], sinPaciente: 0 };
-  const ss = getSS();
+  const ss = getSS_();
   const hojaHC = ss.getSheetByName(HC_WEB_.HOJA_HC), hojaEpi = ss.getSheetByName(HC_WEB_.HOJA_EPI);
   if (!hojaHC || !hojaEpi || hojaHC.getLastRow() < 2 || hojaEpi.getLastRow() < 2) return salida;
   const n = hojaHC.getLastRow() - 1;
@@ -203,7 +203,7 @@ function dashLeerEpisodios_() {
  * @return {{success:boolean, message?:string, hoy?:string, periodo?:Object, curso?:string, filtros?:Object, opciones?:Object,
  *   listaEspera?:Object, tiempoEspera?:Object, porMes?:Object, duracion?:Object, sesiones?:Object, diagnostico?:Object}}
  */
-function obtenerDashboardPacientesWeb(filtros) {
+function obtenerDashboardPacientesWeb_(filtros) {
   try {
     filtros = filtros || {};
     const hoy = dashHoy_();
@@ -231,36 +231,9 @@ function obtenerDashboardPacientesWeb(filtros) {
       diagnostico: { pacientes: pacientes.length, episodios: episodios.length, episodiosSinPaciente: lectura.sinPaciente, citasLeidas: citas.length }
     };
   } catch (e) {
-    Logger.log('Error en obtenerDashboardPacientesWeb: ' + e.message);
+    Logger.log('Error en obtenerDashboardPacientesWeb_: ' + e.message);
     return { success: false, message: e.message };
   }
-}
-
-/** Herramienta de EDITOR (no llamable desde la web): ejecuta D1 con los valores por defecto y escribe un resumen en el registro. */
-function dashboardProbarCitas() {
-  const r = obtenerDashboardCitasWeb({});
-  if (!r.success) { Logger.log('Error: ' + r.message); return; }
-  const t = r.ocupacion.total, f = r.faltas;
-  Logger.log('Periodo ' + r.periodo.desde + ' a ' + r.periodo.hasta + ' (hoy ' + r.hoy + ')');
-  Logger.log('Ocupación: ' + t.reservadas + ' citas / ' + t.huecos + ' huecos abiertos = ' + t.pctReservada + ' % reservada, ' + t.pctEfectiva + ' % efectiva');
-  Logger.log('Por día: ' + r.ocupacion.porDiaSemana.map(x => x.etiqueta + ' ' + x.pctReservada + ' %').join(' · '));
-  Logger.log('Faltas: ' + f.noAsistido + ' de ' + f.n + ' citas registradas = ' + f.porcentaje + ' % (sin registrar: ' + f.sinRegistrar + ', pendientes: ' + f.pendiente + ')');
-  Logger.log('Reincidentes (' + r.reincidentes.umbral + '+ faltas): ' + r.reincidentes.total + ' de ' + r.reincidentes.usuariosConRegistro + ' usuarios');
-  Logger.log('Diagnóstico: ' + JSON.stringify(r.diagnostico));
-}
-
-/** Herramienta de EDITOR (no llamable desde la web): ejecuta D2 con los valores por defecto y escribe un resumen en el registro. */
-function dashboardProbarPacientes() {
-  const r = obtenerDashboardPacientesWeb({});
-  if (!r.success) { Logger.log('Error: ' + r.message); return; }
-  const le = r.listaEspera, te = r.tiempoEspera, d = r.duracion, s = r.sesiones;
-  Logger.log('Curso ' + r.curso + ': ' + r.periodo.desde + ' a ' + r.periodo.hasta + ' (hoy ' + r.hoy + ')');
-  Logger.log('Lista de espera hoy: ' + le.total + ' usuarios; espera media ' + le.dias.media + ' días, mediana ' + le.dias.mediana + ' (n=' + le.n + ', sin fecha de inscripción: ' + le.sinFecha + ')');
-  Logger.log('Tiempo de espera del primer episodio: media ' + te.dias.media + ' días, mediana ' + te.dias.mediana + ' (n=' + te.n + ' de ' + te.ingresosEnPeriodo + ' ingresos; sin inscripción: ' + te.sinInscripcion + ', incoherentes: ' + te.incoherentes + ')');
-  Logger.log('Por mes (inscripciones/altas): ' + r.porMes.meses.map(m => m.mes + ' ' + m.inscripciones + '/' + m.altas).join(' · '));
-  Logger.log('Duración: media ' + d.dias.media + ' días, mediana ' + d.dias.mediana + ' (n=' + d.n + ' de ' + d.altasEnPeriodo + ' altas; sin ingreso: ' + d.sinIngreso + ', incoherentes: ' + d.incoherentes + '; episodios abiertos hoy: ' + d.abiertos + ')');
-  Logger.log('Sesiones asistidas por episodio: media ' + s.porEpisodio.media + ', mediana ' + s.porEpisodio.mediana + ' (n=' + s.n + '; episodios anteriores a ' + s.desde + ' no medidos: ' + s.excluidosAntiguos + ')');
-  Logger.log('Diagnóstico: ' + JSON.stringify(r.diagnostico));
 }
 
 // ================================================================================
@@ -274,7 +247,7 @@ function dashboardProbarPacientes() {
  */
 function dashLeerValoraciones_() {
   const salida = { filas: [], sinId: 0, sinFecha: 0 };
-  const hoja = getSS().getSheetByName(SHEETS.VALORACIONES);
+  const hoja = getSS_().getSheetByName(SHEETS.VALORACIONES);
   if (!hoja || hoja.getLastRow() < 2) return salida;
   const C = COLUMNAS_NUM.VALORACIONES;
   const ncol = Math.min(hoja.getLastColumn(), C.ID_PACIENTE);
@@ -296,7 +269,7 @@ function dashLeerValoraciones_() {
  *   Periodo por defecto: el curso completo de hoy. Entran los usuarios cuya ÚLTIMA valoración cae en el periodo.
  * @return {{success:boolean, message?:string, periodo?:Object, evolucion?:Object, diagnostico?:Object}}
  */
-function obtenerDashboardEvolucionWeb(filtros) {
+function obtenerDashboardEvolucionWeb_(filtros) {
   try {
     filtros = filtros || {};
     const hoy = dashHoy_();
@@ -316,7 +289,7 @@ function obtenerDashboardEvolucionWeb(filtros) {
       diagnostico: { valoraciones: valoraciones.length, filasSinId: lectura.sinId, filasSinFecha: lectura.sinFecha }
     };
   } catch (e) {
-    Logger.log('Error en obtenerDashboardEvolucionWeb: ' + e.message);
+    Logger.log('Error en obtenerDashboardEvolucionWeb_: ' + e.message);
     return { success: false, message: e.message };
   }
 }
@@ -332,7 +305,7 @@ function obtenerDashboardEvolucionWeb(filtros) {
  */
 function dashLeerHistorialEstado_() {
   const salida = { filas: [], sinId: 0, sinFecha: 0 };
-  const hoja = getSS().getSheetByName(SHEETS.HISTORIAL);
+  const hoja = getSS_().getSheetByName(SHEETS.HISTORIAL);
   if (!hoja || hoja.getLastRow() < 2) return salida;
   const tz = Session.getScriptTimeZone(), texto = v => String(v === null || v === undefined ? '' : v).trim();
   hoja.getRange(2, 1, hoja.getLastRow() - 1, 6).getValues().forEach(r => {
@@ -353,7 +326,7 @@ function dashLeerHistorialEstado_() {
  *   Periodo por defecto: el curso completo de hoy. Solo hay datos reales desde que se empezó a registrar el historial (`flujo.datos.desde`).
  * @return {{success:boolean, message?:string, periodo?:Object, flujo?:Object, diagnostico?:Object}}
  */
-function obtenerDashboardFlujoWeb(filtros) {
+function obtenerDashboardFlujoWeb_(filtros) {
   try {
     filtros = filtros || {};
     const hoy = dashHoy_();
@@ -374,22 +347,9 @@ function obtenerDashboardFlujoWeb(filtros) {
       diagnostico: { filasEstado: cambios.length, filasSinId: lectura.sinId, filasSinFecha: lectura.sinFecha }
     };
   } catch (e) {
-    Logger.log('Error en obtenerDashboardFlujoWeb: ' + e.message);
+    Logger.log('Error en obtenerDashboardFlujoWeb_: ' + e.message);
     return { success: false, message: e.message };
   }
-}
-
-/** Herramienta de EDITOR (no llamable desde la web): ejecuta D4b con los valores por defecto y escribe un resumen en el registro. */
-function dashboardProbarFlujo() {
-  const r = obtenerDashboardFlujoWeb({});
-  if (!r.success) { Logger.log('Error: ' + r.message); return; }
-  const f = r.flujo, d = f.datos;
-  Logger.log('Periodo ' + r.periodo.desde + ' a ' + r.periodo.hasta);
-  Logger.log('Estado hoy: ' + f.estadoActual.items.map(x => x.etiqueta + ' ' + x.n).join(' · ') + ' (sin estado: ' + f.estadoActual.sinEstado + ', otros: ' + f.estadoActual.otros + ')');
-  Logger.log('Cambios reales desde ' + (d.desde || '—') + ': ' + d.cambiosReales + ' (en el periodo: ' + d.cambiosEnPeriodo + '; filas de siembra: ' + d.filasSiembra + ')');
-  Logger.log('Transiciones (' + f.transiciones.total + '): ' + f.transiciones.lista.map(t => t.deEtiqueta + '→' + t.aEtiqueta + ' ' + t.n).join(' · '));
-  Logger.log('Tiempo en estado: ' + f.tiempoEnEstado.map(t => t.etiqueta + ' ' + (t.dias.media === null ? '—' : t.dias.media + ' d') + ' (n=' + t.n + ')').join(' · ') + ' · abiertas ' + d.estanciasAbiertas + ', incoherentes ' + d.estanciasIncoherentes);
-  Logger.log('Diagnóstico: ' + JSON.stringify(r.diagnostico));
 }
 
 // ================================================================================
@@ -402,7 +362,7 @@ function dashboardProbarFlujo() {
  * @param {{desdeISO?:string, hastaISO?:string, gravedad?:string, tipo?:string}=} filtros  Periodo por defecto: el curso completo de hoy.
  * @return {{success:boolean, message?:string, periodo?:Object, diagnosticos?:Object}}
  */
-function obtenerDashboardDiagnosticosWeb(filtros) {
+function obtenerDashboardDiagnosticosWeb_(filtros) {
   try {
     filtros = filtros || {};
     const hoy = dashHoy_();
@@ -425,19 +385,9 @@ function obtenerDashboardDiagnosticosWeb(filtros) {
     });
     return { success: true, periodo: { desde: desde, hasta: hasta }, diagnosticos: diagnosticos };
   } catch (e) {
-    Logger.log('Error en obtenerDashboardDiagnosticosWeb: ' + e.message);
+    Logger.log('Error en obtenerDashboardDiagnosticosWeb_: ' + e.message);
     return { success: false, message: e.message };
   }
-}
-
-/** Herramienta de EDITOR (no llamable desde la web): ejecuta D5 con los valores por defecto y escribe un resumen en el registro. */
-function dashboardProbarDiagnosticos() {
-  const r = obtenerDashboardDiagnosticosWeb({});
-  if (!r.success) { Logger.log('Error: ' + r.message); return; }
-  const d = r.diagnosticos;
-  Logger.log('Periodo ' + r.periodo.desde + ' a ' + r.periodo.hasta + ': ' + d.usuarios + ' usuarios con ingreso (sin diagnóstico: ' + d.sinDiagnostico + ', no reconocidos: ' + d.noReconocidos + ')');
-  Logger.log('Por zona: ' + d.zonas.map(z => z.zona + ' ' + z.n).join(' · '));
-  Logger.log('Top 10: ' + d.patologias.slice(0, 10).map(p => p.nombre + ' (' + p.codigo + ') ' + p.usuarios).join(' · '));
 }
 
 // ================================================================================
@@ -487,15 +437,15 @@ function obtenerDashboardWeb_(filtros, forzar) {
     DASH_MEMO_MAESTRA_ = dashLeerMaestraHoja_();
     let citas, pac, cli, flu, dia;
     try {
-      citas = obtenerDashboardCitasWeb(f);
+      citas = obtenerDashboardCitasWeb_(f);
       if (!citas.success) return citas;
-      pac = obtenerDashboardPacientesWeb(f);
+      pac = obtenerDashboardPacientesWeb_(f);
       if (!pac.success) return pac;
-      cli = obtenerDashboardEvolucionWeb(f);
+      cli = obtenerDashboardEvolucionWeb_(f);
       if (!cli.success) return cli;
-      flu = obtenerDashboardFlujoWeb(f);
+      flu = obtenerDashboardFlujoWeb_(f);
       if (!flu.success) return flu;
-      dia = obtenerDashboardDiagnosticosWeb(f);
+      dia = obtenerDashboardDiagnosticosWeb_(f);
       if (!dia.success) return dia;
     } finally {
       DASH_MEMO_MAESTRA_ = null;

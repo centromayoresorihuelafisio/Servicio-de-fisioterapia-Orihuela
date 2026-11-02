@@ -6,7 +6,7 @@
  * tocan Estado, Tipo de ingreso, Gravedad, Fecha de inscripción ni Última visita.
  */
 function ordenarPacientes_() {
-  const ss = getSS();
+  const ss = getSS_();
   const sheet = ss.getSheetByName(SHEETS.MAESTRA);
   if (!sheet) return { success: false, message: 'No se encontró la hoja "' + SHEETS.MAESTRA + '".' };
 
@@ -81,8 +81,8 @@ function ordenarPacientes_() {
     const esAlta = estado === clave(ESTADOS_PACIENTE.ALTA);
     const ingreso = clave(row[idxIngreso]);
     const gravedad = clave(row[idxGravedad]);
-    const fechaUlt = parseFecha(row[idxUltimaVisita]);
-    const fechaIns = parseFecha(row[idxFechaInscripcion]);
+    const fechaUlt = parseFecha_(row[idxUltimaVisita]);
+    const fechaIns = parseFecha_(row[idxFechaInscripcion]);
 
     let score = 0;
 

@@ -12,7 +12,7 @@
  */
 function obtenerValoracionesWeb_() {
   try {
-    const ss = getSS();
+    const ss = getSS_();
     const sheet = ss.getSheetByName(SHEETS.VALORACIONES);
     if (!sheet) {
       return { pacientes: [], error: `No se encontró la hoja "${SHEETS.VALORACIONES}".` };
@@ -125,7 +125,7 @@ function obtenerValoracionesUsuarioWeb_(idPaciente) {
     const id = String(idPaciente || '').trim();
     if (!id) return { success: true, historial: [] };
 
-    const sheet = getSS().getSheetByName(SHEETS.VALORACIONES);
+    const sheet = getSS_().getSheetByName(SHEETS.VALORACIONES);
     if (!sheet) return { success: false, message: `No se encontró la hoja "${SHEETS.VALORACIONES}".` };
 
     const lastRow = sheet.getLastRow();
@@ -206,7 +206,7 @@ function actualizarValoracionWeb_(datos) {
   const lock = LockService.getScriptLock();
   try {
     lock.waitLock(10000);
-    const ss = getSS();
+    const ss = getSS_();
     const sheet = ss.getSheetByName(SHEETS.VALORACIONES);
     if (!sheet) return { success: false, message: `No se encontró la hoja "${SHEETS.VALORACIONES}".` };
 
@@ -270,7 +270,7 @@ function eliminarValoracionWeb_(fila, idPaciente, fechaEsperada) {
   const lock = LockService.getScriptLock();
   try {
     lock.waitLock(10000);
-    const ss = getSS();
+    const ss = getSS_();
     const sheet = ss.getSheetByName(SHEETS.VALORACIONES);
     if (!sheet) return { success: false, message: `No se encontró la hoja "${SHEETS.VALORACIONES}".` };
 
@@ -307,7 +307,7 @@ function restaurarValoracionWeb_(datos) {
   const lock = LockService.getScriptLock();
   try {
     lock.waitLock(10000);
-    const ss = getSS();
+    const ss = getSS_();
     const sheet = ss.getSheetByName(SHEETS.VALORACIONES);
     if (!sheet) return { success: false, message: `No se encontró la hoja "${SHEETS.VALORACIONES}".` };
 

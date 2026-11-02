@@ -19,7 +19,7 @@ const HC_WEB_ = {
 };
 
 /** Sirve la página de la ficha: ?page=hc&id=ID_HC  (o &idPaciente=ID_PACIENTE si no hay ID HC). */
-function servirFichaHCWeb(parametros) {
+function servirFichaHCWeb_(parametros) {
   const t = HtmlService.createTemplateFromFile('historia/HC_Vista');
   // Los IDs llegan de la URL y se escriben dentro de un <script>: solo letras, números y guiones (CONTEXTO.md, 17.3).
   const soloId = v => String(v || '').replace(/[^\w-]/g, '');
@@ -59,7 +59,7 @@ function hcMs_(v) {
 }
 
 function hcHojas_() {
-  const ss = getSS();
+  const ss = getSS_();
   const hc = ss.getSheetByName(HC_WEB_.HOJA_HC), epi = ss.getSheetByName(HC_WEB_.HOJA_EPI);
   if (!hc || !epi) throw new Error('Faltan las hojas "' + HC_WEB_.HOJA_HC + '" / "' + HC_WEB_.HOJA_EPI + '" (ejecuta la migración).');
   return { ss: ss, hc: hc, epi: epi };
@@ -122,7 +122,7 @@ function obtenerHCWeb_(idHC, idPaciente) {
     let docUrl = '';
     if (iHC !== -1) {
       const c = maestra.getRange(filaM, iHC + 1);
-      docUrl = extraerUrlHistoriaClinica(valores[iHC], c.getRichTextValue(), c.getFormula());
+      docUrl = extraerUrlHistoriaClinica_(valores[iHC], c.getRichTextValue(), c.getFormula());
     }
     const usuario = {
       idPaciente: dato(COLUMNAS.MAESTRA.ID_PACIENTE),
@@ -316,7 +316,7 @@ function obtenerHCsActivasWeb_() {
         const kNac = col(COLUMNAS.MAESTRA.FECHA_NACIMIENTO);
         const edad = kNac !== -1 ? String(calcularEdadDesdeFecha_(row[kNac])) : '';
         let docUrl = '';
-        if (iHC !== -1) docUrl = extraerUrlHistoriaClinica(row[iHC], ricos[i][0], formulas[i][0]);
+        if (iHC !== -1) docUrl = extraerUrlHistoriaClinica_(row[iHC], ricos[i][0], formulas[i][0]);
         const usuario = {
           idPaciente: dato(COLUMNAS.MAESTRA.ID_PACIENTE),
           nombre: dato(COLUMNAS.MAESTRA.NOMBRE), dni: dato(COLUMNAS.MAESTRA.DNI),

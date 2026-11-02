@@ -10,7 +10,7 @@
  * y números seriales de Google Sheets. Normaliza siempre a medianoche (00:00:00).
  *
  */
-function parseFecha(valor) {
+function parseFecha_(valor) {
   if (!valor && valor !== 0) return null;
 
   // 1. Si ya es un objeto Date válido (el caso más probable para celdas de fecha)
@@ -67,9 +67,9 @@ function parseFecha(valor) {
  * (búsquedas, coincidencia de nombres, etc.).
  *
  * GANADORA de: "usuarios/Contactos_Google.gs" (añade .trim() respecto a la de "usuarios/Buscar.gs").
- * Elimina la función normalizarTexto de "usuarios/Buscar.gs" tras pegar esto.
+ * Elimina la función normalizarTexto_ de "usuarios/Buscar.gs" tras pegar esto.
  */
-function normalizarTexto(texto) {
+function normalizarTexto_(texto) {
   if (!texto) return '';
   return texto
     .toString()
@@ -86,7 +86,7 @@ function normalizarTexto(texto) {
  * puedes dejarla también donde estaba, JavaScript no se queja de que exista en ambos
  * sitios siempre que solo haya UNA definición de función con este nombre en todo el proyecto.)
  */
-function normalizarFormatoNombre(texto) {
+function normalizarFormatoNombre_(texto) {
   if (!texto) return '';
   return texto.toString().trim().toUpperCase();
 }
@@ -98,7 +98,7 @@ function normalizarFormatoNombre(texto) {
  * formatoNombreFinal): si cambias una, cambia la otra.
  *   "María  Pérez-Núñez" -> "MARIA PEREZNUNEZ"   (el guion se elimina, igual que en el formulario)
  */
-function normalizarNombreUsuario(texto) {
+function normalizarNombreUsuario_(texto) {
   if (!texto) return '';
   return texto.toString().normalize('NFC').toUpperCase()
     .replace(/Ñ/g, '\u0001')
@@ -110,7 +110,7 @@ function normalizarNombreUsuario(texto) {
 }
 
 /** DNI (o SIP) siempre en mayúsculas y sin espacios en los extremos. */
-function normalizarDniUsuario(texto) {
+function normalizarDniUsuario_(texto) {
   return texto ? texto.toString().trim().toUpperCase() : '';
 }
 
@@ -170,10 +170,10 @@ function telefonoFormatoTexto_(hoja, fila, columna1) {
  * =HIPERVINCULO()/=HYPERLINK() (por si alguna celda antigua la tuviera así),
  * o como texto plano con una URL. Devuelve '' si no hay ningún enlace válido.
  *
- * Se usa en obtenerBaseDatosCompletaWeb y _ejecutarAltaEnFila (y en las historias clínicas)
+ * Se usa en obtenerBaseDatosCompletaWeb y ejecutarAltaEnFila_ (y en las historias clínicas)
  * para no duplicar esta lógica en varios sitios.
  */
-function extraerUrlHistoriaClinica(valorCelda, richTextCell, formula) {
+function extraerUrlHistoriaClinica_(valorCelda, richTextCell, formula) {
   if (richTextCell) {
     const linkUrl = richTextCell.getLinkUrl();
     if (linkUrl) return linkUrl;
@@ -262,7 +262,7 @@ function resolverColumnaTelefono_(hoja, encabezados) {
  *
  * Lo preferible es pasarle el valor crudo de la celda (un Date), antes de convertirlo a texto.
  * También acepta un texto "aaaa-mm-dd" o "dd/mm/aaaa" y un número de serie de Sheets
- * (estos dos últimos, a través de parseFecha).
+ * (estos dos últimos, a través de parseFecha_).
  * Devuelve "" si no se puede interpretar como una fecha válida.
  */
 function calcularEdadDesdeFecha_(fechaNacimiento) {
@@ -273,7 +273,7 @@ function calcularEdadDesdeFecha_(fechaNacimiento) {
       var partes = fecha.trim().split('-'); // "aaaa-mm-dd"
       fecha = new Date(Number(partes[0]), Number(partes[1]) - 1, Number(partes[2]));
     } else {
-      fecha = parseFecha(fecha); // "dd/mm/aaaa", número de serie, o null
+      fecha = parseFecha_(fecha); // "dd/mm/aaaa", número de serie, o null
     }
   }
 

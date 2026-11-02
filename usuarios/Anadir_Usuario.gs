@@ -1,135 +1,11 @@
-/**
- * Comprueba si ya existe un usuario con ese DNI en la Base de Datos Maestra.
- * La usa el formulario de Nuevo Usuario para avisar de una posible alta
- * duplicada ANTES de guardar — no bloquea nada por sí sola, solo informa;
- * es el formulario quien decide qué hacer con la respuesta.
- * @param {string} dni
- * @return {{existe: boolean, nombre?: string}}
- */
-function buscarUsuarioPorDniWeb(dni) {
-  try {
-    const dniNormalizado = (dni || '').toString().trim().toUpperCase();
-    if (!dniNormalizado) return { existe: false };
-
-    const ss = getSS();
-    const hoja = ss.getSheetByName(SHEETS.MAESTRA);
-    if (!hoja) return { existe: false };
-
-    const lastRow = hoja.getLastRow();
-    if (lastRow < 2) return { existe: false };
-
-    const encabezados = hoja.getRange(1, 1, 1, hoja.getLastColumn()).getValues()[0];
-    const colDni = encabezados.indexOf(COLUMNAS.MAESTRA.DNI);
-    const colNombre = encabezados.indexOf(COLUMNAS.MAESTRA.NOMBRE);
-    if (colDni === -1) return { existe: false }; // sin columna DNI, no hay nada que comprobar
-
-    // Solo leemos la columna DNI (no toda la hoja) para localizar la fila.
-    const columnaDni = hoja.getRange(2, colDni + 1, lastRow - 1, 1).getValues();
-
-    for (let i = 0; i < columnaDni.length; i++) {
-      const dniFila = (columnaDni[i][0] || '').toString().trim().toUpperCase();
-      if (dniFila && dniFila === dniNormalizado) {
-        const nombre = colNombre !== -1 ? hoja.getRange(i + 2, colNombre + 1).getValue() : '';
-        return { existe: true, nombre: (nombre || '').toString() };
-      }
-    }
-
-    return { existe: false };
-  } catch (e) {
-    Logger.log('Error en buscarUsuarioPorDniWeb: ' + e.message);
-    return { existe: false }; // ante un error en la comprobación, no bloqueamos el alta por esto
-  }
-}
-
-/**
- * Busca en la Base de Datos Maestra usuarios que puedan ser la misma persona que la del alta
- * que se está rellenando. Sirve sobre todo para los usuarios SIN DNI, donde buscarUsuarioPorDniWeb
- * no tiene nada que comparar. Como aquella, no bloquea nada: solo informa; es el formulario
- * (usuarios/Panel_Nuevo) quien decide qué hacer con la respuesta.
- *
- * Un usuario existente es candidato si cumple AL MENOS UNO de estos criterios:
- *  - 'dni':      mismo DNI (solo si el alta lo trae).
- *  - 'telefono': algún teléfono del alta (1 o 2) coincide con el Teléfono 1 o 2 de la fila, sin
- *                espacios ni prefijo 34. Se ignoran números de menos de 9 dígitos.
- *  - 'nombre':   mismas palabras en cualquier orden, ignorando partículas (DE, DEL, LA...). Cuenta
- *                como parecido si coinciden al menos dos palabras y son más de la mitad de las del
- *                nombre más corto (así da igual si la hoja guarda "APELLIDOS NOMBRE" o al revés).
- *
- * Devuelve como mucho 6 candidatos, ordenados por fiabilidad (DNI > teléfono > nombre).
- * `fila` es la fila real en la hoja, la misma que usa BaseDatos como _fila.
- *
- * @param {{nombre: string, dni: string, telefono1: string, telefono2: string}} datos
- * @return {{candidatos: Array<{fila: number, nombre: string, dni: string, telefono: string, estado: string, motivos: string[]}>, total: number}}
- */
-function buscarPosiblesDuplicadosWeb(datos) {
-  try {
-    datos = datos || {};
-    const dniNuevo = normalizarDniUsuario(datos.dni);
-    const telsNuevos = [datos.telefono1, datos.telefono2].map(normalizarTelefono).filter(t => t.length >= 9);
-    const palabrasNuevo = _palabrasNombre_(datos.nombre);
-    if (!dniNuevo && telsNuevos.length === 0 && palabrasNuevo.length === 0) return { candidatos: [], total: 0 };
-
-    const hoja = getSS().getSheetByName(SHEETS.MAESTRA);
-    if (!hoja || hoja.getLastRow() < 2) return { candidatos: [], total: 0 };
-
-    const valores = hoja.getDataRange().getValues();
-    const cab = valores[0].map(h => h.toString().trim().toLowerCase());
-    const idx = nombreCol => cab.indexOf(nombreCol.toLowerCase());
-    const cNombre = idx(COLUMNAS.MAESTRA.NOMBRE);
-    const cDni = idx(COLUMNAS.MAESTRA.DNI);
-    const cTel1 = idx(COLUMNAS.MAESTRA.TELEFONO_1);
-    const cTel2 = idx(COLUMNAS.MAESTRA.TELEFONO_2);
-    const cEstado = idx(COLUMNAS.MAESTRA.ESTADO);
-    if (cNombre === -1) return { candidatos: [], total: 0 };
-
-    const celda = (fila, c) => (c === -1 || fila[c] === null || fila[c] === undefined) ? '' : fila[c].toString().trim();
-
-    const encontrados = [];
-    for (let i = 1; i < valores.length; i++) {
-      const fila = valores[i];
-      const nombre = celda(fila, cNombre);
-      if (!nombre) continue; // huecos en la hoja
-
-      const motivos = [];
-      let puntos = 0;
-      if (dniNuevo && normalizarDniUsuario(celda(fila, cDni)) === dniNuevo) { motivos.push('dni'); puntos += 4; }
-      if (telsNuevos.length) {
-        const telsFila = [celda(fila, cTel1), celda(fila, cTel2)].map(normalizarTelefono);
-        if (telsNuevos.some(t => telsFila.indexOf(t) !== -1)) { motivos.push('telefono'); puntos += 2; }
-      }
-      if (_nombresParecidos_(palabrasNuevo, _palabrasNombre_(nombre))) { motivos.push('nombre'); puntos += 1; }
-      if (!motivos.length) continue;
-
-      encontrados.push({
-        fila: i + 1, // valores[0] es la fila 1 de la hoja
-        nombre: nombre,
-        dni: celda(fila, cDni),
-        telefono: celda(fila, cTel1) || celda(fila, cTel2),
-        estado: celda(fila, cEstado),
-        motivos: motivos,
-        puntos: puntos
-      });
-    }
-
-    encontrados.sort((a, b) => b.puntos - a.puntos || a.fila - b.fila);
-    return {
-      candidatos: encontrados.slice(0, 6).map(c => { delete c.puntos; return c; }),
-      total: encontrados.length
-    };
-  } catch (e) {
-    Logger.log('Error en buscarPosiblesDuplicadosWeb: ' + e.message);
-    return { candidatos: [], total: 0 }; // ante un error en la comprobación, no bloqueamos el alta por esto
-  }
-}
-
 /** Palabras significativas de un nombre: normalizado con la regla única, sin partículas ni repetidas. */
 function _palabrasNombre_(texto) {
   const PARTICULAS = ['DE', 'DEL', 'LA', 'LAS', 'LOS', 'EL', 'Y', 'E'];
-  return normalizarNombreUsuario(texto).split(' ')
+  return normalizarNombreUsuario_(texto).split(' ')
     .filter((w, i, arr) => w && PARTICULAS.indexOf(w) === -1 && arr.indexOf(w) === i);
 }
 
-/** ¿Dos nombres (ya convertidos en listas de palabras) pueden ser la misma persona? Ver buscarPosiblesDuplicadosWeb. */
+/** ¿Dos nombres (ya convertidos en listas de palabras) pueden ser la misma persona? Misma regla que el aviso de duplicados de usuarios/Panel_Nuevo. */
 function _nombresParecidos_(a, b) {
   if (!a.length || !b.length) return false;
   const comunes = a.filter(w => b.indexOf(w) !== -1).length;
@@ -143,7 +19,7 @@ function _nombresParecidos_(a, b) {
 function guardarPaciente_(datos) {
   Logger.log('*** INICIO DE LA FUNCIÓN guardarPaciente ***');
 
-  const ss = getSS()
+  const ss = getSS_()
   const hoja = ss.getSheetByName(SHEETS.MAESTRA); // Asegúrate de que este nombre sea EXACTO
 
   if (!hoja) {
@@ -186,7 +62,7 @@ function guardarPaciente_(datos) {
       // Si es una fecha (YYYY-MM-DD), convertir a objeto fecha para Sheets — mismo
       // patrón que actualizarPaciente_ (usuarios/Editar_Usuario.gs). El <input type="date">
       // del formulario manda el valor como texto, y sin esto se guardaría como texto
-      // en la hoja (parseFecha no lo reconoce como fecha real).
+      // en la hoja (parseFecha_ no lo reconoce como fecha real).
       if (typeof valor === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(valor)) {
         const partes = valor.split('-');
         valor = new Date(Number(partes[0]), Number(partes[1]) - 1, Number(partes[2]));
@@ -206,8 +82,8 @@ function guardarPaciente_(datos) {
   // garantiza también en el servidor por si el dato llega de otra vía.
   const colNombreFormato = encabezados.indexOf(COLUMNAS.MAESTRA.NOMBRE);
   const colDniFormato = encabezados.indexOf(COLUMNAS.MAESTRA.DNI);
-  if (colNombreFormato !== -1) nuevaFila[colNombreFormato] = normalizarNombreUsuario(nuevaFila[colNombreFormato]);
-  if (colDniFormato !== -1) nuevaFila[colDniFormato] = normalizarDniUsuario(nuevaFila[colDniFormato]);
+  if (colNombreFormato !== -1) nuevaFila[colNombreFormato] = normalizarNombreUsuario_(nuevaFila[colNombreFormato]);
+  if (colDniFormato !== -1) nuevaFila[colDniFormato] = normalizarDniUsuario_(nuevaFila[colDniFormato]);
 
   // Teléfonos (regla única, core/Utils.gs → telefonoNormalizar_): se guardan solo con dígitos y como texto.
   const colTel1Formato = encabezados.indexOf(COLUMNAS.MAESTRA.TELEFONO_1);
@@ -261,13 +137,13 @@ function guardarPaciente_(datos) {
     const anadirContacto = datos.anadirContacto;
 
     // Evaluamos si el usuario dejó marcado el toggle antes de ejecutar la acción.
-    // OJO: antes crearContactoGoogle() no devolvía nada, así que un fallo (de
+    // OJO: antes crearContactoGoogle_() no devolvía nada, así que un fallo (de
     // cuota, de permisos, de la API en sí) quedaba solo en el registro de
     // ejecuciones de Apps Script — invisible desde este formulario. Ahora si
     // falla, se añade un aviso al mensaje que sí ves en pantalla al guardar.
     let avisoContacto = '';
     if (anadirContacto && nombreContacto) {
-      const resultadoContacto = crearContactoGoogle(nombreContacto, telefonoContacto);
+      const resultadoContacto = crearContactoGoogle_(nombreContacto, telefonoContacto);
       if (!resultadoContacto.success) {
         avisoContacto = ' Aviso: no se pudo crear el contacto en Google (' + resultadoContacto.message + ').';
       }
@@ -294,7 +170,7 @@ function guardarPaciente_(datos) {
  *   nunca podía saber si había funcionado o no — ver Sincronizar contactos
  *   google.gs. Ahora siempre informa de si funcionó y, si no, de por qué.
  */
-function crearContactoGoogle(nombre, telefono) {
+function crearContactoGoogle_(nombre, telefono) {
   Logger.log('Iniciando proceso de creación de contacto en Google Contacts...');
   
   try {
@@ -338,7 +214,7 @@ function crearContactoGoogle(nombre, telefono) {
  */
 function generarHistoriaClinicaRegistroUsuario_(patientData) {
   try {
-    const ss = getSS()
+    const ss = getSS_()
     const sheet = ss.getSheetByName(SHEETS.MAESTRA);
     if (!sheet) {
       return { success: false, message: "Error: La hoja 'Base de Datos Maestra' no existe." };
@@ -373,7 +249,7 @@ function generarHistoriaClinicaRegistroUsuario_(patientData) {
     // sobre un usuario que ya la tenía), se sale sin crear otra.
     if (histColIndex !== -1) {
       const celdaHC = sheet.getRange(targetRow, histColIndex + 1);
-      const urlExistente = extraerUrlHistoriaClinica(celdaHC.getValue(), celdaHC.getRichTextValue(), celdaHC.getFormula());
+      const urlExistente = extraerUrlHistoriaClinica_(celdaHC.getValue(), celdaHC.getRichTextValue(), celdaHC.getFormula());
       if (urlExistente) {
         return {
           success: false,

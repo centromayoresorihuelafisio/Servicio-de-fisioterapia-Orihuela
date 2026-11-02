@@ -19,7 +19,7 @@
  *     notara lenta, la solución es llamar a `citasInvalidarCache_()` en las funciones que editan la Maestra y cachear aquí.
  *
  * Reutiliza SIN modificar: formatearRangoSemanaEs_ (agenda/Web.gs), citasLeer_, citasHorasDelDia_, citasOpcionesAsistencia_
- * (agenda/Citas_Datos.gs), leerDisponibilidad_, disponibilidadCerrada_ (agenda/Disponibilidad.gs), extraerUrlHistoriaClinica,
+ * (agenda/Citas_Datos.gs), leerDisponibilidad_, disponibilidadCerrada_ (agenda/Disponibilidad.gs), extraerUrlHistoriaClinica_,
  * obtenerIndiceColumnaPorNombre_, resolverColumnaTelefono_ (core/Utils.gs). Prefijo agendaSemana para no chocar en el ámbito global.
  */
 
@@ -56,7 +56,7 @@ function agendaSemanaFechaCorta_(iso) { return iso.slice(8, 10) + '/' + iso.slic
 function agendaSemanaUsuariosPorId_(ids) {
   const res = {};
   if (!ids || !ids.length) return res;
-  const hoja = getSS().getSheetByName(SHEETS.MAESTRA);
+  const hoja = getSS_().getSheetByName(SHEETS.MAESTRA);
   if (!hoja || hoja.getLastRow() < 2) return res;
   const n = hoja.getLastRow() - 1;
   const cab = hoja.getRange(1, 1, 1, hoja.getLastColumn()).getValues()[0];
@@ -76,7 +76,7 @@ function agendaSemanaUsuariosPorId_(ids) {
     res[id] = {
       nombre: vNom ? String(vNom[i][0] || '').trim() : '',
       telefono: vTel ? String(vTel[i][0] || '').trim() : '',
-      hc: vHC ? extraerUrlHistoriaClinica(vHC[i][0], ricos[i][0], formulas[i][0]) : ''
+      hc: vHC ? extraerUrlHistoriaClinica_(vHC[i][0], ricos[i][0], formulas[i][0]) : ''
     };
   }
   return res;

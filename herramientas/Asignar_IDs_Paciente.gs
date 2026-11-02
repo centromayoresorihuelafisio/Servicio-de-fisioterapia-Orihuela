@@ -9,7 +9,7 @@
  *
  * Seguridad:
  *   - ANTES de asignar, busca pares sospechosos de duplicado (mismo DNI, mismo teléfono o nombres casi
- *     iguales, con la misma lógica y puntos que buscarPosiblesDuplicadosWeb). Esa parte es SOLO LECTURA:
+ *     iguales, con la misma lógica que el aviso de duplicados del formulario Nuevo usuario). Esa parte es SOLO LECTURA:
  *     solo escribe la hoja de informe "IDs Paciente".
  *   - Si hay pares, la primera ejecución de asignarIdsPaciente se detiene y los muestra. Tras revisarlos,
  *     una segunda ejecución asigna (siempre que el nº de pares siga igual; si la hoja ha cambiado, avisa de nuevo).
@@ -24,8 +24,8 @@
  *   3. Cuando termine, la hoja "IDs Paciente" muestra el resumen y la verificación.
  *
  * Reutiliza SIN modificar: _palabrasNombre_ y _nombresParecidos_ (usuarios/Anadir_Usuario.gs),
- * normalizarTelefono (usuarios/Contactos_Google.gs), normalizarDniUsuario y resolverColumnaTelefono_
- * (core/Utils.gs), getSS (core/WebApp.gs), SHEETS y COLUMNAS (core/Config.gs).
+ * normalizarTelefono_ (usuarios/Contactos_Google.gs), normalizarDniUsuario_ y resolverColumnaTelefono_
+ * (core/Utils.gs), getSS_ (core/WebApp.gs), SHEETS y COLUMNAS (core/Config.gs).
  *
  * Archivo nuevo en herramientas/. Todos los nombres llevan el prefijo idPac_ / ID_PAC_ para no chocar
  * con el ámbito global compartido del proyecto. Se puede borrar cuando ya no haga falta (la hoja
@@ -43,7 +43,8 @@ const ID_PAC_ = {
 
 /** SOLO LECTURA. Busca pares sospechosos de duplicado y escribe el informe. No asigna nada. */
 function revisarParesIdsPaciente() {
-  const ss = getSS();
+  soloPropietario_('revisarParesIdsPaciente');
+  const ss = getSS_();
   const maestra = idPac_leerMaestra_(ss);
   const pares = idPac_buscarPares_(maestra.usuarios);
 
@@ -64,8 +65,9 @@ function revisarParesIdsPaciente() {
  * se detiene SIN escribir en la Maestra y deja el informe; al volver a ejecutarla (con los mismos pares) asigna.
  */
 function asignarIdsPaciente() {
+  soloPropietario_('asignarIdsPaciente');
   const t0 = Date.now();
-  const ss = getSS();
+  const ss = getSS_();
   const props = PropertiesService.getScriptProperties();
 
   const maestra = idPac_leerMaestra_(ss);
@@ -113,8 +115,8 @@ function idPac_letra_(n) {
 
 /**
  * Lee la Maestra una sola vez (SOLO LECTURA) y devuelve { usuarios, filasConNombre, conId, totalFilas }.
- * Cada usuario: fila real, nombre, dni, teléfonos (originales y normalizados con el criterio de
- * buscarPosiblesDuplicadosWeb), palabras del nombre y estado.
+ * Cada usuario: fila real, nombre, dni, teléfonos (originales y normalizados con el criterio del
+ * aviso de duplicados de usuarios/Panel_Nuevo), palabras del nombre y estado.
  */
 function idPac_leerMaestra_(ss) {
   const hoja = ss.getSheetByName(SHEETS.MAESTRA);
@@ -149,10 +151,10 @@ function idPac_leerMaestra_(ss) {
     usuarios.push({
       fila: i + 1,
       nombre: nombre,
-      dni: normalizarDniUsuario(celda(f, cDni)),
+      dni: normalizarDniUsuario_(celda(f, cDni)),
       tel1: tel1,
       tel2: tel2,
-      telsDup: [tel1, tel2].map(normalizarTelefono).filter(function (t) { return t.length >= 9; }), // criterio de buscarPosiblesDuplicadosWeb
+      telsDup: [tel1, tel2].map(normalizarTelefono_).filter(function (t) { return t.length >= 9; }), // mismo criterio que el aviso de duplicados de usuarios/Panel_Nuevo
       palabras: _palabrasNombre_(nombre),
       estado: celda(f, cEstado)
     });
@@ -161,7 +163,7 @@ function idPac_leerMaestra_(ss) {
 }
 
 /**
- * Pares sospechosos de duplicado con los mismos criterios y puntos que buscarPosiblesDuplicadosWeb
+ * Pares sospechosos de duplicado con los mismos criterios que el aviso de duplicados de usuarios/Panel_Nuevo
  * (DNI = 4, teléfono = 2, nombre = 1), comparando a todos entre sí. Orden: más puntos primero.
  * Devuelve [{ a, b, motivos:[...], puntos }] donde a y b son usuarios de la lista.
  */

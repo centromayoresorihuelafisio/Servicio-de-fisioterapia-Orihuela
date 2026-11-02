@@ -3,13 +3,13 @@
  * botón "Dar de Alta" de Usuarios.
  */
 function darDeAltaPacienteWeb_(idPaciente) {
-  const ss = getSS();
+  const ss = getSS_();
   const sheet = ss.getSheetByName(SHEETS.MAESTRA);
   if (!sheet) return { success: false, message: "No se encontró la hoja 'Base de Datos Maestra'." };
   const rowIdx = filaMaestraPorId_(sheet, idPaciente);   // por ID paciente: el número de fila cambia al reordenar
   if (!rowIdx) return { success: false, message: "Ese usuario ya no está en Usuarios. Recarga la página." };
 
-  const resultado = _ejecutarAltaEnFila(sheet, rowIdx);
+  const resultado = ejecutarAltaEnFila_(sheet, rowIdx);
   if (resultado.success) ordenarPacientes_();
   return resultado;
 }
@@ -21,7 +21,7 @@ function darDeAltaPacienteWeb_(idPaciente) {
  * Historia Clínica enlazado. Devuelve { success, message } en vez de usar
  * ui.alert, para poder reutilizarse tanto desde el menú como desde la Web App.
  */
-function _ejecutarAltaEnFila(sheet, activeRow) {
+function ejecutarAltaEnFila_(sheet, activeRow) {
   const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
 
   function clean(text) {

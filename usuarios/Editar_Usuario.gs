@@ -3,7 +3,7 @@
  * (cabeceras + valores, con las fechas convertidas a "yyyy-MM-dd" para que
  * los <input type="date"> las reconozcan). La usa obtenerDatosEdicionPaciente_ (panel de edición).
  */
-function prepararDatosFilaParaEdicion(sheet, rowIdx) {
+function prepararDatosFilaParaEdicion_(sheet, rowIdx) {
   const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
   const rowData = sheet.getRange(rowIdx, 1, 1, sheet.getLastColumn()).getValues()[0];
 
@@ -19,22 +19,22 @@ function prepararDatosFilaParaEdicion(sheet, rowIdx) {
 
 /**
  * Lee la fila de un usuario de la Maestra para el panel lateral de edición de Usuarios
- * (usuarios/Panel_Editar.html). Devuelve lo mismo que prepararDatosFilaParaEdicion(). El usuario se localiza por su
+ * (usuarios/Panel_Editar.html). Devuelve lo mismo que prepararDatosFilaParaEdicion_(). El usuario se localiza por su
  * ID paciente, así que no hay riesgo de editar a otra persona si la hoja se ha reordenado.
  */
 function obtenerDatosEdicionPaciente_(idPaciente) {
-  const sheet = getSS().getSheetByName(SHEETS.MAESTRA);
+  const sheet = getSS_().getSheetByName(SHEETS.MAESTRA);
   if (!sheet) throw new Error('No se encontró la hoja "' + SHEETS.MAESTRA + '".');
   const fila = filaMaestraPorId_(sheet, idPaciente);
   if (!fila) throw new Error('Ese usuario ya no está en Usuarios. Recarga la página.');
-  return prepararDatosFilaParaEdicion(sheet, fila);
+  return prepararDatosFilaParaEdicion_(sheet, fila);
 }
 
 /**
  * Procesa la actualización de los datos en la hoja de cálculo.
  */
 function actualizarPaciente_(updatedData, idPaciente) {
-  const ss = getSS();
+  const ss = getSS_();
   const sheet = ss.getSheetByName(SHEETS.MAESTRA);
   // La fila se localiza por el ID paciente (no por un número de fila que pudo cambiar al reordenar).
   const rowIdx = filaMaestraPorId_(sheet, idPaciente);
@@ -83,13 +83,13 @@ function actualizarPaciente_(updatedData, idPaciente) {
       const nombreAntes = (filaActual[colNombreIdx] || '').toString().trim();
       const nombreEnviado = (newRowValues[colNombreIdx] || '').toString().trim();
       if (nombreEnviado !== nombreAntes) {
-        const nombreNuevo = normalizarNombreUsuario(nombreEnviado);
+        const nombreNuevo = normalizarNombreUsuario_(nombreEnviado);
         // throw (no return): el formulario trata cualquier respuesta como "guardado" y solo muestra el aviso si hay error
         if (!nombreNuevo) throw new Error('El nombre no puede quedar vacío y solo admite letras y espacios.');
         newRowValues[colNombreIdx] = nombreNuevo;
       }
     }
-    if (colDniIdx !== -1) newRowValues[colDniIdx] = normalizarDniUsuario(newRowValues[colDniIdx]);
+    if (colDniIdx !== -1) newRowValues[colDniIdx] = normalizarDniUsuario_(newRowValues[colDniIdx]);
   }
 
   // Teléfonos (regla única, core/Utils.gs → telefonoNormalizar_): solo dígitos y como texto.
@@ -118,7 +118,7 @@ function actualizarPaciente_(updatedData, idPaciente) {
   // La Última visita se busca igual que en ordenarPacientes_ (sin acentos y por "contiene"), porque no está en COLUMNAS.
   const normCab = (h) => h.toString().trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   const idxFechas = [headers.indexOf(COLUMNAS.MAESTRA.FECHA_INSCRIPCION), headers.findIndex(h => normCab(h).includes("ultima visita"))].filter(i => i !== -1);
-  const claveFecha = (v) => { const d = parseFecha(v); return d ? d.getTime() : String(v === null || v === undefined ? '' : v).trim(); };
+  const claveFecha = (v) => { const d = parseFecha_(v); return d ? d.getTime() : String(v === null || v === undefined ? '' : v).trim(); };
   const fechasCambian = idxFechas.some(i => claveFecha(filaAntesHistorial[i]) !== claveFecha(newRowValues[i]));
   ordenarPacientesSiProcede_(cambiosHistorial, fechasCambian);
 

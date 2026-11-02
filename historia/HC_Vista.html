@@ -17,7 +17,7 @@
   try { var t0 = localStorage.getItem('temaApp'); if (t0 === 'oscuro' || t0 === 'claro') document.documentElement.setAttribute('data-tema', t0); } catch (err) { /* sin almacenamiento */ }
 </script>
 <style>
-<?!= include('ui/CSS_Global'); ?>
+<?!= include_('ui/CSS_Global'); ?>
   html,body{margin:0;height:100%}
   body{overflow:hidden}
   #host{height:100vh;height:100dvh}
@@ -25,11 +25,11 @@
 </style>
 </head>
 <body>
-<?!= include('ui/Acceso'); ?>
+<?!= include_('ui/Acceso'); ?>
 <div id="host"></div>
-<?!= include('ui/JS_Telefono'); ?>
-<?!= include('ui/JS_Selector_Fecha'); ?>
-<?!= include('historia/Panel_HC'); ?>
+<?!= include_('ui/JS_Telefono'); ?>
+<?!= include_('ui/JS_Selector_Fecha'); ?>
+<?!= include_('historia/Panel_HC'); ?>
 <script>
   (function () {
     var imprimir = <?!= JSON.stringify(imprimir) ?>;

@@ -15,7 +15,7 @@
   try { var t0 = localStorage.getItem('temaApp'); if (t0 === 'oscuro' || t0 === 'claro') document.documentElement.setAttribute('data-tema', t0); } catch (err) { /* sin almacenamiento */ }
 </script>
 <style>
-<?!= include('ui/CSS_Global'); ?>
+<?!= include_('ui/CSS_Global'); ?>
   body { margin: 0; padding: 24px; background: var(--md-bg); color: var(--md-on-surface); font-family: var(--font); }
   h1 { font-size: var(--fs-h); font-weight: 500; }
   .pa-botones { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -23,7 +23,7 @@
 </style>
 </head>
 <body>
-<?!= include('ui/Acceso'); ?>
+<?!= include_('ui/Acceso'); ?>
 <h1>Prueba de acceso</h1>
 <div class="pa-botones">
   <button type="button" class="md-btn md-btn--outline" id="pa-sesion">Comprobar sesión</button>

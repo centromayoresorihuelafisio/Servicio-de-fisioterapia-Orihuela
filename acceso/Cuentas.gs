@@ -47,7 +47,7 @@ function accesoCredencial_(password) {
 }
 
 function accesoHoja_() {
-  const hoja = getSS().getSheetByName(SHEETS.ACCESOS);
+  const hoja = getSS_().getSheetByName(SHEETS.ACCESOS);
   if (!hoja) throw new Error('La app aún no está preparada: falta la hoja «' + SHEETS.ACCESOS + '». Ejecuta accesoPrepararHojas desde el editor.');
   return hoja;
 }

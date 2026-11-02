@@ -24,7 +24,7 @@ const MAX_DIAS_DISPONIBILIDAD_ = 400;
 let _cacheDisponibilidad_ = null; // lectura memorizada durante UNA ejecución (cada llamada del navegador es una ejecución nueva)
 
 function _obtenerHojaDisponibilidad_(crear) {
-  const ss = getSS();
+  const ss = getSS_();
   let hoja = ss.getSheetByName(HOJA_DISPONIBILIDAD_);
   if (!hoja && crear) {
     hoja = ss.insertSheet(HOJA_DISPONIBILIDAD_);
@@ -95,7 +95,7 @@ function disponibilidadCerrada_(mapa, fechaISO, hora) {
 }
 
 /** Para el panel: las horas cerradas de cada fecha entre desde y hasta (solo las fechas que tienen alguna) y las horas que ya tienen cita. */
-function obtenerDisponibilidadWeb(desdeISO, hastaISO) {
+function obtenerDisponibilidadWeb_(desdeISO, hastaISO) {
   try {
     if (!_esFechaISO_(desdeISO) || !_esFechaISO_(hastaISO)) return { success: false, message: 'Fechas no válidas.' };
     const mapa = leerDisponibilidad_();
@@ -103,7 +103,7 @@ function obtenerDisponibilidadWeb(desdeISO, hastaISO) {
     Object.keys(mapa).forEach(f => { if (f >= desdeISO && f <= hastaISO) cerrados[f] = mapa[f]; });
     return { success: true, cerrados: cerrados, citas: _citasPorFecha_(desdeISO, hastaISO) };
   } catch (e) {
-    Logger.log('Error en obtenerDisponibilidadWeb: ' + e.message);
+    Logger.log('Error en obtenerDisponibilidadWeb_: ' + e.message);
     return { success: false, message: e.message };
   }
 }
@@ -164,7 +164,7 @@ function _normalizarDiasCerrados_(lista) {
  *   fechas "yyyy-MM-dd", dias 1=lunes … 5=viernes. Formato antiguo (dias + cerrados, un solo horario) también aceptado.
  * @return {{success: boolean, message?: string, mensaje?: string, dias?: number, cerradas?: number, citasEnHorasCerradas?: number}}
  */
-function aplicarDisponibilidadWeb(datos) {
+function aplicarDisponibilidadWeb_(datos) {
   const lock = LockService.getScriptLock();
   try {
     datos = datos || {};
@@ -226,7 +226,7 @@ function aplicarDisponibilidadWeb(datos) {
     const primero = asignaciones.filter(a => !a.completo)[0];
     return { success: true, mensaje: mensaje, dias: todas.length, cerradas: primero ? primero.cerradas.length : 0, citasEnHorasCerradas: afectadas };
   } catch (e) {
-    Logger.log('Error en aplicarDisponibilidadWeb: ' + e.message);
+    Logger.log('Error en aplicarDisponibilidadWeb_: ' + e.message);
     return { success: false, message: 'No se pudo guardar: ' + e.message };
   } finally {
     try { lock.releaseLock(); } catch (e2) { /* no se llegó a obtener el bloqueo */ }

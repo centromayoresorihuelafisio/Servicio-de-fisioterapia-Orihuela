@@ -29,9 +29,9 @@
  *   2. `asignarIdPacienteEnValoraciones`: rellena la columna y escribe el informe con los casos que no ha podido resolver.
  *   Requisito: la Maestra ya tiene la columna "ID paciente" rellena (paso 3, `asignarIdsPaciente`).
  *
- * Reutiliza SIN modificar: hcNorm_ y hcAISO_ (historia/HC_Web.gs), normalizarTelefono (usuarios/Contactos_Google.gs),
+ * Reutiliza SIN modificar: hcNorm_ y hcAISO_ (historia/HC_Web.gs), normalizarTelefono_ (usuarios/Contactos_Google.gs),
  * resolverColumnaTelefono_ (core/Utils.gs), _palabrasNombre_ y _nombresParecidos_ (usuarios/Anadir_Usuario.gs),
- * getSS (core/WebApp.gs), SHEETS, COLUMNAS y COLUMNAS_NUM (core/Config.gs).
+ * getSS_ (core/WebApp.gs), SHEETS, COLUMNAS y COLUMNAS_NUM (core/Config.gs).
  *
  * Archivo nuevo en herramientas/. Todos los nombres llevan el prefijo idpVal_ / IDP_VAL_ para no chocar con el ámbito
  * global compartido del proyecto. Se puede borrar cuando ya no haga falta (la hoja de informe también).
@@ -46,14 +46,14 @@ const IDP_VAL_ = {
 // ----------------------------------------------------------------------------- puntos de entrada
 
 /** SOLO LECTURA: calcula qué se asignaría y escribe el informe. No cambia "Valoraciones". */
-function revisarIdPacienteEnValoraciones() { idpVal_ejecutar_(false); }
+function revisarIdPacienteEnValoraciones() { soloPropietario_('revisarIdPacienteEnValoraciones'); idpVal_ejecutar_(false); }
 
 /** Rellena la columna "ID paciente" de "Valoraciones" y escribe el informe. */
-function asignarIdPacienteEnValoraciones() { idpVal_ejecutar_(true); }
+function asignarIdPacienteEnValoraciones() { soloPropietario_('asignarIdPacienteEnValoraciones'); idpVal_ejecutar_(true); }
 
 function idpVal_ejecutar_(escribir) {
   const t0 = Date.now();
-  const ss = getSS();
+  const ss = getSS_();
   let an, res = null;
 
   if (escribir) {
@@ -149,7 +149,7 @@ function idpVal_analizar_(ss) {
     if (!nombre) continue;
     const u = {
       fila: i + 1, nombre: nombre, nom: hcNorm_(nombre), dni: idpVal_dni_(celda(f, cDni)), idPaciente: celda(f, cId),
-      tels: [celda(f, cT1), celda(f, cT2)].map(normalizarTelefono).filter(function (t) { return t.length >= 9; }),
+      tels: [celda(f, cT1), celda(f, cT2)].map(normalizarTelefono_).filter(function (t) { return t.length >= 9; }),
       palabras: _palabrasNombre_(nombre)
     };
     usuarios.push(u);
@@ -182,7 +182,7 @@ function idpVal_analizar_(ss) {
     const nombre = String(r[C.NOMBRE - 1] || '').trim();
     const f = {
       fila: i + 2, nombre: nombre, nom: hcNorm_(nombre), dni: idpVal_dni_(r[C.DNI - 1]),
-      tel: normalizarTelefono(r[C.TELEFONO - 1]), fecha: hcAISO_(r[C.FECHA - 1], tz)
+      tel: normalizarTelefono_(r[C.TELEFONO - 1]), fecha: hcAISO_(r[C.FECHA - 1], tz)
     };
     if (!f.nombre && !f.dni && !actual[i]) { an.filasVacias++; continue; }
     an.totalVal++;

@@ -1,4 +1,5 @@
 function exportarProyectoAUnicoArchivo() {
+  soloPropietario_('exportarProyectoAUnicoArchivo');
   const scriptId = ScriptApp.getScriptId();
   const token = ScriptApp.getOAuthToken();
   const url = `https://script.googleapis.com/v1/projects/${scriptId}/content`;

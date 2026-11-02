@@ -1,7 +1,7 @@
 <!--
   agenda/Panel_Recordatorios.html
   Panel lateral de recordatorios de la Agenda Web: crear, editar, marcar como hecho y eliminar.
-  Se incluye desde agenda/Web_Vista con <?!= include('agenda/Panel_Recordatorios'); ?>
+  Se incluye desde agenda/Web_Vista con <?!= include_('agenda/Panel_Recordatorios'); ?>
   API: PanelRecordatorios.abrir(contenedor, { lista, hoy, nuevoFecha, editarId, confirmar, onActualizado, onCancelar })
     · lista          → recordatorios actuales [{ id, fecha, hora, tipo, texto, hecho }]
     · hoy()          → "yyyy-MM-dd" de hoy (la página ya tiene hoyISO)
@@ -208,30 +208,28 @@ window.PanelRecordatorios = {
     }
 
     // ── Servidor ──
-    function pedirAlServidor(fn, args, alExito, alFallar) {
+    // Recibe la llamada ya lanzada (llamar('accion', [...])) para que el nombre de la acción quede escrito en quien la pide.
+    function pedirAlServidor(peticion, alExito, alFallar) {
       btnGuardar.disabled = true;
-      var run = google.script.run
-        .withSuccessHandler(function (res) {
-          btnGuardar.disabled = false;
-          if (!res || !res.success) { if (alFallar) alFallar(); mostrarMsg((res && res.message) || 'No se pudo completar la acción.', true); return; }
-          lista = res.recordatorios || [];
-          renderListas();
-          if (opts.onActualizado) opts.onActualizado(lista);
-          if (alExito) alExito(res);
-        })
-        .withFailureHandler(function (err) {
-          btnGuardar.disabled = false;
-          if (alFallar) alFallar();
-          mostrarMsg('Error: ' + (err && err.message ? err.message : err), true);
-        });
-      run[fn].apply(run, args);
+      peticion.then(function (res) {
+        btnGuardar.disabled = false;
+        if (!res || !res.success) { if (alFallar) alFallar(); mostrarMsg((res && res.message) || 'No se pudo completar la acción.', true); return; }
+        lista = res.recordatorios || [];
+        renderListas();
+        if (opts.onActualizado) opts.onActualizado(lista);
+        if (alExito) alExito(res);
+      }, function (err) {
+        btnGuardar.disabled = false;
+        if (alFallar) alFallar();
+        mostrarMsg('Error: ' + (err && err.message ? err.message : err), true);
+      });
     }
 
     function guardar() {
       var texto = inTexto.value.trim();
       if (!texto) { mostrarMsg('Escribe qué quieres recordar.', true); inTexto.focus(); return; }
       var eraEdicion = !!editandoId;
-      pedirAlServidor('guardarRecordatorioWeb', [{ id: editandoId || '', texto: texto, tipo: tipoSel, fecha: inFecha.value, hora: inHora.value }], function () {
+      pedirAlServidor(llamar('guardarRecordatorioWeb', [{ id: editandoId || '', texto: texto, tipo: tipoSel, fecha: inFecha.value, hora: inHora.value }]), function () {
         var fechaMantener = inFecha.value;
         nuevo(eraEdicion ? hoy() : fechaMantener);   // al añadir se conserva la fecha para encadenar varios
         mostrarMsg(eraEdicion ? 'Cambios guardados.' : 'Recordatorio añadido.', false);
@@ -245,13 +243,13 @@ window.PanelRecordatorios = {
       var nuevoValor = !r.hecho;
       r.hecho = nuevoValor;
       renderListas();
-      pedirAlServidor('alternarRecordatorioWeb', [id, nuevoValor], null, function () { r.hecho = !nuevoValor; renderListas(); });
+      pedirAlServidor(llamar('alternarRecordatorioWeb', [id, nuevoValor]), null, function () { r.hecho = !nuevoValor; renderListas(); });
     }
 
     async function borrar(id) {
       var ok = opts.confirmar ? await opts.confirmar('¿Eliminar este recordatorio?') : true;
       if (!ok) return;
-      pedirAlServidor('eliminarRecordatorioWeb', [id], function () { if (editandoId === id) nuevo(); else renderListas(); });
+      pedirAlServidor(llamar('eliminarRecordatorioWeb', [id]), function () { if (editandoId === id) nuevo(); else renderListas(); });
     }
 
     // ── Listas ──

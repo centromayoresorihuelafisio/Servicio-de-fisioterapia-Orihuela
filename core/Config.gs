@@ -151,7 +151,7 @@ const PANELES_BAJO_DEMANDA = true;
  * 27-oct-2026) y debe coincidir con lo que hay escrito en las celdas de la hoja. Para comparar con valores
  * que aún pudieran llevar emoji, usar textoSinEmoji_ (core/Utils.gs).
  * - Servidor: se usa directamente (ESTADOS_PACIENTE.ALTA, ...).
- * - Cliente (HTML): las páginas lo reciben con <script> generado por incluirEstados() (core/WebApp.gs),
+ * - Cliente (HTML): las páginas lo reciben con <script> generado por incluirEstados_() (core/WebApp.gs),
  *   y los archivos de las vistas lo leen como ESTADOS_PACIENTE.
  * LISTA_EDICION = los que se ofrecen al editar y en la ficha; LISTA_NUEVO = los que se ofrecen al crear un usuario.
  */
@@ -170,7 +170,7 @@ const ESTADOS_PACIENTE = (function () {
 })();
 
 /**
- * Gravedad (columna "Gravedad" de la Maestra). FUENTE ÚNICA, sin emoji. En el navegador la define incluirEstados()
+ * Gravedad (columna "Gravedad" de la Maestra). FUENTE ÚNICA, sin emoji. En el navegador la define incluirEstados_()
  * (core/WebApp.gs) igual que ESTADOS_PACIENTE. Los rangos de la puntuación de gravedad viven en los formularios.
  */
 const GRAVEDAD_PACIENTE = (function () {

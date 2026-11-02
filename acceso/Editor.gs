@@ -5,17 +5,21 @@
 
 const ACCESO_ADMIN_INICIAL_ = 'administrador';
 
-/** Corta la ejecución si quien la lanza no es el propietario del script. */
-function soloPropietario_() {
+/**
+ * Corta la ejecución si quien la lanza no es el propietario del script. Con `herramienta` (el nombre de la función),
+ * deja además su uso en "Registro" (17.2: uso de herramientas de administración).
+ */
+function soloPropietario_(herramienta) {
   const activo = Session.getActiveUser().getEmail();
   if (!activo || activo !== Session.getEffectiveUser().getEmail()) {
     throw new Error('Esta función solo puede ejecutarla el propietario desde el editor.');
   }
+  if (herramienta) registroAnotar_('propietario', 'administrador', 'herramienta', herramienta, 'Desde el editor', 'ok');
 }
 
 /** Crea una hoja con sus cabeceras y una protección con aviso, si aún no existe. */
 function accesoCrearHoja_(nombre, cabeceras) {
-  const ss = getSS();
+  const ss = getSS_();
   let hoja = ss.getSheetByName(nombre);
   if (hoja) { Logger.log('La hoja «' + nombre + '» ya existía: no se toca.'); return; }
   hoja = ss.insertSheet(nombre);
@@ -27,7 +31,7 @@ function accesoCrearHoja_(nombre, cabeceras) {
 
 /** Paso 1. Crea las hojas "Accesos" y "Registro". Se puede repetir: no toca las que ya existen. */
 function accesoPrepararHojas() {
-  soloPropietario_();
+  soloPropietario_('accesoPrepararHojas');
   accesoCrearHoja_(SHEETS.ACCESOS, ACCESO_CABECERAS_);
   accesoCrearHoja_(SHEETS.REGISTRO, REGISTRO_CABECERAS_);
 }
@@ -40,7 +44,7 @@ function accesoComprobarPropietario() {
 
 /** Manda un correo de prueba al propietario. Al ejecutarla desde el editor, Google pide el permiso de correo si falta. */
 function accesoProbarCorreo() {
-  soloPropietario_();
+  soloPropietario_('accesoProbarCorreo');
   MailApp.sendEmail(Session.getEffectiveUser().getEmail(), 'Fisioterapia Orihuela: prueba de correo',
     'Si lees esto, los avisos de bloqueo del control de acceso funcionan.');
   Logger.log('Correo de prueba enviado.');
@@ -48,7 +52,7 @@ function accesoProbarCorreo() {
 
 /** Paso 3. Mide cuántas iteraciones caben en unos 300 ms de login y las guarda en las propiedades del script. */
 function accesoMedirIteraciones() {
-  soloPropietario_();
+  soloPropietario_('accesoMedirIteraciones');
   const muestra = 500;
   const inicio = Date.now();
   accesoHash_('medicion', Utilities.getUuid(), muestra);

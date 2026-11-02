@@ -1,7 +1,7 @@
 <!--
   agenda/Panel_Cita.html
   Formulario de Cita como módulo del panel lateral de Usuarios.
-  Se incluye desde usuarios/BaseDatos_Vista con <?!= include('agenda/Panel_Cita'); ?>
+  Se incluye desde usuarios/BaseDatos_Vista con <?!= include_('agenda/Panel_Cita'); ?>
   API: PanelCita.abrir(contenedor, { idPaciente, paciente, onGuardado, onCancelar, alDisponibilidad })
     · idPaciente identifica al usuario (es lo que se envía al guardar); `paciente` (nombre) solo se usa para elegirlo si no llega el ID
       y hay un único usuario con ese nombre.
@@ -412,8 +412,8 @@ window.PanelCita = {
     function loadPatientData() {
       setFieldValue(nombreUsuarioInput, '');
       nombreUsuarioInput.disabled = true;
-      google.script.run
-        .withSuccessHandler(function (res) {
+      llamar('obtenerUsuariosParaCitaWeb')
+        .then(function (res) {
           if (!res || !res.success || !res.usuarios) {
             nombreUsuarioInput.disabled = false;
             mostrarFeedback('Error al cargar usuarios: ' + ((res && res.message) || 'sin datos'), false);
@@ -442,28 +442,24 @@ window.PanelCita = {
           }
           inicial = { id: currentUserId, nombre: currentUserName, tel: telefonoUsuarioInput.value.trim() };
           updateSaveButtonState();
-        })
-        .withFailureHandler(function (err) {
+        }, function (err) {
           nombreUsuarioInput.disabled = false;
           mostrarFeedback('Error al cargar usuarios: ' + (err && err.message ? err.message : err), false);
-        })
-        .obtenerUsuariosParaCitaWeb();
+        });
     }
     function loadInitialData() {
       loadPatientData();
       currentWeekLabel.textContent = 'Cargando agenda…';
       toggleLoading(true);
-      google.script.run
-        .withSuccessHandler(function (res) {
+      llamar('obtenerSemanasYHuecos')
+        .then(function (res) {
           toggleLoading(false);
           semanasData = res.semanas;
           if (semanasData && semanasData.length) { currentWeekIndex = indiceSemanaInicial(semanasData, res.index); renderWeek(); }
-        })
-        .withFailureHandler(function (err) {
+        }, function (err) {
           toggleLoading(false);
           mostrarFeedback('Error al obtener la agenda de turnos: ' + (err && err.message ? err.message : err), false);
-        })
-        .obtenerSemanasYHuecos();
+        });
     }
 
     /* ── Disponibilidad (hoja interna) ── */
@@ -508,10 +504,10 @@ window.PanelCita = {
         dispSub = window.PanelDisponibilidad.abrir(host, {
           semana: lunesDeSemana(semanasData[currentWeekIndex]),   // la semana que se está viendo en el formulario
           obtener: function (desde, hasta) {
-            return new Promise(function (ok, ko) { google.script.run.withSuccessHandler(ok).withFailureHandler(ko).obtenerDisponibilidadWeb(desde, hasta); });
+            return llamar('obtenerDisponibilidadWeb', [desde, hasta]);
           },
           aplicar: function (datos) {
-            return new Promise(function (ok, ko) { google.script.run.withSuccessHandler(ok).withFailureHandler(ko).aplicarDisponibilidadWeb(datos); });
+            return llamar('aplicarDisponibilidadWeb', [datos]);
           },
           onAplicado: alAplicarDisponibilidad,
           onCancelar: function () { cerrarDisponibilidad(); }
@@ -534,8 +530,8 @@ window.PanelCita = {
       var lunesAntes = lunesDeSemana(semanasData[currentWeekIndex]);
       btnGuardar.disabled = true;
       currentWeekLabel.textContent = 'Actualizando agenda…';
-      google.script.run
-        .withSuccessHandler(function (res) {
+      llamar('obtenerSemanasYHuecos')
+        .then(function (res) {
           if (!res || !res.semanas) {
             renderWeek();
             mostrarFeedback('Disponibilidad actualizada, pero no se pudo recargar la agenda. Cierra y vuelve a abrir el formulario.', false);
@@ -556,12 +552,10 @@ window.PanelCita = {
           mostrarFeedback('Disponibilidad actualizada.' + (quitadas
             ? ' Se ' + (quitadas === 1 ? 'quitó 1 hora' : 'quitaron ' + quitadas + ' horas') + ' de la selección: ya no ' + (quitadas === 1 ? 'está disponible' : 'están disponibles') + '.' : ''),
             true, quitadas ? 'warning' : 'check_circle');
-        })
-        .withFailureHandler(function (err) {
+        }, function (err) {
           renderWeek();
           mostrarFeedback('Disponibilidad actualizada, pero no se pudo recargar la agenda: ' + (err && err.message ? err.message : err), false);
-        })
-        .obtenerSemanasYHuecos();
+        });
     }
     btnDisp.hidden = !window.PanelDisponibilidad;   // el botón solo existe si la página anfitriona incluye el módulo
     btnDisp.addEventListener('click', abrirDisponibilidad);
@@ -575,8 +569,15 @@ window.PanelCita = {
         return;
       }
       toggleLoading(true);
-      google.script.run
-        .withSuccessHandler(function (res) {
+      llamar('guardarCitasMultiples', [{
+        idPaciente:      currentUserId,
+        nombreUsuario:   currentUserName,   // solo de referencia: el servidor localiza al usuario por idPaciente
+        telefonoUsuario: telefonoUsuarioInput.value.trim(),
+        huecosJson:      selectedHuecos,
+        numSesion:       numSesionInput.value.trim(),
+        notas:           notasTextarea.value.trim()
+      }])
+        .then(function (res) {
           toggleLoading(false);
           mostrarFeedback(res.message, res.success, res.success ? (/no se pudieron guardar/.test(res.message) ? 'warning' : 'check_circle') : 'error');
           if (res.success) {
@@ -589,18 +590,9 @@ window.PanelCita = {
           } else {
             loadInitialData();   // colisión u otro fallo: refrescamos la agenda
           }
-        })
-        .withFailureHandler(function (err) {
+        }, function (err) {
           toggleLoading(false);
           mostrarFeedback('Error al registrar la cita: ' + (err && err.message ? err.message : err), false);
-        })
-        .guardarCitasMultiples({
-          idPaciente:      currentUserId,
-          nombreUsuario:   currentUserName,   // solo de referencia: el servidor localiza al usuario por idPaciente
-          telefonoUsuario: telefonoUsuarioInput.value.trim(),
-          huecosJson:      selectedHuecos,
-          numSesion:       numSesionInput.value.trim(),
-          notas:           notasTextarea.value.trim()
         });
     }
 

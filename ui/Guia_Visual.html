@@ -19,7 +19,7 @@
   try { var t0 = localStorage.getItem('temaApp'); if (t0 === 'oscuro' || t0 === 'claro') document.documentElement.setAttribute('data-tema', t0); } catch (err) { /* sin almacenamiento */ }
 </script>
 <style>
-<?!= include('ui/CSS_Global'); ?>
+<?!= include_('ui/CSS_Global'); ?>
   body { margin: 0; background: var(--md-bg); color: var(--md-on-surface); font-family: var(--font); font-size: var(--fs-md); line-height: 1.4; }
   .gv-cab { position: sticky; top: 0; z-index: var(--z-sticky); display: flex; align-items: center; gap: 12px; padding: 12px 24px;
     background: var(--md-surface); border-bottom: 1px solid var(--md-outline); box-shadow: var(--md-elev-1); }
@@ -40,7 +40,7 @@
 </style>
 </head>
 <body>
-<?!= include('ui/Acceso'); ?>
+<?!= include_('ui/Acceso'); ?>
 <header class="gv-cab">
   <span class="material-symbols-outlined" aria-hidden="true">palette</span>
   <h1>Guía visual</h1>
@@ -280,6 +280,6 @@ Se podrá deshacer durante unos segundos.</p>
     marcar();
   })();
 </script>
-<?!= include('ui/JS_Selector_Fecha'); ?>
+<?!= include_('ui/JS_Selector_Fecha'); ?>
 </body>
 </html>

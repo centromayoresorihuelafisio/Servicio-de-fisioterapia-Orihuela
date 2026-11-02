@@ -18,7 +18,7 @@ const RECORDATORIO_CABECERAS_ = ['ID', 'Fecha', 'Hora', 'Tipo', 'Texto', 'Hecho'
 
 /** Devuelve la hoja de recordatorios; si no existe y `crear` es true, la crea. */
 function obtenerHojaRecordatorios_(crear) {
-  const ss = getSS();
+  const ss = getSS_();
   let sheet = ss.getSheetByName(SHEETS.RECORDATORIOS);
   if (sheet || !crear) return sheet;
 
@@ -91,11 +91,11 @@ function respuestaRecordatorios_(sheet) {
 }
 
 /** Lista actual. Si la hoja aún no existe devuelve [] sin crearla. */
-function obtenerRecordatoriosWeb() {
+function obtenerRecordatoriosWeb_() {
   try {
     return respuestaRecordatorios_(obtenerHojaRecordatorios_(false));
   } catch (e) {
-    Logger.log('Error en obtenerRecordatoriosWeb: ' + e.message);
+    Logger.log('Error en obtenerRecordatoriosWeb_: ' + e.message);
     return { success: false, message: e.message, recordatorios: [] };
   }
 }
@@ -104,8 +104,10 @@ function obtenerRecordatoriosWeb() {
  * Crea (sin `id`) o edita (con `id`) un recordatorio.
  * datos = { id?, texto, tipo, fecha ("yyyy-MM-dd" | ""), hora ("HH:mm" | "") }
  */
-function guardarRecordatorioWeb(datos) {
+function guardarRecordatorioWeb_(datos) {
+  const lock = LockService.getScriptLock();
   try {
+    lock.waitLock(10000);
     datos = datos || {};
     const texto = String(datos.texto || '').trim();
     if (!texto) return { success: false, message: 'Escribe qué quieres recordar.' };
@@ -131,14 +133,18 @@ function guardarRecordatorioWeb(datos) {
     avisarCambioRecordatorios_();
     return respuestaRecordatorios_(sheet);
   } catch (e) {
-    Logger.log('Error en guardarRecordatorioWeb: ' + e.message);
+    Logger.log('Error en guardarRecordatorioWeb_: ' + e.message);
     return { success: false, message: e.message };
+  } finally {
+    try { lock.releaseLock(); } catch (err) { /* sin bloqueo que liberar */ }
   }
 }
 
 /** Marca o desmarca un recordatorio como hecho. */
-function alternarRecordatorioWeb(id, hecho) {
+function alternarRecordatorioWeb_(id, hecho) {
+  const lock = LockService.getScriptLock();
   try {
+    lock.waitLock(10000);
     const sheet = obtenerHojaRecordatorios_(false);
     const fila = sheet ? buscarFilaRecordatorio_(sheet, id) : -1;
     if (fila === -1) return { success: false, message: 'Ese recordatorio ya no existe.' };
@@ -146,14 +152,18 @@ function alternarRecordatorioWeb(id, hecho) {
     avisarCambioRecordatorios_();
     return respuestaRecordatorios_(sheet);
   } catch (e) {
-    Logger.log('Error en alternarRecordatorioWeb: ' + e.message);
+    Logger.log('Error en alternarRecordatorioWeb_: ' + e.message);
     return { success: false, message: e.message };
+  } finally {
+    try { lock.releaseLock(); } catch (err) { /* sin bloqueo que liberar */ }
   }
 }
 
 /** Elimina un recordatorio (borra su fila). */
-function eliminarRecordatorioWeb(id) {
+function eliminarRecordatorioWeb_(id) {
+  const lock = LockService.getScriptLock();
   try {
+    lock.waitLock(10000);
     const sheet = obtenerHojaRecordatorios_(false);
     const fila = sheet ? buscarFilaRecordatorio_(sheet, id) : -1;
     if (fila === -1) return { success: false, message: 'Ese recordatorio ya no existe.' };
@@ -161,7 +171,9 @@ function eliminarRecordatorioWeb(id) {
     avisarCambioRecordatorios_();
     return respuestaRecordatorios_(sheet);
   } catch (e) {
-    Logger.log('Error en eliminarRecordatorioWeb: ' + e.message);
+    Logger.log('Error en eliminarRecordatorioWeb_: ' + e.message);
     return { success: false, message: e.message };
+  } finally {
+    try { lock.releaseLock(); } catch (err) { /* sin bloqueo que liberar */ }
   }
 }

@@ -25,8 +25,6 @@ const CARPETAS_FUERA = new Set(['node_modules', '.git', 'comprobar']);
 // c = comprobación; archivo = archivo exacto; texto = (opcional) trozo del hallazgo al que se limita.
 const EXCEPCIONES = [
   { c: 'hex', archivo: 'dashboard/JS_Exportar.html', motivo: 'lienzo de los PNG exportados: no puede leer las variables' },
-  { c: 'hex', archivo: 'ui/JS_Cierre_Formulario.html', motivo: 'aviso fijo de una ventana que no carga CSS_Global' },
-  { c: 'capa', archivo: 'ui/JS_Cierre_Formulario.html', motivo: 'aviso fijo de una ventana que no carga CSS_Global' },
   { c: 'hex', archivo: 'ui/JS_Paneles_Diferidos.html', motivo: 'color de respaldo dentro de var(): solo si faltara CSS_Global' },
   { c: 'hex', archivo: 'agenda/Recordatorios.gs', motivo: 'colores de la hoja de cálculo, no de la pantalla' },
   { c: 'hex', archivo: 'core/WebApp.gs', motivo: 'página índice antigua, escrita en el propio core/WebApp.gs (no se toca sin visto bueno)' },
@@ -35,7 +33,6 @@ const EXCEPCIONES = [
   { c: 'color', archivo: 'core/WebApp.gs', motivo: 'página índice antigua, escrita en el propio core/WebApp.gs (no se toca sin visto bueno)' },
   { c: 'sombra', archivo: 'core/WebApp.gs', motivo: 'página índice antigua, escrita en el propio core/WebApp.gs (no se toca sin visto bueno)' },
   { c: 'tiempo', archivo: 'core/WebApp.gs', motivo: 'página índice antigua, escrita en el propio core/WebApp.gs (no se toca sin visto bueno)' },
-  { c: 'color', archivo: 'ui/JS_Cierre_Formulario.html', motivo: 'aviso fijo de una ventana que no carga CSS_Global' },
   { c: 'contorno', archivo: 'agenda/CSS_Agenda.html', texto: '.input-celda', motivo: 'el campo editable de la celda ya se distingue por su borde y su sombra' },
   { c: 'contorno', archivo: 'agenda/CSS_Agenda.html', texto: '.su-buscar', motivo: 'buscador dentro de un menú recién abierto: el foco es siempre suyo y se ve el cursor' },
   { c: 'contorno', archivo: 'usuarios/Panel_Nuevo.html', texto: '.ms-search-input', motivo: 'buscador dentro de un menú recién abierto: el foco es siempre suyo y se ve el cursor' },
@@ -62,14 +59,11 @@ const PUBLICAS = {
   configurarMensajeWhatsapp: 'editor', sincronizarContactosGoogle: 'editor', exportarProyectoAUnicoArchivo: 'editor', sembrarHistorialEstado: 'editor', verificarHistorialEstado: 'editor',
   revisarParesIdsPaciente: 'editor', asignarIdsPaciente: 'editor', revisarIdPacienteEnHC: 'editor', asignarIdPacienteEnHC: 'editor', revisarIdPacienteEnValoraciones: 'editor', asignarIdPacienteEnValoraciones: 'editor',
 };
-// Transición de la fase 2 (17.10): cada conversación quita lo suyo. Una entrada que ya no hace falta se avisa, para que la lista solo baje.
+// Transición de la fase 2 (17.10): terminada el 2-nov-2026, las dos listas quedan vacías. Si algún día se vuelve a usar,
+// una entrada que ya no hace falta se avisa, para que la lista solo baje.
 const HTML_PENDIENTE = {
-  'agenda/JS_Agenda_Base.html': 4, 'agenda/JS_Agenda_Edicion.html': 4, 'agenda/JS_Agenda_Resumen.html': 4, 'agenda/JS_Agenda_Vistas.html': 4, 'agenda/Panel_Cita.html': 4, 'agenda/Panel_Recordatorios.html': 4,
 };
 const FN_PENDIENTE = {
-  4: 'obtenerAgendaSemanaWeb obtenerVersionAgendaWeb actualizarCampoAgendaWeb asignarPacienteHuecoWeb obtenerUsuariosParaCitaWeb moverCitaWeb intercambiarCitasWeb copiarVariasCitasWeb eliminarDatosFilaAgendaWeb eliminarVariasCitasWeb restaurarCitasWeb darDeAltaPacienteParaAgendaWeb obtenerSemanasYHuecos guardarCitasMultiples obtenerDisponibilidadWeb aplicarDisponibilidadWeb obtenerRecordatoriosWeb guardarRecordatorioWeb alternarRecordatorioWeb eliminarRecordatorioWeb ' +
-    'include incluirPanel incluirEstados incluirPatologias getSS parseFecha normalizarTexto normalizarFormatoNombre normalizarNombreUsuario normalizarDniUsuario normalizarTelefono extraerUrlHistoriaClinica construirIndiceWeb servirFichaHCWeb obtenerDashboardCitasWeb obtenerDashboardPacientesWeb obtenerDashboardEvolucionWeb obtenerDashboardFlujoWeb obtenerDashboardDiagnosticosWeb _generarHistoriaClinicaEnFila _ejecutarAltaEnFila crearContactoGoogle obtenerTodosLosContactosGoogle verificarExistenciaContacto prepararDatosFilaParaEdicion ' +
-    'generarUrlWhatsappParaAgendaWeb generarUrlWhatsappWeb buscarUsuarioPorDniWeb buscarPosiblesDuplicadosWeb dashboardProbarCitas dashboardProbarPacientes dashboardProbarFlujo dashboardProbarDiagnosticos',
 };
 
 // ===== Lectura de archivos =====
@@ -187,7 +181,7 @@ const propiasPantalla = propias.filter(r => !r.impresion);
 const incluidos = new Map();
 for (const [f, t] of textoDe) {
   if (!f.endsWith('.html')) continue;
-  const lista = [...t.matchAll(/<\?!?=\s*(?:include|incluirPanel)\(\s*'([^']+)'/g)].map(m => m[1] + '.html').filter(x => textoDe.has(x));
+  const lista = [...t.matchAll(/<\?!?=\s*(?:include_|incluirPanel_)\(\s*'([^']+)'/g)].map(m => m[1] + '.html').filter(x => textoDe.has(x));
   incluidos.set(f, lista);
 }
 const raices = [...incluidos.keys()].filter(f => /(_Vista|Guia_Visual)\.html$/.test(f) && ![...incluidos.values()].some(l => l.includes(f)));
@@ -383,7 +377,7 @@ anotar('lf', 'Archivos con CRLF', textos.filter(f => /\.(html|gs|md|json|mjs|js)
 
 // Sintaxis de JavaScript (lo mismo que node --check).
 function comprobarJs(archivo, codigoJs, base) {
-  const limpio = codigoJs.replace(/<\?!?=\s*(include|incluirPanel)\([\s\S]*?\?>/g, blanco).replace(/<\?[\s\S]*?\?>/g, m => 'null' + blanco(m.slice(4)));
+  const limpio = codigoJs.replace(/<\?!?=\s*(include_|incluirPanel_)\([\s\S]*?\?>/g, blanco).replace(/<\?[\s\S]*?\?>/g, m => 'null' + blanco(m.slice(4)));
   try { new vm.Script(limpio, { filename: archivo }); return null; }
   catch (e) {
     const m = /:(\d+)/.exec((e.stack || '').split('\n')[0]);
@@ -500,6 +494,13 @@ const hallPublicas = [...definidas].filter(([n]) => !n.endsWith('_')).map(([n, d
 for (const n of [...Object.keys(PUBLICAS), ...fnPendiente.keys()]) if (!definidas.has(n)) hallPublicas.push({ archivo: API, linea: 0, texto: `${n} ya no existe con ese nombre: quítala de la lista` });
 anotar('publica', 'Funciones públicas fuera de la lista permitida', hallPublicas);
 
+// Las del editor siguen públicas, pero lo primero que hacen es comprobar que las lanza el propietario (17.2).
+const hallPropietario = Object.keys(PUBLICAS).filter(n => PUBLICAS[n] === 'editor' && definidas.has(n)).filter(n => {
+  const { archivo } = definidas.get(n);
+  return !new RegExp(`^function ${n}\\s*\\([^)]*\\)\\s*\\{\\s*soloPropietario_\\(`, 'm').test(quitarComentarios(textoDe.get(archivo)));
+}).map(n => ({ ...definidas.get(n), texto: n }));
+anotar('propietario', 'Funciones del editor que no empiezan por soloPropietario_()', hallPropietario);
+
 // Las acciones se leen del propio accesoAcciones_ (acceso/Api.gs).
 const textoApi = quitarComentarios(textoDe.get(API) || '');
 const cuerpoAcciones = /function accesoAcciones_\(\) \{([\s\S]*?)\n\}/.exec(textoApi)?.[1] || '';
@@ -524,7 +525,7 @@ anotar('local', 'Nombres locales que tapan llamar()', buscar(/(?:\bfunction\s+|\
 const grupos = [
   ['A. Medición final (sección 13)', ['hex', 'color', 'prefijo', 'variable', 'girador', 'keyframes', 'esquina', 'capa', 'curva', 'tema', 'onda', 'sombra', 'tiempo', 'letra', 'contorno', 'id', 'lf', 'js']],
   ['B. Reglas propias que tapan lo común', ['tapa', 'dentro', 'icono', 'foco', 'reinicio', 'fuga']],
-  ['C. Una sola puerta (sección 17)', ['puerta', 'publica', 'accion', 'antigua', 'local']],
+  ['C. Una sola puerta (sección 17)', ['puerta', 'publica', 'propietario', 'accion', 'antigua', 'local']],
 ];
 let totalRevisar = 0;
 console.log(`Comprobación de coherencia · ${codigo.length} archivos · ${reglas.length} reglas de estilo · ${piezas.size} clases comunes · ${paginas.size} páginas`);

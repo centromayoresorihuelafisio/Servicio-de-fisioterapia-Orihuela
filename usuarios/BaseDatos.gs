@@ -10,7 +10,7 @@
  */
 function obtenerBaseDatosCompletaWeb_() {
   try {
-    const ss = getSS();
+    const ss = getSS_();
     const sheet = ss.getSheetByName(SHEETS.MAESTRA);
     if (!sheet) {
       return { headers: [], pacientes: [], error: `No se encontró la hoja "${SHEETS.MAESTRA}".` };
@@ -121,7 +121,7 @@ function registroCopiasMaestra_(copias) {
  */
 function eliminarPacienteWeb_(idPaciente) {
   try {
-    const ss = getSS();
+    const ss = getSS_();
     const sheet = ss.getSheetByName(SHEETS.MAESTRA);
     if (!sheet) return { success: false, message: `No se encontró la hoja "${SHEETS.MAESTRA}".` };
 
@@ -157,7 +157,7 @@ function eliminarPacienteWeb_(idPaciente) {
  */
 function restaurarPacienteWeb_(datosPaciente) {
   try {
-    const ss = getSS();
+    const ss = getSS_();
     const sheet = ss.getSheetByName(SHEETS.MAESTRA);
     if (!sheet) return { success: false, message: `No se encontró la hoja "${SHEETS.MAESTRA}".` };
 
@@ -230,7 +230,7 @@ function cambiarEstadoPacienteSinOrden_(idPaciente, nuevoEstado) {
   try {
     lock.waitLock(10000);
 
-    const sheet = getSS().getSheetByName(SHEETS.MAESTRA);
+    const sheet = getSS_().getSheetByName(SHEETS.MAESTRA);
     if (!sheet) return { success: false, message: `No se encontró la hoja "${SHEETS.MAESTRA}".` };
 
     const rowIdx = filaMaestraPorId_(sheet, idPaciente);
@@ -288,7 +288,7 @@ function cambiarEstadoLoteSinOrden_(idsPaciente, nuevoEstado) {
   const lock = LockService.getScriptLock();
   try {
     lock.waitLock(10000);
-    const sheet = getSS().getSheetByName(SHEETS.MAESTRA);
+    const sheet = getSS_().getSheetByName(SHEETS.MAESTRA);
     if (!sheet) return { success: false, message: `No se encontró la hoja "${SHEETS.MAESTRA}".` };
 
     const lastCol = sheet.getLastColumn();
@@ -334,7 +334,7 @@ function eliminarPacientesLoteWeb_(idsPaciente) {
   const lock = LockService.getScriptLock();
   try {
     lock.waitLock(10000);
-    const sheet = getSS().getSheetByName(SHEETS.MAESTRA);
+    const sheet = getSS_().getSheetByName(SHEETS.MAESTRA);
     if (!sheet) return { success: false, message: `No se encontró la hoja "${SHEETS.MAESTRA}".` };
 
     const mapa = mapaFilasMaestraPorId_(sheet);

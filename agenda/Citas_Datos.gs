@@ -25,7 +25,7 @@
  *   - Cada escritura va bajo bloqueo (LockService) y NO debe llamarse desde código que ya tenga el bloqueo del script.
  *   - Cada escritura sube `citasVersion_()`: es la versión de caché que usa la Agenda web (`obtenerVersionAgendaWeb`) para saber si hay cambios.
  *
- * Reutiliza SIN modificar: getSS (core/WebApp.gs), SHEETS, COLUMNAS, COLUMNAS_NUM, ASISTENCIA_CITA (core/Config.gs), hcAISO_ y hcNorm_
+ * Reutiliza SIN modificar: getSS_ (core/WebApp.gs), SHEETS, COLUMNAS, COLUMNAS_NUM, ASISTENCIA_CITA (core/Config.gs), hcAISO_ y hcNorm_
  * (historia/HC_Web.gs), mapaFilasMaestraPorId_ (core/Utils.gs), leerDisponibilidad_ y disponibilidadCerrada_ (agenda/Disponibilidad.gs).
  * Prefijo citas para no chocar en el ámbito global.
  */
@@ -41,7 +41,7 @@ function citasCabeceras_() {
 
 /** Hoja "Citas". Con crear = true la crea (con cabeceras) si no existe; si no, devuelve null cuando falta. */
 function citasHoja_(crear) {
-  const ss = getSS();
+  const ss = getSS_();
   let hoja = ss.getSheetByName(SHEETS.CITAS);
   if (!hoja && crear) {
     const cab = citasCabeceras_();
@@ -319,7 +319,7 @@ function citasCrear_(datos) {
 
     const idPaciente = citasTexto_(datos.idPaciente);
     if (!idPaciente) return citasError_('Falta el ID del usuario.');
-    const maestra = getSS().getSheetByName(SHEETS.MAESTRA);
+    const maestra = getSS_().getSheetByName(SHEETS.MAESTRA);
     const fila = maestra ? mapaFilasMaestraPorId_(maestra)[idPaciente] : null;
     if (!fila) return citasError_('No existe ningún usuario con ese ID paciente.');
     const nombre = citasTexto_(maestra.getRange(fila, COLUMNAS_NUM.MAESTRA.NOMBRE).getValue());
@@ -360,7 +360,7 @@ function citasCrearVarias_(lista, opciones) {
   return citasOperar_('citasCrearVarias_', function (ctx, tz) {
     if (!lista || !lista.length) return citasError_('No hay ninguna cita que crear.');
     const sustituir = !!(opciones && opciones.sustituir);
-    const maestra = getSS().getSheetByName(SHEETS.MAESTRA);
+    const maestra = getSS_().getSheetByName(SHEETS.MAESTRA);
     const mapaMaestra = maestra ? mapaFilasMaestraPorId_(maestra) : {};
     const nombres = {};   // ID paciente -> nombre actual de la Maestra (una lectura por usuario distinto)
 

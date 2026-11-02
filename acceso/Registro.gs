@@ -14,7 +14,7 @@ function registroTexto_(v) {
 /** Añade una fila. Si falla, la operación sigue, igual que en historialRegistrar_. */
 function registroAnotar_(usuario, rol, accion, entidad, detalle, resultado) {
   try {
-    const hoja = getSS().getSheetByName(SHEETS.REGISTRO);
+    const hoja = getSS_().getSheetByName(SHEETS.REGISTRO);
     if (!hoja) return;
     hoja.appendRow([new Date()].concat([usuario, rol, accion, entidad, detalle, resultado].map(registroTexto_)));
   } catch (e) {
@@ -33,7 +33,7 @@ function registroTextoHC_(idHC, campo, antes, despues) {
   const sesion = sesionActual_();
   if (!sesion) return;
   try {
-    const hoja = getSS().getSheetByName(SHEETS.REGISTRO);
+    const hoja = getSS_().getSheetByName(SHEETS.REGISTRO);
     if (!hoja) return;
     const cache = CacheService.getScriptCache();
     const clave = 'reghc_' + sesion.usuario + '_' + idHC + '_' + campo;

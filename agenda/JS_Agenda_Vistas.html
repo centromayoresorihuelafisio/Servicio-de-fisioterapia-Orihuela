@@ -344,13 +344,11 @@
           cargar(semanaActual, true);
         }
 
-        var runner = google.script.run
-          .withSuccessHandler(function(res) {
+        (intercambio ? llamar('intercambiarCitasWeb', [filaO, filaD]) : llamar('moverCitaWeb', [filaO, filaD]))
+          .then(function(res) {
             if (!res || !res.success) { revertir((res && res.message) || 'No se pudo mover la cita.'); return; }
             if (esDeshacer) ocultarToastMover(); else mostrarToastMover(filaO, filaD, intercambio);
-          })
-          .withFailureHandler(function(err) { revertir('Error al mover la cita: ' + err); });
-        if (intercambio) runner.intercambiarCitasWeb(filaO, filaD); else runner.moverCitaWeb(filaO, filaD);
+          }, function(err) { revertir('Error al mover la cita: ' + err); });
       }
 
       // Tabla nueva: sin cambio local en memoria (cada cita lleva su ID y los huecos se calculan en el servidor).
@@ -368,14 +366,12 @@
           'Cita movida' + (d ? ' a ' + (d['Día'] ? d['Día'] + ' ' : '') + d['Hora'] : '') + '.';
         var deshacer = { desde: intercambio ? filaD : 'hueco ' + o._fechaISO + ' ' + o._horaOrden, hacia: filaO };
 
-        var runner = google.script.run
-          .withSuccessHandler(function(res) {
+        (intercambio ? llamar('intercambiarCitasWeb', [filaO, filaD]) : llamar('moverCitaWeb', [filaO, filaD]))
+          .then(function(res) {
             if (!res || !res.success) { mostrarAviso((res && res.message) || 'No se pudo mover la cita.'); cargar(semanaActual, true); return; }
             cargar(semanaActual, true);
             if (esDeshacer) ocultarToastMover(); else mostrarToastMoverTexto(texto, deshacer);
-          })
-          .withFailureHandler(function(err) { mostrarAviso('Error al mover la cita: ' + err); cargar(semanaActual, true); });
-        if (intercambio) runner.intercambiarCitasWeb(filaO, filaD); else runner.moverCitaWeb(filaO, filaD);
+          }, function(err) { mostrarAviso('Error al mover la cita: ' + err); cargar(semanaActual, true); });
       }
 
       function mostrarToastMoverTexto(texto, movimiento) {
@@ -560,8 +556,8 @@
         if (!semanaActual || arrastre) return;
         if (document.querySelector('.editando')) return;
 
-        google.script.run
-          .withSuccessHandler(function(res) {
+        llamar('obtenerVersionAgendaWeb')
+          .then(function(res) {
             if (!res || res.error) return;
             if (ultimaVersionAgenda === null) { ultimaVersionAgenda = res.version; return; }
             if (res.version !== ultimaVersionAgenda) {
@@ -569,9 +565,7 @@
               cargar(semanaActual, true);
               cargarRecordatorios();
             }
-          })
-          .withFailureHandler(function() { /* se reintenta en el próximo ciclo */ })
-          .obtenerVersionAgendaWeb();
+          }, function() { /* se reintenta en el próximo ciclo */ });
       }
 
       var AUTO_REFRESH_MS = 4000;

@@ -4,7 +4,7 @@
  * Configuración del proyecto > Propiedades de la secuencia de comandos > WHATSAPP_MESSAGE ({{nombre}} pone el nombre).
  */
 function configurarMensajeWhatsapp() {
-  soloPropietario_();
+  soloPropietario_('configurarMensajeWhatsapp');
   const scriptProperties = PropertiesService.getScriptProperties();
   const anterior = scriptProperties.getProperty(PROP_KEYS.WHATSAPP_MESSAGE);
   scriptProperties.setProperty(PROP_KEYS.WHATSAPP_MESSAGE, WHATSAPP_PLANTILLA_POR_DEFECTO_);

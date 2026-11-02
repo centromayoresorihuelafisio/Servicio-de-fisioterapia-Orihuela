@@ -62,7 +62,30 @@ function accesoAcciones_() {
     guardarTextoHCWeb:                     { fn: guardarTextoHCWeb_, rol: 'usuario' },
     guardarEpisodiosHCWeb:                 { fn: guardarEpisodiosHCWeb_, rol: 'usuario', registrar: true, entidad: a => a[0], detalle: a => JSON.stringify(a[1] || []) },
     generarHistoriaClinicaWeb:             { fn: generarHistoriaClinicaWeb_, rol: 'usuario', registrar: true, entidad: a => a[0] },
-    generarHistoriaClinicaRegistroUsuario: { fn: generarHistoriaClinicaRegistroUsuario_, rol: 'usuario', registrar: true, entidad: a => a[0] && a[0].idPaciente }
+    generarHistoriaClinicaRegistroUsuario: { fn: generarHistoriaClinicaRegistroUsuario_, rol: 'usuario', registrar: true, entidad: a => a[0] && a[0].idPaciente },
+
+    // Agenda (las citas van por su ID; se anotan las borradas, con su copia para recuperarlas, y las acciones en bloque)
+    obtenerAgendaSemanaWeb:         { fn: obtenerAgendaSemanaWeb_, rol: 'usuario' },
+    refrescarAgendaSemanaWeb:       { fn: obtenerAgendaSemanaWeb_, rol: 'usuario', renueva: false },   // recarga silenciosa: la puede lanzar el sondeo
+    obtenerVersionAgendaWeb:        { fn: obtenerVersionAgendaWeb_, rol: 'usuario', renueva: false },
+    actualizarCampoAgendaWeb:       { fn: actualizarCampoAgendaWeb_, rol: 'usuario' },
+    asignarPacienteHuecoWeb:        { fn: asignarPacienteHuecoWeb_, rol: 'usuario' },
+    obtenerUsuariosParaCitaWeb:     { fn: obtenerUsuariosParaCitaWeb_, rol: 'usuario' },
+    moverCitaWeb:                   { fn: moverCitaWeb_, rol: 'usuario' },
+    intercambiarCitasWeb:           { fn: intercambiarCitasWeb_, rol: 'usuario' },
+    copiarVariasCitasWeb:           { fn: copiarVariasCitasWeb_, rol: 'usuario', registrar: true, entidad: a => (a[0] || []).map(x => x && x.fila).join(', '), detalle: (a, r) => r && r.message },
+    eliminarDatosFilaAgendaWeb:     { fn: eliminarDatosFilaAgendaWeb_, rol: 'usuario', registrar: true, entidad: a => a[0], detalle: (a, r) => JSON.stringify(r && r.snapshots || []) },
+    eliminarVariasCitasWeb:         { fn: eliminarVariasCitasWeb_, rol: 'usuario', registrar: true, entidad: a => (a[0] || []).join(', '), detalle: (a, r) => JSON.stringify(r && r.snapshots || []) },
+    restaurarCitasWeb:              { fn: restaurarCitasWeb_, rol: 'usuario', registrar: true, entidad: a => (a[0] || []).map(x => x && x.id).join(', '), detalle: (a, r) => r && r.message },
+    darDeAltaPacienteParaAgendaWeb: { fn: darDeAltaPacienteParaAgendaWeb_, rol: 'usuario', registrar: true, entidad: a => a[0] },
+    obtenerSemanasYHuecos:          { fn: obtenerSemanasYHuecos_, rol: 'usuario' },
+    guardarCitasMultiples:          { fn: guardarCitasMultiples_, rol: 'usuario' },
+    obtenerDisponibilidadWeb:       { fn: obtenerDisponibilidadWeb_, rol: 'usuario' },
+    aplicarDisponibilidadWeb:       { fn: aplicarDisponibilidadWeb_, rol: 'usuario' },
+    obtenerRecordatoriosWeb:        { fn: obtenerRecordatoriosWeb_, rol: 'usuario', renueva: false },
+    guardarRecordatorioWeb:         { fn: guardarRecordatorioWeb_, rol: 'usuario' },
+    alternarRecordatorioWeb:        { fn: alternarRecordatorioWeb_, rol: 'usuario' },
+    eliminarRecordatorioWeb:        { fn: eliminarRecordatorioWeb_, rol: 'usuario' }
   };
 }
 

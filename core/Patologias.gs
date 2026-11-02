@@ -74,16 +74,16 @@ function patologiasLista_() {
 
 /** Código CIE-10 de una patología por su nombre (sin tildes ni mayúsculas); '' si no está en la lista. */
 function patologiaCodigo_(nombre) {
-  const n = normalizarTexto(nombre);
-  const hallada = patologiasLista_().filter(p => normalizarTexto(p.nombre) === n)[0];
+  const n = normalizarTexto_(nombre);
+  const hallada = patologiasLista_().filter(p => normalizarTexto_(p.nombre) === n)[0];
   return hallada ? hallada.codigo : '';
 }
 
 /**
  * Entrega la lista a la página como variable global del navegador (PATOLOGIAS_LISTA: [{ nombre, codigo, grupo }]).
  * Se pone UNA vez por página, antes de los paneles que la usan (usuarios/Panel_Nuevo y usuarios/Panel_Editar).
- * Mismo método que incluirEstados() de core/WebApp.gs.
+ * Mismo método que incluirEstados_() de core/WebApp.gs.
  */
-function incluirPatologias() {
+function incluirPatologias_() {
   return '<script>var PATOLOGIAS_LISTA = ' + JSON.stringify(patologiasLista_()) + ';</script>';
 }
