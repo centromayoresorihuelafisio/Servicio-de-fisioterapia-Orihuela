@@ -4,7 +4,7 @@
  *
  * La hoja "Citas" (SHEETS.CITAS) tiene una fila por cita real: ID cita (UUID, no el número de fila), Fecha (fecha real),
  * Hora ("HH:mm", texto), ID paciente, Nombre (referencia), Sesión, Asistencia (una de ASISTENCIA_CITA), Notas
- * y Creada el. (La columna "ID Evento Calendar" de la hoja real ya no se usa: se puede borrar, el código la ignora.) No hay filas de huecos libres (los huecos se calculan con la parrilla y `Disponibilidad`),
+ * y Creada el. (La antigua columna "ID Evento Calendar" se borró de la hoja el 2-nov-2026.) No hay filas de huecos libres (los huecos se calculan con la parrilla y `Disponibilidad`),
  * y teléfono y enlace a la HC no se copian: se consultan por ID paciente. Cabeceras en COLUMNAS.CITAS (core/Config.gs).
  *
  * LECTURA (fase 1): `citasLeer_`, `citasDeSemana_`, `citasDePaciente_`, `citasCategoriaAsistencia_`, `citasSesionPropuesta_`.
