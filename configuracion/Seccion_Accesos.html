@@ -1,0 +1,249 @@
+<!--
+  configuracion/Seccion_Accesos.html
+  Sección «Accesos» de Configuración: listar, crear con contraseña temporal, activar o desactivar, cambiar usuario, nombre,
+  rol y caducidad, desbloquear, restablecer la contraseña y eliminar (acciones accesos* de acceso/Administrar.gs).
+  El servidor impide quitarse a uno mismo el rol o el acceso y dejar la app sin administrador activo; aquí solo se avisa antes.
+-->
+<details class="md-seccion" id="cfAccesos" open>
+  <summary><span class="material-symbols-outlined" aria-hidden="true">manage_accounts</span>Accesos <small id="cfAccesosResumen"></small><span class="material-symbols-outlined md-seccion__chev" aria-hidden="true">expand_more</span></summary>
+  <div class="md-seccion__cuerpo">
+    <p class="cf-texto">Quién puede entrar en la aplicación. Una cuenta nueva o restablecida recibe una contraseña temporal, que se ve una sola vez: dásela a la persona y, al entrar, tendrá que cambiarla. Los cambios se aplican en la siguiente acción de esa persona; si le cambias el usuario, tendrá que volver a entrar con el nuevo (la contraseña no cambia).</p>
+    <div class="cf-barra">
+      <button type="button" class="md-btn md-btn--outline" id="cfAccNueva" aria-expanded="false" aria-controls="cfAccForm"><span class="material-symbols-outlined" aria-hidden="true">person_add</span>Nueva cuenta</button>
+      <button type="button" class="md-btn md-btn--text" id="cfAccRecargar"><span class="material-symbols-outlined" aria-hidden="true">refresh</span>Actualizar lista</button>
+    </div>
+    <form class="cf-formulario" id="cfAccForm" hidden autocomplete="off">
+      <div class="md-campo">
+        <input class="md-campo__control" id="cfAccUsuario" placeholder=" " maxlength="40" required>
+        <label class="md-campo__etiqueta" for="cfAccUsuario">Usuario (para entrar)</label>
+        <p class="md-campo__ayuda">De 3 a 40 letras o cifras, sin espacios.</p>
+      </div>
+      <div class="md-campo">
+        <input class="md-campo__control" id="cfAccNombre" placeholder=" " maxlength="80">
+        <label class="md-campo__etiqueta" for="cfAccNombre">Nombre</label>
+      </div>
+      <div class="md-campo">
+        <select class="md-campo__control" id="cfAccRol">
+          <option value="usuario">Usuario</option>
+          <option value="administrador">Administrador</option>
+        </select>
+        <label class="md-campo__etiqueta" for="cfAccRol">Rol</label>
+      </div>
+      <div class="md-campo">
+        <input type="date" class="md-campo__control" id="cfAccCaduca" placeholder=" ">
+        <label class="md-campo__etiqueta" for="cfAccCaduca">Caduca (opcional)</label>
+        <p class="md-campo__ayuda">Sirve hasta el final de ese día.</p>
+      </div>
+      <div class="cf-botones">
+        <button type="button" class="md-btn md-btn--text" id="cfAccCancelar">Cancelar</button>
+        <button type="submit" class="md-btn md-btn--tonal" id="cfAccCrear"><span class="material-symbols-outlined" aria-hidden="true">person_add</span>Crear cuenta</button>
+      </div>
+    </form>
+    <div class="md-tabla-marco">
+      <table class="md-tabla">
+        <thead><tr><th>Usuario</th><th>Nombre</th><th>Rol</th><th>Estado</th><th>Caduca</th><th>Último acceso</th><th>Acciones</th></tr></thead>
+        <tbody id="cfAccFilas"><tr><td colspan="7" class="md-tabla__vacia"><span class="md-girador" role="status" aria-label="Cargando"></span></td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</details>
+<script>
+  (function () {
+    var el = Cf.el, cuentas = [];
+
+    function pintarVacio(texto) {
+      var tb = Cf.$('cfAccFilas');
+      tb.textContent = '';
+      var tr = el('tr'), td = el('td', 'md-tabla__vacia', texto);
+      td.colSpan = 7;
+      tr.appendChild(td);
+      tb.appendChild(tr);
+    }
+
+    function cargar() {
+      return llamar('accesosListar').then(function (lista) { cuentas = lista || []; pintar(); }, function (err) { pintarVacio(err.message); });
+    }
+
+    /** Cambia campos de una cuenta y repinta su fila con lo que devuelve el servidor. */
+    function cambiar(c, campos, boton) {
+      return Cf.esperar(boton, llamar('accesosCambiar', [c.usuario, campos])).then(function (r) {
+        var i = cuentas.indexOf(c);
+        if (i !== -1) cuentas[i] = r.cuenta;
+        pintar();
+        if (r.detalle !== 'sin cambios') Cf.avisar('Cuenta «' + r.cuenta.usuario + '» actualizada correctamente.', 'ok');
+        if (r.yo && campos.usuario) Acceso.refrescar();   // el menú de sesión enseña el usuario nuevo
+      }, function (err) { Cf.fallo(err); pintar(); });
+    }
+
+    function mostrarTemporal(r, motivo) {
+      Cf.mensaje(motivo + '\n\nUsuario: ' + r.usuario + '\nContraseña temporal: ' + r.temporal +
+        '\n\nApúntala y dásela ahora: no se volverá a mostrar. Al entrar tendrá que cambiarla.');
+    }
+
+    function estados(c) {
+      var caja = el('div', 'cf-estados');
+      caja.appendChild(c.activo ? Cf.insignia('ok', 'Activa') : Cf.insignia('error', 'Desactivada'));
+      if (c.caducada) caja.appendChild(Cf.insignia('error', 'Caducada'));
+      if (c.bloqueadoHasta) caja.appendChild(Cf.insignia('aviso', 'Bloqueada hasta las ' + c.bloqueadoHasta));
+      if (c.debeCambiar) caja.appendChild(Cf.insignia('neutra', 'Contraseña temporal'));
+      return caja;
+    }
+
+    function fila(c) {
+      var tr = el('tr');
+      // Usuario (el nombre con el que se entra): se guarda al salir del campo, tras confirmar
+      var tdUsuario = el('td', 'cf-celda-control');
+      var campoUsuario = el('div', 'md-campo md-campo--compacto');
+      var inUsuario = el('input', 'md-campo__control');
+      inUsuario.value = c.usuario;
+      inUsuario.maxLength = 40;
+      inUsuario.setAttribute('aria-label', 'Usuario para entrar' + (c.yo ? ' (el tuyo)' : ''));
+      inUsuario.title = c.yo ? 'Tu usuario para entrar' : 'Usuario para entrar';
+      inUsuario.addEventListener('change', function () {
+        var nuevo = inUsuario.value.trim();
+        if (!nuevo || nuevo === c.usuario) { inUsuario.value = c.usuario; return; }
+        Cf.confirmar('¿Cambiar el usuario «' + c.usuario + '» por «' + nuevo + '»?\n' + (c.yo
+          ? 'Desde ahora entrarás con «' + nuevo + '»; tu contraseña no cambia.'
+          : 'Si tiene la sesión abierta, tendrá que volver a entrar con «' + nuevo + '». Su contraseña no cambia.')).then(function (si) {
+          if (si) cambiar(c, { usuario: nuevo }); else inUsuario.value = c.usuario;
+        });
+      });
+      campoUsuario.appendChild(inUsuario);
+      tdUsuario.appendChild(campoUsuario);
+      if (c.yo) tdUsuario.appendChild(el('span', 'cf-pie', 'Tú'));
+      tr.appendChild(tdUsuario);
+
+      // Nombre: se guarda al salir del campo
+      var tdNombre = el('td', 'cf-celda-control');
+      var campoNombre = el('div', 'md-campo md-campo--compacto');
+      var inNombre = el('input', 'md-campo__control');
+      inNombre.value = c.nombre;
+      inNombre.maxLength = 80;
+      inNombre.setAttribute('aria-label', 'Nombre de ' + c.usuario);
+      inNombre.addEventListener('change', function () { cambiar(c, { nombre: inNombre.value }); });
+      campoNombre.appendChild(inNombre);
+      tdNombre.appendChild(campoNombre);
+      tr.appendChild(tdNombre);
+
+      // Rol
+      var tdRol = el('td', 'cf-celda-control');
+      var campoRol = el('div', 'md-campo md-campo--compacto');
+      var selRol = el('select', 'md-campo__control');
+      ['usuario', 'administrador'].forEach(function (r) {
+        var o = el('option', '', r === 'usuario' ? 'Usuario' : 'Administrador');
+        o.value = r;
+        selRol.appendChild(o);
+      });
+      selRol.value = c.rol;
+      selRol.disabled = c.yo;
+      selRol.setAttribute('aria-label', 'Rol de ' + c.usuario);
+      if (c.yo) selRol.title = 'No puedes cambiar tu propio rol';
+      selRol.addEventListener('change', function () {
+        var nuevo = selRol.value;
+        Cf.confirmar('¿Cambiar el rol de «' + c.usuario + '» a ' + nuevo + '?' + (nuevo === 'administrador' ? '\nPodrá ver Estadísticas y Configuración y gestionar los accesos.' : '')).then(function (si) {
+          if (si) cambiar(c, { rol: nuevo }); else selRol.value = c.rol;
+        });
+      });
+      campoRol.appendChild(selRol);
+      tdRol.appendChild(campoRol);
+      tr.appendChild(tdRol);
+
+      var tdEstado = el('td');
+      tdEstado.appendChild(estados(c));
+      tr.appendChild(tdEstado);
+
+      // Caducidad
+      var tdCaduca = el('td', 'cf-celda-control');
+      var campoCaduca = el('div', 'md-campo md-campo--compacto');
+      var inCaduca = el('input', 'md-campo__control');
+      inCaduca.type = 'date';
+      inCaduca.value = c.caduca;
+      inCaduca.disabled = c.yo;
+      inCaduca.setAttribute('aria-label', 'Caducidad de ' + c.usuario);
+      inCaduca.title = c.yo ? 'No puedes cambiar tu propia caducidad' : 'Vacío: no caduca';
+      inCaduca.addEventListener('change', function () { cambiar(c, { caduca: inCaduca.value }); });
+      campoCaduca.appendChild(inCaduca);
+      tdCaduca.appendChild(campoCaduca);
+      tr.appendChild(tdCaduca);
+
+      tr.appendChild(el('td', '', c.ultimoAcceso || 'Nunca'));
+
+      // Acciones
+      var tdAcc = el('td');
+      var acc = el('div', 'cf-acciones');
+      var bActivo = Cf.boton('md-btn--text', c.activo ? 'block' : 'check_circle', c.activo ? 'Desactivar' : 'Activar',
+        c.activo ? 'Impedir que esta cuenta entre (se puede volver a activar)' : 'Dejar que esta cuenta vuelva a entrar');
+      bActivo.disabled = c.yo;
+      bActivo.addEventListener('click', function () {
+        if (!c.activo) { cambiar(c, { activo: true }, bActivo); return; }
+        Cf.confirmar('¿Desactivar la cuenta «' + c.usuario + '»?\nNo podrá entrar hasta que la actives de nuevo; si está dentro, saldrá en su siguiente acción.').then(function (si) {
+          if (si) cambiar(c, { activo: false }, bActivo);
+        });
+      });
+      acc.appendChild(bActivo);
+      if (c.bloqueadoHasta) {
+        var bDesbloquear = Cf.boton('md-btn--text', 'lock_open', 'Desbloquear', 'Quitar el bloqueo por intentos fallidos');
+        bDesbloquear.addEventListener('click', function () { cambiar(c, { desbloquear: true }, bDesbloquear); });
+        acc.appendChild(bDesbloquear);
+      }
+      var bRestablecer = Cf.boton('md-btn--text', 'key', 'Restablecer contraseña', 'Poner una contraseña temporal nueva');
+      bRestablecer.addEventListener('click', function () {
+        Cf.confirmar('¿Poner una contraseña temporal nueva a «' + c.usuario + '»?\nLa actual dejará de servir.').then(function (si) {
+          if (!si) return;
+          Cf.esperar(bRestablecer, llamar('accesosRestablecer', [c.usuario])).then(function (r) {
+            mostrarTemporal(r, 'Contraseña restablecida correctamente.');
+            cargar();
+          }, Cf.fallo);
+        });
+      });
+      acc.appendChild(bRestablecer);
+      var bEliminar = Cf.boton('md-btn--text', 'delete', 'Eliminar', c.yo ? 'No puedes eliminar tu propia cuenta' : 'Borrar esta cuenta');
+      bEliminar.disabled = c.yo;
+      bEliminar.addEventListener('click', function () {
+        Cf.confirmar('¿Eliminar la cuenta «' + c.usuario + '»?\nNo se puede deshacer; para que vuelva a entrar habría que crearla de nuevo. Si solo quieres impedir que entre, usa «Desactivar».').then(function (si) {
+          if (!si) return;
+          Cf.esperar(bEliminar, llamar('accesosEliminar', [c.usuario])).then(function () {
+            cuentas = cuentas.filter(function (x) { return x !== c; });
+            pintar();
+            Cf.avisar('Cuenta «' + c.usuario + '» eliminada correctamente.', 'ok');
+          }, Cf.fallo);
+        });
+      });
+      acc.appendChild(bEliminar);
+      tdAcc.appendChild(acc);
+      tr.appendChild(tdAcc);
+      return tr;
+    }
+
+    function pintar() {
+      var activas = cuentas.filter(function (c) { return c.activo && !c.caducada; }).length;
+      Cf.$('cfAccesosResumen').textContent = cuentas.length + (cuentas.length === 1 ? ' cuenta' : ' cuentas') + ' · ' + activas + (activas === 1 ? ' activa' : ' activas');
+      if (!cuentas.length) { pintarVacio('No hay cuentas.'); return; }
+      var tb = Cf.$('cfAccFilas');
+      tb.textContent = '';
+      cuentas.forEach(function (c) { tb.appendChild(fila(c)); });
+    }
+
+    // ---------- Nueva cuenta ----------
+    var form = Cf.$('cfAccForm'), bNueva = Cf.$('cfAccNueva');
+    function abrirForm(si) {
+      form.hidden = !si;
+      bNueva.setAttribute('aria-expanded', si ? 'true' : 'false');
+      if (si) Cf.$('cfAccUsuario').focus(); else form.reset();
+    }
+    bNueva.addEventListener('click', function () { abrirForm(form.hidden); });
+    Cf.$('cfAccCancelar').addEventListener('click', function () { abrirForm(false); });
+    form.addEventListener('submit', function (ev) {
+      ev.preventDefault();
+      var datos = { usuario: Cf.$('cfAccUsuario').value.trim(), nombre: Cf.$('cfAccNombre').value.trim(), rol: Cf.$('cfAccRol').value, caduca: Cf.$('cfAccCaduca').value };
+      Cf.esperar(Cf.$('cfAccCrear'), llamar('accesosCrear', [datos])).then(function (r) {
+        abrirForm(false);
+        mostrarTemporal(r, 'Cuenta creada correctamente.');
+        cargar();
+      }, Cf.fallo);
+    });
+    Cf.$('cfAccRecargar').addEventListener('click', function () { Cf.esperar(Cf.$('cfAccRecargar'), cargar()); });
+
+    Cf.alAbrir('cfAccesos', cargar);
+  })();
+</script>

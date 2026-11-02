@@ -269,8 +269,8 @@
       }, function (err) { avisar(err.message); });
     }
 
-    /** Lo que las pantallas pueden usar: Acceso.puede('administrador') para lo que dibujan ellas. */
-    window.Acceso = { cerrarSesion: cerrarSesion, puede: puede };
+    /** Lo que las pantallas pueden usar: Acceso.puede('administrador') para lo que dibujan ellas; Acceso.refrescar() vuelve a pedir el perfil (p. ej. tras cambiar el propio usuario). */
+    window.Acceso = { cerrarSesion: cerrarSesion, puede: puede, refrescar: refrescarPerfil };
 
     // Menú de sesión de la barra de pestañas (ui/Pestanas); la página de la HC no tiene barra.
     document.addEventListener('DOMContentLoaded', function () {

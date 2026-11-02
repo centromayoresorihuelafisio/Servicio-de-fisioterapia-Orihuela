@@ -104,9 +104,14 @@ function accesoPerfil_(usuario) {
 }
 
 /** La fecha de caducidad se cuenta entera: el acceso sirve hasta el final de ese día. */
+function accesoCaducada_(perfil) {
+  return !!perfil.caduca && Date.now() >= perfil.caduca + 24 * 3600 * 1000;
+}
+
+/** ¿Puede entrar? Activa, con rol conocido, sin caducar y, si están suspendidos los no administradores (17.9, nivel 2), administrador. */
 function accesoVigente_(perfil) {
-  return !!perfil && perfil.activo && !!ACCESO_ROLES_[perfil.rol] &&
-    (!perfil.caduca || Date.now() < perfil.caduca + 24 * 3600 * 1000);
+  return !!perfil && perfil.activo && !!ACCESO_ROLES_[perfil.rol] && !accesoCaducada_(perfil) &&
+    (perfil.rol === 'administrador' || !accesoInterruptores_().suspendidos);
 }
 
 function accesoBloqueado_(usuario, cuenta) {
@@ -176,8 +181,9 @@ function accesoIniciarSesion_(usuario, password) {
 
   const perfil = accesoPerfilDeCuenta_(cuenta);
   if (!accesoVigente_(perfil)) {
-    registroAnotar_(perfil.usuario, perfil.rol, 'login_fallido', 'Accesos', 'Cuenta desactivada o caducada', 'denegado');
-    throw new Error('Este acceso está desactivado. Habla con el administrador.');
+    const suspendido = perfil.activo && !accesoCaducada_(perfil) && accesoInterruptores_().suspendidos;
+    registroAnotar_(perfil.usuario, perfil.rol, 'login_fallido', 'Accesos', suspendido ? 'Accesos suspendidos' : 'Cuenta desactivada o caducada', 'denegado');
+    throw new Error(suspendido ? 'El acceso está suspendido por ahora. Habla con el administrador.' : 'Este acceso está desactivado. Habla con el administrador.');
   }
 
   // Solo se escribe lo que cambia: cada celda escrita alarga la entrada.

@@ -23,7 +23,9 @@ const SHEETS = {
  */
 const PROP_KEYS = {
   WHATSAPP_MESSAGE: "WHATSAPP_MESSAGE",
-  ACCESO_ITERACIONES: "ACCESO_ITERACIONES"
+  ACCESO_ITERACIONES: "ACCESO_ITERACIONES",
+  ACCESOS_SUSPENDIDOS: "ACCESOS_SUSPENDIDOS",   // plan de emergencia, nivel 2 (CONTEXTO.md, 17.9): solo entra el administrador
+  APP_CERRADA: "APP_CERRADA"                    // nivel 3: nadie entra; solo se reabre desde el editor
 };
 
 /**

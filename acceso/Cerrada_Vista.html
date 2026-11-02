@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<title>Aplicación cerrada</title>
+<!--
+  acceso/Cerrada_Vista.html
+  Aviso que sirve doGet (core/WebApp.gs) mientras la app está cerrada a todos: plan de emergencia, nivel 3 (CONTEXTO.md, 17.9).
+  No lleva portero ni datos. Se reabre desde el editor con accesoAbrirApp (acceso/Editor.gs).
+-->
+<link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600&family=Material+Symbols+Outlined:opsz,wght,FILL@20..48,300..700,0..1&display=swap" rel="stylesheet">
+<script>
+  try { var t0 = localStorage.getItem('temaApp'); if (t0 === 'oscuro' || t0 === 'claro') document.documentElement.setAttribute('data-tema', t0); } catch (err) { /* sin almacenamiento */ }
+</script>
+<style>
+<?!= include_('ui/CSS_Global'); ?>
+  body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 16px; box-sizing: border-box;
+    background: var(--md-bg); color: var(--md-on-surface); font-family: var(--font); }
+  .ce-tarjeta { display: flex; flex-direction: column; align-items: center; gap: 12px; max-width: 360px; padding: 32px; text-align: center;
+    background: var(--md-surface); border-radius: var(--md-shape-xl); box-shadow: var(--md-elev-2); }
+  .ce-tarjeta .material-symbols-outlined { font-size: 40px; color: var(--md-on-surface-med); }
+  .ce-tarjeta h1 { margin: 0; font-size: var(--fs-h); font-weight: 500; }
+  .ce-tarjeta p { margin: 0; font-size: var(--fs-md); color: var(--md-on-surface-med); }
+</style>
+</head>
+<body>
+<main class="ce-tarjeta">
+  <span class="material-symbols-outlined" aria-hidden="true">lock</span>
+  <h1>Fisioterapia Orihuela</h1>
+  <p><?= mensaje ?></p>
+</main>
+</body>
+</html>

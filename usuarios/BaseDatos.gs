@@ -125,12 +125,14 @@ function eliminarPacienteWeb_(idPaciente) {
     const sheet = ss.getSheetByName(SHEETS.MAESTRA);
     if (!sheet) return { success: false, message: `No se encontró la hoja "${SHEETS.MAESTRA}".` };
 
-    const fila = filaMaestraPorId_(sheet, idPaciente);
-    if (!fila) return { success: false, message: 'Ese usuario ya no está en Usuarios. Recarga la página.' };
+    return conBloqueoScript_(() => {
+      const fila = filaMaestraPorId_(sheet, idPaciente);
+      if (!fila) return { success: false, message: 'Ese usuario ya no está en Usuarios. Recarga la página.' };
 
-    const copias = copiaFilasMaestra_(sheet, [fila]);
-    sheet.deleteRow(fila);
-    return { success: true, message: 'Usuario eliminado correctamente.', _registro: registroCopiasMaestra_(copias) };
+      const copias = copiaFilasMaestra_(sheet, [fila]);
+      sheet.deleteRow(fila);
+      return { success: true, message: 'Usuario eliminado correctamente.', _registro: registroCopiasMaestra_(copias) };
+    });
   } catch (e) {
     Logger.log('Error en eliminarPacienteWeb: ' + e.message);
     return { success: false, message: e.message };
@@ -156,41 +158,48 @@ function eliminarPacienteWeb_(idPaciente) {
  *   cliente (incluye _fila, la fila original que ocupaba).
  */
 function restaurarPacienteWeb_(datosPaciente) {
+  let r;
   try {
-    const ss = getSS_();
-    const sheet = ss.getSheetByName(SHEETS.MAESTRA);
-    if (!sheet) return { success: false, message: `No se encontró la hoja "${SHEETS.MAESTRA}".` };
-
-    if (!datosPaciente || !datosPaciente[COLUMNAS.MAESTRA.NOMBRE]) {
-      return { success: false, message: 'No hay datos que restaurar.' };
-    }
-
-    // Idempotente: si ese ID paciente ya está en la Maestra (p. ej. se pulsó Deshacer dos veces), no se duplica la fila.
-    if (filaMaestraPorId_(sheet, datosPaciente[COLUMNAS.MAESTRA.ID_PACIENTE])) {
-      return { success: true, message: 'Ese usuario ya estaba en Usuarios.' };
-    }
-
-    const lastCol = sheet.getLastColumn();
-    const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(h => h.toString().trim());
-
-    const filaOriginal = parseInt(datosPaciente._fila, 10);
-    const fila = (filaOriginal && filaOriginal <= sheet.getLastRow() + 1) ? filaOriginal : (sheet.getLastRow() + 1);
-
-    const valores = headers.map(h => {
-      const v = datosPaciente[h];
-      return (v === undefined || v === null) ? '' : fechaTextoADate_(v);
-    });
-
-    sheet.insertRowBefore(fila);
-    sheet.getRange(fila, 1, 1, valores.length).setValues([valores]);
-
-    // Su puntuación pudo quedar obsoleta mientras estuvo eliminado: se reordena siempre (la fila volvió a su posición antigua).
-    const orden = ordenarPacientesSiProcede_([], true);
-    return { success: true, ordenado: orden.ordenado === true, message: 'Usuario restaurado correctamente.' };
+    r = conBloqueoScript_(() => restaurarPacienteSinOrden_(datosPaciente));
   } catch (e) {
     Logger.log('Error en restaurarPacienteWeb: ' + e.message);
     return { success: false, message: e.message };
   }
+  if (!r.success || r.yaEstaba) { delete r.yaEstaba; return r; }
+  // Su puntuación pudo quedar obsoleta mientras estuvo eliminado: se reordena siempre (la fila volvió a su posición antigua).
+  const orden = ordenarPacientesSiProcede_([], true);
+  return { success: true, ordenado: orden.ordenado === true, message: r.message };
+}
+
+/** Cuerpo de restaurarPacienteWeb_: vuelve a escribir la fila dentro del bloqueo. El reordenado va después, ya sin él. */
+function restaurarPacienteSinOrden_(datosPaciente) {
+  const ss = getSS_();
+  const sheet = ss.getSheetByName(SHEETS.MAESTRA);
+  if (!sheet) return { success: false, message: `No se encontró la hoja "${SHEETS.MAESTRA}".` };
+
+  if (!datosPaciente || !datosPaciente[COLUMNAS.MAESTRA.NOMBRE]) {
+    return { success: false, message: 'No hay datos que restaurar.' };
+  }
+
+  // Idempotente: si ese ID paciente ya está en la Maestra (p. ej. se pulsó Deshacer dos veces), no se duplica la fila.
+  if (filaMaestraPorId_(sheet, datosPaciente[COLUMNAS.MAESTRA.ID_PACIENTE])) {
+    return { success: true, yaEstaba: true, message: 'Ese usuario ya estaba en Usuarios.' };
+  }
+
+  const lastCol = sheet.getLastColumn();
+  const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(h => h.toString().trim());
+
+  const filaOriginal = parseInt(datosPaciente._fila, 10);
+  const fila = (filaOriginal && filaOriginal <= sheet.getLastRow() + 1) ? filaOriginal : (sheet.getLastRow() + 1);
+
+  const valores = headers.map(h => {
+    const v = datosPaciente[h];
+    return (v === undefined || v === null) ? '' : fechaTextoADate_(v);
+  });
+
+  sheet.insertRowBefore(fila);
+  sheet.getRange(fila, 1, 1, valores.length).setValues([valores]);
+  return { success: true, message: 'Usuario restaurado correctamente.' };
 }
 
 /**

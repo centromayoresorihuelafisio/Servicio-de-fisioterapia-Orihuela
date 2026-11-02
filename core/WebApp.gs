@@ -102,6 +102,7 @@ const PAGINAS_WEB = {
   agenda:        { archivo: 'agenda/Web_Vista',         titulo: 'Agenda',       pestana: { icono: 'calendar_month', ayuda: 'Ir a la Agenda' } },
   valoraciones:  { archivo: 'valoraciones/Web_Vista',   titulo: 'Valoraciones', pestana: { icono: 'monitoring', ayuda: 'Ir a Valoraciones' } },
   dashboard:     { archivo: 'dashboard/Web_Vista',      titulo: 'Estadísticas', pestana: { icono: 'dashboard', ayuda: 'Ir a Estadísticas' }, rol: 'administrador' },
+  configuracion: { archivo: 'configuracion/Web_Vista',  titulo: 'Configuración', pestana: { icono: 'settings', ayuda: 'Ir a Configuración' }, rol: 'administrador' },
   guiaVisual:    { archivo: 'ui/Guia_Visual',           titulo: 'Guía visual',      rol: 'administrador' },   // banco de pruebas visual (D-V7); sin pestaña
   pruebaAcceso:  { archivo: 'acceso/Prueba_Vista',      titulo: 'Prueba de acceso', rol: 'administrador' }    // comprobación del control de acceso (sección 17); se retira en la fase 5
 };
@@ -134,6 +135,12 @@ function incluirPestanas_(pagina) {
 }
 
 function doGet(e) {
+  // Plan de emergencia, nivel 3 (CONTEXTO.md, 17.9): con la app cerrada solo se ve un aviso. Se reabre desde el editor.
+  if (accesoInterruptores_().cerrada) {
+    const aviso = HtmlService.createTemplateFromFile('acceso/Cerrada_Vista');
+    aviso.mensaje = APP_CERRADA_MSG_;
+    return aviso.evaluate().setTitle('Aplicación cerrada').addMetaTag('viewport', 'width=device-width, initial-scale=1');
+  }
   const pedida = (e && e.parameter && e.parameter.page) || 'baseDatos';
 
   // Caso especial: ficha de historia clínica en HTML (?page=hc&id=ID_HC o &idPaciente=ID_PACIENTE).

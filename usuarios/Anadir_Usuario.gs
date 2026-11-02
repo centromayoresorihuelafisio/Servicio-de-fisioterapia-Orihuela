@@ -94,39 +94,43 @@ function guardarPaciente_(datos) {
   Logger.log('Fila preparada para insertar (nuevaFila): ' + JSON.stringify(nuevaFila));
 
   try {
-    // --- LÓGICA: Encontrar la primera fila vacía en la columna 'Nombre' (Columna B) ---
-    // Obtener todos los valores de la columna 'Nombre' (Columna B) a partir de la fila 2
-    const columnaNombre = hoja.getRange(2, encabezados.indexOf(COLUMNAS.MAESTRA.NOMBRE) + 1, hoja.getLastRow()).getValues();
-    let filaVacia = -1;
+    // Se busca la fila y se escribe dentro del bloqueo, para que dos altas a la vez no caigan en la misma fila (17.3).
+    // El reordenado va después, ya sin él: ordenarPacientes_ toma el suyo.
+    const filaVacia = conBloqueoScript_(() => {
+      // --- LÓGICA: Encontrar la primera fila vacía en la columna 'Nombre' (Columna B) ---
+      // Obtener todos los valores de la columna 'Nombre' (Columna B) a partir de la fila 2
+      const columnaNombre = hoja.getRange(2, encabezados.indexOf(COLUMNAS.MAESTRA.NOMBRE) + 1, hoja.getLastRow()).getValues();
+      let filaVacia = -1;
 
-    for (let i = 0; i < columnaNombre.length; i++) {
-      if (columnaNombre[i][0] === "") { // Si la celda está vacía
-        filaVacia = i + 2; // +2 porque el array es 0-indexado y empezamos desde la fila 2
-        break;
+      for (let i = 0; i < columnaNombre.length; i++) {
+        if (columnaNombre[i][0] === "") { // Si la celda está vacía
+          filaVacia = i + 2; // +2 porque el array es 0-indexado y empezamos desde la fila 2
+          break;
+        }
       }
-    }
 
-    // Si no se encontró ninguna fila vacía en las filas existentes, añadir al final
-    if (filaVacia === -1) {
-      filaVacia = hoja.getLastRow() + 1;
-    }
+      // Si no se encontró ninguna fila vacía en las filas existentes, añadir al final
+      if (filaVacia === -1) {
+        filaVacia = hoja.getLastRow() + 1;
+      }
 
-    Logger.log('Datos se insertarán en la fila: ' + filaVacia);
+      Logger.log('Datos se insertarán en la fila: ' + filaVacia);
 
-    // Insertar la nueva fila en la fila vacía encontrada (los teléfonos, antes, en formato texto para que Sheets no los convierta en número)
-    telefonoFormatoTexto_(hoja, filaVacia, colTel1Formato + 1);
-    telefonoFormatoTexto_(hoja, filaVacia, colTel2Formato + 1);
-    hoja.getRange(filaVacia, 1, 1, nuevaFila.length).setValues([nuevaFila]);
+      // Insertar la nueva fila en la fila vacía encontrada (los teléfonos, antes, en formato texto para que Sheets no los convierta en número)
+      telefonoFormatoTexto_(hoja, filaVacia, colTel1Formato + 1);
+      telefonoFormatoTexto_(hoja, filaVacia, colTel2Formato + 1);
+      hoja.getRange(filaVacia, 1, 1, nuevaFila.length).setValues([nuevaFila]);
 
-    // Historial (sección 11, paso 4): estado inicial del usuario nuevo (Estado, Tipo de Ingreso, Gravedad).
-    if (idPacienteNuevo) historialRegistrar_(historialCambiosEnFila_(encabezados, null, nuevaFila), 'Nuevo usuario');
+      // Historial (sección 11, paso 4): estado inicial del usuario nuevo (Estado, Tipo de Ingreso, Gravedad).
+      if (idPacienteNuevo) historialRegistrar_(historialCambiosEnFila_(encabezados, null, nuevaFila), 'Nuevo usuario');
+      return filaVacia;
+    });
 
     // --- NUEVA LÓGICA: ORDENACIÓN AUTOMÁTICA ---
     // Llamamos a la función de ordenación para que el nuevo usuario 
     // se posicione inmediatamente según su prioridad (puntuación en columna A)
-    if (typeof ordenarPacientes_ === "function") {
-      ordenarPacientes_();
-    }
+    // Si falla (p. ej. otra persona tiene el bloqueo), el usuario ya está guardado: se reordenará en el siguiente cambio.
+    try { ordenarPacientes_(); } catch (eOrd) { Logger.log('guardarPaciente_: ordenar: ' + eOrd.message); }
 
     // --- NUEVA LÓGICA: CREACIÓN DE CONTACTO EN GOOGLE ---
     // Extraemos el nombre utilizando la propiedad 'Nombre' (o alternativas si varía la mayúscula)

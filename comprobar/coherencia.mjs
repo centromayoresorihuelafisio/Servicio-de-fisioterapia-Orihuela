@@ -56,6 +56,7 @@ const API = 'acceso/Api.gs';
 const PUBLICAS = {
   doGet: 'Apps Script la exige pública', api: 'la única puerta del navegador',
   accesoPrepararHojas: 'editor', accesoComprobarPropietario: 'editor', accesoMedirIteraciones: 'editor', accesoCrearAdministrador: 'editor', accesoProbarCorreo: 'editor',
+  accesoSuspenderUsuarios: 'editor', accesoReanudarUsuarios: 'editor', accesoCerrarApp: 'editor', accesoAbrirApp: 'editor',
   configurarMensajeWhatsapp: 'editor', sincronizarContactosGoogle: 'editor', exportarProyectoAUnicoArchivo: 'editor', sembrarHistorialEstado: 'editor', verificarHistorialEstado: 'editor',
   revisarParesIdsPaciente: 'editor', asignarIdsPaciente: 'editor', revisarIdPacienteEnHC: 'editor', asignarIdPacienteEnHC: 'editor', revisarIdPacienteEnValoraciones: 'editor', asignarIdPacienteEnValoraciones: 'editor',
 };

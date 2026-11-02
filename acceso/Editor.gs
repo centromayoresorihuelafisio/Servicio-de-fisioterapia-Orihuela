@@ -86,6 +86,37 @@ function accesoCrearAdministrador() {
   Logger.log('Usuario: ' + ACCESO_ADMIN_INICIAL_ + '  Contraseña temporal: ' + temporal);
 }
 
+/** Plan de emergencia, nivel 2 (CONTEXTO.md, 17.9): solo entra el administrador. Es el mismo interruptor que hay en Configuración. */
+function accesoSuspenderUsuarios() {
+  soloPropietario_('accesoSuspenderUsuarios');
+  accesoPonerInterruptor_(PROP_KEYS.ACCESOS_SUSPENDIDOS, true);
+  Logger.log('Accesos suspendidos: solo entra el administrador. Para deshacerlo, ejecuta accesoReanudarUsuarios o usa Configuración.');
+}
+
+/** Deshace accesoSuspenderUsuarios: vuelven a entrar todas las cuentas activas. */
+function accesoReanudarUsuarios() {
+  soloPropietario_('accesoReanudarUsuarios');
+  accesoPonerInterruptor_(PROP_KEYS.ACCESOS_SUSPENDIDOS, false);
+  Logger.log('Accesos reanudados: vuelven a entrar todas las cuentas activas.');
+}
+
+/**
+ * Plan de emergencia, nivel 3 (17.9): cierra la app a todos, también al administrador. La página y api() solo dan un aviso.
+ * Para sospechas de intrusión. Solo se reabre desde aquí, con accesoAbrirApp.
+ */
+function accesoCerrarApp() {
+  soloPropietario_('accesoCerrarApp');
+  accesoPonerInterruptor_(PROP_KEYS.APP_CERRADA, true);
+  Logger.log('App cerrada a todos. Para reabrirla, ejecuta accesoAbrirApp desde este editor.');
+}
+
+/** Deshace accesoCerrarApp. */
+function accesoAbrirApp() {
+  soloPropietario_('accesoAbrirApp');
+  accesoPonerInterruptor_(PROP_KEYS.APP_CERRADA, false);
+  Logger.log('App abierta de nuevo: se entra con usuario y contraseña, como siempre.');
+}
+
 /** Acción de administrador para la página de prueba: dice si esta ejecución se reconoce como propietario. */
 function accesoDiagnostico_() {
   let propietario = true;

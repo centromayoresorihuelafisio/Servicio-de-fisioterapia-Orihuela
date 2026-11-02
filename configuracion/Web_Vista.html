@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <base target="_top">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configuración</title>
+    <!--
+      configuracion/Web_Vista.html
+      Pestaña Configuración (?page=configuracion), solo para el administrador (CONTEXTO.md, 17.10, fase 4).
+      Cada sección ampliable es un archivo propio (configuracion/Seccion_*) con su marcado y su script; para añadir una,
+      se crea el archivo y se incluye aquí. Lo común de las secciones está en el objeto Cf de abajo.
+      Las piezas (md-seccion, md-tabla, md-interruptor, md-insignia) son de ui/CSS_Global; aquí solo se coloca.
+      La seguridad está en el servidor: todas las acciones de esta página son de rol 'administrador' en api().
+    -->
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600&family=Material+Symbols+Outlined:opsz,wght,FILL@20..48,300..700,0..1&display=swap" rel="stylesheet">
+    <script>
+      // Tema guardado (misma clave 'temaApp' que el resto de pestañas), aplicado antes de pintar para que no parpadee.
+      try { var t0 = localStorage.getItem('temaApp'); if (t0 === 'oscuro' || t0 === 'claro') document.documentElement.setAttribute('data-tema', t0); } catch (err) { /* sin almacenamiento */ }
+    </script>
+    <style>
+      *, *::before, *::after { box-sizing: border-box; }
+      button, input, select, textarea { font-family: inherit; }
+      [hidden] { display: none !important; }
+      <?!= include_('ui/CSS_Global'); ?>
+      body { margin: 0; background: var(--md-bg); color: var(--md-on-surface); font-family: var(--font); font-size: var(--fs-md); line-height: 1.4; }
+      .cf-pagina { max-width: 1280px; margin: 0 auto; padding: 1rem; display: grid; grid-template-columns: minmax(0, 1fr); gap: 1rem; }   /* minmax(0): una tabla ancha se desplaza dentro de su marco */
+      .cf-texto { margin: 0 0 .9rem; color: var(--md-on-surface-med); font-size: var(--fs-sm); max-width: 80ch; }
+      .cf-barra { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; margin-bottom: .9rem; }
+      .cf-formulario { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: .75rem; align-items: start; margin-bottom: 1rem; }
+      .cf-formulario .cf-botones { grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: .5rem; }
+      .cf-acciones { display: flex; flex-wrap: wrap; gap: .25rem; }
+      .cf-estados { display: flex; flex-wrap: wrap; gap: .25rem; }
+      .cf-detalle { min-width: 28ch; }
+      .cf-celda-control { min-width: 140px; }
+      .cf-pie { margin: .6rem 0 0; font-size: var(--fs-xs); color: var(--md-on-surface-med); }
+      .cf-lista { margin: 0; padding-left: 1.2rem; display: grid; gap: .5rem; font-size: var(--fs-sm); }
+      .cf-lista strong { color: var(--md-on-surface); }
+      .cf-lista .cf-barra { margin: .5rem 0 0; }
+      .cf-lista code { font-family: var(--font-mono); font-size: var(--fs-xs); }
+    </style>
+  </head>
+  <body>
+    <?!= incluirAcceso_('configuracion'); ?>
+    <?!= incluirPestanas_('configuracion'); ?>
+    <header class="top">
+      <div class="cabecera-fila">
+        <h1 class="cabecera-titulo"><span class="material-symbols-outlined">settings</span> Configuración</h1>
+        <span class="cabecera-espacio"></span>
+        <button type="button" class="btn-toolbar btn-nav" id="btnTema" title="Cambiar tema"></button>
+      </div>
+    </header>
+    <?!= include_('ui/Modal_Deshacer'); ?>
+    <script>
+      <?!= include_('ui/JS_Modal_Deshacer'); ?>
+
+      /** Lo común de las secciones de Configuración. */
+      var Cf = (function () {
+        function $(id) { return document.getElementById(id); }
+
+        /** Crea un elemento con clase y texto (el texto nunca se interpreta como HTML). */
+        function el(etiqueta, clase, texto) {
+          var e = document.createElement(etiqueta);
+          if (clase) e.className = clase;
+          if (texto !== undefined && texto !== null) e.textContent = texto;
+          return e;
+        }
+
+        function icono(nombre) {
+          var s = el('span', 'material-symbols-outlined', nombre);
+          s.setAttribute('aria-hidden', 'true');
+          return s;
+        }
+
+        function boton(clase, nombreIcono, texto, ayuda) {
+          var b = el('button', 'md-btn ' + clase);
+          b.type = 'button';
+          if (nombreIcono) b.appendChild(icono(nombreIcono));
+          b.appendChild(document.createTextNode(texto));
+          if (ayuda) b.title = ayuda;
+          return b;
+        }
+
+        function insignia(tono, texto) { return el('span', 'md-insignia' + (tono ? ' md-insignia--' + tono : ''), texto); }
+
+        /** Aviso breve abajo (.toasts / .toast-aviso de ui/CSS_Global), con su icono según el tono. */
+        function avisar(texto, tono) {
+          var caja = document.querySelector('.toasts');
+          if (!caja) { caja = el('div', 'toasts'); document.body.appendChild(caja); }
+          var t = el('div', 'toast-aviso' + (tono === 'error' ? ' error' : ''));
+          t.setAttribute('role', tono === 'error' ? 'alert' : 'status');
+          var tonoFinal = tono || tonoAviso_(texto);
+          if (tonoFinal) t.appendChild(iconoAviso_(tonoFinal));
+          t.appendChild(document.createTextNode(texto));
+          caja.appendChild(t);
+          setTimeout(function () { t.classList.add('saliendo'); setTimeout(function () { t.remove(); }, 400); }, tono === 'error' ? 8000 : 5000);
+        }
+
+        function fallo(err) { avisar(err && err.message ? err.message : String(err), 'error'); }
+
+        /** Pone un botón en espera mientras dura la promesa. */
+        function esperar(b, promesa) {
+          if (b) b.setAttribute('aria-busy', 'true');
+          return promesa.then(function (r) { if (b) b.removeAttribute('aria-busy'); return r; },
+            function (err) { if (b) b.removeAttribute('aria-busy'); throw err; });
+        }
+
+        /** Una sección carga sus datos la primera vez que se abre (y al abrir la página si ya está abierta). */
+        function alAbrir(idSeccion, cargar) {
+          var d = $(idSeccion), cargada = false;
+          function mirar() { if (d.open && !cargada) { cargada = true; cargar(); } }
+          d.addEventListener('toggle', mirar);
+          document.addEventListener('DOMContentLoaded', mirar);
+        }
+
+        return { $: $, el: el, icono: icono, boton: boton, insignia: insignia, avisar: avisar, fallo: fallo, esperar: esperar, alAbrir: alAbrir,
+          confirmar: mostrarConfirm, mensaje: mostrarAviso };
+      })();
+    </script>
+    <main class="cf-pagina">
+      <?!= include_('configuracion/Seccion_Accesos'); ?>
+      <?!= include_('configuracion/Seccion_Registro'); ?>
+      <?!= include_('configuracion/Seccion_Emergencia'); ?>
+    </main>
+    <script>
+      // ---------- Tema: automático / oscuro / claro (compartido con las otras pestañas, clave 'temaApp') ----------
+      (function () {
+        var TEMAS = ['auto', 'oscuro', 'claro'], ICONOS_TEMA = { auto: 'contrast', oscuro: 'dark_mode', claro: 'light_mode' };
+        var b = Cf.$('btnTema');
+        function aplicarTema(t, guardar) {
+          if (t === 'auto') document.documentElement.removeAttribute('data-tema'); else document.documentElement.setAttribute('data-tema', t);
+          b.textContent = '';
+          b.appendChild(Cf.icono(ICONOS_TEMA[t]));
+          b.title = 'Tema: ' + t + ' (clic para cambiar)';
+          b.dataset.tema = t;
+          if (guardar) { try { localStorage.setItem('temaApp', t); } catch (err) { /* sin almacenamiento */ } }
+        }
+        b.addEventListener('click', function () { aplicarTema(TEMAS[(TEMAS.indexOf(b.dataset.tema || 'auto') + 1) % TEMAS.length], true); });
+        var t = 'auto';
+        try { t = localStorage.getItem('temaApp') || 'auto'; } catch (err) { /* sin almacenamiento */ }
+        aplicarTema(TEMAS.indexOf(t) === -1 ? 'auto' : t, false);
+      })();
+    </script>
+    <?!= include_('ui/JS_Selector_Fecha'); ?>
+  </body>
+</html>

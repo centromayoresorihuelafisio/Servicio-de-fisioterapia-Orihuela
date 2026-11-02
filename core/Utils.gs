@@ -301,3 +301,20 @@ function textoSinEmoji_(valor) {
   const s = String(valor === null || valor === undefined ? '' : valor).trim();
   return s.replace(/^[^\p{L}\p{N}]+/u, '').trim() || s;
 }
+
+/**
+ * Ejecuta `fn` con el bloqueo del script, para que dos personas no escriban la misma hoja a la vez (17.3, punto 13).
+ * No se debe llamar desde código que ya tenga el bloqueo (no se sabe si admite reentrada): por eso los guardados
+ * reordenan DESPUÉS de soltarlo, con ordenarPacientesSiProcede_ u ordenarPacientes_, que toma el suyo.
+ */
+function conBloqueoScript_(fn) {
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(10000)) throw new Error('Otra persona está guardando cambios ahora mismo. Espera unos segundos y vuelve a intentarlo.');
+  try {
+    const r = fn();
+    SpreadsheetApp.flush();
+    return r;
+  } finally {
+    lock.releaseLock();
+  }
+}

@@ -1,6 +1,5 @@
 // acceso/Api.gs
 // Puerta única del navegador: api(token, accion, datos). Plan y reglas en CONTEXTO.md, sección 17.
-// Las pantallas se van pasando aquí por bloques (17.10): lo que aún no está en la lista sigue abierto hasta acabar la fase 2.
 // ================================================================================
 
 /**
@@ -86,7 +85,18 @@ function accesoAcciones_() {
     obtenerRecordatoriosWeb:        { fn: obtenerRecordatoriosWeb_, rol: 'usuario', renueva: false },
     guardarRecordatorioWeb:         { fn: guardarRecordatorioWeb_, rol: 'usuario' },
     alternarRecordatorioWeb:        { fn: alternarRecordatorioWeb_, rol: 'usuario' },
-    eliminarRecordatorioWeb:        { fn: eliminarRecordatorioWeb_, rol: 'usuario' }
+    eliminarRecordatorioWeb:        { fn: eliminarRecordatorioWeb_, rol: 'usuario' },
+
+    // Configuración (acceso/Administrar.gs). Nunca se anota una contraseña: las temporales solo van a la pantalla.
+    accesosListar:            { fn: accesosListar_, rol: 'administrador' },
+    accesosCrear:             { fn: accesosCrear_, rol: 'administrador', registrar: true, entidad: a => a[0] && a[0].usuario, detalle: a => 'rol: ' + (a[0] && a[0].rol) + (a[0] && a[0].caduca ? '; caduca: ' + a[0].caduca : '') },
+    accesosCambiar:           { fn: accesosCambiar_, rol: 'administrador', registrar: true, entidad: a => a[0], detalle: (a, r) => r && r.detalle },
+    accesosRestablecer:       { fn: accesosRestablecer_, rol: 'administrador', registrar: true, entidad: a => a[0], detalle: () => 'contraseña temporal nueva' },
+    accesosEliminar:          { fn: accesosEliminar_, rol: 'administrador', registrar: true, entidad: a => a[0], detalle: (a, r) => r && r.detalle },
+    registroConsultar:        { fn: registroConsultar_, rol: 'administrador' },
+    registroRecuperarUsuario: { fn: registroRecuperarUsuario_, rol: 'administrador', registrar: true, entidad: (a, r) => r && r.idPaciente, detalle: (a, r) => 'desde la fila ' + a[0] + ' de Registro' + (r && r.nombre ? ': ' + r.nombre : '') },
+    interruptoresLeer:        { fn: interruptoresLeer_, rol: 'administrador' },
+    suspenderUsuarios:        { fn: interruptorSuspender_, rol: 'administrador', registrar: true, entidad: () => 'Accesos', detalle: a => a[0] === true ? 'suspender a los no administradores' : 'reanudar a los no administradores' }
   };
 }
 
@@ -123,6 +133,8 @@ function api(token, accion, datos) {
   const args = Array.isArray(datos) ? datos : [];
   let sesion = null;
   try {
+    // Plan de emergencia, nivel 3 (17.9): con la app cerrada no se atiende nada, ni siquiera el login.
+    if (accesoInterruptores_().cerrada) return { ok: false, error: APP_CERRADA_MSG_, codigo: 'CERRADA' };
     const acciones = accesoAcciones_();
     const def = Object.prototype.hasOwnProperty.call(acciones, nombre) ? acciones[nombre] : null;
     sesion = apiResolverSesion_(token);

@@ -8,7 +8,7 @@
 <!--
   ui/Guia_Visual.html
   Banco de pruebas visual (decisión D-V7, fase V7): muestra en una sola página todos los componentes del sistema de diseño
-  (colores, letra, botones, campos, chips, avisos, cuadro de diálogo, tarjetas, sombras, carga, ritmos) tal como los define ui/CSS_Global.
+  (colores, letra, botones, campos, chips, avisos, cuadro de diálogo, secciones, tablas, interruptores, sombras, carga, ritmos) tal como los define ui/CSS_Global.
   Sirve para revisar de un vistazo, en claro y en oscuro, que todo sigue igual tras cualquier cambio de estilo.
   Se abre con ?page=guiaVisual (core/WebApp.gs); no tiene pestaña. No lee ni escribe datos.
   El conmutador de tema de arriba solo afecta a esta página: lee el tema guardado ('temaApp') al abrir, pero no lo cambia.
@@ -131,7 +131,7 @@
 
   <section class="gv-sec">
     <h2>Barra de pestañas y menú de sesión</h2>
-    <p>La barra común (ui/Pestanas) de verdad, con tu sesión: Estadísticas solo se ve con el rol administrador. Debajo, el aviso de «Ver como usuario» y el menú abierto, de muestra.</p>
+    <p>La barra común (ui/Pestanas) de verdad, con tu sesión: Estadísticas y Configuración solo se ven con el rol administrador. Debajo, el aviso de «Ver como usuario» y el menú abierto, de muestra.</p>
     <?!= incluirPestanas_(''); ?>
     <nav class="tabs-cambio" aria-label="Muestra con «Ver como usuario»" style="margin-top:16px;padding-bottom:150px">
       <a class="tab-cambio activo"><span class="material-symbols-outlined" aria-hidden="true">folder_shared</span>Usuarios</a>
@@ -261,6 +261,32 @@ Se podrá deshacer durante unos segundos.</p>
         </div>
       </div>
     </div>
+  </section>
+
+  <section class="gv-sec">
+    <h2>Sección ampliable, tabla, interruptor y etiquetas de estado</h2>
+    <p>Las piezas de Configuración (?page=configuracion), listas para cualquier pantalla nueva: sección que se abre y se cierra, tabla de datos con botones bajos en las filas, interruptor de sí o no y etiquetas de estado de cada tono.</p>
+    <details class="md-seccion" open>
+      <summary><span class="material-symbols-outlined" aria-hidden="true">manage_accounts</span>Sección de ejemplo <small>resumen breve</small><span class="material-symbols-outlined md-seccion__chev" aria-hidden="true">expand_more</span></summary>
+      <div class="md-seccion__cuerpo" style="display:grid;gap:16px">
+        <div class="md-tabla-marco">
+          <table class="md-tabla">
+            <thead><tr><th>Usuario</th><th>Estado</th><th>Detalle</th><th>Acciones</th></tr></thead>
+            <tbody>
+              <tr><td>FisioCMO2</td><td><span class="md-insignia md-insignia--ok">Activa</span> <span class="md-insignia md-insignia--neutra">Contraseña temporal</span></td><td class="md-tabla__mono">rol: usuario</td><td><button type="button" class="md-btn md-btn--text"><span class="material-symbols-outlined" aria-hidden="true">key</span>Restablecer contraseña</button></td></tr>
+              <tr><td>ejemplo</td><td><span class="md-insignia md-insignia--error">Desactivada</span> <span class="md-insignia md-insignia--aviso">Bloqueada hasta las 10:30</span></td><td class="md-tabla__mono">{"campo":"Motivo","antes":0,"despues":120}</td><td><button type="button" class="md-btn md-btn--text"><span class="material-symbols-outlined" aria-hidden="true">check_circle</span>Activar</button></td></tr>
+              <tr><td colspan="4" class="md-tabla__vacia">Fila de «no hay datos»</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="gv-fila">
+          <label class="md-interruptor"><input type="checkbox" role="switch"><span class="md-interruptor__pista"></span>Interruptor apagado</label>
+          <label class="md-interruptor"><input type="checkbox" role="switch" checked><span class="md-interruptor__pista"></span>Interruptor encendido</label>
+          <label class="md-interruptor"><input type="checkbox" role="switch" disabled><span class="md-interruptor__pista"></span>Desactivado</label>
+          <span class="md-insignia">Sin tono</span>
+        </div>
+      </div>
+    </details>
   </section>
 
   <section class="gv-sec">

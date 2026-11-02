@@ -1,0 +1,56 @@
+<!--
+  configuracion/Seccion_Emergencia.html
+  Sección «Emergencia» de Configuración: el interruptor del nivel 2 del plan de emergencia (suspender a los no
+  administradores, acción suspenderUsuarios) y un recordatorio de los demás niveles (CONTEXTO.md, 17.9).
+  El nivel 3 (cerrar la app a todos) no está aquí a propósito: solo se cambia desde el editor.
+-->
+<details class="md-seccion" id="cfEmergencia">
+  <summary><span class="material-symbols-outlined" aria-hidden="true">emergency_home</span>Emergencia <small id="cfEmeResumen">si algo va mal</small><span class="material-symbols-outlined md-seccion__chev" aria-hidden="true">expand_more</span></summary>
+  <div class="md-seccion__cuerpo">
+    <p class="cf-texto">Ninguna de estas opciones deja la aplicación abierta sin contraseña. Van de menos a más grave.</p>
+    <ol class="cf-lista">
+      <li><strong>Desactivar a una persona.</strong> En «Accesos», «Desactivar». Desde el móvil, en la hoja «Accesos», pon su columna <code>activo</code> en FALSO (tarda hasta 1 minuto).</li>
+      <li>
+        <strong>Suspender a todos menos al administrador.</strong> Solo podrás entrar tú; quien esté dentro saldrá en su siguiente acción. También desde el editor: <code>accesoSuspenderUsuarios</code> y <code>accesoReanudarUsuarios</code>.
+        <div class="cf-barra">
+          <label class="md-interruptor"><input type="checkbox" role="switch" id="cfEmeSuspender" disabled><span class="md-interruptor__pista"></span><span id="cfEmeSuspenderTexto">Cargando…</span></label>
+        </div>
+      </li>
+      <li><strong>Cerrar la aplicación a todos, también a ti.</strong> Para una sospecha de intrusión. Solo desde el editor de Apps Script, con ordenador: <code>accesoCerrarApp</code> para cerrarla y <code>accesoAbrirApp</code> para reabrirla.</li>
+      <li><strong>Volver a una versión anterior con contraseña.</strong> Si una versión nueva falla: Implementar › Administrar implementaciones › editar › elegir la versión. La dirección no cambia y los datos no se tocan. Nunca elijas una versión anterior al control de acceso: la aplicación quedaría abierta a cualquiera.</li>
+    </ol>
+  </div>
+</details>
+<script>
+  (function () {
+    var interruptor = Cf.$('cfEmeSuspender');
+
+    function pintar(estado) {
+      interruptor.checked = !!estado.suspendidos;
+      interruptor.disabled = false;
+      Cf.$('cfEmeSuspenderTexto').textContent = estado.suspendidos ? 'Suspendidos: solo entra el administrador' : 'Todos pueden entrar';
+      Cf.$('cfEmeResumen').textContent = estado.suspendidos ? 'accesos suspendidos' : 'si algo va mal';
+    }
+
+    function cargar() {
+      llamar('interruptoresLeer').then(pintar, function (err) { Cf.$('cfEmeSuspenderTexto').textContent = err.message; });
+    }
+
+    interruptor.addEventListener('change', function () {
+      var suspender = interruptor.checked;
+      interruptor.checked = !suspender;   // no cambia hasta que se confirme y lo diga el servidor
+      Cf.confirmar(suspender
+        ? '¿Suspender a todos menos al administrador?\nNadie más podrá entrar hasta que lo vuelvas a quitar.'
+        : '¿Dejar que vuelvan a entrar todas las cuentas activas?').then(function (si) {
+        if (!si) return;
+        interruptor.disabled = true;
+        llamar('suspenderUsuarios', [suspender]).then(function (estado) {
+          pintar(estado);
+          Cf.avisar(estado.suspendidos ? 'Accesos suspendidos: solo entra el administrador.' : 'Accesos reanudados: ya pueden entrar todos.', 'ok');
+        }, function (err) { interruptor.disabled = false; Cf.fallo(err); });
+      });
+    });
+
+    Cf.alAbrir('cfEmergencia', cargar);
+  })();
+</script>

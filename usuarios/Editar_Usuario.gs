@@ -34,6 +34,14 @@ function obtenerDatosEdicionPaciente_(idPaciente) {
  * Procesa la actualización de los datos en la hoja de cálculo.
  */
 function actualizarPaciente_(updatedData, idPaciente) {
+  // Se escribe dentro del bloqueo (dos personas a la vez, 17.3) y se reordena después, ya sin él.
+  const r = conBloqueoScript_(() => actualizarPacienteSinOrden_(updatedData, idPaciente));
+  ordenarPacientesSiProcede_(r.cambiosHistorial, r.fechasCambian);
+  return true;
+}
+
+/** Cuerpo de actualizarPaciente_: reescribe la fila y anota el historial. Devuelve lo que decide si hay que reordenar. */
+function actualizarPacienteSinOrden_(updatedData, idPaciente) {
   const ss = getSS_();
   const sheet = ss.getSheetByName(SHEETS.MAESTRA);
   // La fila se localiza por el ID paciente (no por un número de fila que pudo cambiar al reordenar).
@@ -120,8 +128,5 @@ function actualizarPaciente_(updatedData, idPaciente) {
   const idxFechas = [headers.indexOf(COLUMNAS.MAESTRA.FECHA_INSCRIPCION), headers.findIndex(h => normCab(h).includes("ultima visita"))].filter(i => i !== -1);
   const claveFecha = (v) => { const d = parseFecha_(v); return d ? d.getTime() : String(v === null || v === undefined ? '' : v).trim(); };
   const fechasCambian = idxFechas.some(i => claveFecha(filaAntesHistorial[i]) !== claveFecha(newRowValues[i]));
-  ordenarPacientesSiProcede_(cambiosHistorial, fechasCambian);
-
-  ss.toast("Datos actualizados y guardados en la hoja.", "Éxito", 4);
-  return true;
+  return { cambiosHistorial: cambiosHistorial, fechasCambian: fechasCambian };
 }

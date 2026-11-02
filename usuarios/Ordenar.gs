@@ -4,8 +4,14 @@
  * Quien edite un campo que cuenta en la puntuación sin pasar por aquí debe llamar a ordenarPacientesSiProcede_ DESPUÉS de
  * soltar su LockService (no se sabe si el bloqueo admite reentrada). Solo se pueden dejar sin reordenar los cambios que no
  * tocan Estado, Tipo de ingreso, Gravedad, Fecha de inscripción ni Última visita.
+ * Toma el bloqueo de la Maestra (conBloqueoScript_, core/Utils.gs): nadie escribe usuarios mientras se reordena.
  */
 function ordenarPacientes_() {
+  return conBloqueoScript_(ordenarPacientesEnBloqueo_);
+}
+
+/** Cuerpo de ordenarPacientes_, ya dentro del bloqueo. */
+function ordenarPacientesEnBloqueo_() {
   const ss = getSS_();
   const sheet = ss.getSheetByName(SHEETS.MAESTRA);
   if (!sheet) return { success: false, message: 'No se encontró la hoja "' + SHEETS.MAESTRA + '".' };

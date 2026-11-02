@@ -10,7 +10,7 @@ function darDeAltaPacienteWeb_(idPaciente) {
   if (!rowIdx) return { success: false, message: "Ese usuario ya no está en Usuarios. Recarga la página." };
 
   const resultado = ejecutarAltaEnFila_(sheet, rowIdx);
-  if (resultado.success) ordenarPacientes_();
+  if (resultado.success) { try { ordenarPacientes_(); } catch (eOrd) { Logger.log('darDeAltaPacienteWeb_: ordenar: ' + eOrd.message); } }
   return resultado;
 }
 

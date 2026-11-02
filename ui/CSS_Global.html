@@ -435,6 +435,67 @@
       .buscador input::placeholder { color: var(--md-on-surface-low); }
       .buscador .material-symbols-outlined { color: var(--md-on-surface-low); font-size: 18px; }
 
+      /* --- Piezas de Configuracion (fase 4 de la seccion 17, 2-nov-2026); sirven para cualquier pantalla nueva ---
+         Seccion ampliable:  <details class="md-seccion"><summary><span class="material-symbols-outlined">icono</span>
+                               Titulo <small>resumen</small><span class="material-symbols-outlined md-seccion__chev">expand_more</span>
+                             </summary><div class="md-seccion__cuerpo">...</div></details>
+         Tabla de datos:     <div class="md-tabla-marco"><table class="md-tabla">...</table></div>
+         Interruptor:        <label class="md-interruptor"><input type="checkbox" role="switch"><span class="md-interruptor__pista"></span>Texto</label>
+         Etiqueta de estado: <span class="md-insignia md-insignia--ok">Activa</span> (--aviso, --error, --neutra) */
+      details.md-seccion { background: var(--md-surface); border: 1px solid var(--md-outline); border-radius: var(--md-shape-md); }
+      details.md-seccion > summary {
+        list-style: none; cursor: pointer; display: flex; align-items: center; gap: .6rem; padding: .8rem 1rem;
+        border-radius: var(--md-shape-md); font-size: var(--fs-title); font-weight: 600; color: var(--md-on-surface);
+      }
+      details.md-seccion > summary::-webkit-details-marker { display: none; }
+      details.md-seccion > summary:hover { background: var(--md-surface-variant); }
+      details.md-seccion > summary:focus-visible { outline-offset: -2px; }
+      details.md-seccion > summary .material-symbols-outlined { font-size: 22px; color: var(--md-primary); }
+      details.md-seccion > summary small { font-size: var(--fs-xs); font-weight: 400; color: var(--md-on-surface-med); }
+      details.md-seccion > summary .md-seccion__chev { margin-left: auto; font-size: 20px; color: var(--md-on-surface-med); transition: transform var(--dur-2) var(--ease); }
+      details.md-seccion[open] > summary .md-seccion__chev { transform: rotate(180deg); }
+      details.md-seccion[open] > summary { border-bottom: 1px solid var(--md-outline); border-radius: var(--md-shape-md) var(--md-shape-md) 0 0; }
+      .md-seccion__cuerpo { padding: 1rem; }
+
+      .md-tabla-marco { overflow-x: auto; border: 1px solid var(--md-outline); border-radius: var(--md-shape-sm); }
+      table.md-tabla { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); color: var(--md-on-surface); }
+      table.md-tabla th {
+        position: sticky; top: 0; text-align: left; font-weight: 600; font-size: var(--fs-xs); color: var(--md-on-surface-med);
+        padding: .5rem .6rem; background: var(--md-surface-variant); border-bottom: 1px solid var(--md-outline); white-space: nowrap;
+      }
+      table.md-tabla td { padding: .45rem .6rem; border-bottom: 1px solid var(--md-outline); vertical-align: top; }
+      table.md-tabla tr:last-child td { border-bottom: none; }
+      table.md-tabla tbody tr:hover td { background: color-mix(in srgb, var(--md-primary) 4%, transparent); }
+      table.md-tabla .md-tabla__vacia { padding: 1.2rem; text-align: center; color: var(--md-on-surface-med); }
+      table.md-tabla .md-btn { height: 32px; }   /* botones dentro de una fila: mas bajos, para no ensanchar la tabla */
+      table.md-tabla .md-tabla__mono { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--md-on-surface-med); word-break: break-word; }
+
+      .md-interruptor { display: inline-flex; align-items: center; gap: .7rem; cursor: pointer; font-size: var(--fs-md); color: var(--md-on-surface); user-select: none; }
+      .md-interruptor input { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; }
+      .md-interruptor__pista {
+        position: relative; flex: none; width: 40px; height: 24px; box-sizing: border-box; border-radius: var(--md-shape-full);
+        background: var(--md-surface-variant); border: 2px solid var(--md-outline-strong);
+        transition: background-color var(--dur-2) var(--ease), border-color var(--dur-2) var(--ease);
+      }
+      .md-interruptor__pista::after {
+        content: ""; position: absolute; top: 3px; left: 3px; width: 14px; height: 14px; border-radius: 50%;
+        background: var(--md-outline-strong); transition: transform var(--dur-2) var(--ease), background-color var(--dur-2) var(--ease);
+      }
+      .md-interruptor input:checked + .md-interruptor__pista { background: var(--md-primary); border-color: var(--md-primary); }
+      .md-interruptor input:checked + .md-interruptor__pista::after { transform: translateX(16px); background: var(--md-on-primary); }
+      .md-interruptor input:focus-visible + .md-interruptor__pista { outline: 2px solid var(--md-primary); outline-offset: 2px; }
+      .md-interruptor input:disabled + .md-interruptor__pista { opacity: .38; }
+      .md-interruptor:has(input:disabled) { cursor: default; }
+
+      .md-insignia {
+        display: inline-flex; align-items: center; gap: .25rem; padding: .1rem .55rem; border-radius: var(--md-shape-full);
+        font-size: var(--fs-xs); font-weight: 600; white-space: nowrap; background: var(--md-surface-variant); color: var(--md-on-surface-med);
+      }
+      .md-insignia--ok     { background: var(--md-success-bg); color: var(--md-success); }
+      .md-insignia--aviso  { background: var(--md-warning-bg); color: var(--md-warning-text); }
+      .md-insignia--error  { background: var(--md-error-bg); color: var(--md-error); }
+      .md-insignia--neutra { background: var(--md-primary-light); color: var(--md-primary-dark); }
+
       /* --- Reducir movimiento (V2): una sola llave. Las cuatro duraciones pasan a casi 0 y todo lo que
              usa --dur-* lo respeta. El girador sigue girando (es informacion), mas despacio. --- */
       @media (prefers-reduced-motion: reduce) {

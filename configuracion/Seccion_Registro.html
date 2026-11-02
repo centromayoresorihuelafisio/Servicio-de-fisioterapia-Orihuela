@@ -1,0 +1,126 @@
+<!--
+  configuracion/Seccion_Registro.html
+  Sección «Registro» de Configuración: las filas de la hoja "Registro", de la más reciente a la más antigua, con filtros que
+  aplica el servidor (registroConsultar_, acceso/Administrar.gs: como mucho 200 filas y solo las recientes).
+  En las filas de un usuario eliminado, «Recuperar usuario» lo vuelve a añadir a Usuarios con su copia (decisión 2 de 17.8).
+-->
+<details class="md-seccion" id="cfRegistro">
+  <summary><span class="material-symbols-outlined" aria-hidden="true">history</span>Registro <small>quién hizo qué y cuándo</small><span class="material-symbols-outlined md-seccion__chev" aria-hidden="true">expand_more</span></summary>
+  <div class="md-seccion__cuerpo">
+    <p class="cf-texto">Entradas y salidas, acciones denegadas, cambios de accesos, usuarios añadidos, eliminados o dados de alta, cambios en las historias clínicas, citas borradas y herramientas usadas. Se ven las más recientes primero; para ir más atrás, pon una fecha «Desde».</p>
+    <form class="cf-formulario" id="cfRegForm">
+      <div class="md-campo md-campo--compacto">
+        <input type="date" class="md-campo__control" id="cfRegDesde" placeholder=" ">
+        <label class="md-campo__etiqueta" for="cfRegDesde">Desde</label>
+      </div>
+      <div class="md-campo md-campo--compacto">
+        <input type="date" class="md-campo__control" id="cfRegHasta" placeholder=" ">
+        <label class="md-campo__etiqueta" for="cfRegHasta">Hasta</label>
+      </div>
+      <div class="md-campo md-campo--compacto">
+        <select class="md-campo__control" id="cfRegUsuario"><option value="">Todos</option></select>
+        <label class="md-campo__etiqueta" for="cfRegUsuario">Usuario</label>
+      </div>
+      <div class="md-campo md-campo--compacto">
+        <select class="md-campo__control" id="cfRegAccion"><option value="">Todas</option></select>
+        <label class="md-campo__etiqueta" for="cfRegAccion">Acción</label>
+      </div>
+      <div class="md-campo md-campo--compacto">
+        <input class="md-campo__control" id="cfRegTexto" placeholder=" " maxlength="100">
+        <label class="md-campo__etiqueta" for="cfRegTexto">Contiene (entidad o detalle)</label>
+      </div>
+      <div class="cf-botones">
+        <button type="button" class="md-btn md-btn--text" id="cfRegQuitar"><span class="material-symbols-outlined" aria-hidden="true">filter_alt_off</span>Quitar filtros</button>
+        <button type="submit" class="md-btn md-btn--tonal" id="cfRegBuscar"><span class="material-symbols-outlined" aria-hidden="true">search</span>Buscar registros</button>
+      </div>
+    </form>
+    <div class="md-tabla-marco">
+      <table class="md-tabla">
+        <thead><tr><th>Fecha</th><th>Usuario</th><th>Rol</th><th>Acción</th><th>Entidad</th><th>Detalle</th><th>Resultado</th><th></th></tr></thead>
+        <tbody id="cfRegFilas"><tr><td colspan="8" class="md-tabla__vacia"><span class="md-girador" role="status" aria-label="Cargando"></span></td></tr></tbody>
+      </table>
+    </div>
+    <p class="cf-pie" id="cfRegPie" role="status"></p>
+  </div>
+</details>
+<script>
+  (function () {
+    var el = Cf.el;
+    var TONO = { ok: 'ok', aviso: 'aviso', denegado: 'error', error: 'error' };
+
+    function filtros() {
+      return { desde: Cf.$('cfRegDesde').value, hasta: Cf.$('cfRegHasta').value, usuario: Cf.$('cfRegUsuario').value,
+        accion: Cf.$('cfRegAccion').value, texto: Cf.$('cfRegTexto').value.trim() };
+    }
+
+    /** Rellena un desplegable conservando lo elegido (aunque no esté entre lo leído esta vez). */
+    function opciones(sel, valores) {
+      var elegido = sel.value, primero = sel.options[0];
+      sel.textContent = '';
+      sel.appendChild(primero);
+      var lista = valores.slice();
+      if (elegido && lista.indexOf(elegido) === -1) lista.unshift(elegido);
+      lista.forEach(function (v) { var o = el('option', '', v); o.value = v; sel.appendChild(o); });
+      sel.value = elegido;
+    }
+
+    function pintarVacio(texto) {
+      var tb = Cf.$('cfRegFilas');
+      tb.textContent = '';
+      var tr = el('tr'), td = el('td', 'md-tabla__vacia', texto);
+      td.colSpan = 8;
+      tr.appendChild(td);
+      tb.appendChild(tr);
+    }
+
+    function recuperar(f, boton) {
+      var quien = f.nombreCopia ? '«' + f.nombreCopia + '»' : 'este usuario';
+      Cf.confirmar('¿Volver a añadir a ' + quien + ' a Usuarios, con los datos que tenía al eliminarlo?\nSi ya está en Usuarios, no se duplica. El enlace de su historia clínica vuelve como texto.').then(function (si) {
+        if (!si) return;
+        Cf.esperar(boton, llamar('registroRecuperarUsuario', [f.fila])).then(function (r) {
+          if (r && r.success === false) { Cf.avisar(r.message, 'error'); return; }
+          Cf.avisar(r && r.message ? r.message : 'Usuario restaurado correctamente.');
+          buscar();
+        }, Cf.fallo);
+      });
+    }
+
+    function pintar(r) {
+      opciones(Cf.$('cfRegUsuario'), r.usuarios || []);
+      opciones(Cf.$('cfRegAccion'), r.acciones || []);
+      var filas = r.filas || [];
+      Cf.$('cfRegPie').textContent = filas.length ? (filas.length + (filas.length === 1 ? ' fila' : ' filas') + (r.hayMas ? '. Hay más antiguas: acota con los filtros o pon una fecha «Desde».' : '.')) : '';
+      if (!filas.length) { pintarVacio('No hay filas con esos filtros.'); return; }
+      var tb = Cf.$('cfRegFilas');
+      tb.textContent = '';
+      filas.forEach(function (f) {
+        var tr = el('tr');
+        tr.appendChild(el('td', '', f.fecha));
+        tr.appendChild(el('td', '', f.usuario));
+        tr.appendChild(el('td', '', f.rol));
+        tr.appendChild(el('td', '', f.accion));
+        tr.appendChild(el('td', 'md-tabla__mono', f.entidad));
+        tr.appendChild(el('td', 'md-tabla__mono cf-detalle', f.detalle));
+        var tdRes = el('td');
+        tdRes.appendChild(Cf.insignia(TONO[f.resultado] || '', f.resultado));
+        tr.appendChild(tdRes);
+        var tdAcc = el('td');
+        if (f.recuperable) {
+          var b = Cf.boton('md-btn--text', 'person_add', 'Recuperar usuario', 'Volver a añadirlo a Usuarios con los datos que tenía al eliminarlo');
+          b.addEventListener('click', function () { recuperar(f, b); });
+          tdAcc.appendChild(b);
+        }
+        tr.appendChild(tdAcc);
+        tb.appendChild(tr);
+      });
+    }
+
+    function buscar() {
+      return Cf.esperar(Cf.$('cfRegBuscar'), llamar('registroConsultar', [filtros()])).then(pintar, function (err) { pintarVacio(err.message); });
+    }
+
+    Cf.$('cfRegForm').addEventListener('submit', function (ev) { ev.preventDefault(); buscar(); });
+    Cf.$('cfRegQuitar').addEventListener('click', function () { Cf.$('cfRegForm').reset(); buscar(); });
+    Cf.alAbrir('cfRegistro', buscar);
+  })();
+</script>
