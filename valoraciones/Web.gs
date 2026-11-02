@@ -10,7 +10,7 @@
  * valoración más reciente (para la tabla principal) y su historial completo
  * ordenado cronológicamente (para el detalle y la gráfica de evolución).
  */
-function obtenerValoracionesWeb() {
+function obtenerValoracionesWeb_() {
   try {
     const ss = getSS();
     const sheet = ss.getSheetByName(SHEETS.VALORACIONES);
@@ -70,7 +70,7 @@ function obtenerValoracionesWeb() {
 
     return { pacientes: pacientes, sinId: sinId };
   } catch (e) {
-    Logger.log('Error en obtenerValoracionesWeb: ' + e.message);
+    Logger.log('Error en obtenerValoracionesWeb_: ' + e.message);
     return { pacientes: [], error: e.message };
   }
 }
@@ -83,7 +83,7 @@ function idPacienteDeFila_(fila, C) {
 
 /**
  * Convierte una fila de la hoja "Valoraciones" en el registro que viaja al cliente.
- * Lo comparten obtenerValoracionesWeb (página Valoraciones) y obtenerValoracionesUsuarioWeb
+ * Lo comparten obtenerValoracionesWeb_ (página Valoraciones) y obtenerValoracionesUsuarioWeb_
  * (sección Valoraciones de la ficha de usuario), para que los dos pinten exactamente los mismos datos.
  * @param {Array} fila   Valores de la fila (0-based).
  * @param {number} i     Posición de la fila dentro de lo leído (la fila real de la hoja es i + 2).
@@ -120,7 +120,7 @@ function registroValoracion_(fila, i, C, tz) {
  * @param {string} idPaciente ID paciente del usuario (Maestra).
  * @return {{success: boolean, historial?: Array, message?: string}}
  */
-function obtenerValoracionesUsuarioWeb(idPaciente) {
+function obtenerValoracionesUsuarioWeb_(idPaciente) {
   try {
     const id = String(idPaciente || '').trim();
     if (!id) return { success: true, historial: [] };
@@ -145,7 +145,7 @@ function obtenerValoracionesUsuarioWeb(idPaciente) {
     historial.sort((a, b) => (a.fecha < b.fecha ? -1 : a.fecha > b.fecha ? 1 : a._fila - b._fila));
     return { success: true, historial: historial };
   } catch (e) {
-    Logger.log('Error en obtenerValoracionesUsuarioWeb: ' + e.message);
+    Logger.log('Error en obtenerValoracionesUsuarioWeb_: ' + e.message);
     return { success: false, message: e.message };
   }
 }
@@ -202,8 +202,10 @@ function filaValoracionCoincide_(sheet, fila, idEsperado, fechaEsperadaISO) {
  *   `idPaciente` y `fechaOriginal` (la fecha ANTES de corregirla) sirven para
  *   comprobar que la fila sigue siendo la misma valoración.
  */
-function actualizarValoracionWeb(datos) {
+function actualizarValoracionWeb_(datos) {
+  const lock = LockService.getScriptLock();
   try {
+    lock.waitLock(10000);
     const ss = getSS();
     const sheet = ss.getSheetByName(SHEETS.VALORACIONES);
     if (!sheet) return { success: false, message: `No se encontró la hoja "${SHEETS.VALORACIONES}".` };
@@ -247,10 +249,13 @@ function actualizarValoracionWeb(datos) {
       sheet.getRange(fila, C[clave]).setValue(filaDatos[C[clave] - 1]);
     });
 
+    SpreadsheetApp.flush();
     return { success: true, message: 'Valoración actualizada correctamente.' };
   } catch (e) {
-    Logger.log('Error en actualizarValoracionWeb: ' + e.message);
+    Logger.log('Error en actualizarValoracionWeb_: ' + e.message);
     return { success: false, message: e.message };
+  } finally {
+    try { lock.releaseLock(); } catch (err) { /* sin bloqueo que liberar */ }
   }
 }
 
@@ -261,8 +266,10 @@ function actualizarValoracionWeb(datos) {
  * `idPaciente` y `fechaEsperada` (yyyy-MM-dd) protegen frente a filas que hayan
  * cambiado de número: si ya no coinciden, no se borra nada.
  */
-function eliminarValoracionWeb(fila, idPaciente, fechaEsperada) {
+function eliminarValoracionWeb_(fila, idPaciente, fechaEsperada) {
+  const lock = LockService.getScriptLock();
   try {
+    lock.waitLock(10000);
     const ss = getSS();
     const sheet = ss.getSheetByName(SHEETS.VALORACIONES);
     if (!sheet) return { success: false, message: `No se encontró la hoja "${SHEETS.VALORACIONES}".` };
@@ -278,10 +285,13 @@ function eliminarValoracionWeb(fila, idPaciente, fechaEsperada) {
     }
 
     sheet.deleteRow(filaNum);
+    SpreadsheetApp.flush();
     return { success: true, message: 'Valoración eliminada correctamente.' };
   } catch (e) {
-    Logger.log('Error en eliminarValoracionWeb: ' + e.message);
+    Logger.log('Error en eliminarValoracionWeb_: ' + e.message);
     return { success: false, message: e.message };
+  } finally {
+    try { lock.releaseLock(); } catch (err) { /* sin bloqueo que liberar */ }
   }
 }
 
@@ -293,8 +303,10 @@ function eliminarValoracionWeb(fila, idPaciente, fechaEsperada) {
  * @param {object} datos El registro completo (fecha, tipo, pegDolor, ..., _fila,
  *   idPaciente, nombre, dni). El usuario debe seguir existiendo en la Maestra.
  */
-function restaurarValoracionWeb(datos) {
+function restaurarValoracionWeb_(datos) {
+  const lock = LockService.getScriptLock();
   try {
+    lock.waitLock(10000);
     const ss = getSS();
     const sheet = ss.getSheetByName(SHEETS.VALORACIONES);
     if (!sheet) return { success: false, message: `No se encontró la hoja "${SHEETS.VALORACIONES}".` };
@@ -334,10 +346,13 @@ function restaurarValoracionWeb(datos) {
     telefonoFormatoTexto_(sheet, fila, C.TELEFONO);
     sheet.getRange(fila, 1, 1, filaDatos.length).setValues([filaDatos]);
 
+    SpreadsheetApp.flush();
     return { success: true, message: 'Valoración restaurada correctamente.' };
   } catch (e) {
-    Logger.log('Error en restaurarValoracionWeb: ' + e.message);
+    Logger.log('Error en restaurarValoracionWeb_: ' + e.message);
     return { success: false, message: e.message };
+  } finally {
+    try { lock.releaseLock(); } catch (err) { /* sin bloqueo que liberar */ }
   }
 }
 

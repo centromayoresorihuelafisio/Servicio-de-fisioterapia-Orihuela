@@ -65,7 +65,7 @@ function darDeAltaDesdeCitasWeb_(idCita) {
 
 /**
  * Datos para el asistente de WhatsApp desde la Agenda: de cada cita se toma su ID paciente y se reutiliza
- * datosWhatsappMaestraWeb (usuarios/Whatsapp.gs), que devuelve la misma forma que el camino viejo
+ * datosWhatsappMaestraWeb_ (usuarios/Whatsapp.gs), que devuelve la misma forma que el camino viejo
  * ({success, plantilla, items, duplicados}). Las citas sin usuario enlazado salen como elementos con error.
  */
 function datosWhatsappLoteDesdeCitasWeb_(ids) {
@@ -83,7 +83,7 @@ function datosWhatsappLoteDesdeCitasWeb_(ids) {
     idsPaciente.push(c.idPaciente);
   });
 
-  const r = idsPaciente.length ? datosWhatsappMaestraWeb(idsPaciente) : { success: true, plantilla: _plantillaWhatsapp_(), items: [], duplicados: 0 };
+  const r = idsPaciente.length ? datosWhatsappMaestraWeb_(idsPaciente) : { success: true, plantilla: _plantillaWhatsapp_(), items: [], duplicados: 0 };
   if (!r.success) return r;
   return { success: true, plantilla: r.plantilla, items: r.items.concat(errores), duplicados: r.duplicados };
 }

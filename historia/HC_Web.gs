@@ -252,7 +252,7 @@ function hcContarAsistencia_(usuario, desdeISO, tz) {
  * por usuario. Es SOLO LECTURA: no escribe nada. Si un usuario falla, se salta y el resto sigue.
  * @return {{success:boolean, items?:Object[], generado?:number, message?:string}}
  */
-function obtenerHCsActivasWeb() {
+function obtenerHCsActivasWeb_() {
   try {
     const h = hcHojas_(), tz = h.ss.getSpreadsheetTimeZone();
     const maestra = h.ss.getSheetByName(SHEETS.MAESTRA);
@@ -352,12 +352,12 @@ function obtenerHCsActivasWeb() {
         } else { resp.asistencia = null; resp.avisoAsistencia = avisoAg; }
         items.push(resp);
       } catch (eU) {
-        Logger.log('obtenerHCsActivasWeb: se omite la fila ' + (i + 2) + ': ' + eU.message);
+        Logger.log('obtenerHCsActivasWeb_: se omite la fila ' + (i + 2) + ': ' + eU.message);
       }
     });
     return { success: true, items: items, generado: Date.now() };
   } catch (e) {
-    Logger.log('Error en obtenerHCsActivasWeb: ' + e.message);
+    Logger.log('Error en obtenerHCsActivasWeb_: ' + e.message);
     return { success: false, message: e.message };
   }
 }

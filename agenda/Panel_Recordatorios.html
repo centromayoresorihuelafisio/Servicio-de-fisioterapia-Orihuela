@@ -208,7 +208,7 @@ window.PanelRecordatorios = {
     }
 
     // ── Servidor ──
-    function llamar(fn, args, alExito, alFallar) {
+    function pedirAlServidor(fn, args, alExito, alFallar) {
       btnGuardar.disabled = true;
       var run = google.script.run
         .withSuccessHandler(function (res) {
@@ -231,7 +231,7 @@ window.PanelRecordatorios = {
       var texto = inTexto.value.trim();
       if (!texto) { mostrarMsg('Escribe qué quieres recordar.', true); inTexto.focus(); return; }
       var eraEdicion = !!editandoId;
-      llamar('guardarRecordatorioWeb', [{ id: editandoId || '', texto: texto, tipo: tipoSel, fecha: inFecha.value, hora: inHora.value }], function () {
+      pedirAlServidor('guardarRecordatorioWeb', [{ id: editandoId || '', texto: texto, tipo: tipoSel, fecha: inFecha.value, hora: inHora.value }], function () {
         var fechaMantener = inFecha.value;
         nuevo(eraEdicion ? hoy() : fechaMantener);   // al añadir se conserva la fecha para encadenar varios
         mostrarMsg(eraEdicion ? 'Cambios guardados.' : 'Recordatorio añadido.', false);
@@ -245,13 +245,13 @@ window.PanelRecordatorios = {
       var nuevoValor = !r.hecho;
       r.hecho = nuevoValor;
       renderListas();
-      llamar('alternarRecordatorioWeb', [id, nuevoValor], null, function () { r.hecho = !nuevoValor; renderListas(); });
+      pedirAlServidor('alternarRecordatorioWeb', [id, nuevoValor], null, function () { r.hecho = !nuevoValor; renderListas(); });
     }
 
     async function borrar(id) {
       var ok = opts.confirmar ? await opts.confirmar('¿Eliminar este recordatorio?') : true;
       if (!ok) return;
-      llamar('eliminarRecordatorioWeb', [id], function () { if (editandoId === id) nuevo(); else renderListas(); });
+      pedirAlServidor('eliminarRecordatorioWeb', [id], function () { if (editandoId === id) nuevo(); else renderListas(); });
     }
 
     // ── Listas ──

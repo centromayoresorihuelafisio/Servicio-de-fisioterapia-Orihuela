@@ -65,6 +65,7 @@
     var formCambio = document.getElementById('acceso-cambio');
     var tokenMemoria = '';
     var esperando = false;   // true mientras el cierre está puesto: las llamadas nuevas esperan en la cola
+    var pantallaPedida = '';
     var cola = [];
     var desactivados = [];
 
@@ -87,9 +88,13 @@
 
     function enviar(p) {
       if (esperando) { cola.push(p); return; }
+      var tokenUsado = leerToken();
       directa(p.accion, p.datos, function (r) {
         if (r.ok) { p.resolver(r.datos); return; }
-        if (r.codigo === 'SESION') { guardarToken(''); cola.push(p); pedir('login'); return; }
+        if (r.codigo === 'SESION') {
+          if (leerToken() !== tokenUsado) { enviar(p); return; }   // respuesta tardía: ya se ha entrado de nuevo
+          guardarToken(''); cola.push(p); pedir('login'); return;
+        }
         if (r.codigo === 'CAMBIO_PASSWORD') { cola.push(p); pedir('cambio'); return; }
         var error = new Error(r.error);
         error.codigo = r.codigo;
@@ -113,6 +118,8 @@
 
     function pedir(pantalla) {
       esperando = true;
+      if (pantalla === pantallaPedida) return;   // varias llamadas pueden caducar a la vez: el foco no debe saltar mientras se escribe
+      pantallaPedida = pantalla;
       cierre.hidden = false;
       formLogin.hidden = pantalla !== 'login';
       formCambio.hidden = pantalla !== 'cambio';
@@ -122,6 +129,7 @@
 
     function soltar() {
       esperando = false;
+      pantallaPedida = '';
       cierre.hidden = true;
       formLogin.reset();
       formCambio.reset();

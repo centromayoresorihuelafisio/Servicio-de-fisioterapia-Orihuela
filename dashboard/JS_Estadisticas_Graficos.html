@@ -423,8 +423,8 @@
         mostrarAviso('');
         if (document.body.classList.contains('primera')) pintarEsqueletos();
         cargando(true);
-        google.script.run
-          .withSuccessHandler(function (r) {
+        llamar('obtenerDashboardWeb', [f, !!forzar])
+          .then(function (r) {
             if (n !== peticion) return;
             cargando(false);
             if (!r || !r.success) { quitarEsqueletos(); mostrarAviso('No se pudo calcular las estadísticas' + (r && r.message ? ': ' + r.message : '.')); return; }
@@ -451,14 +451,12 @@
             botonesPng();
             animar = false;
             document.body.classList.remove('primera');
-          })
-          .withFailureHandler(function (e) {
+          }, function (e) {
             if (n !== peticion) return;
             cargando(false);
             quitarEsqueletos();
             mostrarAviso('No se pudo conectar con el servidor' + (e && e.message ? ': ' + e.message : '.'));
-          })
-          .obtenerDashboardWeb(f, !!forzar);
+          });
       }
       function cargarPronto() { clearTimeout(temporizador); temporizador = setTimeout(function () { cargar(false); }, 200); }
 

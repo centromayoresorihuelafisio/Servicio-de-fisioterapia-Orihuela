@@ -617,13 +617,10 @@ window.PanelValoracion = {
       initAnalgesicos();
       updateProgress();
 
-      if (typeof google !== 'undefined' && google.script?.run) {
-        google.script.run
-          .withSuccessHandler(data => {
-            PACIENTES_LISTA = (data.pacientes || []).filter(pc => pc.id).sort((a, b) => a.nombre.localeCompare(b.nombre));
-          })
-          .obtenerPacientesParaAutocompletar();
-      }
+      llamar('obtenerPacientesParaAutocompletar')
+        .then(data => {
+          PACIENTES_LISTA = (data.pacientes || []).filter(pc => pc.id).sort((a, b) => a.nombre.localeCompare(b.nombre));
+        }, function () { /* sin conexión: la lista de sugerencias se queda vacía */ });
     }
 
     /* ── Lógica Autocompletado (Forzada a mayúsculas) ── */
@@ -888,17 +885,8 @@ window.PanelValoracion = {
       btn.innerHTML = `<span class="ms spinner">refresh</span> Guardando...`;
       hideMessage();
 
-      if (typeof google === 'undefined' || !google.script?.run) {
-        setTimeout(() => {
-          showMessage('error', 'error', 'Apps Script no disponible en vista previa. (Simulado ok).');
-          console.log("Datos:", data);
-          resetBtn();
-        }, 1200);
-        return;
-      }
-
-      google.script.run
-        .withSuccessHandler(result => {
+      llamar('procesarValoracion', [data])
+        .then(result => {
           showMessage('success', 'check_circle', result || 'Valoración guardada correctamente.');
           form.reset();
           currentUserName = "";
@@ -913,12 +901,10 @@ window.PanelValoracion = {
           // El evento 'storage' solo llega a OTRAS ventanas, por eso lleva una marca de tiempo (cada valor es distinto).
           try { localStorage.setItem('valoracionesActualizadas', JSON.stringify({ ts: Date.now() })); } catch (e) { /* localStorage no disponible */ }
           setTimeout(function () { if (opts.onGuardado) opts.onGuardado(); }, 900);
-        })
-        .withFailureHandler(error => {
+        }, error => {
           showMessage('error', 'error', 'Error: ' + error.message);
           resetBtn();
-        })
-        .procesarValoracion(data);
+        });
     }
 
     function resetAllSliders() {

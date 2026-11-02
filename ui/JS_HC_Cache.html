@@ -35,7 +35,6 @@ var HCCache = (function() {
 
   function norm(x) { return String(x === null || x === undefined ? '' : x).normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim().toUpperCase(); }
   function clonar(x) { return JSON.parse(JSON.stringify(x)); }
-  function hayGoogle() { return typeof google !== 'undefined' && google.script && google.script.run; }
 
   function indexar(r, t) {
     if (!r || !r.success || !r.id) return;
@@ -61,12 +60,12 @@ var HCCache = (function() {
   function marcarObsoleto() { Object.keys(porId).forEach(function(k) { porId[k].t = 0; }); }
 
   function cargar() {
-    if (cargando || !hayGoogle()) return;
+    if (cargando) return;
     if (document.hidden) { setTimeout(cargar, 4000); return; }     // pestaña en segundo plano: se espera
     cargando = true;
     var inicio = Date.now();
-    google.script.run
-      .withSuccessHandler(function(res) {
+    llamar('obtenerHCsActivasWeb')
+      .then(function(res) {
         cargando = false;
         if (!res || !res.success || !res.items) return;
         res.items.forEach(function(r) {
@@ -75,12 +74,10 @@ var HCCache = (function() {
           indexar(r, Date.now());
         });
         cargada = true; tUltimaCarga = Date.now();
-      })
-      .withFailureHandler(function() {
+      }, function() {
         cargando = false;
         if (!reintentado) { reintentado = true; setTimeout(cargar, 20000); }   // un único reintento; si no, se abrirá por el camino normal
-      })
-      .obtenerHCsActivasWeb();
+      });
   }
 
   // Al volver a la pestaña después de un rato, se refresca todo.

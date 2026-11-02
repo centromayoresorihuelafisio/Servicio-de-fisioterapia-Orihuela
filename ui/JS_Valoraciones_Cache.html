@@ -37,11 +37,10 @@ var ValoracionesCache = (function() {
   // Lee todas las valoraciones. Si algo cambia mientras viaja la respuesta (p. ej. el panel guarda un cambio), se descarta y se vuelve a pedir.
   function cargar() {
     if (cargando) { repetir = true; return; }
-    if (typeof google === 'undefined' || !google.script || !google.script.run) return;
     cargando = true; repetir = false;
     var v = version;
-    google.script.run
-      .withSuccessHandler(function(res) {
+    llamar('obtenerValoracionesWeb')
+      .then(function(res) {
         cargando = false;
         if (!res || res.error || !res.pacientes) return;           // sin datos: el botón queda como "Valoración" y el panel pide lo suyo
         if (v !== version || repetir) { cargar(); return; }
@@ -54,9 +53,7 @@ var ValoracionesCache = (function() {
         });
         filas = todas; tCarga = Date.now();
         avisar();
-      })
-      .withFailureHandler(function() { cargando = false; })
-      .obtenerValoracionesWeb();
+      }, function() { cargando = false; });
   }
 
   function historialDe(id) {

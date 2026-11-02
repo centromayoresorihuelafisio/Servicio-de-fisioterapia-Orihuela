@@ -402,14 +402,14 @@ window.PanelHC = {
   function acciones(tel, principal) {
     var d = Telefono.digitos(tel); if (!d) return '';   // regla única: ui/JS_Telefono.html (la página anfitriona debe incluirlo)
     var wa = Telefono.wa(tel);
-    var llamar = '<a class="mini" href="tel:' + d + '" aria-label="Llamar" title="Llamar"><span class="i" aria-hidden="true">call</span></a>';
+    var enlaceTel = '<a class="mini" href="tel:' + d + '" aria-label="Llamar" title="Llamar"><span class="i" aria-hidden="true">call</span></a>';
     var chat = '';
     if (principal) {   // WhatsApp solo en el teléfono principal: es el que usa el diálogo con plantilla de la app
       chat = (!PAGINA && opts.acciones !== false && window.WhatsappDialogo && D.usuario.idPaciente)
         ? '<button type="button" class="mini wa" data-acc="whatsapp" aria-label="WhatsApp con plantilla de mensaje" title="WhatsApp (plantilla de mensaje)">' + SVG_WA + '</button>'
         : '<a class="mini wa" href="https://wa.me/' + wa + '" target="_blank" rel="noopener" aria-label="WhatsApp" title="WhatsApp">' + SVG_WA + '</a>';   // en la página completa no hay diálogo: chat directo
     }
-    return '<span class="acc">' + llamar + chat + '</span>';
+    return '<span class="acc">' + enlaceTel + chat + '</span>';
   }
   function pintarCampos() {
     var u = D.usuario, edad = u.edad ? ' <span class="hc-chip sm">' + esc(u.edad) + (/^\d+$/.test(u.edad) ? ' años' : '') + '</span>' : '';

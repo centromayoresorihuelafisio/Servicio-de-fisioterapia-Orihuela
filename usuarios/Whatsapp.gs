@@ -4,7 +4,7 @@
  * URL y el cliente hace window.open con ella.
  */
 function generarUrlWhatsappWeb(idPaciente) {
-  const d = datosWhatsappMaestraWeb([idPaciente]);
+  const d = datosWhatsappMaestraWeb_([idPaciente]);
   if (!d.success) return { success: false, message: d.message };
   const it = d.items[0];
   if (!it || it.error) return { success: false, message: (it && it.error) || 'Usuario no encontrado.' };
@@ -45,11 +45,11 @@ function _primerNombreWhatsapp_(nombreCompleto) {
 
 /**
  * Datos para el asistente de WhatsApp desde Usuarios. Recibe IDs de usuario (no filas ni nombres: con
- * homónimos, buscar el teléfono por nombre escribiría a otra persona) y devuelve lo mismo que datosWhatsappLoteAgendaWeb
+ * homónimos, buscar el teléfono por nombre escribiría a otra persona) y devuelve lo mismo que datosWhatsappLoteAgendaWeb_
  * (Web.gs): la plantilla cruda con {{nombre}} y, por usuario, nombre, primer nombre y teléfono ya con prefijo (o el
  * error que impide escribirle). `fila` va solo como información (etiqueta si no hubiera nombre).
  */
-function datosWhatsappMaestraWeb(idsPaciente) {
+function datosWhatsappMaestraWeb_(idsPaciente) {
   try {
     const hoja = getSS().getSheetByName(SHEETS.MAESTRA);
     if (!hoja) return { success: false, message: "No se encontró la hoja 'Base de Datos Maestra'." };
@@ -84,7 +84,7 @@ function datosWhatsappMaestraWeb(idsPaciente) {
     });
     return { success: true, plantilla: _plantillaWhatsapp_(), items: items, duplicados: duplicados };
   } catch (e) {
-    Logger.log('Error en datosWhatsappMaestraWeb: ' + e.message);
+    Logger.log('Error en datosWhatsappMaestraWeb_: ' + e.message);
     return { success: false, message: e.message };
   }
 }

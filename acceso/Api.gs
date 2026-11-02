@@ -1,6 +1,6 @@
 // acceso/Api.gs
 // Puerta única del navegador: api(token, accion, datos). Plan y reglas en CONTEXTO.md, sección 17.
-// Por ahora solo pasan por aquí las acciones de acceso: las funciones antiguas siguen abiertas hasta la fase 2.
+// Las pantallas se van pasando aquí por bloques (17.10): lo que aún no está en la lista sigue abierto hasta acabar la fase 2.
 // ================================================================================
 
 /**
@@ -17,7 +17,25 @@ function accesoAcciones_() {
     comprobarSesion:   { fn: sesionComprobar_, rol: 'usuario' },
     cerrarSesion:      { fn: sesionCerrar_, rol: 'usuario', conTemporal: true },
     cambiarPassword:   { fn: accesoCambiarPassword_, rol: 'usuario', conTemporal: true },
-    diagnosticoAcceso: { fn: accesoDiagnostico_, rol: 'administrador', registrar: true }
+    diagnosticoAcceso: { fn: accesoDiagnostico_, rol: 'administrador', registrar: true },
+
+    // Piezas comunes
+    obtenerPanelWeb:            { fn: obtenerPanelWeb_, rol: 'usuario' },
+    obtenerHCsActivasWeb:       { fn: obtenerHCsActivasWeb_, rol: 'usuario', renueva: false },
+    datosWhatsappMaestraWeb:    { fn: datosWhatsappMaestraWeb_, rol: 'usuario' },
+    datosWhatsappLoteAgendaWeb: { fn: datosWhatsappLoteAgendaWeb_, rol: 'usuario' },
+
+    // Estadísticas
+    obtenerDashboardWeb: { fn: obtenerDashboardWeb_, rol: 'administrador' },
+
+    // Valoraciones
+    obtenerValoracionesWeb:            { fn: obtenerValoracionesWeb_, rol: 'usuario' },
+    obtenerValoracionesUsuarioWeb:     { fn: obtenerValoracionesUsuarioWeb_, rol: 'usuario' },
+    obtenerPacientesParaAutocompletar: { fn: obtenerPacientesParaAutocompletar_, rol: 'usuario' },
+    procesarValoracion:                { fn: procesarValoracion_, rol: 'usuario' },
+    actualizarValoracionWeb:           { fn: actualizarValoracionWeb_, rol: 'usuario' },
+    eliminarValoracionWeb:             { fn: eliminarValoracionWeb_, rol: 'usuario', registrar: true },
+    restaurarValoracionWeb:            { fn: restaurarValoracionWeb_, rol: 'usuario', registrar: true }
   };
 }
 
@@ -65,7 +83,10 @@ function api(token, accion, datos) {
     sesionEnCurso_ = sesion;
     if (def.renueva !== false) sesionRenovar_(sesion);
     const resultado = def.fn.apply(null, args);
-    if (def.registrar) registroAnotar_(quien, rol, nombre, 'api', '', 'ok');
+    if (def.registrar) {
+      const fallo = resultado && resultado.success === false;
+      registroAnotar_(quien, rol, nombre, 'api', fallo ? resultado.message : '', fallo ? 'error' : 'ok');
+    }
     return { ok: true, datos: resultado, rol: sesion.rol };
   } catch (e) {
     if (sesion && sesionEnCurso_) registroAnotar_(sesion.usuario, sesion.rol, nombre, 'api', e.message, 'error');

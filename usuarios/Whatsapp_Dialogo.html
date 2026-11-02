@@ -1,9 +1,9 @@
 <!--
   Asistente de WhatsApp compartido por la Agenda y Usuarios.
   Se incluye con <?!= include('usuarios/Whatsapp_Dialogo'); ?> y expone:
-    WhatsappDialogo.abrir(funcionServidor, filas, nombreOpcional)
-    WhatsappDialogo.precargar(funcionServidor, filas)   // calienta los datos (p. ej. al pasar el ratón por el botón)
-  `funcionServidor` es una función de Apps Script que recibe las filas y devuelve
+    WhatsappDialogo.abrir(accion, filas, nombreOpcional)
+    WhatsappDialogo.precargar(accion, filas)   // calienta los datos (p. ej. al pasar el ratón por el botón)
+  `accion` es una acción del servidor (acceso/Api.gs) que recibe las filas y devuelve
   { success, plantilla, items:[{fila, nombre, primerNombre, telefono, error}], duplicados }:
     - Agenda:         'datosWhatsappLoteAgendaWeb'
     - Usuarios:  'datosWhatsappMaestraWeb'
@@ -126,27 +126,25 @@ var WhatsappDialogo = (function() {
   // resultados sin errores y dura poco, así que un teléfono corregido en la hoja no se queda atascado.
   var CACHE_MS = 45000, cache = Object.create(null), enVuelo = Object.create(null);
 
-  function cargar(servidor, filas, ok, ko) {
-    var k = servidor + '|' + filas.join(',');
+  function cargar(accion, filas, ok, ko) {
+    var k = accion + '|' + filas.join(',');
     var c = cache[k];
     if (c && Date.now() - c.t < CACHE_MS) { if (ok) ok(c.res); return; }
     if (!enVuelo[k]) {
       enVuelo[k] = [];
-      google.script.run
-        .withSuccessHandler(function(res) {
+      llamar(accion, [filas])
+        .then(function(res) {
           var cbs = enVuelo[k]; delete enVuelo[k];
           if (res && res.success && res.items.every(function(it) { return !it.error; })) cache[k] = { t: Date.now(), res: res };
           cbs.forEach(function(cb) { cb.ok(res); });
-        })
-        .withFailureHandler(function(err) {
+        }, function(err) {
           var cbs = enVuelo[k]; delete enVuelo[k];
           cbs.forEach(function(cb) { if (cb.ko) cb.ko(err); });
-        })
-        [servidor](filas);
+        });
     }
     if (ok) enVuelo[k].push({ ok: ok, ko: ko });
   }
-  function precargar(servidor, filas) { if (filas && filas.length) cargar(servidor, filas, null, null); }
+  function precargar(accion, filas) { if (filas && filas.length) cargar(accion, filas, null, null); }
 
   // Calienta la conexión con WhatsApp Web mientras revisas el mensaje (ahorra el saludo TLS al abrir el chat).
   function precalentarWeb() {
@@ -284,9 +282,9 @@ var WhatsappDialogo = (function() {
   }
 
   // ---------- Apertura ----------
-  // servidor: función de Apps Script; filas: filas de la hoja de origen; nombre (opcional, 1 usuario): para pintar
+  // accion: acción del servidor; filas: filas de la hoja de origen; nombre (opcional, 1 usuario): para pintar
   // la cabecera al instante mientras llegan los datos.
-  function abrir(servidor, filas, nombre) {
+  function abrir(accion, filas, nombre) {
     var mia = ++peticion;
     wl = null;
     el('wlLote').hidden = true;
@@ -299,7 +297,7 @@ var WhatsappDialogo = (function() {
     el('wlEsq').hidden = false;
     if (!dlg.open) dlg.showModal();
     precalentarWeb();
-    cargar(servidor, filas, function(res) {
+    cargar(accion, filas, function(res) {
       if (mia !== peticion || !dlg.open) return;   // cerrado o sustituido mientras cargaba
       el('wlEsq').hidden = true;
       if (!res || !res.success) { cabecera('WhatsApp'); nota((res && res.message) || 'No se pudieron preparar los datos.', true); return; }

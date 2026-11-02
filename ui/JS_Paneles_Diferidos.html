@@ -40,14 +40,9 @@ var PanelesDiferidos = (function () {
 
   function cargar(ruta) {
     if (CARGAS[ruta]) return CARGAS[ruta];
-    CARGAS[ruta] = new Promise(function (ok, ko) {
-      google.script.run
-        .withSuccessHandler(function (html) {
-          try { montar(html); ok(); } catch (e) { delete CARGAS[ruta]; ko(e); }
-        })
-        .withFailureHandler(function (e) { delete CARGAS[ruta]; ko(e); })   // se podrá reintentar
-        .obtenerPanelWeb(ruta);
-    });
+    CARGAS[ruta] = llamar('obtenerPanelWeb', [ruta])
+      .then(montar)
+      .catch(function (e) { delete CARGAS[ruta]; throw e; });   // se podrá reintentar
     return CARGAS[ruta];
   }
 

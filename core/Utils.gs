@@ -258,7 +258,7 @@ function resolverColumnaTelefono_(hoja, encabezados) {
 /**
  * Calcula la edad (años cumplidos) a partir de una fecha de nacimiento.
  * La edad NO se guarda en la hoja: la calculan al leer los lectores de la Maestra
- * (obtenerBaseDatosCompletaWeb, leerMaestraParaFicha_, obtenerHCWeb y obtenerHCsActivasWeb).
+ * (obtenerBaseDatosCompletaWeb, leerMaestraParaFicha_, obtenerHCWeb y obtenerHCsActivasWeb_).
  *
  * Lo preferible es pasarle el valor crudo de la celda (un Date), antes de convertirlo a texto.
  * También acepta un texto "aaaa-mm-dd" o "dd/mm/aaaa" y un número de serie de Sheets

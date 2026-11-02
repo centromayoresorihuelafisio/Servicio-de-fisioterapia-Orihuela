@@ -53,8 +53,8 @@
       // ---------- Carga de datos ----------
       function cargar() {
         ocupado(1);
-        google.script.run
-          .withSuccessHandler(function(res) {
+        llamar('obtenerValoracionesWeb')
+          .then(function(res) {
             ocupado(-1);
             if (res.error) { mostrarError(res.error); return; }
             PACIENTES = res.pacientes || [];
@@ -62,9 +62,7 @@
             render();
             // Si había un usuario con el ficha abierta, se refresca con los datos nuevos (o se cierra si ya no existe).
             renderFicha();
-          })
-          .withFailureHandler(function(err) { ocupado(-1); mostrarError(err); })
-          .obtenerValoracionesWeb();
+          }, function(err) { ocupado(-1); mostrarError(err); });
       }
       function mostrarError(err) {
         document.getElementById('tablaWrap').innerHTML =
@@ -423,8 +421,8 @@
         btn.textContent = 'Guardando…';
         ocupado(1);
 
-        google.script.run
-          .withSuccessHandler(function(res) {
+        llamar('actualizarValoracionWeb', [datos])
+          .then(function(res) {
             ocupado(-1);
             btn.disabled = false;
             btn.textContent = textoOriginal;
@@ -432,14 +430,12 @@
             cerrarModalEditar();
             mostrarAviso('Valoración actualizada.');
             cargar();
-          })
-          .withFailureHandler(function(err) {
+          }, function(err) {
             ocupado(-1);
             btn.disabled = false;
             btn.textContent = textoOriginal;
             mostrarAviso('Error al guardar: ' + err);
-          })
-          .actualizarValoracionWeb(datos);
+          });
       });
 
       // ---------- Eliminar valoración ----------
@@ -452,14 +448,12 @@
         var snapshot = Object.assign({ idPaciente: pEl ? pEl.idPaciente : '' }, registro);   // registro.idPaciente (el de esa fila) prevalece
         ocupado(1);
 
-        google.script.run
-          .withSuccessHandler(function(res) {
+        llamar('eliminarValoracionWeb', [registro._fila, snapshot.idPaciente, registro.fecha || ''])
+          .then(function(res) {
             ocupado(-1);
             if (!res.success) { mostrarAviso(res.message || 'No se pudo eliminar la valoración.'); return; }
             cargar();
             mostrarDeshacer(snapshot, 'Valoración eliminada.');
-          })
-          .withFailureHandler(function(err) { ocupado(-1); mostrarAviso('Error al eliminar: ' + err); })
-          .eliminarValoracionWeb(registro._fila, snapshot.idPaciente, registro.fecha || '');
+          }, function(err) { ocupado(-1); mostrarAviso('Error al eliminar: ' + err); });
       }
 

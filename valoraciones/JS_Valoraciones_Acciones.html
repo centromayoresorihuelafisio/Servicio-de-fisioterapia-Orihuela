@@ -8,20 +8,18 @@
         var snapshot = ultimaEliminacion;
         ocupado(1);
 
-        google.script.run
-          .withSuccessHandler(function(res) {
+        llamar('restaurarValoracionWeb', [snapshot])
+          .then(function(res) {
             ocupado(-1);
             procesandoDeshacer = false;
             if (!res.success) { mostrarAviso(res.message || 'No se pudo deshacer.'); return; } // el botón sigue disponible para reintentar
             ocultarDeshacer();
             cargar();
-          })
-          .withFailureHandler(function(err) {
+          }, function(err) {
             ocupado(-1);
             procesandoDeshacer = false;
             mostrarAviso('Error al deshacer: ' + err); // el botón sigue disponible para reintentar
-          })
-          .restaurarValoracionWeb(snapshot);
+          });
       }
 
       document.getElementById('toastDeshacerBtn').addEventListener('click', ejecutarDeshacer);

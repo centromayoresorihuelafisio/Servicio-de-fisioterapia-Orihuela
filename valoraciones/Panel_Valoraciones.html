@@ -299,34 +299,31 @@ window.PanelValoraciones = {
       for (var i = S.historial.length - 1; i >= 0; i--) if (S.historial[i].telefono) { telefono = String(S.historial[i].telefono); break; }
     }
     function cargar(despues) {
-      google.script.run
-        .withSuccessHandler(function (res) {
+      llamar('obtenerValoracionesUsuarioWeb', [idPaciente])
+        .then(function (res) {
           if (!conectado()) return;
           if (!res || !res.success) { S.vista = 'error'; S.msg = (res && res.message) || ''; pintar(); return; }
           S.historial = res.historial || [];
           tomarTelefono();
           if (opts.alHistorial) opts.alHistorial(S.historial.slice());
           despues();
-        })
-        .withFailureHandler(function (err) {
+        }, function (err) {
           if (!conectado()) return;
           S.vista = 'error'; S.msg = String((err && err.message) || err || ''); pintar();
-        })
-        .obtenerValoracionesUsuarioWeb(idPaciente);
+        });
     }
     // Refresco en segundo plano: no muestra nada de «Cargando». Actualiza la memoria de la página aunque el panel ya se haya
     // cerrado, y repinta la lista solo si hay algo distinto y el usuario no está en medio de un formulario o una edición.
     function refrescarFondo() {
-      google.script.run
-        .withSuccessHandler(function (res) {
+      llamar('obtenerValoracionesUsuarioWeb', [idPaciente])
+        .then(function (res) {
           if (!res || !res.success) return;
           var nuevo = res.historial || [];
           if (opts.alHistorial) opts.alHistorial(nuevo.slice());
           if (!conectado() || JSON.stringify(nuevo) === JSON.stringify(S.historial)) return;
           S.historial = nuevo; tomarTelefono();
           if (S.vista === 'lista' && !ocupado) pintar();
-        })
-        .obtenerValoracionesUsuarioWeb(idPaciente);
+        }, function () { /* sin conexión: el panel sigue con lo que ya tenía */ });
     }
     function mostrarLista() { ctlForm = null; S.vista = 'lista'; S.confirmar = null; pintar(); }
     function recargarYMostrarLista() { cargar(mostrarLista); }
@@ -377,8 +374,8 @@ window.PanelValoraciones = {
         datos[c.id] = v;
       }
       ocupado = true; root.classList.add('ocupado');
-      google.script.run
-        .withSuccessHandler(function (res) {
+      llamar('actualizarValoracionWeb', [datos])
+        .then(function (res) {
           ocupado = false;
           if (!conectado()) return;
           root.classList.remove('ocupado');
@@ -387,9 +384,7 @@ window.PanelValoraciones = {
           aviso('Valoración actualizada.');
           avisarOtrasVentanas();
           recargarYMostrarLista();
-        })
-        .withFailureHandler(function (err) { ocupado = false; if (!conectado()) return; root.classList.remove('ocupado'); aviso('Error al guardar: ' + ((err && err.message) || err)); })
-        .actualizarValoracionWeb(datos);
+        }, function (err) { ocupado = false; if (!conectado()) return; root.classList.remove('ocupado'); aviso('Error al guardar: ' + ((err && err.message) || err)); });
     }
 
     // ---------- Eliminar (con confirmación en la propia tarjeta y «Deshacer») ----------
@@ -398,17 +393,15 @@ window.PanelValoraciones = {
       if (!reg) return;
       var snapshot = Object.assign({}, reg, { idPaciente: idPaciente, nombre: reg.nombre || nombre, dni: reg.dni || dni });   // foto completa para poder deshacer
       ocupado = true; pintar();
-      google.script.run
-        .withSuccessHandler(function (res) {
+      llamar('eliminarValoracionWeb', [reg._fila, idPaciente, reg.fecha || ''])
+        .then(function (res) {
           ocupado = false;
           if (!conectado()) return;
           if (!res || !res.success) { S.confirmar = null; pintar(); aviso((res && res.message) || 'No se pudo eliminar la valoración.'); return; }
           avisarOtrasVentanas();
           mostrarUndo(snapshot);
           recargarYMostrarLista();
-        })
-        .withFailureHandler(function (err) { ocupado = false; if (!conectado()) return; S.confirmar = null; pintar(); aviso('Error al eliminar: ' + ((err && err.message) || err)); })
-        .eliminarValoracionWeb(reg._fila, idPaciente, reg.fecha || '');
+        }, function (err) { ocupado = false; if (!conectado()) return; S.confirmar = null; pintar(); aviso('Error al eliminar: ' + ((err && err.message) || err)); });
     }
     function quitarUndo() { if (undoTimer) { clearTimeout(undoTimer); undoTimer = null; } if (undoEl) { undoEl.remove(); undoEl = null; } }
     function mostrarUndo(snapshot) {
@@ -423,8 +416,8 @@ window.PanelValoraciones = {
       if (!undoEl || ocupado) return;
       var snapshot = undoEl._snapshot;
       ocupado = true; root.classList.add('ocupado');
-      google.script.run
-        .withSuccessHandler(function (res) {
+      llamar('restaurarValoracionWeb', [snapshot])
+        .then(function (res) {
           ocupado = false;
           if (!conectado()) return;
           root.classList.remove('ocupado');
@@ -432,9 +425,7 @@ window.PanelValoraciones = {
           quitarUndo();
           avisarOtrasVentanas();
           recargarYMostrarLista();
-        })
-        .withFailureHandler(function (err) { ocupado = false; if (!conectado()) return; root.classList.remove('ocupado'); aviso('Error al deshacer: ' + ((err && err.message) || err)); })
-        .restaurarValoracionWeb(snapshot);
+        }, function (err) { ocupado = false; if (!conectado()) return; root.classList.remove('ocupado'); aviso('Error al deshacer: ' + ((err && err.message) || err)); });
     }
 
     // ---------- Volver de una sub-vista (pregunta si hay cambios sin guardar) ----------

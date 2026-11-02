@@ -1,5 +1,6 @@
 // comprobar/coherencia.mjs - Comprobación automática de coherencia (conversación 6, sección 14 de CONTEXTO.md).
-// Repite la «medición final» de la sección 13 y busca reglas propias que tapen las comunes de ui/CSS_Global.
+// Repite la «medición final» de la sección 13, busca reglas propias que tapen las comunes de ui/CSS_Global
+// y vigila la puerta única del servidor (sección 17).
 // Solo lee archivos: no cambia nada. La terminación .mjs hace que `clasp push` no lo suba (comprobado con `clasp status`).
 //
 // Uso (desde la raíz del proyecto):
@@ -49,7 +50,29 @@ const EXCEPCIONES = [
   { c: 'variable', archivo: 'dashboard/JS_Graficos.html', texto: '.gr-export', motivo: 'letra fija de los gráficos exportados a imagen' },
   { c: 'reinicio', archivo: 'agenda/Panel_Cita.html', texto: '.pc-hoja-cuerpo', motivo: 'solo min-height: 0 para que la hoja haga scroll: colocación' },
   { c: 'fuga', archivo: 'ui/CSS_Ficha.html', motivo: 'piezas fu-* de la ficha, reutilizadas a propósito' },
+  { c: 'puerta', archivo: 'ui/Acceso.html', motivo: 'es la propia llamar(), la única que habla con el servidor' },
+  { c: 'puerta', archivo: 'acceso/Prueba_Vista.html', motivo: 'prueba de llamada sin sesión (se retira en la fase 5)' },
 ];
+
+// ===== Una sola puerta (sección 17): lo que puede quedar público y lo que aún falta por pasar a llamar() =====
+const API = 'acceso/Api.gs';
+const PUBLICAS = {
+  doGet: 'Apps Script la exige pública', api: 'la única puerta del navegador',
+  accesoPrepararHojas: 'editor', accesoComprobarPropietario: 'editor', accesoMedirIteraciones: 'editor', accesoCrearAdministrador: 'editor', accesoProbarCorreo: 'editor',
+  configurarMensajeWhatsapp: 'editor', sincronizarContactosGoogle: 'editor', exportarProyectoAUnicoArchivo: 'editor', sembrarHistorialEstado: 'editor', verificarHistorialEstado: 'editor',
+  revisarParesIdsPaciente: 'editor', asignarIdsPaciente: 'editor', revisarIdPacienteEnHC: 'editor', asignarIdPacienteEnHC: 'editor', revisarIdPacienteEnValoraciones: 'editor', asignarIdPacienteEnValoraciones: 'editor',
+};
+// Transición de la fase 2 (17.10): cada conversación quita lo suyo. Una entrada que ya no hace falta se avisa, para que la lista solo baje.
+const HTML_PENDIENTE = {
+  'usuarios/JS_Usuarios_Base.html': 3, 'usuarios/JS_Usuarios_Acciones.html': 3, 'usuarios/JS_Usuarios_Ficha.html': 3, 'usuarios/Panel_Editar.html': 3, 'usuarios/Panel_Nuevo.html': 3, 'historia/Panel_HC.html': 3,
+  'agenda/JS_Agenda_Base.html': 4, 'agenda/JS_Agenda_Edicion.html': 4, 'agenda/JS_Agenda_Resumen.html': 4, 'agenda/JS_Agenda_Vistas.html': 4, 'agenda/Panel_Cita.html': 4, 'agenda/Panel_Recordatorios.html': 4,
+};
+const FN_PENDIENTE = {
+  3: 'obtenerBaseDatosCompletaWeb obtenerDatosEdicionPaciente actualizarPaciente guardarPaciente eliminarPacienteWeb eliminarPacientesLoteWeb restaurarPacienteWeb cambiarEstadoPacienteWeb cambiarEstadoLoteWeb ordenarPacientes darDeAltaPacienteWeb obtenerHCWeb guardarTextoHCWeb guardarEpisodiosHCWeb generarHistoriaClinicaWeb generarHistoriaClinicaRegistroUsuario obtenerFichasUsuariosWeb obtenerFichaUsuarioWeb',
+  4: 'obtenerAgendaSemanaWeb obtenerVersionAgendaWeb actualizarCampoAgendaWeb asignarPacienteHuecoWeb obtenerUsuariosParaCitaWeb moverCitaWeb intercambiarCitasWeb copiarVariasCitasWeb eliminarDatosFilaAgendaWeb eliminarVariasCitasWeb restaurarCitasWeb darDeAltaPacienteParaAgendaWeb obtenerSemanasYHuecos guardarCitasMultiples obtenerDisponibilidadWeb aplicarDisponibilidadWeb obtenerRecordatoriosWeb guardarRecordatorioWeb alternarRecordatorioWeb eliminarRecordatorioWeb ' +
+    'include incluirPanel incluirEstados incluirPatologias getSS parseFecha normalizarTexto normalizarFormatoNombre normalizarNombreUsuario normalizarDniUsuario normalizarTelefono extraerUrlHistoriaClinica construirIndiceWeb servirFichaHCWeb obtenerDashboardCitasWeb obtenerDashboardPacientesWeb obtenerDashboardEvolucionWeb obtenerDashboardFlujoWeb obtenerDashboardDiagnosticosWeb _generarHistoriaClinicaEnFila _ejecutarAltaEnFila crearContactoGoogle obtenerTodosLosContactosGoogle verificarExistenciaContacto prepararDatosFilaParaEdicion ' +
+    'generarUrlWhatsappParaAgendaWeb generarUrlWhatsappWeb buscarUsuarioPorDniWeb buscarPosiblesDuplicadosWeb dashboardProbarCitas dashboardProbarPacientes dashboardProbarFlujo dashboardProbarDiagnosticos',
+};
 
 // ===== Lectura de archivos =====
 function recorrer(dir, salida = []) {
@@ -458,10 +481,52 @@ for (const r of propiasPantalla) {
 }
 anotar('fuga', 'Nombres de una pantalla que afectan a un panel compartido', hallFuga);
 
+// ----- C. Una sola puerta (sección 17) -----
+const motivoPendiente = conv => `pendiente de la conversación ${conv} de la sección 17`;
+const hallPuerta = buscar(/google\s*\.\s*script\b/g, { incluirGlobal: true }).map(h => HTML_PENDIENTE[h.archivo] ? { ...h, motivo: motivoPendiente(HTML_PENDIENTE[h.archivo]) } : h);
+for (const f of Object.keys(HTML_PENDIENTE)) if (!hallPuerta.some(h => h.archivo === f)) hallPuerta.push({ archivo: f, linea: 0, texto: 'ya no usa google.script: quítalo de HTML_PENDIENTE' });
+anotar('puerta', 'google.script fuera de llamar()', hallPuerta);
+
+const fnPendiente = new Map(Object.entries(FN_PENDIENTE).flatMap(([conv, lista]) => lista.split(' ').map(n => [n, conv])));
+const definidas = new Map();   // nombre de función de primer nivel -> dónde está
+for (const [archivo, t] of textoDe) {
+  if (!archivo.endsWith('.gs')) continue;
+  const limpio = quitarComentarios(t);
+  for (const m of limpio.matchAll(/^function\s+([\w$]+)\s*\(/gm)) definidas.set(m[1], { archivo, linea: lineaDe(t, m.index) });
+}
+const hallPublicas = [...definidas].filter(([n]) => !n.endsWith('_')).map(([n, d]) => {
+  const h = { ...d, texto: n };
+  if (PUBLICAS[n]) return { ...h, motivo: PUBLICAS[n] };
+  return fnPendiente.has(n) ? { ...h, motivo: motivoPendiente(fnPendiente.get(n)) } : h;
+});
+for (const n of [...Object.keys(PUBLICAS), ...fnPendiente.keys()]) if (!definidas.has(n)) hallPublicas.push({ archivo: API, linea: 0, texto: `${n} ya no existe con ese nombre: quítala de la lista` });
+anotar('publica', 'Funciones públicas fuera de la lista permitida', hallPublicas);
+
+// Las acciones se leen del propio accesoAcciones_ (acceso/Api.gs).
+const textoApi = quitarComentarios(textoDe.get(API) || '');
+const cuerpoAcciones = /function accesoAcciones_\(\) \{([\s\S]*?)\n\}/.exec(textoApi)?.[1] || '';
+const acciones = new Map([...cuerpoAcciones.matchAll(/^\s*(\w+):\s*\{\s*fn:\s*(\w+)/gm)].map(m => [m[1], m[2]]));
+const hallAccion = [...acciones].filter(([, fn]) => !definidas.has(fn)).map(([n, fn]) => ({ archivo: API, linea: 0, texto: `${n} apunta a ${fn}, que no existe` }));
+const LLAMADAS = /(?<![\w.])(?:window\.)?(?:llamar\(\s*|(?:window\.)?WhatsappDialogo\.(?:abrir|precargar)\(\s*)(?:'(\w+)'|([^'\s,)][^,)]*))?/g;
+for (const h of buscar(LLAMADAS, { incluirGlobal: true })) {
+  const [, literal, variable] = new RegExp(LLAMADAS.source).exec(h.texto) || [];
+  if (literal ? acciones.has(literal) : !h.texto.includes('(')) continue;
+  if (literal) hallAccion.push({ ...h, texto: literal });
+  else hallAccion.push({ ...h, texto: variable || h.texto, motivo: h.archivo === 'usuarios/Whatsapp_Dialogo.html' ? 'recibe la acción de quien abre el diálogo, que sí se comprueba' : h.archivo === 'acceso/Prueba_Vista.html' ? 'página de prueba de acciones inventadas (se retira en la fase 5)' : undefined });
+}
+anotar('accion', 'llamar() a acciones que no están en ACCIONES', hallAccion, acciones.size ? '' : 'NO SE HA PODIDO LEER accesoAcciones_');
+
+// Regla de transición: una función renombrada con _ ya no se puede llamar por su nombre antiguo, ni en el navegador ni en el servidor.
+const renombradas = [...acciones].filter(([n, fn]) => fn === n + '_').map(([n]) => n);
+anotar('antigua', 'Llamadas por el nombre antiguo a funciones ya privadas', renombradas.length ? buscar(new RegExp(`(?<![\\w'])(?:${renombradas.join('|')})\\(`, 'g'), { incluirGlobal: true }) : []);
+
+anotar('local', 'Nombres locales que tapan llamar()', buscar(/(?:\bfunction\s+|\b(?:var|let|const)\s+)llamar\b/g, { incluirGlobal: true }));
+
 // ===== Informe =====
 const grupos = [
   ['A. Medición final (sección 13)', ['hex', 'color', 'prefijo', 'variable', 'girador', 'keyframes', 'esquina', 'capa', 'curva', 'tema', 'onda', 'sombra', 'tiempo', 'letra', 'contorno', 'id', 'lf', 'js']],
   ['B. Reglas propias que tapan lo común', ['tapa', 'dentro', 'icono', 'foco', 'reinicio', 'fuga']],
+  ['C. Una sola puerta (sección 17)', ['puerta', 'publica', 'accion', 'antigua', 'local']],
 ];
 let totalRevisar = 0;
 console.log(`Comprobación de coherencia · ${codigo.length} archivos · ${reglas.length} reglas de estilo · ${piezas.size} clases comunes · ${paginas.size} páginas`);

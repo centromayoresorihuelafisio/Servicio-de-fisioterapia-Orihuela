@@ -6,7 +6,7 @@
 // Fase D2 (usuarios y episodios): obtenerDashboardPacientesWeb(filtros) → lista y tiempo de espera, altas e inscripciones por
 // mes, duración del tratamiento y sesiones asistidas, ya agregados (nunca filas).
 // Fase D4 (evolución clínica): obtenerDashboardEvolucionWeb(filtros) → primera frente a última valoración (dolor, función, analgésicos).
-// Fase D3 (página): obtenerDashboardWeb(filtros, forzar) → D1 + D2 + D4 en una sola respuesta, con caché de 10 minutos por filtros.
+// Fase D3 (página): obtenerDashboardWeb_(filtros, forzar) → D1 + D2 + D4 en una sola respuesta, con caché de 10 minutos por filtros.
 // Cada hoja se lee UNA vez por llamada: "Citas" (citasLeer_), Maestra, "Historias Clínicas" (solo 2 columnas), "Episodios HC",
 // Disponibilidad y Recordatorios.
 // ================================================================================
@@ -58,7 +58,7 @@ function dashZonasDe_(patologias, mapa) {
   return PATOLOGIAS_GRUPOS.map(g => g.grupo).filter(z => vistas[z]);
 }
 
-// La Maestra se lee una sola vez por llamada de obtenerDashboardWeb: este valor solo vive durante esa llamada
+// La Maestra se lee una sola vez por llamada de obtenerDashboardWeb_: este valor solo vive durante esa llamada
 // (las llamadas sueltas a D1 o D2 la leen cada una, sin memoria).
 let DASH_MEMO_MAESTRA_ = null;
 function dashLeerMaestra_() { return DASH_MEMO_MAESTRA_ || dashLeerMaestraHoja_(); }
@@ -465,7 +465,7 @@ function dashClaveCache_(f) {
  *   filtros?:Object, opciones?:Object, citas?:{ocupacion,faltas,atendidos,abandonos,reincidentes,diagnostico}, usuarios?:Object, clinica?:{evolucion,diagnostico}, estados?:{flujo,diagnostico}, diagnosticos?:Object,
  *   generadoEn?:string, desdeCache?:boolean}}
  */
-function obtenerDashboardWeb(filtros, forzar) {
+function obtenerDashboardWeb_(filtros, forzar) {
   try {
     filtros = filtros || {};
     const hoy = dashHoy_();
@@ -516,7 +516,7 @@ function obtenerDashboardWeb(filtros, forzar) {
     } catch (e) { Logger.log('No se pudo guardar la caché del dashboard: ' + e.message); }
     return r;
   } catch (e) {
-    Logger.log('Error en obtenerDashboardWeb: ' + e.message);
+    Logger.log('Error en obtenerDashboardWeb_: ' + e.message);
     return { success: false, message: e.message };
   }
 }

@@ -126,11 +126,11 @@ function generarUrlWhatsappParaAgendaWeb(fila) {
 }
 
 /** Datos para el asistente de WhatsApp por lotes. `filas` son IDs de cita. */
-function datosWhatsappLoteAgendaWeb(filas) {
+function datosWhatsappLoteAgendaWeb_(filas) {
   try {
     return datosWhatsappLoteDesdeCitasWeb_(filas);
   } catch (e) {
-    Logger.log('Error en datosWhatsappLoteAgendaWeb: ' + e.message);
+    Logger.log('Error en datosWhatsappLoteAgendaWeb_: ' + e.message);
     return { success: false, message: e.message };
   }
 }

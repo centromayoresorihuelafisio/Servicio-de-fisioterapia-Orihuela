@@ -45,7 +45,7 @@ function pacienteMaestraPorId_(idPaciente) {
  * Devuelve `pacientes` ([{ id, nombre, telefono, dni }]): el ID es lo que el formulario envía al guardar,
  * y distingue a dos usuarios con el mismo nombre.
  */
-function obtenerPacientesParaAutocompletar() {
+function obtenerPacientesParaAutocompletar_() {
   try {
     return { pacientes: leerPacientesMaestra_() };
   } catch (e) {
@@ -63,8 +63,10 @@ function obtenerPacientesParaAutocompletar() {
  * @param {object} data Datos del formulario; `idPaciente` identifica al usuario (obligatorio).
  * @returns {string} Un mensaje de éxito o fracaso.
  */
-function procesarValoracion(data) {
+function procesarValoracion_(data) {
+  const lock = LockService.getScriptLock();
   try {
+    lock.waitLock(10000);
     const ss = getSS();
     const sheet = ss.getSheetByName(SHEETS.VALORACIONES);
     if (!sheet) throw new Error("No se encontró la hoja 'Valoraciones'.");
@@ -132,11 +134,14 @@ function procesarValoracion(data) {
 
     telefonoFormatoTexto_(sheet, sheet.getLastRow() + 1, C.TELEFONO);   // la fila nueva, con el teléfono como texto (si no, Sheets lo convierte en número)
     sheet.appendRow(filaDatos);
+    SpreadsheetApp.flush();
     return `Valoración de tipo '${tipoValoracion}' guardada con éxito.`;
 
   } catch (e) {
     Logger.log("Error al procesar valoración: " + e.message);
     throw new Error("Error al guardar: " + e.message);
+  } finally {
+    try { lock.releaseLock(); } catch (err) { /* sin bloqueo que liberar */ }
   }
 }
 

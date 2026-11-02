@@ -44,8 +44,8 @@ function include(nombreArchivo) {
 }
 
 /**
- * Paneles de formulario que las páginas pueden pedir bajo demanda (obtenerPanelWeb).
- * Solo estos nombres se sirven: la función es llamable desde el navegador.
+ * Paneles de formulario que las páginas pueden pedir bajo demanda (obtenerPanelWeb_).
+ * Solo estos nombres se sirven: la acción se puede pedir desde el navegador.
  */
 const PANELES_DIFERIDOS_ = [
   'valoraciones/Panel_Valoracion',
@@ -81,7 +81,7 @@ function incluirEstados() {
 }
 
 /** Devuelve el HTML de un panel (estilos, plantilla y script) para que el navegador lo monte al abrirlo. */
-function obtenerPanelWeb(archivo) {
+function obtenerPanelWeb_(archivo) {
   if (PANELES_DIFERIDOS_.indexOf(archivo) === -1) throw new Error('Panel no disponible: ' + archivo);
   return include(archivo);
 }
