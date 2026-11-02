@@ -286,7 +286,7 @@ Fases (una conversación cada una, según 0.1 A; no se empieza una sin haber com
 - **Conversación 4 · Hoja impresa** — PENDIENTE. Diseño A4 con letra grande, reimpresión y enlace desde la Historia clínica.
 
 ## 17. Control de acceso, roles y registro (trazado el 1-nov-2026; plan APROBADO el 2-nov-2026; EN CURSO en la rama `control-acceso`)
-Estado (2-nov-2026): **conversación 1 (fase 1) programada en la rama `control-acceso`, PENDIENTE de que el dueño la compruebe** (no se ha ejecutado en Apps Script). Las decisiones de 17.8 están cerradas. Todo el trabajo de esta sección va en esa rama, sin tocar `main`, y se sube con `clasp push` estando en ella; la versión real no se actualiza hasta la fase 5. La baja empieza el **17-nov-2026**.
+Estado (2-nov-2026): **conversación 1 (fase 1) en la rama `control-acceso`: el dueño ejecutó las funciones de editor y dio por buenas las pruebas el 2-nov-2026; solo falta repetir la medida del login (dio 1708 ms; objetivo, menos de 1000) y probar el botón «Cerrar sesión», ambos retocados ese día.** Las decisiones de 17.8 están cerradas. Todo el trabajo de esta sección va en esa rama, sin tocar `main`, y se sube con `clasp push` estando en ella; la versión real no se actualiza hasta la fase 5. La baja empieza el **17-nov-2026**.
 Para seguir, cuando la fase 1 esté comprobada: «Lee CLAUDE.md y la sección 0 de CONTEXTO.md y haz la conversación 2 de la sección 17 en la rama control-acceso.»
 
 ### 17.1 Objetivo y motivo
@@ -418,8 +418,8 @@ Si el sustituto olvida la contraseña o se queda sin acceso, solo el administrad
 ### 17.10 Fases
 Según la sección 0.1 A, cada conversación termina cuando el dueño la comprueba. Antes de cada una, commit en GitHub Desktop. Se prueba en la implementación de prueba. Frase para empezar: «Lee CLAUDE.md y la sección 0 de CONTEXTO.md y haz la <conversación> de la sección 17.»
 
-**Fase 1 · Base (conversación 1): programada el 2-nov-2026, PENDIENTE de comprobar**
-A mano, en el editor y en este orden: `accesoPrepararHojas`, `accesoComprobarPropietario`, `accesoMedirIteraciones`, `accesoCrearAdministrador` (da la contraseña temporal en el registro de ejecución). El botón de cerrar sesión definitivo llega en la fase 3; mientras tanto está en `?page=pruebaAcceso`, igual que las pruebas de acción inventada y llamada sin sesión.
+**Fase 1 · Base (conversación 1): hecha el 2-nov-2026; falta la última comprobación (ver el estado al principio de esta sección)**
+A mano, en el editor y en este orden: `accesoPrepararHojas`, `accesoComprobarPropietario`, `accesoMedirIteraciones`, `accesoCrearAdministrador` (da la contraseña temporal en el registro de ejecución). Las pruebas de acción inventada y llamada sin sesión están en `?page=pruebaAcceso`. El botón «Cerrar sesión» está en la barra de pestañas (lo pone `ui/Acceso`); la fase 3 lo pasa al menú de sesión. Si cambia la medida de iteraciones, cada contraseña se actualiza sola en su siguiente entrada.
 Cómo probar: entrar bien y mal; 5 fallos bloquean y llega el correo; la contraseña temporal obliga a cambiarla; cerrar sesión; caducidad a los 60 minutos; una ventana de HC comparte sesión; un `api` con acción inventada o sin token se rechaza y queda en «Registro»; login por debajo de 1 s; tema claro y oscuro. Aviso: en esta fase las funciones antiguas siguen abiertas.
 
 **Fase 2 · Cerrar puertas, pestaña por pestaña (conversaciones 2 a 4)**

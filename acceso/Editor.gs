@@ -38,14 +38,14 @@ function accesoComprobarPropietario() {
   Logger.log('Correcto: se reconoce al propietario.');
 }
 
-/** Paso 3. Mide cuántas iteraciones caben en unos 600 ms de login y las guarda en las propiedades del script. */
+/** Paso 3. Mide cuántas iteraciones caben en unos 300 ms de login y las guarda en las propiedades del script. */
 function accesoMedirIteraciones() {
   soloPropietario_();
   const muestra = 500;
   const inicio = Date.now();
   accesoHash_('medicion', Utilities.getUuid(), muestra);
   const ms = Math.max(1, Date.now() - inicio);
-  const iteraciones = Math.min(20000, Math.max(100, Math.floor(muestra * 600 / ms)));
+  const iteraciones = Math.min(20000, Math.max(100, Math.floor(muestra * 300 / ms)));
   PropertiesService.getScriptProperties().setProperty(PROP_KEYS.ACCESO_ITERACIONES, String(iteraciones));
   Logger.log(muestra + ' iteraciones tardan ' + ms + ' ms. Guardadas ' + iteraciones + ' iteraciones.');
 }

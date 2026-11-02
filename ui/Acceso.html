@@ -18,6 +18,7 @@
   .acceso-tarjeta h1 { margin: 0; font-size: var(--fs-h); font-weight: 500; }
   .acceso-tarjeta p { margin: 0; font-size: var(--fs-md); color: var(--md-on-surface-med); }
   .acceso-tarjeta .acceso-error { color: var(--md-error); min-height: 1.3em; }
+  .acceso-salir { margin-left: auto; height: 32px; }
   @media print { .acceso-cierre { display: none; } }
 </style>
 <div class="acceso-cierre" id="acceso-cierre" role="dialog" aria-modal="true" aria-label="Acceso a la aplicación">
@@ -171,6 +172,18 @@
         directa('cerrarSesion', [], function () { guardarToken(''); pedir('login'); });
       }
     };
+
+    // Botón de cerrar sesión en la barra de pestañas; la página de la HC no tiene barra.
+    document.addEventListener('DOMContentLoaded', function () {
+      var barra = document.querySelector('nav.tabs-cambio');
+      if (!barra) return;
+      var salir = document.createElement('button');
+      salir.type = 'button';
+      salir.className = 'md-btn md-btn--text acceso-salir';
+      salir.textContent = 'Cerrar sesión';
+      salir.addEventListener('click', window.Acceso.cerrarSesion);
+      barra.appendChild(salir);
+    });
 
     if (leerToken()) {
       cierre.hidden = true;

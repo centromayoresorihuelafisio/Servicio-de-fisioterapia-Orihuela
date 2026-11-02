@@ -59,7 +59,7 @@ function accesoBuscarCuenta_(usuario) {
   const cab = filas[0].map(String);
   for (let f = 1; f < filas.length; f++) {
     if (accesoClave_(filas[f][cab.indexOf('usuario')]) !== clave) continue;
-    const cuenta = { fila: f + 1 };
+    const cuenta = { fila: f + 1, cabeceras: cab };
     ACCESO_CABECERAS_.forEach(c => { cuenta[c] = filas[f][cab.indexOf(c)]; });
     return cuenta;
   }
@@ -69,8 +69,7 @@ function accesoBuscarCuenta_(usuario) {
 /** Escribe campos de una cuenta por nombre de cabecera y limpia su copia en caché. */
 function accesoEscribirCuenta_(cuenta, campos) {
   const hoja = accesoHoja_();
-  const cab = hoja.getRange(1, 1, 1, hoja.getLastColumn()).getValues()[0].map(String);
-  Object.keys(campos).forEach(c => hoja.getRange(cuenta.fila, cab.indexOf(c) + 1).setValue(campos[c]));
+  Object.keys(campos).forEach(c => hoja.getRange(cuenta.fila, cuenta.cabeceras.indexOf(c) + 1).setValue(campos[c]));
   CacheService.getScriptCache().remove('acc_' + accesoClave_(cuenta.usuario));
 }
 
@@ -82,6 +81,15 @@ function accesoFecha_(v) {
   return Object.prototype.toString.call(v) === '[object Date]' && !isNaN(v) ? v : null;
 }
 
+function accesoPerfilDeCuenta_(c) {
+  const caduca = accesoFecha_(c.caduca);
+  return {
+    usuario: String(c.usuario), nombre: String(c.nombre), rol: String(c.rol).trim().toLowerCase(),
+    activo: accesoVerdadero_(c.activo), caduca: caduca ? caduca.getTime() : 0,
+    debeCambiar: accesoVerdadero_(c.debeCambiarPassword)
+  };
+}
+
 /** Lo que una sesión necesita saber de su cuenta, con caché corta (rol y activo se recomprueban así, 17.6). */
 function accesoPerfil_(usuario) {
   const cache = CacheService.getScriptCache();
@@ -90,12 +98,7 @@ function accesoPerfil_(usuario) {
   if (guardado) return JSON.parse(guardado);
   const c = accesoBuscarCuenta_(usuario);
   if (!c) return null;
-  const caduca = accesoFecha_(c.caduca);
-  const perfil = {
-    usuario: String(c.usuario), nombre: String(c.nombre), rol: String(c.rol).trim().toLowerCase(),
-    activo: accesoVerdadero_(c.activo), caduca: caduca ? caduca.getTime() : 0,
-    debeCambiar: accesoVerdadero_(c.debeCambiarPassword)
-  };
+  const perfil = accesoPerfilDeCuenta_(c);
   cache.put(clave, JSON.stringify(perfil), ACCESO_CACHE_PERFIL_S_);
   return perfil;
 }
@@ -171,13 +174,19 @@ function accesoIniciarSesion_(usuario, password) {
     throw new Error(ACCESO_MSG_INCORRECTO_);
   }
 
-  const perfil = accesoPerfil_(nombre);
+  const perfil = accesoPerfilDeCuenta_(cuenta);
   if (!accesoVigente_(perfil)) {
     registroAnotar_(perfil.usuario, perfil.rol, 'login_fallido', 'Accesos', 'Cuenta desactivada o caducada', 'denegado');
     throw new Error('Este acceso está desactivado. Habla con el administrador.');
   }
 
-  accesoEscribirCuenta_(cuenta, { intentosFallidos: 0, bloqueadoHasta: '', ultimoAcceso: new Date() });
+  // Solo se escribe lo que cambia: cada celda escrita alarga la entrada.
+  const cambios = { ultimoAcceso: new Date() };
+  if (cuenta.intentosFallidos) cambios.intentosFallidos = 0;
+  if (cuenta.bloqueadoHasta) cambios.bloqueadoHasta = '';
+  // Una contraseña guardada con otras iteraciones se actualiza sola al entrar.
+  if (Number(String(cuenta.hash).split('$')[0]) !== accesoIteraciones_()) Object.assign(cambios, accesoCredencial_(clave));
+  accesoEscribirCuenta_(cuenta, cambios);
   const token = sesionCrear_(perfil.usuario);
   const ms = Date.now() - inicio;
   registroAnotar_(perfil.usuario, perfil.rol, 'login', 'Accesos', JSON.stringify({ ms: ms }), 'ok');
