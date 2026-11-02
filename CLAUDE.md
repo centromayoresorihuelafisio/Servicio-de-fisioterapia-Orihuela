@@ -15,10 +15,10 @@
 
 ## Cómo trabajar aquí (esto sustituye a la regla del zip de CONTEXTO.md)
 - Edita los archivos directamente en el proyecto. NO me entregues zips ni archivos sueltos: ya no hacen falta.
-- NO hagas commit, NO hagas push, NO cambies de rama y NO ejecutes `clasp push`, salvo que te lo pida en esa conversación. Eso lo hago yo con GitHub Desktop y clasp. Trabajamos directamente en la rama `main`. La sección 17 de `CONTEXTO.md` se hizo en la rama `control-acceso`; si al empezar sigue sin unir a `main` (paso E2 de `ENTREGA_Y_EMERGENCIA.md`), pregúntame en qué rama trabajar antes de tocar nada.
+- NO hagas commit, NO hagas push, NO cambies de rama y NO ejecutes `clasp push`, salvo que te lo pida en esa conversación. Eso lo hago yo con GitHub Desktop y clasp. Trabajamos directamente en la rama `main`. La sección 17 de `CONTEXTO.md` se hizo en la rama `control-acceso`; si al empezar sigue sin unir a `main`, pregúntame en qué rama trabajar antes de tocar nada.
 - Todos los archivos van en LF (unificado el 30-oct-2026). No introduzcas CRLF en ningún archivo, nuevo o existente.
 - Al terminar cada tarea, dame un resumen corto en español con: qué archivos has tocado (con su ruta), si son nuevos o ya existían, qué cambia en pantalla y qué debo probar.
-- Recuérdame que, tras `clasp push`, la Web App necesita una nueva versión de la implementación (Administrar implementaciones › editar › Nueva versión, con «Cualquier usuario»; nunca volver a una versión anterior al login: `ENTREGA_Y_EMERGENCIA.md`, parte F).
+- Recuérdame que, tras `clasp push`, la Web App necesita una nueva versión de la implementación (Administrar implementaciones › editar › Nueva versión, con «Cualquier usuario»; nunca volver a una versión anterior al login: sección 17.9 de `CONTEXTO.md`).
 - Si el cambio altera estructura, convenciones, archivos o el estado del trabajo, actualiza `CONTEXTO.md` siguiendo su regla de mantenimiento (sección 0).
 
 ## Unificación visual (terminada)

@@ -2,7 +2,7 @@
 
 Gestión del servicio de fisioterapia con **Google Sheets + Google Apps Script**: base de datos de usuarios, agenda de citas (hoja plana "Citas"), valoraciones e historias clínicas (fichas web en hojas, sin Docs). Este repositorio es la copia de seguridad del código.
 
-Se usa como **Web App** (`doGet`): Usuarios, Agenda, Valoraciones, Estadísticas y Configuración como pestañas de una aplicación web, con usuario y contraseña propios y dos roles (administrador y usuario). La hoja es solo la base de datos: no tiene menús ni diálogos. Guía para el sustituto: `GUIA_SUSTITUTO.md`; entrega y plan de emergencia: `ENTREGA_Y_EMERGENCIA.md`.
+Se usa como **Web App** (`doGet`): Usuarios, Agenda, Valoraciones, Estadísticas y Configuración como pestañas de una aplicación web, con usuario y contraseña propios y dos roles (administrador y usuario). La hoja es solo la base de datos: no tiene menús ni diálogos.
 
 ## Estructura del proyecto
 
