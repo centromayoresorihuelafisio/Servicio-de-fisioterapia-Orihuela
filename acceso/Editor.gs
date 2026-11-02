@@ -38,6 +38,14 @@ function accesoComprobarPropietario() {
   Logger.log('Correcto: se reconoce al propietario.');
 }
 
+/** Manda un correo de prueba al propietario. Al ejecutarla desde el editor, Google pide el permiso de correo si falta. */
+function accesoProbarCorreo() {
+  soloPropietario_();
+  MailApp.sendEmail(Session.getEffectiveUser().getEmail(), 'Fisioterapia Orihuela: prueba de correo',
+    'Si lees esto, los avisos de bloqueo del control de acceso funcionan.');
+  Logger.log('Correo de prueba enviado.');
+}
+
 /** Paso 3. Mide cuántas iteraciones caben en unos 300 ms de login y las guarda en las propiedades del script. */
 function accesoMedirIteraciones() {
   soloPropietario_();
