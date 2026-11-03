@@ -530,7 +530,7 @@
         var tip = [c['Usuario'], sinEmoji(c['Asistencia']), c['Notas']].filter(function(v) { return !vacioTxt(v); }).join(' · ');
         return '<div class="' + clases.join(' ') + '" data-fila="' + c._fila + '" title="' + escapar(tip) + '">' +
           '<span class="asa material-symbols-outlined">drag_indicator</span>' + avatarHtml(c['Usuario']) +
-          '<span class="nombre-u">' + escapar(c['Usuario']) + '</span>' + (vacioTxt(c['Sesión']) ? '' : badgeSesion(c['Sesión'])) + '</div>';
+          '<span class="nombre-u">' + escapar(c['Usuario']) + '</span>' + badgeFaltas(c) + (vacioTxt(c['Sesión']) ? '' : badgeSesion(c['Sesión'])) + '</div>';
       }
 
       function abrirHCFila(fila) {

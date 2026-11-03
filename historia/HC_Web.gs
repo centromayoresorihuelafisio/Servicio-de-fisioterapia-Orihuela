@@ -222,7 +222,7 @@ function hcLeerDatosAgenda_(tz, desdeISO) {
 
 /** Cuenta las citas de un usuario con los datos de la tabla "Citas" ya leídos, por ID paciente (solo hasta hoy; lo pendiente va aparte). */
 function hcContarAsistenciaDe_(datos, usuario, desdeISO) {
-  const r = { asistidas: 0, noAsistidas: 0, justificadas: 0, pendientes: 0, otras: 0, telefonoDistinto: 0 };
+  const r = { asistidas: 0, noAsistidas: 0, justificadas: 0, pendientes: 0, otras: 0, telefonoDistinto: 0, umbralAbsentismo: ABSENTISMO_UMBRAL };
   (datos.porId[usuario.idPaciente] || []).forEach(function (c) {
     if (desdeISO && c.fecha < desdeISO) return;
     if (c.fecha > datos.hoy || c.asistencia === ASISTENCIA_CITA.PENDIENTE) r.pendientes++;

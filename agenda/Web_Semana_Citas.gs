@@ -83,6 +83,53 @@ function agendaSemanaUsuariosPorId_(ids) {
 }
 
 /**
+ * Faltas «No asistido» de cada usuario desde el ingreso de su último episodio de la HC (aviso de absentismo, ABSENTISMO_UMBRAL).
+ * Cuenta exactamente igual que la tarjeta «Asistencia a citas» de la ficha (hcContarAsistenciaDe_, historia/HC_Web.gs). La HC se
+ * busca por ID paciente (columna 8 de "Historias Clínicas"); sin historia, o con más de una, se cuentan todas sus faltas.
+ * @param {string[]} ids ID paciente de los usuarios pedidos.
+ * @param {Array} todas Todas las citas (citasLeer_()), ya leídas.
+ * @return {Object<string,number>} faltas por ID paciente (solo los que tienen alguna).
+ */
+function agendaSemanaFaltasPorId_(ids, todas, tz) {
+  const res = {};
+  if (!ids || !ids.length) return res;
+  const pedidos = {}, porId = {};
+  ids.forEach(function (id) { if (id) pedidos[id] = true; });
+  todas.forEach(function (c) { if (pedidos[c.idPaciente]) (porId[c.idPaciente] = porId[c.idPaciente] || []).push(c); });
+
+  // Ingreso del último episodio de cada usuario pedido (una lectura de cada hoja de la HC).
+  const ingreso = {};
+  const h = hcHojas_();
+  const ultHC = h.hc.getLastRow();
+  if (ultHC > 1) {
+    const hcDe = {}, repetidos = {};
+    h.hc.getRange(2, 1, ultHC - 1, HC_WEB_.COL.ID_PACIENTE).getValues().forEach(function (r) {
+      const p = String(r[HC_WEB_.COL.ID_PACIENTE - 1] || '').trim(), idHC = String(r[0] || '');
+      if (!p || !idHC || !pedidos[p]) return;
+      if (hcDe[p] && hcDe[p] !== idHC) repetidos[p] = true; else hcDe[p] = idHC;
+    });
+    const epis = {};
+    const ultE = h.epi.getLastRow();
+    if (ultE > 1) h.epi.getRange(2, 1, ultE - 1, 2).getValues().forEach(function (r) {
+      const idHC = String(r[0] || ''); if (!idHC) return;
+      (epis[idHC] = epis[idHC] || []).push({ ingreso: hcAISO_(r[1], tz) });
+    });
+    Object.keys(hcDe).forEach(function (p) {
+      if (repetidos[p]) return;
+      const lista = (epis[hcDe[p]] || []).sort(hcCmpEpisodios_);
+      if (lista.length) ingreso[p] = lista[lista.length - 1].ingreso;
+    });
+  }
+
+  const datos = { hoy: Utilities.formatDate(new Date(), tz, 'yyyy-MM-dd'), porId: porId };
+  Object.keys(porId).forEach(function (id) {
+    const n = hcContarAsistenciaDe_(datos, { idPaciente: id }, ingreso[id] || '').noAsistidas;
+    if (n) res[id] = n;
+  });
+  return res;
+}
+
+/**
  * Parte PURA (no toca hojas): construye la lista de filas de la semana. Los parámetros permiten probarla sin Sheets.
  * @param {Array} citas Citas de la semana (forma de citasLeer_).
  * @param {Object} usuarios Resultado de agendaSemanaUsuariosPorId_.
@@ -134,13 +181,21 @@ function obtenerAgendaSemanaDesdeCitasWeb_(fechaISO) {
   try {
     const tz = Session.getScriptTimeZone();
     const s = agendaSemanaDe_(fechaISO, tz);
-    const citas = citasDeSemana_(s.semana.lunes, s.semana.viernes);
+    // Una sola lectura de "Citas": la semana sale de ahí y el resto sirve para contar las faltas (aviso de absentismo).
+    const todas = citasLeer_();
+    const citas = todas.filter(function (c) { return c.fecha >= s.semana.lunes && c.fecha <= s.semana.viernes; });
     const ids = [];
     citas.forEach(function (c) { if (c.idPaciente && ids.indexOf(c.idPaciente) === -1) ids.push(c.idPaciente); });
     const cerradas = leerDisponibilidad_();
     const filas = agendaSemanaConstruir_(citas, agendaSemanaUsuariosPorId_(ids), s.fechas, citasHorasDelDia_,
       function (iso, hora) { return disponibilidadCerrada_(cerradas, iso, hora); });
-    return { citas: filas, semana: s.semana, headers: agendaSemanaCabeceras_(), opcionesAsistencia: citasOpcionesAsistencia_() };
+    // Si el recuento falla, la semana se ve igual, sin avisos.
+    try {
+      const faltas = agendaSemanaFaltasPorId_(ids, todas, tz);
+      filas.forEach(function (f) { if (faltas[f._idPaciente]) f._faltas = faltas[f._idPaciente]; });
+    } catch (eF) { Logger.log('Aviso de absentismo no disponible: ' + eF.message); }
+    return { citas: filas, semana: s.semana, headers: agendaSemanaCabeceras_(), opcionesAsistencia: citasOpcionesAsistencia_(),
+      umbralAbsentismo: ABSENTISMO_UMBRAL };
   } catch (e) {
     Logger.log('Error en obtenerAgendaSemanaDesdeCitasWeb_: ' + e.message);
     return { citas: [], semana: null, headers: [], error: e.message };

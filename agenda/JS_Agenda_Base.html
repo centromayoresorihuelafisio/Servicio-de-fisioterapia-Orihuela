@@ -16,6 +16,7 @@
       var semanaActual = null; // lunes de la semana mostrada, "yyyy-MM-dd"
       var mostrarHuecos = false;
       var OPCIONES_ASISTENCIA = [];
+      var UMBRAL_ABSENTISMO = 3;       // lo manda el servidor (ABSENTISMO_UMBRAL, core/Config.gs)
       var vista = 'semana';            // 'semana' (tabla) | 'hoy' (tarjetas del día de hoy)
       var filtrosActivos = new Set();  // 'sinAsistencia' | 'sinHC' | 'conNotas'
       var filtroDiaSinAsis = null;     // fecha ISO si el filtro «sin asistencia» se limita a un solo día (chip del resumen del día)
@@ -75,6 +76,7 @@
             HEADERS_VISIBLES = HEADERS.filter(function(h) { return COLUMNAS_OCULTAS.indexOf(normalizar(h)) === -1; });
             CITAS = res.citas || [];
             OPCIONES_ASISTENCIA = res.opcionesAsistencia || [];
+            if (res.umbralAbsentismo) UMBRAL_ABSENTISMO = res.umbralAbsentismo;
             COL_HISTORIA = HEADERS.find(function(h) { return h.toLowerCase().indexOf('historia') !== -1; });
 
             if (res.semana) {
@@ -253,7 +255,13 @@
           .then(function(res) {
             if (!res || !res.success) { revertir((res && res.message) || 'No se pudo guardar el cambio.'); return; }
             // Tabla nueva: "quitar" = Pendiente y Pendiente se muestra vacío, igual que al recargar la semana.
-            if (res.asistencia !== undefined && res.asistencia !== cita['Asistencia']) { cita['Asistencia'] = res.asistencia; render(); }
+            var cambio = false;
+            if (res.asistencia !== undefined && res.asistencia !== cita['Asistencia']) { cita['Asistencia'] = res.asistencia; cambio = true; }
+            // Faltas del usuario tras el cambio: pone o quita el aviso de absentismo en todas sus citas de la semana.
+            if (res.idPaciente && res.faltas !== undefined) CITAS.forEach(function(c) {
+              if (c._idPaciente === res.idPaciente && (c._faltas || 0) !== res.faltas) { c._faltas = res.faltas; cambio = true; }
+            });
+            if (cambio) render();
           }, function(err) { revertir('Error al guardar: ' + err); });
       }
 
@@ -261,6 +269,14 @@
         var t = (v + '').trim();
         if (!/^\d+$/.test(t)) return escapar(v);
         return '<span class="badge-sesion ' + (t === '1' ? 's1' : 'sn') + (etiqueta ? ' etq' : '') + '" title="' + (t === '1' ? 'Primera sesión' : 'Sesión ' + t) + '">' + (etiqueta ? 'Sesión ' : '') + t + '</span>';
+      }
+
+      // Aviso de absentismo: etiqueta roja junto al nombre con ABSENTISMO_UMBRAL o más faltas «No asistido» desde el último ingreso.
+      function badgeFaltas(c) {
+        var n = c && c._faltas;
+        if (!n || n < UMBRAL_ABSENTISMO) return '';
+        return '<span class="badge-faltas" title="Aviso de absentismo: ' + n + ' faltas sin justificar desde el último ingreso">' +
+          '<span class="material-symbols-outlined">event_busy</span>' + n + '<span class="bf-txt"> faltas</span></span>';
       }
 
       // Sesión con − / +. Solo si es un número (vacío o texto libre se quedan como estaban). Mínimo 1.
@@ -380,7 +396,7 @@
         return '<tr class="fila-ahora"><td colspan="' + numColumnas + '"><div class="ahora-linea"><span>' + ahora + '</span></div></td></tr>';
       }
 
-      function renderCelda(header, valor, fila, esHueco, tag) {
+      function renderCelda(header, valor, fila, esHueco, tag, c) {
         var vacio = vacioTxt(valor);
 
         if (header === 'Hora') {
@@ -421,7 +437,7 @@
 
         var titulo = (header === 'Usuario' && !vacio) ? ' title="' + escapar(valor) + '"' : '';
         var interior = vacio ? '—' : escapar(valor);
-        if (header === 'Usuario' && !vacio && !esHueco) interior = '<div class="celda-usuario" data-ficha-fila="' + fila + '">' + avatarHtml(valor) + '<span class="nombre-u">' + escapar(valor) + '</span></div>';
+        if (header === 'Usuario' && !vacio && !esHueco) interior = '<div class="celda-usuario" data-ficha-fila="' + fila + '">' + avatarHtml(valor) + '<span class="nombre-u">' + escapar(valor) + '</span>' + badgeFaltas(c) + '</div>';
         return '<td class="' + (vacio ? 'vacio' : '') + '"' + titulo + '>' + interior + '</td>';
       }
 
@@ -529,7 +545,7 @@
             var tempo = (esHoy && !c._hueco) ? estadoTemporal(hora, ahora) : '';
             var tag = tempo === 'en-curso' ? 'ahora' : ((esHoy && proxima && proxima._fila === c._fila) ? 'proxima' : '');
 
-            var celdas = HEADERS_VISIBLES.map(function(h) { return renderCelda(h, c[h], c._fila, c._hueco, tag); }).join('');
+            var celdas = HEADERS_VISIBLES.map(function(h) { return renderCelda(h, c[h], c._fila, c._hueco, tag, c); }).join('');
             var celdaAcciones = c._hueco ? '<td></td>' : '<td class="acciones-fila">' + htmlBotonesFila(c._fila, c) + '</td>';
 
             var esManana = hora < HORA_CORTE_TARDE;
@@ -628,7 +644,7 @@
         return '<div class="' + clases.join(' ') + '" data-fila="' + c._fila + '">' +
           '<div class="tj-top"><span class="asa material-symbols-outlined" title="Arrastra para mover la cita a otro hueco libre">drag_indicator</span><span class="chk"></span><span class="tj-hora">' + escapar(hora) + '</span>' + tagTxt +
             '<span class="tj-fill"></span>' + (vacioTxt(c['Sesión']) ? '' : htmlSesion(c['Sesión'], c._fila)) + '<span class="tj-acciones">' + htmlBotonesFila(c._fila, c) + '</span></div>' +
-          '<div class="tj-nombre" data-ficha-fila="' + c._fila + '" title="' + escapar(c['Usuario']) + '">' + avatarHtml(c['Usuario']) + '<span class="nombre-u">' + escapar(c['Usuario']) + '</span></div>' +
+          '<div class="tj-nombre" data-ficha-fila="' + c._fila + '" title="' + escapar(c['Usuario']) + '">' + avatarHtml(c['Usuario']) + '<span class="nombre-u">' + escapar(c['Usuario']) + '</span>' + badgeFaltas(c) + '</div>' +
           asis + notas + '</div>';
       }
 

@@ -269,6 +269,15 @@
       }
       .badge-sesion.s1, .badge-sesion.sn { background: color-mix(in srgb, var(--md-primary) 8%, transparent); color: var(--md-on-surface-med); }
       .badge-sesion.s1 { box-shadow: inset 0 0 0 1.5px var(--md-primary); } /* primera sesión: mismo gris + anillo azul fino */
+      /* Aviso de absentismo (junto al nombre): 3 o más faltas «No asistido» desde el último ingreso. En la cuadrícula, solo icono y número. */
+      .badge-faltas {
+        display: inline-flex; align-items: center; gap: .2rem; flex-shrink: 0; height: 20px; padding: 0 .45rem;
+        border-radius: var(--md-shape-full); background: var(--md-error-bg); color: var(--md-error);
+        font-size: var(--fs-2xs); font-weight: 700; white-space: nowrap; cursor: help;
+      }
+      .badge-faltas .material-symbols-outlined { font-size: 14px; }
+      .cal-cita .badge-faltas { padding: 0 .3rem; }
+      .cal-cita .badge-faltas .bf-txt { display: none; }
       /* Sesión: al pasar el ratón por el número aparece un − / + (como los botones de asistencia). La vista normal y la de − / + ocupan
          la misma casilla de la rejilla: el ancho no cambia al pasar el ratón y no hay parpadeo. */
       .ses-ctl { display: inline-grid; align-items: center; justify-items: center; }

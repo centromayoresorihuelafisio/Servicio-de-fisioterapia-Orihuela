@@ -97,6 +97,12 @@ const ASISTENCIA_CITA = {
 };
 
 /**
+ * Aviso de absentismo (decisión del dueño, 3-nov-2026): un usuario lo tiene con 3 o más citas «No asistido» desde el ingreso de su
+ * último episodio (las «Justificada» no cuentan). Se ve junto al nombre en la Agenda y en la tarjeta «Asistencia a citas» de la ficha.
+ */
+const ABSENTISMO_UMBRAL = 3;
+
+/**
  * Campos de la Maestra cuyos cambios se guardan en el historial (usuarios/Historial_Estado.gs). Estado + Tipo de Ingreso +
  * Gravedad son lo que decide la "Prioridad" (la puntuación de usuarios/Ordenar.gs); la puntuación en sí no se guarda.
  */

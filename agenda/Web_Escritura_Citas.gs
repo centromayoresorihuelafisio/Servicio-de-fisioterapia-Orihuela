@@ -35,6 +35,15 @@ function actualizarCampoDesdeCitasWeb_(idCita, campo, valor) {
   if (r && r.success && esAsistencia) {
     const categoria = citasCategoriaAsistencia_(nuevo).categoria;
     r.asistencia = categoria === ASISTENCIA_CITA.PENDIENTE ? '' : categoria;
+    // Faltas del usuario tras el cambio (aviso de absentismo), para que la Agenda ponga o quite la etiqueta sin recargar.
+    try {
+      const todas = citasLeer_(), id = String(idCita).trim();
+      const cita = todas.filter(function (c) { return c.id === id; })[0];
+      if (cita && cita.idPaciente) {
+        r.idPaciente = cita.idPaciente;
+        r.faltas = agendaSemanaFaltasPorId_([cita.idPaciente], todas, Session.getScriptTimeZone())[cita.idPaciente] || 0;
+      }
+    } catch (eF) { Logger.log('Aviso de absentismo no disponible: ' + eF.message); }
   }
   return r;
 }

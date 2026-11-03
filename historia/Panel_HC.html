@@ -201,6 +201,7 @@
 .hc .tile.asist .asist-fila b{margin-left:5px;font-size:var(--fs-md)}
 .hc .tile.asist .stack{flex:1 1 110px;min-width:90px}
 .hc .tile.asist .tr{flex:none}
+.hc .tile.asist.absentismo{border-color:var(--md-error)}
 .hc .tile.asist .v{font-size:var(--fs-title)}
 @container hc (max-width:700px){.hc .tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @container hc (max-width:520px){.hc .tiles{grid-template-columns:minmax(0,1fr)}}
@@ -577,7 +578,10 @@ window.PanelHC = {
     if (a.otras) nota.push(a.otras + ' con un valor de asistencia no clasificado');
     var tit = 'Desde ' + (ult && ult.ingreso ? fmtISO(ult.ingreso) : 'el principio') + ', según la Agenda. Las citas pendientes no cuentan en el porcentaje.' + (nota.length ? ' · ' + nota.join(' · ') : '');
     if (!tot) return '<div class="tile asist" title="' + esc(tit) + '">' + cab() + '<div class="v">—</div><div class="tr"><span class="vacio-tile">Sin citas pasadas</span></div></div>';
-    return '<div class="tile asist" title="' + esc(tit) + '">' + cab() +
+    // Aviso de absentismo: ABSENTISMO_UMBRAL o más faltas «No asistido» desde el último ingreso (el umbral lo manda el servidor).
+    var aviso = a.umbralAbsentismo && a.noAsistidas >= a.umbralAbsentismo;
+    return '<div class="tile asist' + (aviso ? ' absentismo' : '') + '" title="' + esc(tit) + '">' + cab() +
+      (aviso ? '<span class="hc-chip sm mal" title="' + a.noAsistidas + ' faltas sin justificar desde el último ingreso">Aviso de absentismo</span>' : '') +
       '<div class="asist-filas"><div class="asist-fila ok"><i></i>Asistidas<b>' + a.asistidas + '</b></div><div class="asist-fila mal"><i></i>No asistidas<b>' + a.noAsistidas + '</b></div><div class="asist-fila av"><i></i>Justificadas<b>' + a.justificadas + '</b></div></div>' +
       '<div class="stack suave" role="img" aria-label="Reparto de asistencias"><i class="s-ok" style="flex:' + a.asistidas + '"></i><i class="s-mal" style="flex:' + a.noAsistidas + '"></i><i class="s-av" style="flex:' + a.justificadas + '"></i></div>' +
       '<div class="tr"><span>' + pct + ' % · ' + tot + ' citas' + (a.pendientes ? ' · ' + a.pendientes + ' pend.' : '') + '</span></div></div>';
