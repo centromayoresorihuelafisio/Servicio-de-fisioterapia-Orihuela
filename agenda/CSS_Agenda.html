@@ -846,7 +846,6 @@
       .cal-celda { border-left: 1px solid color-mix(in srgb, var(--md-outline) 55%, transparent); border-bottom: 1px solid color-mix(in srgb, var(--md-outline) 55%, transparent); }
       .cal-celda.media { border-bottom-color: color-mix(in srgb, var(--md-outline) 28%, transparent); }
       .cal-celda.hoy { background-image: linear-gradient(color-mix(in srgb, var(--md-primary) 5%, transparent), color-mix(in srgb, var(--md-primary) 5%, transparent)); }
-      .cal-celda.vacia { background: none; }
       .cal-celda.festivo { background-image: linear-gradient(color-mix(in srgb, var(--md-data-festivo) 4%, transparent), color-mix(in srgb, var(--md-data-festivo) 4%, transparent)); }
       .cal-hora { font-size: var(--fs-xs); font-weight: 500; color: var(--md-on-surface-low); padding: .4rem .6rem; border-bottom-color: color-mix(in srgb, var(--md-outline) 55%, transparent); }
       .cal-hora.media { opacity: .55; border-bottom-color: color-mix(in srgb, var(--md-outline) 28%, transparent); }
@@ -857,6 +856,22 @@
       .cal-cita:hover .asa { opacity: .6; }
       .cal-cita .nombre-u { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
       .cal-cita .badge-sesion { margin-left: auto; min-width: 22px; height: 20px; font-size: var(--fs-2xs); flex-shrink: 0; }
+      .cal-cita .nombre-u { margin-right: auto; }   /* faltas, nota y sesión, juntas a la derecha */
+      .cal-cita .ic-nota { font-size: 16px; margin: 0; flex-shrink: 0; font-variation-settings: 'FILL' 1; }
+      /* Asistencia: toda la cita con un fondo suave (las pendientes se quedan en blanco) */
+      .cal-cita.asist-ok { background-color: var(--md-success-bg); }
+      .cal-cita.asist-mal { background-color: var(--md-error-bg); }
+      .cal-cita.asist-aviso { background-color: var(--md-warning-bg); }
+      /* Resumen del día en la cabecera, centrado y sin la barra (la cabecera es estrecha) */
+      .cal-cab .dia-resumen { margin-left: 0; flex-wrap: wrap; justify-content: center; gap: .3rem; }
+      .cal-cab .dia-resumen .ocup { display: none; }
+      .cal-cab:hover .dia-resumen .dia-stats { opacity: 1; }
+      /* Horas cerradas o fuera del horario de ese día: rayado gris suave */
+      .cal-celda.vacia { background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--md-outline) 45%, transparent) 0 1px, transparent 1px 8px); }
+      /* Línea de «ahora» en la columna de hoy */
+      .cal-celda { position: relative; }
+      .cal-ahora { position: absolute; left: 0; right: 0; height: 2px; margin-top: -1px; background: var(--md-primary); z-index: calc(var(--z-base) + 1); pointer-events: none; }
+      .cal-ahora::before { content: ''; position: absolute; left: -4px; top: -3px; width: 8px; height: 8px; border-radius: 50%; background: var(--md-primary); }
       @media print { .acc-pill { display: none !important; } }
       /* La píldora de acciones de la tabla flota sobre la fila (no depende del ancho de la columna) */
       td.acciones-fila { position: relative; }

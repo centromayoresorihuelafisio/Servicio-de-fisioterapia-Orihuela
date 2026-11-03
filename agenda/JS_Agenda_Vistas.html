@@ -496,19 +496,31 @@
           if (!etiqueta[c._fechaISO]) etiqueta[c._fechaISO] = (c['Día'] ? c['Día'] + ' ' : '') + String(c['Fecha'] || '').slice(0, 5);
         });
         dias.sort(); horas.sort();
-        var proxima = filaProxima(hoy, ahora);
+        var proxima = filaProxima(hoy, ahora), totales = calcularTotalesDia();
         var html = '<div class="cal" style="grid-template-columns:64px repeat(' + dias.length + ',minmax(150px,1fr))"><div class="cal-cab cal-esq"></div>';
-        dias.forEach(function(d) { html += '<div class="cal-cab' + (d === hoy ? ' hoy' : '') + (festivosDia(d).length ? ' festivo' : '') + '">' + htmlCabCal(d) + htmlRecPuntos(d) + '</div>'; });
+        dias.forEach(function(d) {
+          html += '<div class="cal-cab' + (d === hoy ? ' hoy' : '') + (festivosDia(d).length ? ' festivo' : '') + '">' + htmlCabCal(d) +
+            htmlStatsDia(totales[d] || { citas: 0, libres: 0, registradas: 0 }, d) + htmlRecPuntos(d) + '</div>';
+        });
         horas.forEach(function(h) {
           var media = /:30$/.test(h) ? ' media' : '';
           html += '<div class="cal-hora' + media + '">' + escapar(h) + '</div>';
           dias.forEach(function(d) {
             var c = mapa[d + '|' + h];
-            html += '<div class="cal-celda' + (d === hoy ? ' hoy' : '') + (festivosDia(d).length ? ' festivo' : '') + (c ? '' : ' vacia') + media + '">' +
-              (c ? htmlCeldaCal(c, ahora, proxima, d === hoy, !buscando || visibles.has(c._fila)) : '') + '</div>';
+            // Sin fila en esa hora = hora cerrada en Disponibilidad o fuera del horario de ese día: se raya en gris.
+            html += '<div class="cal-celda' + (d === hoy ? ' hoy' : '') + (festivosDia(d).length ? ' festivo' : '') + (c ? '' : ' vacia') + media + '"' + (c ? '' : ' title="Cerrado"') + '>' +
+              (c ? htmlCeldaCal(c, ahora, proxima, d === hoy, !buscando || visibles.has(c._fila)) : '') + (d === hoy ? htmlAhoraCal(h, ahora) : '') + '</div>';
           });
         });
         return html + '</div>';
+      }
+
+      // Línea de «ahora» en la columna de hoy: dentro de la casilla cuya cita está en curso, a la altura del minuto actual.
+      function htmlAhoraCal(hora, ahora) {
+        if (estadoTemporal(hora, ahora) !== 'en-curso') return '';
+        var m = /^(\d{1,2}):(\d{2})$/, a = m.exec(ahora), h = m.exec(hora);
+        var pct = ((+a[1] * 60 + +a[2]) - (+h[1] * 60 + +h[2])) / DURACION_CITA_MIN * 100;
+        return '<span class="cal-ahora" style="top:' + Math.max(0, Math.min(100, pct)).toFixed(1) + '%" title="Ahora · ' + escapar(ahora) + '"></span>';
       }
 
       function htmlCabCal(iso) {
@@ -530,7 +542,9 @@
         var tip = [c['Usuario'], sinEmoji(c['Asistencia']), c['Notas']].filter(function(v) { return !vacioTxt(v); }).join(' · ');
         return '<div class="' + clases.join(' ') + '" data-fila="' + c._fila + '" title="' + escapar(tip) + '">' +
           '<span class="asa material-symbols-outlined">drag_indicator</span>' + avatarHtml(c['Usuario']) +
-          '<span class="nombre-u">' + escapar(c['Usuario']) + '</span>' + badgeFaltas(c) + (vacioTxt(c['Sesión']) ? '' : badgeSesion(c['Sesión'])) + '</div>';
+          '<span class="nombre-u">' + escapar(c['Usuario']) + '</span>' + badgeFaltas(c) +
+          (vacioTxt(c['Notas']) ? '' : '<span class="material-symbols-outlined ic-nota" title="' + escapar(c['Notas']) + '">sticky_note_2</span>') +
+          (vacioTxt(c['Sesión']) ? '' : badgeSesion(c['Sesión'])) + '</div>';
       }
 
       function abrirHCFila(fila) {
