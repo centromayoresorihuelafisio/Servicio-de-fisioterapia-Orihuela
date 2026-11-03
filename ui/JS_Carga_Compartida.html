@@ -1,0 +1,102 @@
+<!--
+  ui/JS_Carga_Compartida.html - ORDEN DE CARGA y MEMORIA ENTRE PESTAÑAS, compartidos por Usuarios (usuarios/BaseDatos_Vista),
+  la Agenda (agenda/Web_Vista) y Valoraciones (valoraciones/Web_Vista). Sección 19 de CONTEXTO.md (P1 y P2).
+
+  Se incluye con include_('ui/JS_Carga_Compartida') con "!" (fuera de cualquier bloque de script), ANTES de
+  ui/JS_Paneles_Diferidos, ui/JS_Valoraciones_Cache y ui/JS_HC_Cache, que lo usan si está (y si no, cargan como antes).
+
+  OrdenCarga (P2): cada pestaña pide primero lo suyo (la semana, la tabla, la lista) y las precargas esperan a que llegue.
+    OrdenCarga.principalLista()   lo llama la pestaña cuando su carga principal ha terminado (bien o mal). Basta la primera vez.
+    OrdenCarga.despues(fn, ms)    fn() se ejecuta ms después de que lo principal esté listo (o ya, si lo estaba).
+    Si la pestaña tarda más de TOPE_MS desde que se abre (o no avisa), las precargas arrancan igual.
+
+  MemoriaPestanas (P1): copia de lo ya descargado en sessionStorage, para que la siguiente pestaña lo use al momento y lo
+  ponga al día por detrás. Vive solo en esta pestaña del navegador (se borra al cerrarla) y va sellada con la sesión: al
+  salir o entrar con otro usuario ui/Acceso borra todo lo que empieza por "memoria:" y lo que quedara de otra sesión no se lee.
+    MemoriaPestanas.leer(clave)              { datos, t, despues } (t = cuándo se descargó) o null si no hay copia válida.
+                                             despues(aviso) = true si ese aviso de localStorage ('pacienteActualizado',
+                                             'valoracionesActualizadas': lo dejan los formularios al guardar) es posterior a la copia.
+    MemoriaPestanas.guardarLuego(clave, fn)  guarda fn() un momento después (varios avisos seguidos se juntan en uno) o al salir.
+    MemoriaPestanas.borrar(clave)            quita una copia (p. ej. si ya no se sabe si está al día).
+    Si no cabe o el navegador no deja guardar, no pasa nada: esa pestaña descarga como antes.
+-->
+<script>
+var OrdenCarga = (function() {
+  var TOPE_MS = 6000;   // ms desde que se abre la página: pasado este tiempo, las precargas no esperan más
+  var lista = false, cola = [];
+
+  function principalLista() {
+    if (lista) return;
+    lista = true;
+    cola.splice(0).forEach(function(t) { setTimeout(t.fn, t.ms); });
+  }
+  function despues(fn, ms) {
+    if (lista) setTimeout(fn, ms || 0); else cola.push({ fn: fn, ms: ms || 0 });
+  }
+  setTimeout(principalLista, TOPE_MS);
+
+  return { principalLista: principalLista, despues: despues, lista: function() { return lista; } };
+})();
+
+var MemoriaPestanas = (function() {
+  var PREFIJO = 'memoria:';            // ui/Acceso borra todas las claves con este prefijo al cambiar de sesión
+  var MAX_EDAD_MS = 60 * 60000;        // una copia de más de una hora no se usa: se descarga de nuevo
+  var RETRASO_GUARDAR = 800;           // ms: los cambios seguidos se guardan de una vez
+  var pendientes = {};                 // clave -> { fn, temporizador }
+
+  // Sello de la sesión: un resumen del código de acceso (no el código). Sin sesión no se lee ni se guarda nada.
+  function sello() {
+    var t = '';
+    try { t = localStorage.getItem('tokenAcceso') || ''; } catch (err) { return ''; }
+    if (!t) return '';
+    var h = 5381;
+    for (var i = 0; i < t.length; i++) h = ((h * 33) ^ t.charCodeAt(i)) >>> 0;
+    return h.toString(36);
+  }
+
+  // Instante del último aviso de cambio que dejaron los formularios en localStorage ({ ts }), o 0.
+  function instanteAviso(clave) {
+    try { var a = JSON.parse(localStorage.getItem(clave) || 'null'); return (a && a.ts) || 0; } catch (err) { return 0; }
+  }
+
+  function leer(clave) {
+    var s = sello();
+    if (!s) return null;
+    try {
+      var e = JSON.parse(sessionStorage.getItem(PREFIJO + clave) || 'null');
+      if (!e || e.s !== s || !e.t || Date.now() - e.t > MAX_EDAD_MS) return null;
+      return { datos: e.d, t: e.t, despues: function(aviso) { return instanteAviso(aviso) > e.t; } };
+    } catch (err) { return null; }
+  }
+
+  function escribir(clave, fn) {
+    var s = sello();
+    if (!s) return;
+    var datos;
+    try { datos = fn(); } catch (err) { return; }
+    if (!datos) { borrar(clave); return; }
+    try { sessionStorage.setItem(PREFIJO + clave, JSON.stringify({ s: s, t: datos.t || Date.now(), d: datos.d })); }
+    catch (err) { borrar(clave); }   // no cabe: se queda sin copia, como antes
+  }
+
+  // fn() devuelve { d: datos, t: instante de la descarga } o null para borrar la copia.
+  function guardarLuego(clave, fn) {
+    var p = pendientes[clave];
+    if (p) clearTimeout(p.temporizador);
+    pendientes[clave] = { fn: fn, temporizador: setTimeout(function() { delete pendientes[clave]; escribir(clave, fn); }, RETRASO_GUARDAR) };
+  }
+
+  function borrar(clave) {
+    var p = pendientes[clave];
+    if (p) { clearTimeout(p.temporizador); delete pendientes[clave]; }
+    try { sessionStorage.removeItem(PREFIJO + clave); } catch (err) { /* sin almacenamiento */ }
+  }
+
+  // Al cambiar de pestaña, lo pendiente se guarda ya, para que la siguiente lo encuentre.
+  window.addEventListener('pagehide', function() {
+    Object.keys(pendientes).forEach(function(k) { var p = pendientes[k]; clearTimeout(p.temporizador); delete pendientes[k]; escribir(k, p.fn); });
+  });
+
+  return { leer: leer, guardarLuego: guardarLuego, borrar: borrar };
+})();
+</script>

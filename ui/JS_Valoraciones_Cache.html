@@ -4,7 +4,10 @@
   lectura de la hoja (obtenerValoracionesWeb, valoraciones/Web.gs) y todo lo demás sale de memoria.
 
   Se incluye con include('ui/JS_Valoraciones_Cache') con "!" (fuera de cualquier bloque de script), ANTES de ui/JS_Ficha.
-  Empieza a cargar sola unos segundos después de abrirse la página, para no competir con la carga de la propia página.
+  Empieza a cargar sola cuando la pestaña tiene lo suyo (OrdenCarga, ui/JS_Carga_Compartida), para no competir con ello.
+  Lo descargado se guarda también para las demás pestañas (MemoriaPestanas, clave "valoraciones", con la respuesta tal cual
+  de obtenerValoracionesWeb, la misma que guarda la pestaña Valoraciones): al abrir la siguiente pestaña se usa al momento y
+  se vuelve a leer por detrás.
 
   Para qué sirve:
     · El botón de la ficha es "inteligente": "Valoración" si el usuario no tiene ninguna (abre el formulario) y
@@ -25,10 +28,11 @@
 -->
 <script>
 var ValoracionesCache = (function() {
-  var RETRASO_PRECARGA = 3000;   // ms tras cargar la página antes de pedir las valoraciones
+  var RETRASO_PRECARGA = 3000;   // ms tras cargar la página antes de pedir las valoraciones (sin ui/JS_Carga_Compartida)
   var FRESCO_MS = 60000;         // pasado este tiempo, al abrir el panel se refresca además en segundo plano
   var filas = null;              // null = aún sin cargar; si no, todas las valoraciones (cada una con su idPaciente)
   var tCarga = 0, cargando = false, repetir = false, version = 0, escuchas = [];
+  var memoria = window.MemoriaPestanas || null;
 
   function normId(x) { return String(x === null || x === undefined ? '' : x).trim(); }
   function porFecha(a, b) { return a.fecha < b.fecha ? -1 : a.fecha > b.fecha ? 1 : (a._fila - b._fila); }
@@ -44,16 +48,22 @@ var ValoracionesCache = (function() {
         cargando = false;
         if (!res || res.error || !res.pacientes) return;           // sin datos: el botón queda como "Valoración" y el panel pide lo suyo
         if (v !== version || repetir) { cargar(); return; }
-        var todas = [];
-        res.pacientes.forEach(function(p) {
-          (p.historial || []).forEach(function(r) {
-            if (!r.idPaciente) r.idPaciente = p.idPaciente || '';
-            todas.push(r);
-          });
-        });
-        filas = todas; tCarga = Date.now();
+        tomar(res, Date.now());
+        if (memoria) memoria.guardarLuego('valoraciones', function() { return { d: res, t: tCarga }; });
         avisar();
       }, function() { cargando = false; });
+  }
+
+  // Pasa la respuesta de obtenerValoracionesWeb (del servidor o de la memoria) a la lista de filas.
+  function tomar(res, t) {
+    var todas = [];
+    res.pacientes.forEach(function(p) {
+      (p.historial || []).forEach(function(r) {
+        if (!r.idPaciente) r.idPaciente = p.idPaciente || '';
+        todas.push(r);
+      });
+    });
+    filas = todas; tCarga = t;
   }
 
   function historialDe(id) {
@@ -93,6 +103,7 @@ var ValoracionesCache = (function() {
     var i = normId(id);
     filas = filas.filter(function(r) { return r.idPaciente !== i; }).concat(historial || []);
     version++; tCarga = Date.now();
+    if (memoria) memoria.borrar('valoraciones');                   // la copia guardada ya no está al día: la siguiente pestaña la pide
     avisar();
   }
 
@@ -103,9 +114,19 @@ var ValoracionesCache = (function() {
     if (e.key === 'valoracionesActualizadas' || e.key === 'pacienteActualizado') cargar();
   });
 
-  // Precarga: unos segundos después de abrirse la página.
-  function programar() { setTimeout(cargar, RETRASO_PRECARGA); }
-  if (document.readyState === 'complete') programar(); else window.addEventListener('load', programar);
+  // Lo que trajo otra pestaña se usa ya (el panel lo verá «obsoleto» si tiene más de FRESCO_MS y se refrescará al abrirse).
+  // Si después se guardaron valoraciones en otro sitio, la copia no vale; si solo cambió un usuario, vale pero se da por vieja.
+  var copia = memoria && memoria.leer('valoraciones');
+  if (copia && !copia.despues('valoracionesActualizadas') && copia.datos && copia.datos.pacientes) {
+    try { tomar(copia.datos, copia.despues('pacienteActualizado') ? 0 : copia.t); } catch (e) { filas = null; tCarga = 0; }
+  }
+
+  // Precarga: después de lo principal de la pestaña (o unos segundos tras abrirse, sin ui/JS_Carga_Compartida).
+  if (window.OrdenCarga) OrdenCarga.despues(cargar, 600);
+  else {
+    var programar = function() { setTimeout(cargar, RETRASO_PRECARGA); };
+    if (document.readyState === 'complete') programar(); else window.addEventListener('load', programar);
+  }
 
   return { tiene: tiene, historialDe: historialDe, accion: accion, opcionesPanel: opcionesPanel, actualizarUsuario: actualizarUsuario, alCambiar: alCambiar, recargar: cargar };
 })();

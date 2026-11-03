@@ -35,7 +35,7 @@ El router está en `core/WebApp.gs` y sirve cada página según `?page=`. Sin pa
 
 ## Paneles de formulario bajo demanda
 
-Los formularios del panel lateral (`Panel_Valoracion`, `Panel_Editar`, `Panel_Cita`, `Panel_Nuevo`, `Panel_HC`…) no van dentro del HTML de cada página: se descargan la primera vez que se abren y, además, se precargan en segundo plano unos segundos después de cargar la página.
+Los formularios del panel lateral (`Panel_Valoracion`, `Panel_Editar`, `Panel_Cita`, `Panel_Nuevo`, `Panel_HC`…) no van dentro del HTML de cada página: se descargan la primera vez que se abren y, además, se precargan en segundo plano cuando la página ya tiene lo suyo (la tabla, la semana o la lista).
 
 - Las páginas los declaran con `<?!= incluirPanel_('ruta/Panel_X', 'PanelX'); ?>` (`core/WebApp.gs`) y el cargador está en `ui/JS_Paneles_Diferidos.html`.
 - El servidor los sirve con la acción `obtenerPanelWeb` (`obtenerPanelWeb_`), que solo acepta los nombres de la lista `PANELES_DIFERIDOS_`.

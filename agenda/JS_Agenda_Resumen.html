@@ -109,7 +109,9 @@
 
       // Fichas en memoria: se cargan TODAS de una vez en segundo plano (cargarFichas) y el panel se abre desde
       // aquí, sin llamar al servidor. Se refrescan solas (ver más abajo), así que no hace falta caché por nombre.
-      var FICHAS = { t: 0, headers: [], porNombre: null, cargando: false };
+      // Se guardan también para la próxima vez que se abra la Agenda en esta pestaña del navegador (MemoriaPestanas,
+      // clave "fichasAgenda", ui/JS_Carga_Compartida): se usan al momento y cargarFichas las pone al día por detrás.
+      var FICHAS = { t: 0, headers: [], porNombre: null, usuarios: null, cargando: false };
       var fichaAbierta = null;   // { clave, nombre, caja, html } de la ficha que está en el panel lateral
 
       // Misma normalización que normalizarNombreFicha_ (agenda/Ficha_Usuario.gs): mayúsculas, sin tildes, espacios simples.
@@ -152,7 +154,9 @@
             if (!res || !res.success) return;
             FICHAS.headers = res.headers || [];
             FICHAS.porNombre = res.fichas || {};
+            FICHAS.usuarios = res.usuarios || null;
             FICHAS.t = Date.now();
+            recordarFichas();
             // La lista del selector de huecos sale de las mismas fichas (no se lee la Maestra otra vez) e incluye a los homónimos.
             if (res.usuarios) { var primera = !USUARIOS_HUECO; USUARIOS_HUECO = SelectorUsuario.preparar(res.usuarios); if (primera) SelectorUsuario.refrescar(); }
             repintarFichaAbierta();                         // si la ficha abierta cambió en la hoja, se actualiza al momento
@@ -160,6 +164,21 @@
             FICHAS.cargando = false;   // no crítico: se reintenta en el próximo ciclo
           });
       }
+      function recordarFichas() {
+        MemoriaPestanas.guardarLuego('fichasAgenda', function() {
+          return FICHAS.porNombre ? { d: { headers: FICHAS.headers, fichas: FICHAS.porNombre, usuarios: FICHAS.usuarios }, t: FICHAS.t } : null;
+        });
+      }
+      // Si otra pantalla cambió un usuario después de guardarlas, no se usan: se espera a cargarFichas, como siempre.
+      (function() {
+        var copia = MemoriaPestanas.leer('fichasAgenda');
+        if (!copia || copia.despues('pacienteActualizado') || !copia.datos || !copia.datos.fichas) return;
+        FICHAS.headers = copia.datos.headers || [];
+        FICHAS.porNombre = copia.datos.fichas;
+        FICHAS.usuarios = copia.datos.usuarios || null;
+        FICHAS.t = copia.t;
+        if (FICHAS.usuarios) USUARIOS_HUECO = SelectorUsuario.preparar(FICHAS.usuarios);
+      })();
 
       // ---------- Estado del usuario desde la ficha (chip pulsable, como en Usuarios) ----------
       function menuEstadoFicha(ancla) {
@@ -186,6 +205,7 @@
           .then(function(r) {
             if (!r || !r.success) { revertir((r && r.message) || 'No se pudo cambiar el estado.'); cargarFichas(); return; }
             mostrarAviso('Estado cambiado a ' + FichaUsuario.textoEstado(valor) + '.');
+            recordarFichas();
             // Avisa a las otras ventanas (Usuarios, Valoraciones), igual que los formularios al guardar.
             try { localStorage.setItem('pacienteActualizado', JSON.stringify({ guardado: true, ts: Date.now() })); } catch (err) { /* sin almacenamiento: no es crítico */ }
             if (window.HCCache) HCCache.cambioDeUsuario();   // un usuario nuevo en Activo entra en la precarga de HC
@@ -223,6 +243,7 @@
                 if (FICHAS.porNombre) {                                  // se guarda para la próxima vez
                   if (!FICHAS.headers.length) FICHAS.headers = res.headers;
                   FICHAS.porNombre[claveFicha(nombre)] = res.paciente;
+                  recordarFichas();
                 }
                 pintar(res);
               }, function(err) { if (panelClave === clave) error('Error al cargar la ficha: ' + err); });
@@ -405,5 +426,6 @@
       actualizarBotonHuecos();
       aplicarResumen();
       cargar();
-      cargarRecordatorios();
-      cargarFichas();   // en segundo plano: cuando llegue, abrir una ficha ya no necesita al servidor
+      // Primero la semana (cargar); al llegar, los recordatorios y las fichas (en segundo plano: cuando lleguen, abrir una
+      // ficha ya no necesita al servidor). OrdenCarga y el tope de espera: ui/JS_Carga_Compartida.
+      OrdenCarga.despues(function() { cargarRecordatorios(); cargarFichas(); }, 0);

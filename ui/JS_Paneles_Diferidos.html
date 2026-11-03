@@ -9,8 +9,8 @@
     · si el panel ya está descargado, lo abre igual que siempre (síncrono);
     · si no, muestra "Cargando…", pide el panel al servidor (obtenerPanelWeb), lo monta y lo abre.
   El controlador que devuelve abrir() responde a haCambiado() y alEscape() desde el primer momento.
-  Además, unos segundos después de cargar la página, los paneles se descargan de uno en uno en segundo
-  plano, de modo que normalmente ya están listos cuando se pulsa el botón.
+  Además, cuando la página ya tiene lo suyo (OrdenCarga, ui/JS_Carga_Compartida; sin él, unos segundos después de
+  cargar), los paneles se descargan de uno en uno en segundo plano, de modo que normalmente ya están listos cuando se pulsa el botón.
   Con PANELES_BAJO_DEMANDA = false todo vuelve a ir dentro de la página y este archivo no hace nada.
 -->
 <script>
@@ -89,7 +89,9 @@ var PanelesDiferidos = (function () {
       cargar(r.ruta).then(function () { setTimeout(siguiente, 300); }, function () { setTimeout(siguiente, 4000); });
     })();
   }
-  window.addEventListener('load', function () { setTimeout(precargar, RETRASO_PRECARGA); });
+  // Con ui/JS_Carga_Compartida, después de lo principal de la pestaña; sin él, unos segundos tras abrirse.
+  if (window.OrdenCarga) OrdenCarga.despues(precargar, 1000);
+  else window.addEventListener('load', function () { setTimeout(precargar, RETRASO_PRECARGA); });
 
   return { registrar: registrar, cargar: cargar, precargar: precargar };
 })();

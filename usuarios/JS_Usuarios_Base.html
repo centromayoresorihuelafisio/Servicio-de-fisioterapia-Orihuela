@@ -13,9 +13,11 @@
       var ultimosFiltrados = [], filaActivaFila = null;
 
       // ---------- Carga de datos ----------
+      // La primera carga es lo principal de la pestaña: al terminar (bien o mal) arrancan las precargas (ui/JS_Carga_Compartida).
       function cargar(alReanclar) {
         llamar('obtenerBaseDatosCompletaWeb')
           .then(function(res) {
+            OrdenCarga.principalLista();
             if (res.error) { mostrarError(res.error); return; }
             HEADERS = res.headers || [];
             TODOS = res.pacientes || [];
@@ -25,7 +27,7 @@
             construirMenusFiltro();
             render();
             renderFicha();
-          }, mostrarError);
+          }, function(err) { OrdenCarga.principalLista(); mostrarError(err); });
       }
 
       function mostrarError(err) {

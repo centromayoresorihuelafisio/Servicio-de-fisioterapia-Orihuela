@@ -86,8 +86,18 @@
       try { return localStorage.getItem(CLAVE) || tokenMemoria; } catch (err) { return tokenMemoria; }
     }
     function guardarToken(t) {
+      if (t !== leerToken()) vaciarMemoriaPestanas();
       tokenMemoria = t;
       try { if (t) localStorage.setItem(CLAVE, t); else localStorage.removeItem(CLAVE); } catch (err) { /* sin almacenamiento */ }
+    }
+    // Al salir o entrar con otra sesión se borra lo que las pestañas guardaron de la anterior (ui/JS_Carga_Compartida).
+    function vaciarMemoriaPestanas() {
+      try {
+        for (var i = sessionStorage.length - 1; i >= 0; i--) {
+          var k = sessionStorage.key(i);
+          if (k && k.indexOf('memoria:') === 0) sessionStorage.removeItem(k);
+        }
+      } catch (err) { /* sin almacenamiento */ }
     }
     function $(id) { return document.getElementById(id); }
     function leerAlmacen(clave) {

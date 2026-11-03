@@ -51,18 +51,31 @@
       function ocupado(d) { pendientes = Math.max(0, pendientes + d); document.body.classList.toggle('ocupado', pendientes > 0); }
 
       // ---------- Carga de datos ----------
+      // La lista se guarda también para las demás pestañas (MemoriaPestanas, clave "valoraciones", la misma respuesta que
+      // guarda ui/JS_Valoraciones_Cache). Al abrir la pestaña se pinta ya lo guardado y se pide igualmente al servidor.
+      // La primera carga es lo principal de la pestaña: al terminar arrancan las precargas (ui/JS_Carga_Compartida).
       function cargar() {
         ocupado(1);
         llamar('obtenerValoracionesWeb')
           .then(function(res) {
             ocupado(-1);
+            OrdenCarga.principalLista();
             if (res.error) { mostrarError(res.error); return; }
+            var t = Date.now();
+            MemoriaPestanas.guardarLuego('valoraciones', function() { return { d: res, t: t }; });
             PACIENTES = res.pacientes || [];
             if (res.sinId) mostrarAviso(res.sinId + (res.sinId === 1 ? ' valoración no tiene' : ' valoraciones no tienen') + ' ID de usuario y no se muestra(n). Ejecuta asignarIdPacienteEnValoraciones.');
             render();
             // Si había un usuario con el ficha abierta, se refresca con los datos nuevos (o se cierra si ya no existe).
             renderFicha();
-          }, function(err) { ocupado(-1); mostrarError(err); });
+          }, function(err) { ocupado(-1); OrdenCarga.principalLista(); mostrarError(err); });
+      }
+      // Lo guardado por otra pestaña, si no se han guardado valoraciones después: se pinta mientras llega la lista del servidor.
+      function pintarGuardado() {
+        var copia = MemoriaPestanas.leer('valoraciones');
+        if (!copia || copia.despues('valoracionesActualizadas') || !copia.datos || !copia.datos.pacientes) return;
+        PACIENTES = copia.datos.pacientes;
+        render();
       }
       function mostrarError(err) {
         document.getElementById('tablaWrap').innerHTML =

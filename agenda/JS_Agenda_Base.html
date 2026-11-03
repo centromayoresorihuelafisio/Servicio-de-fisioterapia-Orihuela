@@ -117,6 +117,7 @@
           return false;
         }
         function fallo(err) {
+          if (modo === 'navegar') OrdenCarga.principalLista();   // aun sin semana, las precargas no esperan más
           if (modo === 'precargar') { delete precargasEnCurso[clave]; return; }
           if (alaVista()) mostrarError(err);
         }
@@ -131,6 +132,7 @@
             aplicarSemana(res);
             if (modo === 'navegar') scrollAHoy();
             precargarVecinas();
+            if (modo === 'navegar') OrdenCarga.principalLista();   // la semana está pintada: ahora fichas, HC, valoraciones y formularios
           }, fallo);
       }
 
