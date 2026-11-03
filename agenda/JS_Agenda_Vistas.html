@@ -544,7 +544,9 @@
           '<span class="asa material-symbols-outlined">drag_indicator</span>' + avatarHtml(c['Usuario']) +
           '<span class="nombre-u">' + escapar(c['Usuario']) + '</span>' + badgeFaltas(c) +
           (vacioTxt(c['Notas']) ? '' : '<span class="material-symbols-outlined ic-nota" title="' + escapar(c['Notas']) + '">sticky_note_2</span>') +
-          (vacioTxt(c['Sesión']) ? '' : badgeSesion(c['Sesión'])) + '</div>';
+          (vacioTxt(c['Sesión']) ? '' : badgeSesion(c['Sesión'])) +
+          // Al pasar el ratón: asistencia con un clic e Historia clínica, en una píldora sobre la parte derecha de la cita.
+          '<span class="acc-pill cal-acc">' + htmlAsistenciaBotones(c['Asistencia'], false) + htmlBotonHC(c._fila, c) + '</span></div>';
       }
 
       function abrirHCFila(fila) {

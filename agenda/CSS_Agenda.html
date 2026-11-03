@@ -871,6 +871,13 @@
       /* Línea de «ahora» en la columna de hoy */
       .cal-celda { position: relative; }
       .cal-ahora { position: absolute; left: 0; right: 0; height: 2px; margin-top: -1px; background: var(--md-primary); z-index: calc(var(--z-base) + 1); pointer-events: none; }
+      /* Acciones al pasar el ratón por la cita: asistencia e Historia clínica (solo iconos; el estado activo, sin texto) */
+      .cal-acc { position: absolute; right: 4px; top: 50%; transform: translate(6px, -50%); z-index: calc(var(--z-base) + 2); gap: 0; padding: 2px; }
+      .cal-cita:hover .cal-acc, .cal-acc:focus-within { opacity: 1; transform: translate(0, -50%); pointer-events: auto; }
+      body.arrastrando-cita .cal-acc { display: none; }
+      .cal-acc .btn-asis, .cal-acc .btn-asis.activo:not(.btn-asis-lg), .cal-acc .btn-fila { width: 26px; height: 26px; padding: 0; }
+      .cal-acc .btn-asis .material-symbols-outlined, .cal-acc .btn-fila .material-symbols-outlined { font-size: 18px; }
+      .cal-acc .asis-txt { display: none; }
       .cal-ahora::before { content: ''; position: absolute; left: -4px; top: -3px; width: 8px; height: 8px; border-radius: 50%; background: var(--md-primary); }
       @media print { .acc-pill { display: none !important; } }
       /* La píldora de acciones de la tabla flota sobre la fila (no depende del ancho de la columna) */
