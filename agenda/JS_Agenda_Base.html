@@ -60,33 +60,119 @@
 
       // ---------- Carga de datos ----------
       // `silencioso`: refrescos en segundo plano (sin esqueleto y SIN mover el
-      // scroll). Una carga no silenciosa (primera carga, Hoy, flechas, selector
-      // de fecha) deja la vista centrada en el día de hoy si está en la semana.
+      // scroll); se lanzan cuando algo ha cambiado (sondeo, escrituras, otras
+      // ventanas), así que también vacían la memoria de las otras semanas.
+      // Una carga no silenciosa (primera carga, Hoy, flechas, selector de
+      // fecha) deja la vista centrada en el día de hoy si está en la semana.
+      //
+      // Memoria de semanas: la semana anterior y la siguiente se piden en
+      // segundo plano en cuanto se ve una, y las ya vistas se recuerdan. Al
+      // cambiar de semana se pinta al instante lo recordado y se pide otra vez
+      // por detrás para ponerlo al día.
+      var MEMORIA_SEMANAS = {};        // lunes "yyyy-MM-dd" -> respuesta del servidor
+      var MEMORIA_SEMANAS_MAX = 8;     // semanas recordadas como mucho (se olvidan las más lejanas)
+      var generacionMemoria = 0;       // sube al vaciar la memoria: una precarga lanzada antes ya no se guarda
+      var turnoNavegacion = 0;         // sube con cada carga no silenciosa: una respuesta de una navegación superada no se pinta
+      var navegacionPendiente = false; // hay una semana nueva pedida que aún no ha llegado
+      var precargasEnCurso = {};
+
+      // Lunes de la semana de una fecha (el domingo cuenta en la semana que termina), igual que agendaSemanaDe_ en el servidor.
+      function lunesSemanaISO(iso) {
+        var p = iso.split('-').map(Number), d = new Date(p[0], p[1] - 1, p[2]), dow = d.getDay();
+        return sumarDiasISO(iso, dow === 0 ? -6 : 1 - dow);
+      }
+
       function cargar(fechaISO, silencioso) {
-        var irAHoy = !silencioso;
-        if (!silencioso) {
-          document.getElementById('tablaWrap').innerHTML = htmlEsqueleto();
+        var clave = lunesSemanaISO(fechaISO || hoyISO());
+        if (silencioso) {
+          vaciarMemoriaSemanas(clave);
+          pedirSemana(clave, 'recargar');
+          return;
         }
+        var turno = ++turnoNavegacion;
+        var guardada = MEMORIA_SEMANAS[clave];
+        if (guardada) {
+          navegacionPendiente = false;
+          aplicarSemana(guardada);
+          scrollAHoy();
+          precargarVecinas();
+          pedirSemana(clave, 'revalidar', turno);
+          return;
+        }
+        navegacionPendiente = true;
+        document.getElementById('tablaWrap').innerHTML = htmlEsqueleto();
+        pedirSemana(clave, 'navegar', turno);
+      }
 
-        // La recarga silenciosa no alarga la sesión: la lanzan también el sondeo y los avisos de otras ventanas (17.3, punto 8).
-        (silencioso ? llamar('refrescarAgendaSemanaWeb', [fechaISO || null]) : llamar('obtenerAgendaSemanaWeb', [fechaISO || null]))
+      // modo: 'navegar' (semana nueva sin recordar), 'revalidar' (semana recordada ya pintada), 'recargar' (la semana a la vista
+      // ha cambiado) o 'precargar' (vecina, solo se guarda). Navegar y revalidar alargan la sesión; la recarga y la precarga no:
+      // las lanzan también el sondeo y los avisos de otras ventanas (17.3, punto 8).
+      function pedirSemana(clave, modo, turno) {
+        var gen = generacionMemoria;
+        var alargaSesion = modo === 'navegar' || modo === 'revalidar';
+        function alaVista() {
+          if (modo === 'navegar') return turno === turnoNavegacion;
+          if (modo === 'revalidar') return turno === turnoNavegacion && !document.querySelector('.editando');
+          if (modo === 'recargar') return !navegacionPendiente && clave === semanaActual;
+          return false;
+        }
+        function fallo(err) {
+          if (modo === 'precargar') { delete precargasEnCurso[clave]; return; }
+          if (alaVista()) mostrarError(err);
+        }
+        (alargaSesion ? llamar('obtenerAgendaSemanaWeb', [clave]) : llamar('refrescarAgendaSemanaWeb', [clave]))
           .then(function(res) {
-            if (res.error) { mostrarError(res.error); return; }
-            HEADERS = res.headers || [];
-            HEADERS_VISIBLES = HEADERS.filter(function(h) { return COLUMNAS_OCULTAS.indexOf(normalizar(h)) === -1; });
-            CITAS = res.citas || [];
-            OPCIONES_ASISTENCIA = res.opcionesAsistencia || [];
-            if (res.umbralAbsentismo) UMBRAL_ABSENTISMO = res.umbralAbsentismo;
-            COL_HISTORIA = HEADERS.find(function(h) { return h.toLowerCase().indexOf('historia') !== -1; });
+            if (modo === 'precargar') delete precargasEnCurso[clave];
+            if (res.error) { fallo(res.error); return; }
+            res.citas = res.citas || [];
+            if (res.semana && gen === generacionMemoria) guardarSemana(res);
+            if (!alaVista()) return;
+            if (modo === 'navegar') navegacionPendiente = false;
+            aplicarSemana(res);
+            if (modo === 'navegar') scrollAHoy();
+            precargarVecinas();
+          }, fallo);
+      }
 
-            if (res.semana) {
-              semanaActual = res.semana.lunes;
-              document.getElementById('etiquetaSemana').textContent = res.semana.etiqueta;
-              document.getElementById('inputSemana').value = res.semana.lunes;
-            }
-            render();
-            if (irAHoy) scrollAHoy();
-          }, mostrarError);
+      function aplicarSemana(res) {
+        HEADERS = res.headers || [];
+        HEADERS_VISIBLES = HEADERS.filter(function(h) { return COLUMNAS_OCULTAS.indexOf(normalizar(h)) === -1; });
+        CITAS = res.citas;   // el mismo objeto que la memoria: lo que se edita en línea queda también recordado
+        OPCIONES_ASISTENCIA = res.opcionesAsistencia || [];
+        if (res.umbralAbsentismo) UMBRAL_ABSENTISMO = res.umbralAbsentismo;
+        COL_HISTORIA = HEADERS.find(function(h) { return h.toLowerCase().indexOf('historia') !== -1; });
+
+        if (res.semana) {
+          semanaActual = res.semana.lunes;
+          document.getElementById('etiquetaSemana').textContent = res.semana.etiqueta;
+          document.getElementById('inputSemana').value = res.semana.lunes;
+        }
+        render();
+      }
+
+      function guardarSemana(res) {
+        MEMORIA_SEMANAS[res.semana.lunes] = res;
+        var claves = Object.keys(MEMORIA_SEMANAS);
+        if (claves.length <= MEMORIA_SEMANAS_MAX || !semanaActual) return;
+        var ref = new Date(semanaActual).getTime();
+        claves.sort(function(a, b) { return Math.abs(new Date(b).getTime() - ref) - Math.abs(new Date(a).getTime() - ref); });
+        delete MEMORIA_SEMANAS[claves[0]];   // la más lejana de la que se ve
+      }
+
+      // Algo ha cambiado: se olvidan todas las semanas menos la que se va a recargar (sus vecinas se vuelven a pedir al llegar).
+      function vaciarMemoriaSemanas(salvo) {
+        generacionMemoria++;
+        precargasEnCurso = {};
+        Object.keys(MEMORIA_SEMANAS).forEach(function(k) { if (k !== salvo) delete MEMORIA_SEMANAS[k]; });
+      }
+
+      function precargarVecinas() {
+        if (!semanaActual) return;
+        [sumarDiasISO(semanaActual, -7), sumarDiasISO(semanaActual, 7)].forEach(function(k) {
+          if (MEMORIA_SEMANAS[k] || precargasEnCurso[k]) return;
+          precargasEnCurso[k] = true;
+          pedirSemana(k, 'precargar');
+        });
       }
 
       // Coloca la cabecera del día de hoy justo bajo el encabezado de columnas,
