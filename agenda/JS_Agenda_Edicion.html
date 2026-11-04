@@ -739,13 +739,60 @@
       document.getElementById('btnCopiarCita').addEventListener('click', function() { manejarCopiarSeleccionadas(false, false); });
       document.getElementById('btnCopiarCita2').addEventListener('click', function() { manejarCopiarSeleccionadas(true, false); });
 
-      // ---------- Copiar Semana (mié/jue doble, vie simple → semana siguiente) ----------
+      // ---------- Copiar Semana (mié/jue doble, vie simple → semana siguiente), con vista previa ----------
       function diaSemanaDeCita(c) {
         var partes = c._fechaISO.split('-').map(Number);
         return new Date(partes[0], partes[1] - 1, partes[2]).getDay();
       }
 
-      async function manejarCopiarSemana(forzar) {
+      function fechaCortaCopia(iso) {
+        var p = String(iso || '').split('-').map(Number);
+        if (p.length !== 3) return iso || '';
+        var d = new Date(p[0], p[1] - 1, p[2]);
+        return ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'][d.getDay()] + ' ' + ('0' + p[2]).slice(-2) + '/' + ('0' + p[1]).slice(-2);
+      }
+
+      // Tabla de la vista previa: una fila por cita origen, con su casilla. Las libres salen marcadas; las que chocan con otra
+      // cita, sin marcar (marcarlas = sustituir la que ya está); las que no se pueden copiar, sin casilla útil.
+      function tablaVistaPreviaCopia(entradas, alCambiar) {
+        var marco = document.createElement('div');
+        marco.className = 'md-tabla-marco';
+        marco.innerHTML = '<table class="md-tabla"><thead><tr>' +
+          '<th><input type="checkbox" class="md-casilla" id="copiaPreviaTodas" title="Marcar o desmarcar todas las que se pueden copiar" aria-label="Marcar o desmarcar todas"></th>' +
+          '<th>Usuario</th><th>Hora</th><th>Se copia a</th><th>Destino</th></tr></thead><tbody></tbody></table>';
+        var cuerpo = marco.querySelector('tbody');
+        var casillas = [];
+        entradas.forEach(function(e) {
+          var copias = e.copias || [];
+          var ocupados = copias.filter(function(x) { return x.ocupadoPor; });
+          var destino;
+          if (e.error) destino = '<span class="md-insignia md-insignia--error">No se puede</span><span class="md-tabla__nota">' + escapar(e.error) + '</span>';
+          else if (ocupados.length) destino = '<span class="md-insignia md-insignia--aviso">Ocupado</span><span class="md-tabla__nota">' +
+            ocupados.map(function(x) { return escapar(fechaCortaCopia(x.fechaISO) + ': ' + x.ocupadoPor); }).join('<br>') + '<br>Si la marcas, la sustituye.</span>';
+          else destino = '<span class="md-insignia md-insignia--ok">Libre</span>';
+          var tr = document.createElement('tr');
+          tr.innerHTML =
+            '<td><input type="checkbox" class="md-casilla"' + (e.error ? ' disabled' : (ocupados.length ? '' : ' checked')) + ' aria-label="Copiar la cita de ' + escapar(e.nombre || 'este usuario') + '"></td>' +
+            '<td>' + escapar(e.nombre || 'Cita') + '<span class="md-tabla__nota">' + escapar(fechaCortaCopia(e.fechaISO)) + '</span></td>' +
+            '<td>' + escapar(e.hora || '') + '</td>' +
+            '<td>' + (copias.length ? copias.map(function(x) { return escapar(fechaCortaCopia(x.fechaISO)) + ' <span class="md-tabla__nota">sesión ' + escapar(x.sesion) + '</span>'; }).join('') : '—') + '</td>' +
+            '<td>' + destino + '</td>';
+          var casilla = tr.querySelector('input');
+          if (!e.error) casillas.push({ casilla: casilla, entrada: e, ocupado: ocupados.length > 0 });
+          casilla.addEventListener('change', alCambiar);
+          cuerpo.appendChild(tr);
+        });
+        var todas = marco.querySelector('#copiaPreviaTodas');
+        todas.disabled = casillas.length === 0;
+        todas.addEventListener('change', function() {
+          casillas.forEach(function(c) { c.casilla.checked = todas.checked; });
+          alCambiar();
+        });
+        return { nodo: marco, casillas: casillas, todas: todas };
+      }
+
+      async function manejarCopiarSemana() {
+        var origenes = {};
         var items = CITAS
           .filter(function(c) {
             if (c._hueco) return false;
@@ -754,7 +801,8 @@
           })
           .map(function(c) {
             var dia = diaSemanaDeCita(c);
-            return { fila: c._fila, doble: (dia === 3 || dia === 4) };
+            origenes[c._fila] = { fila: c._fila, doble: (dia === 3 || dia === 4) };
+            return origenes[c._fila];
           });
 
         if (items.length === 0) {
@@ -762,11 +810,53 @@
           return;
         }
 
+        var previa;
+        try { previa = await llamar('previsualizarCopiaCitasWeb', [items]); }
+        catch (err) { mostrarAviso('Error: ' + err); return; }
+        if (!previa || !previa.success) { mostrarAviso((previa && previa.message) || 'No se pudo preparar la copia de la semana.'); return; }
+
+        var tabla = tablaVistaPreviaCopia(previa.entradas || [], actualizarResumen);
+        var btnAceptar = document.getElementById('modalBtnAceptar');
+        var resumen = document.createElement('p');
+        function marcadas() { return tabla.casillas.filter(function(c) { return c.casilla.checked; }); }
+        function nCitas(lista) { return lista.reduce(function(n, c) { return n + c.entrada.copias.length; }, 0); }
+        function actualizarResumen() {
+          var m = marcadas(), n = nCitas(m), sustituye = m.filter(function(c) { return c.ocupado; }).length;
+          btnAceptar.textContent = n === 1 ? 'Copiar 1 cita' : 'Copiar ' + n + ' citas';
+          btnAceptar.disabled = n === 0;
+          tabla.todas.checked = m.length > 0 && m.length === tabla.casillas.length;
+          tabla.todas.indeterminate = m.length > 0 && m.length < tabla.casillas.length;
+          resumen.textContent = sustituye ? (sustituye === 1 ? '1 marcada sustituirá a la cita que ya ocupa su hueco.' : sustituye + ' marcadas sustituirán a las citas que ya ocupan sus huecos.') : '';
+        }
+        var contenido = document.createElement('div');
+        contenido.appendChild(tabla.nodo);
+        resumen.className = 'md-tabla__nota';
+        contenido.appendChild(resumen);
+
+        var nOcupadas = tabla.casillas.filter(function(c) { return c.ocupado; }).length;
+        var nError = (previa.entradas || []).filter(function(e) { return e.error; }).length;
+        var mensaje = 'Copiar semana: revisa qué citas se crean en los próximos días y desmarca a quien no deba seguir.';
+        if (nOcupadas) mensaje += '\n' + (nOcupadas === 1 ? '1 tiene el destino ocupado y sale sin marcar.' : nOcupadas + ' tienen el destino ocupado y salen sin marcar.');
+        if (nError) mensaje += '\n' + (nError === 1 ? '1 no se puede copiar.' : nError + ' no se pueden copiar.');
+
+        var confirmar = mostrarConfirm(mensaje, { contenido: contenido, aceptar: 'Copiar' });
+        actualizarResumen();
+        var aceptado = await confirmar;
+        btnAceptar.disabled = false;
+        if (!aceptado) return;
+
+        var elegidas = marcadas();
+        if (!elegidas.length) return;
+        var forzar = elegidas.some(function(c) { return c.ocupado; });
+        enviarCopiaSemana(elegidas.map(function(c) { return origenes[c.entrada.fila]; }), forzar);
+      }
+
+      function enviarCopiaSemana(items, forzar) {
         llamar('copiarVariasCitasWeb', [items, !!forzar])
           .then(async function(res) {
             if (res.ocupado && !forzar) {
               var confirmado = await mostrarConfirm(res.message);
-              if (confirmado) manejarCopiarSemana(true);
+              if (confirmado) enviarCopiaSemana(items, true);   // alguien ocupó un hueco mientras se revisaba la lista
               return;
             }
             if (!res.success) { mostrarAviso(res.message || 'No se pudo copiar la semana.'); return; }
@@ -775,5 +865,5 @@
           }, function(err) { mostrarAviso('Error: ' + err); });
       }
 
-      document.getElementById('btnCopiarSemana').addEventListener('click', function() { manejarCopiarSemana(false); });
+      document.getElementById('btnCopiarSemana').addEventListener('click', function() { manejarCopiarSemana(); });
 

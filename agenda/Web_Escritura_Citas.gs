@@ -221,6 +221,60 @@ function copiaDestinosDesdeCitasWeb_(cita, doble) {
 }
 
 /**
+ * Calcula, SIN escribir nada, qué crearía la copia de `items` (lo usan la copia y su vista previa, para que digan lo mismo).
+ * Devuelve una entrada por cita origen, en el orden recibido: { fila, nombre, hora, fechaISO, error } si no se puede copiar,
+ * o { fila, nombre, hora, fechaISO, copias: [{ fechaISO, hora, idPaciente, sesion, notas, nombre, ocupadoPor }] } si se puede
+ * (`ocupadoPor` = nombre de la cita que ya está en ese destino, o '' si está libre). Los huecos libres se saltan sin avisar.
+ */
+function copiaPlanDesdeCitasWeb_(items, todas) {
+  const porId = Object.create(null), ocupante = Object.create(null);
+  todas.forEach(function (c) { porId[c.id] = c; if (!(c.fecha + '|' + c.hora in ocupante)) ocupante[c.fecha + '|' + c.hora] = c; });
+  const fechaTexto = function (iso) { return iso.slice(8, 10) + '/' + iso.slice(5, 7) + '/' + iso.slice(0, 4); };
+  const entradas = [];
+  (items || []).forEach(function (item) {
+    const id = String(item && item.fila !== null && item.fila !== undefined ? item.fila : '').trim();
+    if (!id || /^hueco /.test(id)) return;   // un hueco libre no se copia (la copia vieja también lo saltaba sin avisar)
+    const origen = porId[id];
+    if (!origen) { entradas.push({ fila: id, nombre: '', hora: '', fechaISO: '', error: 'Una cita ya no existe (¿la ha cambiado otra persona?).' }); return; }
+    const nombre = origen.nombre || 'Cita';
+    const base = { fila: id, nombre: nombre, hora: origen.hora, fechaISO: origen.fecha };
+    const conError = function (texto) { entradas.push(Object.assign(base, { error: texto })); };
+    if (!origen.idPaciente) { conError('la cita no tiene un usuario enlazado (falta el ID paciente).'); return; }
+    const plan = copiaDestinosDesdeCitasWeb_(origen, !!item.doble);
+    if (plan.error) { conError(plan.error); return; }
+    const copias = [];
+    for (let i = 0; i < plan.destinos.length; i++) {
+      const d = plan.destinos[i];
+      const v = citasHuecoValido_(d.fechaISO, origen.hora);
+      if (!v.ok) { conError(fechaTexto(d.fechaISO) + ' a las ' + origen.hora + ': ' + v.motivo); return; }
+      const ocupa = ocupante[d.fechaISO + '|' + v.hora];
+      copias.push({ fechaISO: d.fechaISO, hora: v.hora, idPaciente: origen.idPaciente, sesion: d.sesion, notas: origen.notas, nombre: nombre,
+        ocupadoPor: ocupa ? (ocupa.nombre || 'otra cita') : '' });
+    }
+    entradas.push(Object.assign(base, { copias: copias }));
+  });
+  return entradas;
+}
+
+/**
+ * Vista previa de «Copiar semana»: lo que crearía `copiarVariasDesdeCitasWeb_` con esos `items`, sin escribir nada.
+ * Cada entrada sale como en `copiaPlanDesdeCitasWeb_`, sin ID paciente ni notas (la pantalla no los necesita).
+ */
+function previsualizarCopiaDesdeCitasWeb_(items) {
+  try {
+    if (!items || !items.length) return { success: false, message: 'No hay ninguna cita que copiar.' };
+    const entradas = copiaPlanDesdeCitasWeb_(items, citasLeer_()).map(function (e) {
+      if (!e.copias) return e;
+      return Object.assign({}, e, { copias: e.copias.map(function (x) { return { fechaISO: x.fechaISO, hora: x.hora, sesion: x.sesion, ocupadoPor: x.ocupadoPor }; }) });
+    });
+    return { success: true, entradas: entradas };
+  } catch (e) {
+    Logger.log('Error en previsualizarCopiaDesdeCitasWeb_: ' + e.message);
+    return { success: false, message: e.message };
+  }
+}
+
+/**
  * Copia citas a su(s) fecha(s) siguiente(s) (botones Copiar, Copiar ×2 y Copiar Semana). `items` = [{fila, doble}], donde `fila` es el ID
  * de la cita. Igual que antes: primero se comprueba TODO y, si algún destino está ocupado y `forzar` no es true, se devuelve `ocupado:true`
  * con la lista de conflictos y NO se escribe nada. Con `forzar`, la cita que ocupaba el destino se sustituye por la copia. Cada copia lleva
@@ -230,32 +284,13 @@ function copiaDestinosDesdeCitasWeb_(cita, doble) {
 function copiarVariasDesdeCitasWeb_(items, forzar) {
   try {
     if (!items || !items.length) return { success: false, message: 'No hay ninguna cita que copiar.' };
-    const todas = citasLeer_();
-    const porId = Object.create(null), ocupante = Object.create(null);
-    todas.forEach(function (c) { porId[c.id] = c; if (!(c.fecha + '|' + c.hora in ocupante)) ocupante[c.fecha + '|' + c.hora] = c; });
-
     const lista = [], errores = [], conflictos = [];
     const fechaTexto = function (iso) { return iso.slice(8, 10) + '/' + iso.slice(5, 7) + '/' + iso.slice(0, 4); };
-    items.forEach(function (item) {
-      const id = String(item && item.fila !== null && item.fila !== undefined ? item.fila : '').trim();
-      if (!id || /^hueco /.test(id)) return;   // un hueco libre no se copia (la copia vieja también lo saltaba sin avisar)
-      const origen = porId[id];
-      if (!origen) { errores.push('Una cita ya no existe (¿la ha cambiado otra persona?).'); return; }
-      const nombre = origen.nombre || 'Cita';
-      if (!origen.idPaciente) { errores.push(nombre + ': la cita no tiene un usuario enlazado (falta el ID paciente).'); return; }
-      const plan = copiaDestinosDesdeCitasWeb_(origen, !!item.doble);
-      if (plan.error) { errores.push(nombre + ': ' + plan.error); return; }
-      const propias = [];
-      for (let i = 0; i < plan.destinos.length; i++) {
-        const d = plan.destinos[i];
-        const v = citasHuecoValido_(d.fechaISO, origen.hora);
-        if (!v.ok) { errores.push(nombre + ' → ' + fechaTexto(d.fechaISO) + ' a las ' + origen.hora + ': ' + v.motivo); return; }
-        propias.push({ fechaISO: d.fechaISO, hora: v.hora, idPaciente: origen.idPaciente, sesion: d.sesion, notas: origen.notas, nombre: nombre });
-      }
-      propias.forEach(function (x) {
+    copiaPlanDesdeCitasWeb_(items, citasLeer_()).forEach(function (e) {
+      if (e.error) { errores.push(e.nombre ? e.nombre + ': ' + e.error : e.error); return; }
+      e.copias.forEach(function (x) {
         lista.push(x);
-        const ocupa = ocupante[x.fechaISO + '|' + x.hora];
-        if (ocupa) conflictos.push(nombre + ' → ' + fechaTexto(x.fechaISO) + ' a las ' + x.hora + ' (ocupado por ' + (ocupa.nombre || 'otra cita') + ')');
+        if (x.ocupadoPor) conflictos.push(x.nombre + ' → ' + fechaTexto(x.fechaISO) + ' a las ' + x.hora + ' (ocupado por ' + x.ocupadoPor + ')');
       });
     });
 

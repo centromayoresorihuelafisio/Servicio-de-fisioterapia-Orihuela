@@ -145,6 +145,16 @@ function copiarVariasCitasWeb_(items, forzar) {
   }
 }
 
+/** Vista previa de «Copiar semana»: qué citas se crearían y cuáles chocan, sin escribir nada. Mismos `items` que la copia. */
+function previsualizarCopiaCitasWeb_(items) {
+  try {
+    return previsualizarCopiaDesdeCitasWeb_(items);
+  } catch (e) {
+    Logger.log('Error en previsualizarCopiaCitasWeb_: ' + e.message);
+    return { success: false, message: e.message };
+  }
+}
+
 /** Mueve una cita a otro hueco (arrastrar y soltar). `filaOrigen` es el ID de la cita; `filaDestino`, "hueco AAAA-MM-DD HH:mm". */
 function moverCitaWeb_(filaOrigen, filaDestino) {
   return moverDesdeCitasWeb_(filaOrigen, filaDestino);

@@ -341,6 +341,14 @@
       }
       .modal-mensaje { font-size: var(--fs-md); color: var(--md-on-surface); white-space: pre-line; line-height: 1.45; margin: 0 0 1.5rem; }
       .modal-botones { display: flex; justify-content: flex-end; gap: 8px; }
+      /* Confirmacion con lista (mostrarConfirm(mensaje, { contenido })): caja mas ancha y lista con su propio desplazamiento */
+      .modal-box--ancho { max-width: 680px; }
+      .modal-box--ancho .modal-mensaje { margin-bottom: .75rem; }
+      .modal-contenido { max-height: 55vh; overflow-y: auto; margin: 0 0 1.5rem; }
+      .modal-contenido .md-tabla-marco { overflow: visible; }
+      .md-casilla { width: 18px; height: 18px; margin: 0; accent-color: var(--md-primary); cursor: pointer; vertical-align: middle; }
+      .md-casilla:disabled { cursor: default; }
+      table.md-tabla .md-tabla__nota { display: block; margin-top: .2rem; font-size: var(--fs-xs); color: var(--md-on-surface-med); }
 
       /* --- Piezas comunes de las cuatro pestanas (Usuarios, Agenda, Valoraciones, Estadisticas): barra de pestanas,
              cabecera, botones de la barra y buscador. Una sola definicion; cada pagina solo anade su colocacion

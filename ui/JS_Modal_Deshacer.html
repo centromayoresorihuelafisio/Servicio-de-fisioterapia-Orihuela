@@ -20,21 +20,37 @@
       }
 
       // ---------- Modal propio (sustituye a alert()/confirm()) ----------
-      function mostrarDialogo(mensaje, conCancelar) {
+      // `opciones` (solo para confirmaciones con lista, p. ej. la vista previa de Copiar semana):
+      //   contenido: nodo que se pone bajo el mensaje (la caja se ensancha y se desplaza si es largo)
+      //   aceptar:   texto del botón principal (por defecto «Aceptar»)
+      function mostrarDialogo(mensaje, conCancelar, opciones) {
+        opciones = opciones || {};
         return new Promise(function(resolve) {
           var overlay = document.getElementById('modalOverlay');
           var btnCancelar = document.getElementById('modalBtnCancelar');
           var btnAceptar = document.getElementById('modalBtnAceptar');
           var cajaMensaje = document.getElementById('modalMensaje');
+          var cajaContenido = document.getElementById('modalContenido');
+          var caja = overlay.querySelector('.modal-box');
           cajaMensaje.textContent = '';
           var tonoDialogo = conCancelar ? '' : tonoAviso_(mensaje);
           if (tonoDialogo) cajaMensaje.appendChild(iconoAviso_(tonoDialogo));
           cajaMensaje.appendChild(document.createTextNode(mensaje));
+          if (cajaContenido) {
+            cajaContenido.textContent = '';
+            if (opciones.contenido) cajaContenido.appendChild(opciones.contenido);
+            cajaContenido.hidden = !opciones.contenido;
+          }
+          if (caja) caja.classList.toggle('modal-box--ancho', !!opciones.contenido);
+          btnAceptar.textContent = opciones.aceptar || 'Aceptar';
           btnCancelar.style.display = conCancelar ? 'inline-flex' : 'none';
           overlay.classList.add('visible');
 
           function limpiar() {
             overlay.classList.remove('visible');
+            if (cajaContenido) { cajaContenido.textContent = ''; cajaContenido.hidden = true; }
+            if (caja) caja.classList.remove('modal-box--ancho');
+            btnAceptar.textContent = 'Aceptar';
             btnAceptar.removeEventListener('click', onAceptar);
             btnCancelar.removeEventListener('click', onCancelar);
           }
@@ -46,7 +62,7 @@
         });
       }
       function mostrarAviso(mensaje) { return mostrarDialogo(mensaje, false); }
-      function mostrarConfirm(mensaje) { return mostrarDialogo(mensaje, true); }
+      function mostrarConfirm(mensaje, opciones) { return mostrarDialogo(mensaje, true, opciones); }
 
       // ---------- Deshacer la última eliminación ----------
       // Guarda solo la ÚLTIMA foto (no un historial completo): se pierde al

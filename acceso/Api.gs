@@ -72,6 +72,7 @@ function accesoAcciones_() {
     obtenerUsuariosParaCitaWeb:     { fn: obtenerUsuariosParaCitaWeb_, rol: 'usuario' },
     moverCitaWeb:                   { fn: moverCitaWeb_, rol: 'usuario' },
     intercambiarCitasWeb:           { fn: intercambiarCitasWeb_, rol: 'usuario' },
+    previsualizarCopiaCitasWeb:     { fn: previsualizarCopiaCitasWeb_, rol: 'usuario' },   // solo lee: no se anota
     copiarVariasCitasWeb:           { fn: copiarVariasCitasWeb_, rol: 'usuario', registrar: true, entidad: a => (a[0] || []).map(x => x && x.fila).join(', '), detalle: (a, r) => r && r.message },
     eliminarDatosFilaAgendaWeb:     { fn: eliminarDatosFilaAgendaWeb_, rol: 'usuario', registrar: true, entidad: a => a[0], detalle: (a, r) => JSON.stringify(r && r.snapshots || []) },
     eliminarVariasCitasWeb:         { fn: eliminarVariasCitasWeb_, rol: 'usuario', registrar: true, entidad: a => (a[0] || []).join(', '), detalle: (a, r) => JSON.stringify(r && r.snapshots || []) },

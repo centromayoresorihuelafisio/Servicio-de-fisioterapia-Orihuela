@@ -37,6 +37,7 @@
   .gv-etq { font-size: var(--fs-xs); color: var(--md-on-surface-low); font-family: var(--font-mono); }
   .gv-caja { padding: 14px; border-radius: var(--md-shape-md); background: var(--md-surface); border: 1px solid var(--md-outline); min-height: 56px; }
   .gv-modal { position: static; max-width: 400px; }
+  .gv-modal.modal-box--ancho { max-width: 680px; }
 </style>
 </head>
 <body>
@@ -259,6 +260,27 @@ Se podrá deshacer durante unos segundos.</p>
           <button type="button" class="md-btn md-btn--text">Cancelar</button>
           <button type="button" class="md-btn md-btn--danger">Eliminar</button>
         </div>
+      </div>
+    </div>
+    <p>Confirmación con lista (vista previa de Copiar semana en la Agenda): caja ancha, tabla con casillas y el botón principal dice cuánto se hará.</p>
+    <div class="modal-box modal-box--ancho gv-modal" role="dialog" aria-label="Ejemplo de confirmación con lista">
+      <p class="modal-mensaje">Copiar semana: revisa qué citas se crean en los próximos días y desmarca a quien no deba seguir.
+1 tiene el destino ocupado y sale sin marcar.</p>
+      <div class="modal-contenido">
+        <div class="md-tabla-marco">
+          <table class="md-tabla">
+            <thead><tr><th><input type="checkbox" class="md-casilla" aria-label="Marcar o desmarcar todas"></th><th>Usuario</th><th>Hora</th><th>Se copia a</th><th>Destino</th></tr></thead>
+            <tbody>
+              <tr><td><input type="checkbox" class="md-casilla" checked aria-label="Copiar"></td><td>Ana López<span class="md-tabla__nota">mié 12/11</span></td><td>10:00</td><td>lun 17/11 <span class="md-tabla__nota">sesión 6</span>mié 19/11 <span class="md-tabla__nota">sesión 7</span></td><td><span class="md-insignia md-insignia--ok">Libre</span></td></tr>
+              <tr><td><input type="checkbox" class="md-casilla" aria-label="Copiar"></td><td>Juan Pérez<span class="md-tabla__nota">vie 14/11</span></td><td>09:30</td><td>vie 21/11 <span class="md-tabla__nota">sesión 3</span></td><td><span class="md-insignia md-insignia--aviso">Ocupado</span><span class="md-tabla__nota">vie 21/11: Luis Gil<br>Si la marcas, la sustituye.</span></td></tr>
+              <tr><td><input type="checkbox" class="md-casilla" disabled aria-label="Copiar"></td><td>Rosa Martín<span class="md-tabla__nota">jue 13/11</span></td><td>12:00</td><td>—</td><td><span class="md-insignia md-insignia--error">No se puede</span><span class="md-tabla__nota">20/11/2026 a las 12:00: Esa hora está cerrada en Disponibilidad.</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-botones">
+        <button type="button" class="md-btn md-btn--text">Cancelar</button>
+        <button type="button" class="md-btn md-btn--tonal">Copiar 2 citas</button>
       </div>
     </div>
   </section>
