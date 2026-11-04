@@ -752,43 +752,88 @@
         return ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'][d.getDay()] + ' ' + ('0' + p[2]).slice(-2) + '/' + ('0' + p[1]).slice(-2);
       }
 
-      // Tabla de la vista previa: una fila por cita origen, con su casilla. Las libres salen marcadas; las que chocan con otra
-      // cita, sin marcar (marcarlas = sustituir la que ya está); las que no se pueden copiar, sin casilla útil.
-      function tablaVistaPreviaCopia(entradas, alCambiar) {
-        var marco = document.createElement('div');
-        marco.className = 'md-tabla-marco';
-        marco.innerHTML = '<table class="md-tabla"><thead><tr>' +
-          '<th><input type="checkbox" class="md-casilla" id="copiaPreviaTodas" title="Marcar o desmarcar todas las que se pueden copiar" aria-label="Marcar o desmarcar todas"></th>' +
-          '<th>Usuario</th><th>Hora</th><th>Se copia a</th><th>Destino</th></tr></thead><tbody></tbody></table>';
-        var cuerpo = marco.querySelector('tbody');
+      // Vista previa: las citas origen agrupadas por día y ordenadas por hora, cada una con su casilla. Las libres salen marcadas;
+      // las que chocan con otra cita, sin marcar (marcarlas = sustituir la que ya está); las que no se pueden copiar, apagadas.
+      var DIAS_COPIA_ = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+      function listaVistaPreviaCopia(entradas, alCambiar) {
+        var raiz = document.createElement('div');
+        raiz.className = 'md-revision';
         var casillas = [];
-        entradas.forEach(function(e) {
-          var copias = e.copias || [];
-          var ocupados = copias.filter(function(x) { return x.ocupadoPor; });
-          var destino;
-          if (e.error) destino = '<span class="md-insignia md-insignia--error">No se puede</span><span class="md-tabla__nota">' + escapar(e.error) + '</span>';
-          else if (ocupados.length) destino = '<span class="md-insignia md-insignia--aviso">Ocupado</span><span class="md-tabla__nota">' +
-            ocupados.map(function(x) { return escapar(fechaCortaCopia(x.fechaISO) + ': ' + x.ocupadoPor); }).join('<br>') + '<br>Si la marcas, la sustituye.</span>';
-          else destino = '<span class="md-insignia md-insignia--ok">Libre</span>';
-          var tr = document.createElement('tr');
-          tr.innerHTML =
-            '<td><input type="checkbox" class="md-casilla"' + (e.error ? ' disabled' : (ocupados.length ? '' : ' checked')) + ' aria-label="Copiar la cita de ' + escapar(e.nombre || 'este usuario') + '"></td>' +
-            '<td>' + escapar(e.nombre || 'Cita') + '<span class="md-tabla__nota">' + escapar(fechaCortaCopia(e.fechaISO)) + '</span></td>' +
-            '<td>' + escapar(e.hora || '') + '</td>' +
-            '<td>' + (copias.length ? copias.map(function(x) { return escapar(fechaCortaCopia(x.fechaISO)) + ' <span class="md-tabla__nota">sesión ' + escapar(x.sesion) + '</span>'; }).join('') : '—') + '</td>' +
-            '<td>' + destino + '</td>';
-          var casilla = tr.querySelector('input');
-          if (!e.error) casillas.push({ casilla: casilla, entrada: e, ocupado: ocupados.length > 0 });
-          casilla.addEventListener('change', alCambiar);
-          cuerpo.appendChild(tr);
+        var nLibres = 0, nOcupadas = 0, nError = 0;
+
+        var grupos = {}, orden = [];
+        entradas.slice().sort(function(a, b) {
+          return (a.fechaISO || '9').localeCompare(b.fechaISO || '9') || String(a.hora || '').localeCompare(String(b.hora || ''));
+        }).forEach(function(e) {
+          var clave = e.fechaISO || '';
+          if (!grupos[clave]) { grupos[clave] = []; orden.push(clave); }
+          grupos[clave].push(e);
         });
-        var todas = marco.querySelector('#copiaPreviaTodas');
+
+        var resumen = document.createElement('div');
+        resumen.className = 'md-revision__resumen';
+        raiz.appendChild(resumen);
+
+        orden.forEach(function(clave) {
+          var grupo = document.createElement('section');
+          grupo.className = 'md-revision__grupo';
+          var p = clave.split('-').map(Number);
+          var titulo = clave ? DIAS_COPIA_[new Date(p[0], p[1] - 1, p[2]).getDay()] + ' ' + fechaCortaCopia(clave).slice(4) : 'Otras';
+          var n = grupos[clave].length;
+          grupo.innerHTML = '<h3 class="md-revision__dia">' + escapar(titulo) + '<small>' + n + (n === 1 ? ' cita' : ' citas') + '</small></h3>';
+          grupos[clave].forEach(function(e) {
+            var copias = e.copias || [];
+            var ocupados = copias.filter(function(x) { return x.ocupadoPor; });
+            var fila = document.createElement('label');
+            fila.className = 'md-revision__fila' + (e.error ? ' md-revision__fila--off' : '');
+            var destinos, nota = '';
+            if (e.error) {
+              nError++;
+              destinos = '<span class="md-revision__destino md-revision__destino--error">No se puede copiar</span>';
+              nota = '<span class="md-revision__nota md-revision__nota--error">' + escapar(e.error.charAt(0).toUpperCase() + e.error.slice(1)) + '</span>';
+            } else {
+              if (ocupados.length) nOcupadas++; else nLibres++;
+              destinos = copias.map(function(x) {
+                return '<span class="md-revision__destino' + (x.ocupadoPor ? ' md-revision__destino--ocupado' : '') + '">' +
+                  escapar(fechaCortaCopia(x.fechaISO)) + ' <small>sesión ' + escapar(x.sesion) + '</small></span>';
+              }).join('');
+              if (ocupados.length) nota = '<span class="md-revision__nota md-revision__nota--aviso">' +
+                escapar(ocupados.map(function(x) { return 'Ocupado por ' + x.ocupadoPor + ' el ' + fechaCortaCopia(x.fechaISO); }).join(' · ')) +
+                '. Si la marcas, se sustituye.</span>';
+            }
+            fila.innerHTML =
+              '<input type="checkbox" class="md-casilla"' + (e.error ? ' disabled' : (ocupados.length ? '' : ' checked')) + '>' +
+              '<span class="md-revision__hora">' + escapar(e.hora || '—') + '</span>' +
+              '<span class="md-revision__nombre">' + escapar(e.nombre || 'Cita') + '</span>' +
+              '<span class="md-revision__destinos">' + destinos + '</span>' + nota;
+            var casilla = fila.querySelector('input');
+            if (!e.error) {
+              casillas.push({ casilla: casilla, entrada: e, ocupado: ocupados.length > 0 });
+              casilla.addEventListener('change', alCambiar);
+            }
+            grupo.appendChild(fila);
+          });
+          raiz.appendChild(grupo);
+        });
+
+        var insignias = [];
+        if (nLibres) insignias.push('<span class="md-insignia md-insignia--ok">' + nLibres + (nLibres === 1 ? ' libre' : ' libres') + '</span>');
+        if (nOcupadas) insignias.push('<span class="md-insignia md-insignia--aviso">' + nOcupadas + ' con hueco ocupado</span>');
+        if (nError) insignias.push('<span class="md-insignia md-insignia--error">' + nError + (nError === 1 ? ' no se puede copiar' : ' no se pueden copiar') + '</span>');
+        resumen.innerHTML = insignias.join('') + '<button type="button" class="md-btn md-btn--text"></button>';
+        var todas = resumen.querySelector('button');
         todas.disabled = casillas.length === 0;
-        todas.addEventListener('change', function() {
-          casillas.forEach(function(c) { c.casilla.checked = todas.checked; });
+        todas.addEventListener('click', function() {
+          var marcar = casillas.some(function(c) { return !c.casilla.checked; });
+          casillas.forEach(function(c) { c.casilla.checked = marcar; });
           alCambiar();
         });
-        return { nodo: marco, casillas: casillas, todas: todas };
+
+        var pie = document.createElement('p');
+        pie.className = 'md-revision__pie';
+        pie.hidden = true;
+        raiz.appendChild(pie);
+        return { nodo: raiz, casillas: casillas, todas: todas, pie: pie };
       }
 
       async function manejarCopiarSemana() {
@@ -815,31 +860,28 @@
         catch (err) { mostrarAviso('Error: ' + err); return; }
         if (!previa || !previa.success) { mostrarAviso((previa && previa.message) || 'No se pudo preparar la copia de la semana.'); return; }
 
-        var tabla = tablaVistaPreviaCopia(previa.entradas || [], actualizarResumen);
+        var lista = listaVistaPreviaCopia(previa.entradas || [], actualizarResumen);
         var btnAceptar = document.getElementById('modalBtnAceptar');
-        var resumen = document.createElement('p');
-        function marcadas() { return tabla.casillas.filter(function(c) { return c.casilla.checked; }); }
-        function nCitas(lista) { return lista.reduce(function(n, c) { return n + c.entrada.copias.length; }, 0); }
+        function marcadas() { return lista.casillas.filter(function(c) { return c.casilla.checked; }); }
+        function nCitas(m) { return m.reduce(function(n, c) { return n + c.entrada.copias.length; }, 0); }
         function actualizarResumen() {
           var m = marcadas(), n = nCitas(m), sustituye = m.filter(function(c) { return c.ocupado; }).length;
           btnAceptar.textContent = n === 1 ? 'Copiar 1 cita' : 'Copiar ' + n + ' citas';
           btnAceptar.disabled = n === 0;
-          tabla.todas.checked = m.length > 0 && m.length === tabla.casillas.length;
-          tabla.todas.indeterminate = m.length > 0 && m.length < tabla.casillas.length;
-          resumen.textContent = sustituye ? (sustituye === 1 ? '1 marcada sustituirá a la cita que ya ocupa su hueco.' : sustituye + ' marcadas sustituirán a las citas que ya ocupan sus huecos.') : '';
+          lista.todas.textContent = m.length < lista.casillas.length ? 'Marcar todas' : 'Desmarcar todas';
+          lista.pie.hidden = !sustituye;
+          lista.pie.innerHTML = sustituye ? '<span class="material-symbols-outlined" aria-hidden="true">warning</span>' +
+            (sustituye === 1 ? '1 cita marcada sustituirá a la que ya ocupa su hueco.' : sustituye + ' citas marcadas sustituirán a las que ya ocupan sus huecos.') : '';
         }
-        var contenido = document.createElement('div');
-        contenido.appendChild(tabla.nodo);
-        resumen.className = 'md-tabla__nota';
-        contenido.appendChild(resumen);
 
-        var nOcupadas = tabla.casillas.filter(function(c) { return c.ocupado; }).length;
-        var nError = (previa.entradas || []).filter(function(e) { return e.error; }).length;
-        var mensaje = 'Copiar semana: revisa qué citas se crean en los próximos días y desmarca a quien no deba seguir.';
-        if (nOcupadas) mensaje += '\n' + (nOcupadas === 1 ? '1 tiene el destino ocupado y sale sin marcar.' : nOcupadas + ' tienen el destino ocupado y salen sin marcar.');
-        if (nError) mensaje += '\n' + (nError === 1 ? '1 no se puede copiar.' : nError + ' no se pueden copiar.');
+        var fechas = [];
+        (previa.entradas || []).forEach(function(e) { (e.copias || []).forEach(function(x) { fechas.push(x.fechaISO); }); });
+        fechas.sort();
+        var mensaje = fechas.length
+          ? 'Las copias van del ' + fechaCortaCopia(fechas[0]) + ' al ' + fechaCortaCopia(fechas[fechas.length - 1]) + '. Desmarca a quien no deba seguir.'
+          : 'Ninguna cita de esta semana se puede copiar.';
 
-        var confirmar = mostrarConfirm(mensaje, { contenido: contenido, aceptar: 'Copiar' });
+        var confirmar = mostrarConfirm(mensaje, { titulo: 'Copiar semana', icono: 'event_repeat', contenido: lista.nodo, aceptar: 'Copiar' });
         actualizarResumen();
         var aceptado = await confirmar;
         btnAceptar.disabled = false;

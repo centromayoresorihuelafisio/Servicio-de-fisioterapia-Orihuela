@@ -21,6 +21,7 @@
 
       // ---------- Modal propio (sustituye a alert()/confirm()) ----------
       // `opciones` (solo para confirmaciones con lista, p. ej. la vista previa de Copiar semana):
+      //   titulo, icono: título con icono de Material Symbols sobre el mensaje (el mensaje pasa a subtítulo)
       //   contenido: nodo que se pone bajo el mensaje (la caja se ensancha y se desplaza si es largo)
       //   aceptar:   texto del botón principal (por defecto «Aceptar»)
       function mostrarDialogo(mensaje, conCancelar, opciones) {
@@ -36,6 +37,20 @@
           var tonoDialogo = conCancelar ? '' : tonoAviso_(mensaje);
           if (tonoDialogo) cajaMensaje.appendChild(iconoAviso_(tonoDialogo));
           cajaMensaje.appendChild(document.createTextNode(mensaje));
+          var titulo = null;
+          if (opciones.titulo) {
+            titulo = document.createElement('h2');
+            titulo.className = 'modal-encabezado';
+            if (opciones.icono) {
+              var ic = document.createElement('span');
+              ic.className = 'material-symbols-outlined';
+              ic.setAttribute('aria-hidden', 'true');
+              ic.textContent = opciones.icono;
+              titulo.appendChild(ic);
+            }
+            titulo.appendChild(document.createTextNode(opciones.titulo));
+            cajaMensaje.parentNode.insertBefore(titulo, cajaMensaje);
+          }
           if (cajaContenido) {
             cajaContenido.textContent = '';
             if (opciones.contenido) cajaContenido.appendChild(opciones.contenido);
@@ -48,6 +63,7 @@
 
           function limpiar() {
             overlay.classList.remove('visible');
+            if (titulo) titulo.remove();
             if (cajaContenido) { cajaContenido.textContent = ''; cajaContenido.hidden = true; }
             if (caja) caja.classList.remove('modal-box--ancho');
             btnAceptar.textContent = 'Aceptar';

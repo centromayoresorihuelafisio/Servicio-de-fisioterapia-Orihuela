@@ -262,25 +262,29 @@ Se podrá deshacer durante unos segundos.</p>
         </div>
       </div>
     </div>
-    <p>Confirmación con lista (vista previa de Copiar semana en la Agenda): caja ancha, tabla con casillas y el botón principal dice cuánto se hará.</p>
+    <p>Confirmación con título y lista de revisión (vista previa de Copiar semana en la Agenda): resumen fijo arriba, grupos por día, filas que se marcan al pulsarlas y el botón principal dice cuánto se hará.</p>
     <div class="modal-box modal-box--ancho gv-modal" role="dialog" aria-label="Ejemplo de confirmación con lista">
-      <p class="modal-mensaje">Copiar semana: revisa qué citas se crean en los próximos días y desmarca a quien no deba seguir.
-1 tiene el destino ocupado y sale sin marcar.</p>
+      <h2 class="modal-encabezado"><span class="material-symbols-outlined" aria-hidden="true">event_repeat</span>Copiar semana</h2>
+      <p class="modal-mensaje">Las copias van del lun 17/11 al vie 21/11. Desmarca a quien no deba seguir.</p>
       <div class="modal-contenido">
-        <div class="md-tabla-marco">
-          <table class="md-tabla">
-            <thead><tr><th><input type="checkbox" class="md-casilla" aria-label="Marcar o desmarcar todas"></th><th>Usuario</th><th>Hora</th><th>Se copia a</th><th>Destino</th></tr></thead>
-            <tbody>
-              <tr><td><input type="checkbox" class="md-casilla" checked aria-label="Copiar"></td><td>Ana López<span class="md-tabla__nota">mié 12/11</span></td><td>10:00</td><td>lun 17/11 <span class="md-tabla__nota">sesión 6</span>mié 19/11 <span class="md-tabla__nota">sesión 7</span></td><td><span class="md-insignia md-insignia--ok">Libre</span></td></tr>
-              <tr><td><input type="checkbox" class="md-casilla" aria-label="Copiar"></td><td>Juan Pérez<span class="md-tabla__nota">vie 14/11</span></td><td>09:30</td><td>vie 21/11 <span class="md-tabla__nota">sesión 3</span></td><td><span class="md-insignia md-insignia--aviso">Ocupado</span><span class="md-tabla__nota">vie 21/11: Luis Gil<br>Si la marcas, la sustituye.</span></td></tr>
-              <tr><td><input type="checkbox" class="md-casilla" disabled aria-label="Copiar"></td><td>Rosa Martín<span class="md-tabla__nota">jue 13/11</span></td><td>12:00</td><td>—</td><td><span class="md-insignia md-insignia--error">No se puede</span><span class="md-tabla__nota">20/11/2026 a las 12:00: Esa hora está cerrada en Disponibilidad.</span></td></tr>
-            </tbody>
-          </table>
+        <div class="md-revision">
+          <div class="md-revision__resumen"><span class="md-insignia md-insignia--ok">2 libres</span><span class="md-insignia md-insignia--aviso">1 con hueco ocupado</span><span class="md-insignia md-insignia--error">1 no se puede copiar</span><button type="button" class="md-btn md-btn--text">Marcar todas</button></div>
+          <section class="md-revision__grupo">
+            <h3 class="md-revision__dia">Miércoles 12/11<small>2 citas</small></h3>
+            <label class="md-revision__fila"><input type="checkbox" class="md-casilla" checked><span class="md-revision__hora">10:00</span><span class="md-revision__nombre">Ana López</span><span class="md-revision__destinos"><span class="md-revision__destino">lun 17/11 <small>sesión 6</small></span><span class="md-revision__destino">mié 19/11 <small>sesión 7</small></span></span></label>
+            <label class="md-revision__fila md-revision__fila--off"><input type="checkbox" class="md-casilla" disabled><span class="md-revision__hora">12:00</span><span class="md-revision__nombre">Rosa Martín</span><span class="md-revision__destinos"><span class="md-revision__destino md-revision__destino--error">No se puede copiar</span></span><span class="md-revision__nota md-revision__nota--error">19/11/2026 a las 12:00: Esa hora está cerrada en Disponibilidad.</span></label>
+          </section>
+          <section class="md-revision__grupo">
+            <h3 class="md-revision__dia">Viernes 14/11<small>2 citas</small></h3>
+            <label class="md-revision__fila"><input type="checkbox" class="md-casilla" checked><span class="md-revision__hora">09:30</span><span class="md-revision__nombre">Juan Pérez</span><span class="md-revision__destinos"><span class="md-revision__destino md-revision__destino--ocupado">vie 21/11 <small>sesión 3</small></span></span><span class="md-revision__nota md-revision__nota--aviso">Ocupado por Luis Gil el vie 21/11. Si la marcas, se sustituye.</span></label>
+            <label class="md-revision__fila"><input type="checkbox" class="md-casilla"><span class="md-revision__hora">13:00</span><span class="md-revision__nombre">Lucía Romero</span><span class="md-revision__destinos"><span class="md-revision__destino">vie 21/11 <small>sesión 12</small></span></span></label>
+          </section>
+          <p class="md-revision__pie"><span class="material-symbols-outlined" aria-hidden="true">warning</span>1 cita marcada sustituirá a la que ya ocupa su hueco.</p>
         </div>
       </div>
       <div class="modal-botones">
         <button type="button" class="md-btn md-btn--text">Cancelar</button>
-        <button type="button" class="md-btn md-btn--tonal">Copiar 2 citas</button>
+        <button type="button" class="md-btn md-btn--tonal">Copiar 3 citas</button>
       </div>
     </div>
   </section>
