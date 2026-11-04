@@ -72,9 +72,9 @@
             <span class="material-symbols-outlined">more_vert</span>
           </button>
           <div class="menu menu-der" role="menu">
-            <button class="menu-item" id="btnCopiarSemana" role="menuitem" title="Copia miércoles y jueves (doble sesión) y viernes (simple) a la semana siguiente, sin necesidad de seleccionar nada. Antes de copiar enseña la lista para revisarla">
+            <button class="menu-item" id="btnCopiarSemana" role="menuitem" title="Crea las citas de la semana siguiente a partir de las del miércoles, jueves y viernes de esta. Antes de crear nada, enseña la lista para revisarla">
               <span class="material-symbols-outlined">event_repeat</span>
-              <span>Copiar semana<small>Mié/jue ×2 y vie → semana siguiente</small></span>
+              <span>Copiar semana<small>De miércoles a viernes, a la semana siguiente</small></span>
             </button>
             <button class="menu-item" id="btnDisponibilidad" role="menuitem" title="Abre o cierra huecos de la agenda: horario del servicio, vacaciones, imprevistos">
               <span class="material-symbols-outlined">event_busy</span>
@@ -106,18 +106,18 @@
         <span class="separador"></span>
 
         <div class="menu-wrap" id="menuCopiarWrap">
-          <button title="Copiar las citas seleccionadas" class="btn-toolbar plano" id="btnMenuCopiar" disabled aria-haspopup="true" aria-expanded="false">
-            <span class="material-symbols-outlined">content_copy</span> Copiar
+          <button title="Dar a los usuarios seleccionados su próxima cita, a la misma hora" class="btn-toolbar plano" id="btnMenuCopiar" disabled aria-haspopup="true" aria-expanded="false">
+            <span class="material-symbols-outlined">event_upcoming</span> Próximas citas
             <span class="material-symbols-outlined">arrow_drop_down</span>
           </button>
           <div class="menu" role="menu">
-            <button class="menu-item" id="btnCopiarCita" disabled role="menuitem" title="Copia la(s) cita(s) seleccionada(s) al siguiente día alterno (L/M→+2, M/J→+5, V→+7)">
-              <span class="material-symbols-outlined">content_copy</span>
-              <span>Siguiente cita<small>Al siguiente día alterno</small></span>
+            <button class="menu-item" id="btnCopiarCita" disabled role="menuitem" title="Crea la próxima cita a la misma hora: de lunes o martes, al miércoles o jueves; de miércoles o jueves, al lunes o martes siguiente; de viernes, al viernes siguiente">
+              <span class="material-symbols-outlined">event_upcoming</span>
+              <span>Una cita<small>En su próximo día de sesión</small></span>
             </button>
-            <button class="menu-item" id="btnCopiarCita2" disabled role="menuitem" title="Copia la(s) cita(s) seleccionada(s) a las dos siguientes fechas alternas (usuarios de doble sesión semanal)">
-              <span class="material-symbols-outlined">library_add</span>
-              <span>Siguientes 2 citas<small>Doble sesión semanal</small></span>
+            <button class="menu-item" id="btnCopiarCita2" disabled role="menuitem" title="Crea las dos próximas citas a la misma hora, para quien viene dos días por semana (lunes y miércoles, o martes y jueves)">
+              <span class="material-symbols-outlined">date_range</span>
+              <span>Dos citas<small>Para quien viene dos días por semana</small></span>
             </button>
           </div>
         </div>

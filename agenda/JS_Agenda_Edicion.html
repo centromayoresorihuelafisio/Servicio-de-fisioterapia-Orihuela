@@ -497,7 +497,7 @@
             var cp = citaPorFila(f);
             if (cp) {
               if (!filasSeleccionadas.has(cp._fila)) { filasSeleccionadas.clear(); filasSeleccionadas.add(cp._fila); }   // si ya hay selección que la incluye, se copia toda
-              manejarCopiarSeleccionadas(acc === 'copiar2', false);
+              manejarCopiarSeleccionadas(acc === 'copiar2');
             }
           }
           else if (acc === 'cita') { var cc = citaPorFila(f); if (cc) abrirCitaPanel(cc['Usuario'], cc['_idPaciente']); }
@@ -716,28 +716,28 @@
         WhatsappDialogo.precargar('datosWhatsappLoteAgendaWeb', filas);
       });
 
-      // ---------- Copiar Siguiente Cita / ×2 ----------
-      async function manejarCopiarSeleccionadas(doble, forzar) {
+      // ---------- Próxima cita / Dos próximas citas (citas seleccionadas) ----------
+      // Una sola cita con el destino libre se crea directamente; varias, o una que choca con otra cita, pasan por la
+      // misma revisión que Copiar semana (revisarYCopiar, más abajo).
+      function manejarCopiarSeleccionadas(doble) {
         var sel = citasSeleccionadas();
         if (sel.length === 0) return;
         var items = sel.map(function(c) { return { fila: c._fila, doble: doble }; });
+        var revision = { titulo: doble ? 'Dos próximas citas' : 'Próxima cita', icono: doble ? 'date_range' : 'event_upcoming', alTerminar: quitarSeleccion };
+        if (items.length > 1) { revisarYCopiar(items, revision); return; }
 
-        llamar('copiarVariasCitasWeb', [items, !!forzar])
-          .then(async function(res) {
-            if (res.ocupado && !forzar) {
-              var confirmado = await mostrarConfirm(res.message);
-              if (confirmado) manejarCopiarSeleccionadas(doble, true);
-              return;
-            }
-            if (!res.success) { mostrarAviso(res.message || 'No se pudo copiar.'); return; }
+        llamar('copiarVariasCitasWeb', [items, false])
+          .then(function(res) {
+            if (res.ocupado) { revisarYCopiar(items, revision); return; }
+            if (!res.success) { mostrarAviso(res.message || 'No se pudo crear la cita.'); return; }
             mostrarAviso(res.message);
             quitarSeleccion();
             cargar(semanaActual, true);
           }, function(err) { mostrarAviso('Error: ' + err); });
       }
 
-      document.getElementById('btnCopiarCita').addEventListener('click', function() { manejarCopiarSeleccionadas(false, false); });
-      document.getElementById('btnCopiarCita2').addEventListener('click', function() { manejarCopiarSeleccionadas(true, false); });
+      document.getElementById('btnCopiarCita').addEventListener('click', function() { manejarCopiarSeleccionadas(false); });
+      document.getElementById('btnCopiarCita2').addEventListener('click', function() { manejarCopiarSeleccionadas(true); });
 
       // ---------- Copiar Semana (mié/jue doble, vie simple → semana siguiente), con vista previa ----------
       function diaSemanaDeCita(c) {
@@ -836,8 +836,7 @@
         return { nodo: raiz, casillas: casillas, todas: todas, pie: pie };
       }
 
-      async function manejarCopiarSemana() {
-        var origenes = {};
+      function manejarCopiarSemana() {
         var items = CITAS
           .filter(function(c) {
             if (c._hueco) return false;
@@ -846,19 +845,26 @@
           })
           .map(function(c) {
             var dia = diaSemanaDeCita(c);
-            origenes[c._fila] = { fila: c._fila, doble: (dia === 3 || dia === 4) };
-            return origenes[c._fila];
+            return { fila: c._fila, doble: (dia === 3 || dia === 4) };
           });
 
         if (items.length === 0) {
           mostrarAviso('No hay citas de miércoles, jueves o viernes en esta semana para copiar.');
           return;
         }
+        revisarYCopiar(items, { titulo: 'Copiar semana', icono: 'event_repeat' });
+      }
+
+      // Revisión común (Copiar semana, Próxima cita y Dos próximas citas): pide la vista previa, deja marcar y desmarcar y
+      // crea solo las marcadas. `revision` = { titulo, icono, alTerminar } (alTerminar: tras crear, p. ej. quitar la selección).
+      async function revisarYCopiar(items, revision) {
+        var origenes = {};
+        items.forEach(function(it) { origenes[it.fila] = it; });
 
         var previa;
         try { previa = await llamar('previsualizarCopiaCitasWeb', [items]); }
         catch (err) { mostrarAviso('Error: ' + err); return; }
-        if (!previa || !previa.success) { mostrarAviso((previa && previa.message) || 'No se pudo preparar la copia de la semana.'); return; }
+        if (!previa || !previa.success) { mostrarAviso((previa && previa.message) || 'No se pudo preparar la lista de citas.'); return; }
 
         var lista = listaVistaPreviaCopia(previa.entradas || [], actualizarResumen);
         var btnAceptar = document.getElementById('modalBtnAceptar');
@@ -866,7 +872,7 @@
         function nCitas(m) { return m.reduce(function(n, c) { return n + c.entrada.copias.length; }, 0); }
         function actualizarResumen() {
           var m = marcadas(), n = nCitas(m), sustituye = m.filter(function(c) { return c.ocupado; }).length;
-          btnAceptar.textContent = n === 1 ? 'Copiar 1 cita' : 'Copiar ' + n + ' citas';
+          btnAceptar.textContent = n === 1 ? 'Crear 1 cita' : 'Crear ' + n + ' citas';
           btnAceptar.disabled = n === 0;
           lista.todas.textContent = m.length < lista.casillas.length ? 'Marcar todas' : 'Desmarcar todas';
           lista.pie.hidden = !sustituye;
@@ -877,11 +883,14 @@
         var fechas = [];
         (previa.entradas || []).forEach(function(e) { (e.copias || []).forEach(function(x) { fechas.push(x.fechaISO); }); });
         fechas.sort();
-        var mensaje = fechas.length
-          ? 'Las copias van del ' + fechaCortaCopia(fechas[0]) + ' al ' + fechaCortaCopia(fechas[fechas.length - 1]) + '. Desmarca a quien no deba seguir.'
-          : 'Ninguna cita de esta semana se puede copiar.';
+        var hayOcupadas = lista.casillas.some(function(c) { return c.ocupado; });
+        var mensaje = !fechas.length ? 'Ninguna de estas citas se puede crear.'
+          : (fechas.length === 1 ? 'La cita nueva es del ' + fechaCortaCopia(fechas[0]) + '.'
+            : fechas[0] === fechas[fechas.length - 1] ? 'Las citas nuevas son del ' + fechaCortaCopia(fechas[0]) + '.'
+            : 'Las citas nuevas van del ' + fechaCortaCopia(fechas[0]) + ' al ' + fechaCortaCopia(fechas[fechas.length - 1]) + '.') +
+            (hayOcupadas ? ' Las que chocan con otra cita salen sin marcar.' : ' Desmarca a quien no deba seguir.');
 
-        var confirmar = mostrarConfirm(mensaje, { titulo: 'Copiar semana', icono: 'event_repeat', contenido: lista.nodo, aceptar: 'Copiar' });
+        var confirmar = mostrarConfirm(mensaje, { titulo: revision.titulo, icono: revision.icono, contenido: lista.nodo, aceptar: 'Crear citas' });
         actualizarResumen();
         var aceptado = await confirmar;
         btnAceptar.disabled = false;
@@ -890,19 +899,20 @@
         var elegidas = marcadas();
         if (!elegidas.length) return;
         var forzar = elegidas.some(function(c) { return c.ocupado; });
-        enviarCopiaSemana(elegidas.map(function(c) { return origenes[c.entrada.fila]; }), forzar);
+        enviarCopia(elegidas.map(function(c) { return origenes[c.entrada.fila]; }), forzar, revision.alTerminar);
       }
 
-      function enviarCopiaSemana(items, forzar) {
+      function enviarCopia(items, forzar, alTerminar) {
         llamar('copiarVariasCitasWeb', [items, !!forzar])
           .then(async function(res) {
             if (res.ocupado && !forzar) {
               var confirmado = await mostrarConfirm(res.message);
-              if (confirmado) enviarCopiaSemana(items, true);   // alguien ocupó un hueco mientras se revisaba la lista
+              if (confirmado) enviarCopia(items, true, alTerminar);   // alguien ocupó un hueco mientras se revisaba la lista
               return;
             }
-            if (!res.success) { mostrarAviso(res.message || 'No se pudo copiar la semana.'); return; }
+            if (!res.success) { mostrarAviso(res.message || 'No se pudieron crear las citas.'); return; }
             mostrarAviso(res.message);
+            if (alTerminar) alTerminar();
             cargar(semanaActual, true);
           }, function(err) { mostrarAviso('Error: ' + err); });
       }

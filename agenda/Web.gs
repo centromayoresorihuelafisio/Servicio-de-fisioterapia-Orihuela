@@ -135,7 +135,7 @@ function darDeAltaPacienteParaAgendaWeb_(fila) {
   }
 }
 
-/** Copia citas a su siguiente semana ("Siguiente cita"). Cada `fila` es el ID de la cita. */
+/** Crea la próxima cita (o las dos próximas) de cada cita dada (Próximas citas y Copiar semana). Cada `fila` es el ID de la cita. */
 function copiarVariasCitasWeb_(items, forzar) {
   try {
     return copiarVariasDesdeCitasWeb_(items, forzar);

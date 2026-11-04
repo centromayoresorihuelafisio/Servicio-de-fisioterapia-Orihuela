@@ -454,8 +454,8 @@
         var btnHC = '', btnCopiar = '';
         if (cita) {
           btnCopiar =
-            '<button type="button" class="btn-fila" data-accion="copiar1" data-fila="' + fila + '" title="Copiar a la siguiente cita"><span class="material-symbols-outlined">content_copy</span></button>' +
-            '<button type="button" class="btn-fila" data-accion="copiar2" data-fila="' + fila + '" title="Copiar a las 2 siguientes citas"><span class="material-symbols-outlined">library_add</span></button>';
+            '<button type="button" class="btn-fila" data-accion="copiar1" data-fila="' + fila + '" title="Dar la próxima cita"><span class="material-symbols-outlined">event_upcoming</span></button>' +
+            '<button type="button" class="btn-fila" data-accion="copiar2" data-fila="' + fila + '" title="Dar las dos próximas citas"><span class="material-symbols-outlined">date_range</span></button>';
           btnHC = htmlBotonHC(fila, cita);
         }
         return '<span class="acc-pill">' + btnHC +

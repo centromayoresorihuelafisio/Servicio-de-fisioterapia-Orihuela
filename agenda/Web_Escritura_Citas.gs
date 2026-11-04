@@ -275,7 +275,7 @@ function previsualizarCopiaDesdeCitasWeb_(items) {
 }
 
 /**
- * Copia citas a su(s) fecha(s) siguiente(s) (botones Copiar, Copiar ×2 y Copiar Semana). `items` = [{fila, doble}], donde `fila` es el ID
+ * Copia citas a su(s) fecha(s) siguiente(s) (Próximas citas › Una cita / Dos citas, botones de la fila y Copiar semana). `items` = [{fila, doble}], donde `fila` es el ID
  * de la cita. Igual que antes: primero se comprueba TODO y, si algún destino está ocupado y `forzar` no es true, se devuelve `ocupado:true`
  * con la lista de conflictos y NO se escribe nada. Con `forzar`, la cita que ocupaba el destino se sustituye por la copia. Cada copia lleva
  * Notas y Sesión (origen + 1, + 2) y nace Pendiente; no cambia el Estado ni el ingreso (como antes). Una cita con más de un destino se copia
@@ -304,15 +304,15 @@ function copiarVariasDesdeCitasWeb_(items, forzar) {
     let copiadas = 0, nombreUnico = '';
     if (lista.length) {
       const r = citasCrearVarias_(lista, { sustituir: !!forzar });
-      if (!r.success) return { success: false, message: r.message || 'No se pudo copiar.' };
+      if (!r.success) return { success: false, message: r.message || 'No se pudieron crear las citas.' };
       copiadas = r.creadas.length;
       nombreUnico = r.creadas.length === 1 ? r.creadas[0].nombre : '';
       (r.errores || []).forEach(function (e) { errores.push((lista[e.indice].nombre || 'Cita') + ': ' + e.message); });
     }
-    if (!copiadas) return { success: false, message: errores.length ? 'No se pudo copiar ninguna cita:\n' + errores.join('\n') : 'No hay ninguna cita que copiar.' };
+    if (!copiadas) return { success: false, message: errores.length ? 'No se pudo crear ninguna cita:\n' + errores.join('\n') : 'No hay ninguna cita que crear.' };
 
-    let mensaje = copiadas === 1 ? 'Cita de ' + nombreUnico + ' copiada correctamente.' : copiadas + ' citas copiadas correctamente.';
-    if (errores.length) mensaje += '\n' + errores.length + ' no se pudieron copiar:\n' + errores.join('\n');
+    let mensaje = copiadas === 1 ? 'Cita de ' + nombreUnico + ' creada correctamente.' : copiadas + ' citas creadas correctamente.';
+    if (errores.length) mensaje += '\n' + errores.length + ' no se pudieron crear:\n' + errores.join('\n');
     return { success: true, message: mensaje, copiadas: copiadas, errores: errores.length };
   } catch (e) {
     Logger.log('Error en copiarVariasDesdeCitasWeb_: ' + e.message);
