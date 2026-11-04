@@ -18,7 +18,8 @@
                                              'valoracionesActualizadas': lo dejan los formularios al guardar) es posterior a la copia.
     MemoriaPestanas.guardarLuego(clave, fn)  guarda fn() un momento después (varios avisos seguidos se juntan en uno) o al salir.
     MemoriaPestanas.borrar(clave)            quita una copia (p. ej. si ya no se sabe si está al día).
-    Si no cabe o el navegador no deja guardar, no pasa nada: esa pestaña descarga como antes.
+    Si no cabe o el navegador no deja guardar, no pasa nada: esa pestaña descarga como antes. Lo principal de cada pestaña
+    (la tabla de Usuarios, las semanas de la Agenda) tiene prioridad: si no cabe, se quitan antes las copias de las precargas.
 -->
 <script>
 var OrdenCarga = (function() {
@@ -43,6 +44,7 @@ var MemoriaPestanas = (function() {
   var MAX_EDAD_MS = 60 * 60000;        // una copia de más de una hora no se usa: se descarga de nuevo
   var RETRASO_GUARDAR = 800;           // ms: los cambios seguidos se guardan de una vez
   var pendientes = {};                 // clave -> { fn, temporizador }
+  var PRECARGAS = ['hc', 'fichasAgenda', 'valoraciones'];   // lo primero que se quita si no cabe lo principal
 
   // Sello de la sesión: un resumen del código de acceso (no el código). Sin sesión no se lee ni se guarda nada.
   function sello() {
@@ -75,8 +77,13 @@ var MemoriaPestanas = (function() {
     var datos;
     try { datos = fn(); } catch (err) { return; }
     if (!datos) { borrar(clave); return; }
-    try { sessionStorage.setItem(PREFIJO + clave, JSON.stringify({ s: s, t: datos.t || Date.now(), d: datos.d })); }
-    catch (err) { borrar(clave); }   // no cabe: se queda sin copia, como antes
+    var texto;
+    try { texto = JSON.stringify({ s: s, t: datos.t || Date.now(), d: datos.d }); } catch (err) { return; }
+    try { sessionStorage.setItem(PREFIJO + clave, texto); return; } catch (err) { /* no cabe: se intenta hacer sitio */ }
+    borrar(clave);
+    if (PRECARGAS.indexOf(clave) !== -1) return;   // una precarga que no cabe se queda sin copia, como antes
+    PRECARGAS.forEach(function(k) { try { sessionStorage.removeItem(PREFIJO + k); } catch (err) { /* sin almacenamiento */ } });
+    try { sessionStorage.setItem(PREFIJO + clave, texto); } catch (err) { borrar(clave); }
   }
 
   // fn() devuelve { d: datos, t: instante de la descarga } o null para borrar la copia.

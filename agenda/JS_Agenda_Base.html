@@ -68,13 +68,30 @@
       // Memoria de semanas: la semana anterior y la siguiente se piden en
       // segundo plano en cuanto se ve una, y las ya vistas se recuerdan. Al
       // cambiar de semana se pinta al instante lo recordado y se pide otra vez
-      // por detrás para ponerlo al día.
+      // por detrás para ponerlo al día. La semana a la vista y sus vecinas se
+      // guardan también para la próxima vez que se abra la Agenda en esta
+      // pestaña del navegador (MemoriaPestanas, clave "semanasAgenda",
+      // ui/JS_Carga_Compartida): al volver se pintan al momento, como al
+      // cambiar de semana, y se ponen al día por detrás.
       var MEMORIA_SEMANAS = {};        // lunes "yyyy-MM-dd" -> respuesta del servidor
       var MEMORIA_SEMANAS_MAX = 8;     // semanas recordadas como mucho (se olvidan las más lejanas)
       var generacionMemoria = 0;       // sube al vaciar la memoria: una precarga lanzada antes ya no se guarda
       var turnoNavegacion = 0;         // sube con cada carga no silenciosa: una respuesta de una navegación superada no se pinta
       var navegacionPendiente = false; // hay una semana nueva pedida que aún no ha llegado
       var precargasEnCurso = {};
+      (function() {
+        var copia = MemoriaPestanas.leer('semanasAgenda');
+        if (copia && copia.datos && typeof copia.datos === 'object') MEMORIA_SEMANAS = copia.datos;
+      })();
+      // Se guardan la semana de hoy (la que se abre primero), la que está a la vista y sus dos vecinas.
+      function recordarSemanas() {
+        MemoriaPestanas.guardarLuego('semanasAgenda', function() {
+          if (!semanaActual) return null;
+          var d = {};
+          [lunesSemanaISO(hoyISO()), sumarDiasISO(semanaActual, -7), semanaActual, sumarDiasISO(semanaActual, 7)].forEach(function(k) { if (MEMORIA_SEMANAS[k]) d[k] = MEMORIA_SEMANAS[k]; });
+          return { d: d, t: Date.now() };
+        });
+      }
 
       // Lunes de la semana de una fecha (el domingo cuenta en la semana que termina), igual que agendaSemanaDe_ en el servidor.
       function lunesSemanaISO(iso) {
@@ -117,7 +134,7 @@
           return false;
         }
         function fallo(err) {
-          if (modo === 'navegar') OrdenCarga.principalLista();   // aun sin semana, las precargas no esperan más
+          if (modo === 'navegar' || modo === 'revalidar') OrdenCarga.principalLista();   // aun sin semana, las precargas no esperan más
           if (modo === 'precargar') { delete precargasEnCurso[clave]; return; }
           if (alaVista()) mostrarError(err);
         }
@@ -127,6 +144,7 @@
             if (res.error) { fallo(res.error); return; }
             res.citas = res.citas || [];
             if (res.semana && gen === generacionMemoria) guardarSemana(res);
+            if (modo === 'revalidar') OrdenCarga.principalLista();   // al abrir con la semana guardada, lo principal es ponerla al día
             if (!alaVista()) return;
             if (modo === 'navegar') navegacionPendiente = false;
             aplicarSemana(res);
@@ -154,6 +172,7 @@
 
       function guardarSemana(res) {
         MEMORIA_SEMANAS[res.semana.lunes] = res;
+        recordarSemanas();
         var claves = Object.keys(MEMORIA_SEMANAS);
         if (claves.length <= MEMORIA_SEMANAS_MAX || !semanaActual) return;
         var ref = new Date(semanaActual).getTime();

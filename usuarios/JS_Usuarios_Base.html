@@ -14,20 +14,34 @@
 
       // ---------- Carga de datos ----------
       // La primera carga es lo principal de la pestaña: al terminar (bien o mal) arrancan las precargas (ui/JS_Carga_Compartida).
+      // Cada tabla que llega se guarda también para la próxima vez que se abra Usuarios en esta pestaña del navegador
+      // (MemoriaPestanas, clave "tablaUsuarios"): al volver se pinta al momento (pintarGuardada) y se pide igualmente al servidor.
       function cargar(alReanclar) {
         llamar('obtenerBaseDatosCompletaWeb')
           .then(function(res) {
             OrdenCarga.principalLista();
             if (res.error) { mostrarError(res.error); return; }
-            HEADERS = res.headers || [];
-            TODOS = res.pacientes || [];
-            COL_HISTORIA = HEADERS.find(function(h) { return h.toLowerCase().indexOf('historia') !== -1; });
-            reanclarSeleccion();
+            var t = Date.now();
+            MemoriaPestanas.guardarLuego('tablaUsuarios', function() { return { d: res, t: t }; });
+            aplicarTabla(res);
             if (typeof alReanclar === 'function') alReanclar();
             construirMenusFiltro();
             render();
             renderFicha();
           }, function(err) { OrdenCarga.principalLista(); mostrarError(err); });
+      }
+      function aplicarTabla(res) {
+        HEADERS = res.headers || [];
+        TODOS = res.pacientes || [];
+        COL_HISTORIA = HEADERS.find(function(h) { return h.toLowerCase().indexOf('historia') !== -1; });
+        reanclarSeleccion();
+      }
+      function pintarGuardada() {
+        var copia = MemoriaPestanas.leer('tablaUsuarios');
+        if (!copia || !copia.datos || !copia.datos.pacientes) return;
+        aplicarTabla(copia.datos);
+        construirMenusFiltro();
+        render();
       }
 
       function mostrarError(err) {
