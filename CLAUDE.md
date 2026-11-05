@@ -15,7 +15,7 @@
 
 ## Cómo trabajar aquí (esto sustituye a la regla del zip de CONTEXTO.md)
 - Edita los archivos directamente en el proyecto. NO me entregues zips ni archivos sueltos: ya no hacen falta.
-- NO hagas commit, NO hagas push, NO cambies de rama y NO ejecutes `clasp push`, salvo que te lo pida en esa conversación. Eso lo hago yo con GitHub Desktop y clasp. Trabajamos directamente en la rama `main` (la rama `control-acceso` de la sección 17 de `CONTEXTO.md` ya está unida a `main`).
+- Al terminar cada cambio, y solo si pasan los repasos (`node comprobar/coherencia.mjs`, sintaxis, LF), haz SIEMPRE sin esperar a que te lo pida: `clasp push`, commit en `main` solo con los archivos de ese cambio y `git push` a GitHub (regla del 5-nov-2026, sección 0 de `CONTEXTO.md`). Si algo falla, no subas nada y avísame. NO cambies de rama ni reescribas el historial. Trabajamos directamente en la rama `main` (la rama `control-acceso` de la sección 17 de `CONTEXTO.md` ya está unida a `main`).
 - Todos los archivos van en LF (unificado el 30-oct-2026). No introduzcas CRLF en ningún archivo, nuevo o existente.
 - Al terminar cada tarea, dame un resumen corto en español con: qué archivos has tocado (con su ruta), si son nuevos o ya existían, qué cambia en pantalla y qué debo probar.
 - Recuérdame que, tras `clasp push`, la Web App necesita una nueva versión de la implementación (Administrar implementaciones › editar › Nueva versión, con «Cualquier usuario»; nunca volver a una versión anterior al login: sección 17.9 de `CONTEXTO.md`).
