@@ -175,14 +175,10 @@
 .hc .aviso-err{display:none;margin:0 0 16px;padding:10px 14px;border-radius:var(--md-shape-md);background:var(--md-error-bg);color:var(--md-error);font-size:var(--fs-sm)}
 .hc .hc-carga{display:grid;place-items:center;min-height:50vh;color:var(--md-on-surface-low);text-align:center;gap:6px}
 .hc .nota textarea:disabled{opacity:.7}
-.hc .hc-iniciales{box-shadow:0 0 0 3px var(--md-bg),0 0 0 6px var(--aro,var(--md-outline));transition:box-shadow var(--dur-3) var(--ease)}
-.hc .hc-iniciales.ok{--aro:var(--md-success)}
-.hc .hc-iniciales.alta{--aro:var(--md-purple)}
 .hc .cabecera{gap:22px}
 .hc .nota-cab{position:sticky;top:0;z-index:var(--z-base);background:var(--md-surface);border-bottom:1px solid transparent;padding-bottom:10px}
 .hc .nota-cab.pegada{border-bottom-color:color-mix(in srgb,var(--md-outline) 70%,transparent)}
-@media print{.hc .nota-cab{position:static!important}
-.hc .hc-iniciales{box-shadow:none}}
+@media print{.hc .nota-cab{position:static!important}}
 .hc .asist-filas{display:grid;gap:5px;margin:2px 0 1px}
 .hc .asist-fila{display:flex;align-items:center;gap:8px;font-size:var(--fs-sm);color:var(--md-on-surface-med)}
 .hc .asist-fila i{width:8px;height:8px;border-radius:50%;flex:none;opacity:.7}
@@ -393,7 +389,6 @@ window.PanelHC = {
   function pintarMeta() {
     var u = D.usuario, est = u.estado, t = est.replace(/^[^\p{L}]+/u, '');
     var cls = /alta/i.test(t) ? 'alta' : /activ/i.test(t) ? 'ok' : '';
-    $('avatar').className = 'hc-iniciales ' + (cls || '');
     var cambia = chipsCambiables();
     var chip = function (tipo, tono, texto, vacio) {
       if (cambia) return '<button type="button" class="hc-chip dot cambia ' + tono + '" data-chip="' + tipo + '" aria-haspopup="menu" title="Cambiar ' + tipo + '">' +
