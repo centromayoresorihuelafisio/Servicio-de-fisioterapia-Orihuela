@@ -54,6 +54,7 @@ const COLUMNAS = {
     TELEFONO: "Teléfono 1",     // Confirmado (17/09/2026): la columna real se llama "Teléfono 1"
     TELEFONO_1: "Teléfono 1",
     TELEFONO_2: "Teléfono 2",
+    OBSERVACIONES: "Observaciones",
     // Cabecera "sin espacio/sin acento" que usa usuarios/Contactos_Google.gs
     // como primer intento antes de caer al buscador difuso de variantes.
     TELEFONO_FORM: "telefono1"

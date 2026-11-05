@@ -15,8 +15,16 @@
 
   Uso:
     FichaUsuario.pintar(contenedor, FichaUsuario.html(usuario, cabeceras, opciones));
-    contenedor.addEventListener('click', function(e) { FichaUsuario.alClic(e, { cerrar, estado, gravedad, accion }); });
-  opciones: { nombre, acciones, pie, extraCabecera, excluir }  (ver FichaUsuario.html)
+    contenedor.addEventListener('click', function(e) { FichaUsuario.alClic(e, { cerrar, estado, gravedad, accion, guardarCampo }); });
+  opciones: { nombre, acciones, pie, extraCabecera, excluir, editable }  (ver FichaUsuario.html)
+
+  Edición directa (opciones.editable = true): los campos marcados `editable` en SECCIONES (Teléfono 1, Teléfono 2 y
+  Observaciones) llevan un lápiz, y los vacíos un «Añadir …». Al pulsarlo, el campo pasa a ser un cuadro de texto con
+  Guardar y Cancelar (Intro guarda en el teléfono, Ctrl+Intro en las observaciones; Esc cancela). Al guardar se llama a
+  h.guardarCampo(cabecera, valor): la página cambia el dato en memoria, repinta y llama al servidor
+  (cambiarDatoFichaPacienteWeb); si falla, vuelve a abrir el cuadro con lo escrito con FichaUsuario.editar(...).
+  Mientras hay un cuadro abierto, pintar() no repinta la ficha de ese mismo usuario (no se pierde lo escrito); con otro
+  usuario, el cuadro se descarta. FichaUsuario.hayEdicion(contenedor) dice si hay texto sin guardar.
 -->
 <script>
 var FichaUsuario = (function() {
@@ -27,8 +35,8 @@ var FichaUsuario = (function() {
   // tipo = como se pinta (tel, copia, gravedad, limpio, largo; sin tipo = texto normal).
   var SECCIONES = [
     { titulo: 'Contacto', icono: 'call', vacio: 'Sin teléfono', campos: [
-      { col: 'Teléfono 1', tipo: 'tel' },
-      { col: 'Teléfono 2', tipo: 'tel', nota: 'secundario' }
+      { col: 'Teléfono 1', tipo: 'tel', editable: true },
+      { col: 'Teléfono 2', tipo: 'tel', nota: 'secundario', editable: true }
     ] },
     { titulo: 'Datos personales', icono: 'badge', campos: [
       { col: 'DNI', etq: 'DNI', tipo: 'copia' },
@@ -42,7 +50,7 @@ var FichaUsuario = (function() {
       { col: 'Patología 2', etq: 'Secundaria' }
     ] },
     { titulo: 'Observaciones', icono: 'notes', campos: [
-      { col: 'Observaciones', tipo: 'largo' }
+      { col: 'Observaciones', tipo: 'largo', editable: true }
     ] }
   ];
 
@@ -142,11 +150,28 @@ var FichaUsuario = (function() {
     return '<button type="button" class="fu-copia" data-fu="copiar" data-valor="' + esc(v) + '" data-etq="' + esc(etq) + '" title="Copiar">' + esc(texto) + icono('content_copy') + '</button>';
   }
 
-  function htmlCampo(c, v) {
+  // Lápiz (campo con dato) o «Añadir …» (campo vacío) de la edición directa.
+  function htmlLapiz(c) {
+    var t = 'Cambiar ' + c.col.toLowerCase();
+    return '<button type="button" class="fu-lapiz" data-fu="editar" title="' + esc(t) + '" aria-label="' + esc(t) + '">' + icono('edit') + '</button>';
+  }
+  function htmlAnadir(c) {
+    return '<button type="button" class="fu-anadir" data-fu="editar">' + icono('add') + 'Añadir ' + esc(c.col.toLowerCase()) + '</button>';
+  }
+  // Envoltorio de un campo editable: guarda la cabecera y el valor para abrir el cuadro de edición.
+  function htmlEditable(c, v, dentro) {
+    return '<div class="fu-editable" data-col="' + esc(c.col) + '" data-valor="' + esc(v) + '">' + dentro + '</div>';
+  }
+
+  function htmlCampo(c, v, editable) {
     if (c.tipo === 'tel') {
-      return '<div class="fu-tel">' + icono('call') + htmlCopia(Telefono.digitos(v) || v, 'Teléfono', formatearTel(v)) + (c.nota ? '<span class="fu-nota">' + esc(c.nota) + '</span>' : '') + '</div>';
+      if (!v) return htmlAnadir(c);
+      return '<div class="fu-tel">' + icono('call') + htmlCopia(Telefono.digitos(v) || v, 'Teléfono', formatearTel(v)) + (c.nota ? '<span class="fu-nota">' + esc(c.nota) + '</span>' : '') + (editable ? htmlLapiz(c) : '') + '</div>';
     }
-    if (c.tipo === 'largo') return '<div class="fu-campo largo"><span class="fu-val">' + esc(v) + '</span></div>';
+    if (c.tipo === 'largo') {
+      if (!v) return htmlAnadir(c);
+      return '<div class="fu-campo largo"><span class="fu-val">' + esc(v) + '</span>' + (editable ? htmlLapiz(c) : '') + '</div>';
+    }
     var cont;
     if (c.tipo === 'copia') cont = htmlCopia(v, c.etq, v);
     else if (c.tipo === 'gravedad') cont = '<button type="button" class="fu-chip ' + claseGravedad(v) + '" data-fu="gravedad" aria-haspopup="menu" title="Cambiar gravedad">' + (v ? esc(textoEstado(v)) : 'Sin gravedad') + icono('expand_more') + '</button>';
@@ -201,7 +226,8 @@ var FichaUsuario = (function() {
     var cuerpo = SECCIONES.map(function(s) {
       var campos = s.campos.map(function(c) {
         usados[norm(c.col)] = true;
-        var v = valor(p, headers, c.col);
+        var v = valor(p, headers, c.col), editable = !!(o.editable && c.editable && cabecera(headers, c.col));
+        if (editable) return htmlEditable(c, v, htmlCampo(c, v, true));   // sale siempre: si está vacío, con «Añadir …»
         return (v || c.tipo === 'gravedad') ? htmlCampo(c, v) : '';   // la gravedad sale siempre, para poder ponerla desde el chip
       }).join('');
       if (!campos) {
@@ -224,7 +250,7 @@ var FichaUsuario = (function() {
         '<span class="material-symbols-outlined fu-chev">expand_more</span></summary><div class="fu-campos">' + otros + '</div></details>';
     }
 
-    return '<div class="fu">' + htmlCabecera(p, headers, o) + htmlAcciones(o.acciones) + '<div class="fu-cuerpo">' + cuerpo + '</div>' + htmlPie(o.pie) + '</div>';
+    return '<div class="fu" data-fu-id="' + esc(valor(p, headers, 'ID paciente')) + '">' + htmlCabecera(p, headers, o) + htmlAcciones(o.acciones) + '<div class="fu-cuerpo">' + cuerpo + '</div>' + htmlPie(o.pie) + '</div>';
   }
 
   // Cabecera + un mensaje (cargando, error): el panel siempre tiene el boton de cerrar.
@@ -237,6 +263,11 @@ var FichaUsuario = (function() {
   // Pinta la ficha en el contenedor sin perder el scroll ni el estado de "Otros datos" (se vuelve a pintar a
   // menudo: cambio de estado, recarga de datos...).
   function pintar(contenedor, htmlFicha) {
+    if (edicion && edicion.cont === contenedor && contenedor.contains(edicion.wrap)) {
+      var m = /data-fu-id="([^"]*)"/.exec(htmlFicha), raiz = contenedor.querySelector('.fu');
+      if (m && raiz && m[1] === raiz.getAttribute('data-fu-id')) { edicion.pendiente = htmlFicha; return; }   // mismo usuario: se repinta al cerrar el cuadro
+    }
+    if (edicion && edicion.cont === contenedor) edicion = null;   // otro usuario (o el cuadro ya no está): se descarta
     var cuerpo = contenedor.querySelector('.fu-cuerpo'), scroll = cuerpo ? cuerpo.scrollTop : 0;
     var det = contenedor.querySelector('.fu-otros'), abierto = !!(det && det.open);
     contenedor.innerHTML = htmlFicha;
@@ -257,8 +288,85 @@ var FichaUsuario = (function() {
     else if (a === 'estado') { if (h && h.estado) h.estado(c); }
     else if (a === 'gravedad') { if (h && h.gravedad) h.gravedad(c); }
     else if (a === 'accion') { if (h && h.accion) h.accion(c.getAttribute('data-acc')); }
+    else if (a === 'editar') {
+      var w = c.closest('.fu-editable');
+      if (w && h && h.guardarCampo) abrirEdicion(w, w.getAttribute('data-col'), w.getAttribute('data-valor'), h.guardarCampo);
+    }
+    else if (a === 'edicion-guardar') guardarEdicion();
+    else if (a === 'edicion-cancelar') cancelarEdicion();
     else return false;
     return true;
+  }
+
+  // ---------- Edición directa de un campo (teléfonos y observaciones) ----------
+  // edicion = { cont, wrap, col, original, html, guardar, control, pendiente }: un solo cuadro abierto a la vez.
+  var edicion = null;
+  function esObservaciones(col) { return norm(col) === 'observaciones'; }
+  function editableDe(contenedor, col) {
+    var ws = contenedor.querySelectorAll('.fu-editable');
+    for (var i = 0; i < ws.length; i++) if (ws[i].getAttribute('data-col') === col) return ws[i];
+    return null;
+  }
+  function htmlEdicion(col, texto) {
+    var largo = esObservaciones(col), id = 'fu-edicion-campo';
+    var ctl = largo
+      ? '<textarea class="md-campo__control" id="' + id + '" rows="4" maxlength="5000" placeholder=" ">' + esc(texto) + '</textarea>'
+      : '<input class="md-campo__control" id="' + id + '" type="tel" inputmode="tel" autocomplete="off" placeholder=" " value="' + esc(texto) + '">';
+    return '<div class="fu-edicion">' +
+      '<div class="md-campo md-campo--icono"><span class="material-symbols-outlined md-campo__icono">' + (largo ? 'notes' : 'call') + '</span>' + ctl +
+        '<label class="md-campo__etiqueta" for="' + id + '">' + esc(col) + '</label>' +
+        '<p class="md-campo__ayuda">' + (largo ? 'Ctrl+Intro guarda · Esc cancela' : 'Intro guarda · Esc cancela') + '</p></div>' +
+      '<div class="fu-edicion-botones">' +
+        '<button type="button" class="md-btn md-btn--text" data-fu="edicion-cancelar">Cancelar</button>' +
+        '<button type="button" class="md-btn md-btn--tonal" data-fu="edicion-guardar">' + icono('check') + 'Guardar</button>' +
+      '</div></div>';
+  }
+  // Valor para guardar o comparar: el teléfono en su forma de guardado; las observaciones, sin espacios al final.
+  function limpioEdicion(col, v) {
+    return esObservaciones(col) ? String(v || '').trim() : Telefono.normalizar(v);
+  }
+  function abrirEdicion(wrap, col, texto, guardar) {
+    if (edicion) cancelarEdicion();
+    var raiz = wrap.closest('.fu'), cont = raiz ? raiz.parentNode : wrap.parentNode, tel = !esObservaciones(col);
+    edicion = { cont: cont, wrap: wrap, col: col, original: wrap.getAttribute('data-valor') || '', html: wrap.innerHTML, guardar: guardar, pendiente: null };
+    wrap.innerHTML = htmlEdicion(col, tel ? formatearTel(texto) : (texto || ''));
+    var ctl = edicion.control = wrap.querySelector('.md-campo__control');
+    if (tel) ctl.addEventListener('input', function() { Telefono.escribiendo(ctl); });
+    ctl.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); cancelarEdicion(); }
+      else if (e.key === 'Enter' && !e.isComposing && (tel || e.ctrlKey || e.metaKey)) { e.preventDefault(); e.stopPropagation(); guardarEdicion(); }
+    });
+    ctl.focus({ preventScroll: true });
+    wrap.scrollIntoView({ block: 'nearest' });
+    var n = ctl.value.length;
+    try { ctl.setSelectionRange(n, n); } catch (err) { /* este tipo de campo no admite cursor */ }
+  }
+  function hayEdicion(contenedor) {
+    if (!edicion || (contenedor && edicion.cont !== contenedor) || !edicion.cont.contains(edicion.wrap)) return false;
+    return limpioEdicion(edicion.col, edicion.control.value) !== limpioEdicion(edicion.col, edicion.original);
+  }
+  function cancelarEdicion() {
+    var ed = edicion;
+    if (!ed) return;
+    edicion = null;
+    if (ed.pendiente) pintar(ed.cont, ed.pendiente);              // llegaron datos nuevos mientras se escribía
+    else if (ed.cont.contains(ed.wrap)) ed.wrap.innerHTML = ed.html;
+    var w = editableDe(ed.cont, ed.col), b = w && w.querySelector('[data-fu="editar"]');
+    if (b) b.focus({ preventScroll: true });
+  }
+  function guardarEdicion() {
+    var ed = edicion;
+    if (!ed) return;
+    if (!hayEdicion(ed.cont)) { cancelarEdicion(); return; }      // sin cambios: solo se cierra
+    var nuevo = limpioEdicion(ed.col, ed.control.value);
+    edicion = null;                                                // la página repinta la ficha con el dato nuevo
+    if (ed.pendiente) pintar(ed.cont, ed.pendiente);
+    ed.guardar(ed.col, nuevo);
+  }
+  // Vuelve a abrir el cuadro de un campo con un texto (la página lo usa si el servidor no pudo guardar).
+  function editar(contenedor, col, texto, guardar) {
+    var w = editableDe(contenedor, col);
+    if (w) abrirEdicion(w, col, texto, guardar);
   }
 
   // ---------- Menu flotante de estado (y de gravedad) ----------
@@ -324,7 +432,8 @@ var FichaUsuario = (function() {
     html: html, mensaje: mensaje, pintar: pintar, alClic: alClic, menuEstado: menuEstado, cerrarMenu: cerrarMenu,
     estadosDisponibles: estadosDisponibles, claseEstado: claseEstado, textoEstado: textoEstado,
     gravedadesMenu: gravedadesMenu, claseGravedad: claseGravedad,
-    cabecera: cabecera, valor: valor, norm: norm, formatearTel: formatearTel, copiar: copiar
+    cabecera: cabecera, valor: valor, norm: norm, formatearTel: formatearTel, copiar: copiar,
+    editar: editar, hayEdicion: hayEdicion, cancelarEdicion: cancelarEdicion
   };
 })();
 </script>

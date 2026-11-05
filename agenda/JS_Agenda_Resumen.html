@@ -129,7 +129,8 @@
           // «Valoración» (formulario) si el usuario no tiene ninguna; «Valoraciones» (su panel) si ya tiene
           acciones: ['whatsapp', 'hc', 'cita', ValoracionesCache.accion(res.paciente['ID paciente'])],
           // "Otros datos" no repite la columna de prioridad (la primera) ni la Historia clínica, igual que Usuarios
-          excluir: [hs[0]].concat(hs.filter(function(h) { return String(h).toLowerCase().indexOf('historia') !== -1; }))
+          excluir: [hs[0]].concat(hs.filter(function(h) { return String(h).toLowerCase().indexOf('historia') !== -1; })),
+          editable: true   // lápiz en teléfonos y observaciones
         });
       }
       // Al terminar la precarga de valoraciones (o cambiar), el botón de la ficha abierta puede pasar de «Valoración» a «Valoraciones».
@@ -238,6 +239,30 @@
             if (r.ordenado) cargarFichas();
           }, function(err) { revertir('Error al cambiar la gravedad: ' + err); });
       }
+      // ---------- Teléfonos y observaciones desde la ficha (lápiz: edición directa de ui/JS_Ficha, como en Usuarios) ----------
+      function guardarCampoFicha(col, valor) {
+        var res = fichaAbierta && fichaDeMemoria(fichaAbierta.nombre);
+        if (!res) return;
+        var p = res.paciente, h = FichaUsuario.cabecera(res.headers, col) || col, antes = p[h], abierta = fichaAbierta;
+        if (!p['ID paciente']) { mostrarAviso('No se pudo guardar: vuelve a abrir la ficha e inténtalo de nuevo.'); cargarFichas(); return; }
+        p[h] = valor;
+        repintarFichaAbierta();
+        function revertir(msg) {
+          p[h] = antes; repintarFichaAbierta(); mostrarAviso(msg);
+          if (fichaAbierta === abierta && panelAbierto && panelClave === abierta.clave) FichaUsuario.editar(abierta.caja, col, valor, guardarCampoFicha);
+        }
+        llamar('cambiarDatoFichaPacienteWeb', [p['ID paciente'], col, valor])
+          .then(function(r) {
+            if (!r || !r.success) { revertir((r && r.message) || 'No se pudo guardar.'); return; }
+            if (r.valor !== undefined && r.valor !== p[h]) { p[h] = r.valor; repintarFichaAbierta(); }
+            mostrarAviso(valor ? col + ' guardado.' : col + ' borrado.');
+            recordarFichas();
+            try { localStorage.setItem('pacienteActualizado', JSON.stringify({ guardado: true, ts: Date.now() })); } catch (err) { /* sin almacenamiento: no es crítico */ }
+            if (window.HCCache) HCCache.cambioDeUsuario();
+            // La tabla de la semana enseña el teléfono 1: se recarga en silencio, como tras editar al usuario desde la historia.
+            if (col === 'Teléfono 1' && semanaActual && !document.querySelector('.editando')) cargar(semanaActual, true);
+          }, function(err) { revertir('Error al guardar: ' + err); });
+      }
       // Alta desde la ficha: usa la cita del usuario en la semana mostrada (mismo proceso que el botón Alta de la fila).
       function altaDesdeFicha(nombre) {
         var cita = CITAS.find(function(x) { return !x._hueco && x['Usuario'] === nombre; });
@@ -280,6 +305,7 @@
               cerrar: function() { cerrarPanel(); },
               estado: menuEstadoFicha,
               gravedad: menuGravedadFicha,
+              guardarCampo: guardarCampoFicha,
               accion: function(a) {
                 var citaAct = CITAS.find(function(x) { return !x._hueco && x['Usuario'] === nombre; });
                 if (a === 'cita') abrirCitaPanel(nombre, fichaAbierta ? fichaAbierta.idPaciente : '');
@@ -290,7 +316,8 @@
               }
             });
           });
-          return { haCambiado: function() { return false; } };
+          // Un teléfono u observaciones a medio escribir cuentan como cambios sin guardar (la Agenda pregunta antes de cerrar).
+          return { haCambiado: function() { return FichaUsuario.hayEdicion(caja); } };
         }, { sinCabecera: true });
       }
 

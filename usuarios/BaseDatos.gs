@@ -285,6 +285,49 @@ function cambiarGravedadPacienteWeb_(idPaciente, nuevaGravedad) {
   return r;
 }
 
+/**
+ * Cambia UN dato de la ficha sin abrir el formulario de edición (lápiz de la ficha de Usuarios y de la Agenda).
+ * Solo admite Teléfono 1, Teléfono 2 y Observaciones: el resto (nombre, DNI, fechas, patologías) sigue pasando por
+ * el formulario «Editar», que tiene su revisión de cambios. Escribe solo esa casilla (no reescribe la fila, a
+ * diferencia de actualizarPaciente_) y ninguno de los tres cuenta para el orden, así que no reordena.
+ * Devuelve { success, message, valor } con el valor tal como ha quedado guardado (teléfono normalizado).
+ */
+function cambiarDatoFichaPacienteWeb_(idPaciente, campo, nuevoValor) {
+  const C = COLUMNAS.MAESTRA;
+  const permitidos = [C.TELEFONO_1, C.TELEFONO_2, C.OBSERVACIONES];
+  const col = permitidos.find(c => c === String(campo || '').trim());
+  if (!col) return { success: false, message: 'Ese dato no se puede cambiar desde la ficha: usa «Editar».' };
+
+  let valor = (nuevoValor === null || nuevoValor === undefined) ? '' : String(nuevoValor).trim();
+  if (col === C.OBSERVACIONES) {
+    if (valor.length > 5000) return { success: false, message: 'Las observaciones son demasiado largas.' };
+  } else {
+    const tel = telefonoAnalizar_(valor);
+    if (tel.tipo === 'ilegible') return { success: false, message: 'El teléfono solo admite números (y un + delante si es de otro país).' };
+    valor = tel.valor;
+  }
+
+  try {
+    return conBloqueoScript_(() => {
+      const sheet = getSS_().getSheetByName(SHEETS.MAESTRA);
+      if (!sheet) return { success: false, message: `No se encontró la hoja "${SHEETS.MAESTRA}".` };
+      const rowIdx = filaMaestraPorId_(sheet, idPaciente);
+      if (!rowIdx) return { success: false, message: 'Ese usuario ya no está en Usuarios. Recarga la página.' };
+      const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0].map(h => h.toString().trim());
+      const idx = headers.indexOf(col);
+      if (idx === -1) return { success: false, message: `No se encontró la columna "${col}".` };
+
+      const celda = sheet.getRange(rowIdx, idx + 1);
+      celda.setNumberFormat('@');   // texto: Sheets no convierte el teléfono en número ni unas observaciones como «1/2» en fecha
+      celda.setValue(valor);
+      return { success: true, message: col + ' guardado.', valor: valor };
+    });
+  } catch (e) {
+    Logger.log('Error en cambiarDatoFichaPacienteWeb: ' + e.message);
+    return { success: false, message: e.message };
+  }
+}
+
 /** Cuerpo de cambiarGravedadPacienteWeb: cambia la Gravedad dentro del bloqueo. Devuelve además `_cambios` (para decidir si reordenar). */
 function cambiarGravedadPacienteSinOrden_(idPaciente, nuevaGravedad) {
   const gravedad = GRAVEDAD_PACIENTE.LISTA.find(g => g.toLowerCase() === String(nuevaGravedad || '').trim().toLowerCase());

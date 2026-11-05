@@ -54,6 +54,12 @@
       // Antes de cualquier acción que destruiría el formulario abierto (otra fila, cerrar la ficha, abrir otro
       // formulario…): si hay cambios sin guardar pregunta; si se acepta, el formulario queda descartado.
       async function descartarFormularioSiProcede() {
+        // Teléfono u observaciones a medio escribir en la ficha (lápiz): se pregunta igual que con un formulario.
+        if (!formularioActivo && FichaUsuario.hayEdicion(document.getElementById('ficha'))) {
+          if (!(await mostrarConfirm('Hay un dato a medio escribir en la ficha. ¿Quieres descartarlo?'))) return false;
+          FichaUsuario.cancelarEdicion();
+          return true;
+        }
         if (!hayCambiosSinGuardar()) return true;
         if (!(await mostrarConfirm('Hay cambios sin guardar en el formulario. ¿Quieres descartarlos?'))) return false;
         cerrarControlador();
@@ -283,6 +289,28 @@
           }, function(err) { revertir('Error al cambiar la gravedad: ' + err); });
       }
 
+      // ---------- Teléfonos y observaciones desde la ficha (lápiz: edición directa de ui/JS_Ficha) ----------
+      // Se cambia en memoria y se repinta al momento; si el servidor no lo guarda, se deshace y el cuadro vuelve a abrirse con lo escrito.
+      function guardarCampoFicha(col, valor) {
+        var p = pacienteSeleccionado;
+        if (!p) return;
+        var h = hdr(col) || col, antes = p[h];
+        p[h] = valor;
+        refrescarVista();
+        function revertir(msg) {
+          p[h] = antes; refrescarVista(); mostrarAviso(msg);
+          if (pacienteSeleccionado === p && fichaAbierta && !formularioActivo) FichaUsuario.editar(document.getElementById('ficha'), col, valor, guardarCampoFicha);
+        }
+        llamar('cambiarDatoFichaPacienteWeb', [idPaciente(p), col, valor])
+          .then(function(res) {
+            if (!res || !res.success) { revertir((res && res.message) || 'No se pudo guardar.'); return; }
+            if (res.valor !== undefined && res.valor !== p[h]) { p[h] = res.valor; refrescarVista(); }
+            mostrarAviso(valor ? col + ' guardado.' : col + ' borrado.');
+            try { localStorage.setItem('pacienteActualizado', JSON.stringify({ guardado: true, ts: Date.now() })); } catch (err) { /* sin almacenamiento: no es crítico */ }
+            if (window.HCCache) HCCache.cambioDeUsuario();   // la historia clínica enseña los teléfonos
+          }, function(err) { revertir('Error al guardar: ' + err); });
+      }
+
       // ---------- Copiar al portapapeles ----------
       function copiarTexto(txt, etiqueta) {
         var ok = false;
@@ -310,6 +338,7 @@
           acciones: ['whatsapp', { id: 'hc', texto: tieneHC ? 'Historia' : 'Crear HC', titulo: tieneHC ? 'Abrir la historia clínica' : 'Crear la historia clínica' }, 'editar', 'cita', ValoracionesCache.accion(p['ID paciente'])],   // «Valoración» (formulario) o «Valoraciones» (su panel)
           extraCabecera: prioridadNum(p) !== null ? '<span class="fu-extra" title="Puntuación de \'Ordenar Usuarios\'">Prioridad ' + esc(prioridadTxt(p)) + '</span>' : '',
           excluir: [COL_HISTORIA, colPrioridad()],
+          editable: true,   // lápiz en teléfonos y observaciones
           pie: pie
         });
       }
@@ -347,7 +376,8 @@
           cerrar: cerrarFicha,
           estado: function(btn) { if (pacienteSeleccionado) menuEstado(pacienteSeleccionado._fila, btn); },
           gravedad: function(btn) { if (pacienteSeleccionado) menuGravedad(pacienteSeleccionado._fila, btn); },
-          accion: function(a) { if (pacienteSeleccionado) accionPaciente(a, pacienteSeleccionado._fila); }
+          accion: function(a) { if (pacienteSeleccionado) accionPaciente(a, pacienteSeleccionado._fila); },
+          guardarCampo: guardarCampoFicha
         });
       });
 
