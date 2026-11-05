@@ -407,8 +407,9 @@ window.PanelHC = {
     }
     $('meta').innerHTML = h;
   }
-  $('meta').addEventListener('click', function (e) {
-    var b = e.target.closest('[data-chip]'); if (!b || !D || !chipsCambiables()) return;
+  // La cabecera (#hc-meta) se crea al llegar los datos: el clic se escucha en el panel entero.
+  root.addEventListener('click', function (e) {
+    var b = e.target.closest('#hc-meta [data-chip]'); if (!b || !D || !chipsCambiables()) return;
     var u = D.usuario;
     if (b.dataset.chip === 'estado') {
       var actual = FichaUsuario.norm(u.estado);
