@@ -70,7 +70,8 @@ function ordenarPacientesEnBloqueo_() {
   const PUNTOS_GRAVEDAD = {};
   PUNTOS_GRAVEDAD[clave(GRAVEDAD_PACIENTE.LEVE)] = 10;
   PUNTOS_GRAVEDAD[clave(GRAVEDAD_PACIENTE.MODERADO)] = 20;
-  PUNTOS_GRAVEDAD[clave(GRAVEDAD_PACIENTE.URGENTE)] = 30;
+  PUNTOS_GRAVEDAD[clave(GRAVEDAD_PACIENTE.GRAVE)] = 30;
+  PUNTOS_GRAVEDAD['urgente'] = 30;   // nombre antiguo de Grave (hasta el 5-nov-2026)
 
   // Cálculo de scores en memoria; los guardamos ya en la propia matriz
   // `data` (columna 1) para no necesitar una escritura aparte.

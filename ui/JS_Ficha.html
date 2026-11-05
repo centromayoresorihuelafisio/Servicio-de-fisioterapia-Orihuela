@@ -15,7 +15,7 @@
 
   Uso:
     FichaUsuario.pintar(contenedor, FichaUsuario.html(usuario, cabeceras, opciones));
-    contenedor.addEventListener('click', function(e) { FichaUsuario.alClic(e, { cerrar, estado, accion }); });
+    contenedor.addEventListener('click', function(e) { FichaUsuario.alClic(e, { cerrar, estado, gravedad, accion }); });
   opciones: { nombre, acciones, pie, extraCabecera, excluir }  (ver FichaUsuario.html)
 -->
 <script>
@@ -94,9 +94,19 @@ var FichaUsuario = (function() {
   function textoEstado(e) { var s = String(e || ''); return s.replace(/^[^\p{L}\p{N}]+/u, '').trim() || s; }
   function claseGravedad(v) {
     var n = norm(v);
-    return n.indexOf('leve') !== -1 ? 'leve' : n.indexOf('moderad') !== -1 ? 'moderado' : n.indexOf('urgent') !== -1 ? 'urgente' : '';
+    return n.indexOf('leve') !== -1 ? 'leve' : n.indexOf('moderad') !== -1 ? 'moderado' : (n.indexOf('grave') !== -1 || n.indexOf('urgent') !== -1) ? 'grave' : '';
   }
   // Estados del menu: los de ESTADOS_BASE (con el texto que ya use la hoja) y despues los que no encajen en ninguno.
+  // Menu de gravedad (chip pulsable de la ficha, la tabla de Usuarios y la Historia clinica): las de GRAVEDAD_PACIENTE.LISTA,
+  // con el punto del mismo color que su chip. elegir(valor) se llama al pulsar una.
+  var PUNTO_GRAVEDAD = { leve: 'activo', moderado: 'espera', grave: 'contactara' };
+  function gravedadesMenu(actual, elegir) {
+    var cls = claseGravedad(actual);
+    return GRAVEDAD_PACIENTE.LISTA.map(function(g) {
+      return { punto: PUNTO_GRAVEDAD[claseGravedad(g)], texto: g, titulo: 'Cambiar gravedad a ' + g, marcado: !!cls && claseGravedad(g) === cls, fn: function() { elegir(g); } };
+    });
+  }
+
   // `existentes` = valores de la columna Estado de la hoja.
   function estadosDisponibles(existentes) {
     var porClase = {}, extra = [];
@@ -139,7 +149,7 @@ var FichaUsuario = (function() {
     if (c.tipo === 'largo') return '<div class="fu-campo largo"><span class="fu-val">' + esc(v) + '</span></div>';
     var cont;
     if (c.tipo === 'copia') cont = htmlCopia(v, c.etq, v);
-    else if (c.tipo === 'gravedad') cont = '<span class="fu-chip ' + claseGravedad(v) + '">' + esc(textoEstado(v)) + '</span>';
+    else if (c.tipo === 'gravedad') cont = '<button type="button" class="fu-chip ' + claseGravedad(v) + '" data-fu="gravedad" aria-haspopup="menu" title="Cambiar gravedad">' + (v ? esc(textoEstado(v)) : 'Sin gravedad') + icono('expand_more') + '</button>';
     else cont = '<span class="fu-val">' + esc(c.tipo === 'limpio' ? textoEstado(v) : v) + '</span>';
     return '<div class="fu-campo"><span class="fu-etq">' + esc(c.etq) + '</span>' + cont + '</div>';
   }
@@ -192,7 +202,7 @@ var FichaUsuario = (function() {
       var campos = s.campos.map(function(c) {
         usados[norm(c.col)] = true;
         var v = valor(p, headers, c.col);
-        return v ? htmlCampo(c, v) : '';
+        return (v || c.tipo === 'gravedad') ? htmlCampo(c, v) : '';   // la gravedad sale siempre, para poder ponerla desde el chip
       }).join('');
       if (!campos) {
         if (!s.vacio) return '';                                   // sin datos: la seccion no sale
@@ -236,7 +246,7 @@ var FichaUsuario = (function() {
   }
 
   // Un solo manejador de clics para la ficha. La copia la resuelve el componente; el resto lo decide la pagina:
-  //   h.cerrar()   h.estado(botonChip)   h.accion(id)
+  //   h.cerrar()   h.estado(botonChip)   h.gravedad(botonChip)   h.accion(id)
   // Devuelve true si el clic era de la ficha.
   function alClic(e, h) {
     var t = e.target, c = t && t.closest ? t.closest('[data-fu]') : null;
@@ -245,13 +255,14 @@ var FichaUsuario = (function() {
     if (a === 'copiar') copiar(c.getAttribute('data-valor'), c.getAttribute('data-etq'));
     else if (a === 'cerrar') { if (h && h.cerrar) h.cerrar(); }
     else if (a === 'estado') { if (h && h.estado) h.estado(c); }
+    else if (a === 'gravedad') { if (h && h.gravedad) h.gravedad(c); }
     else if (a === 'accion') { if (h && h.accion) h.accion(c.getAttribute('data-acc')); }
     else return false;
     return true;
   }
 
-  // ---------- Menu flotante de estado ----------
-  // items: [{ punto, texto, marcado, fn }]. Se cierra con clic fuera, Esc, Tab, scroll o al cambiar el tamano.
+  // ---------- Menu flotante de estado (y de gravedad) ----------
+  // items: [{ punto, texto, titulo, marcado, fn }] (titulo opcional: por defecto "Cambiar estado a ..."). Se cierra con clic fuera, Esc, Tab, scroll o al cambiar el tamano.
   var menuActual = null;
   function cerrarMenu(devolverFoco) {
     if (!menuActual) return;
@@ -268,7 +279,7 @@ var FichaUsuario = (function() {
     var el = document.createElement('div');
     el.className = 'fu-menu'; el.setAttribute('role', 'menu');
     el.innerHTML = items.map(function(it, i) {
-      return '<button type="button" role="menuitemradio" aria-checked="' + (it.marcado ? 'true' : 'false') + '" class="fu-menu-item" title="Cambiar estado a ' + esc(it.texto) + '" data-i="' + i + '">' +
+      return '<button type="button" role="menuitemradio" aria-checked="' + (it.marcado ? 'true' : 'false') + '" class="fu-menu-item" title="' + esc(it.titulo || ('Cambiar estado a ' + it.texto)) + '" data-i="' + i + '">' +
         '<span class="fu-punto ' + esc(it.punto || '') + '"></span><span>' + esc(it.texto) + '</span>' + (it.marcado ? icono('check') : '') + '</button>';
     }).join('');
     document.body.appendChild(el);
@@ -312,6 +323,7 @@ var FichaUsuario = (function() {
   return {
     html: html, mensaje: mensaje, pintar: pintar, alClic: alClic, menuEstado: menuEstado, cerrarMenu: cerrarMenu,
     estadosDisponibles: estadosDisponibles, claseEstado: claseEstado, textoEstado: textoEstado,
+    gravedadesMenu: gravedadesMenu, claseGravedad: claseGravedad,
     cabecera: cabecera, valor: valor, norm: norm, formatearTel: formatearTel, copiar: copiar
   };
 })();

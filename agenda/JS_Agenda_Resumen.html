@@ -212,6 +212,32 @@
             if (r.ordenado) cargarFichas();   // el servidor reordenó la Maestra: las fichas en memoria (y el orden de sus listas) se refrescan
           }, function(err) { revertir('Error al cambiar el estado: ' + err); });
       }
+      // ---------- Gravedad del usuario desde la ficha (chip pulsable, como el estado) ----------
+      function menuGravedadFicha(ancla) {
+        var res = fichaAbierta && fichaDeMemoria(fichaAbierta.nombre);
+        if (!res) return;
+        var hGrav = FichaUsuario.cabecera(res.headers, 'Gravedad') || 'Gravedad';
+        FichaUsuario.menuEstado(ancla, FichaUsuario.gravedadesMenu(res.paciente[hGrav], cambiarGravedadFicha));
+      }
+      function cambiarGravedadFicha(valor) {
+        var res = fichaAbierta && fichaDeMemoria(fichaAbierta.nombre);
+        if (!res) return;
+        var p = res.paciente, hGrav = FichaUsuario.cabecera(res.headers, 'Gravedad') || 'Gravedad', antes = p[hGrav];
+        if (FichaUsuario.claseGravedad(antes) === FichaUsuario.claseGravedad(valor)) return;
+        if (!p['ID paciente']) { mostrarAviso('No se pudo cambiar la gravedad: vuelve a abrir la ficha e inténtalo de nuevo.'); cargarFichas(); return; }
+        p[hGrav] = valor;
+        repintarFichaAbierta();
+        function revertir(msg) { p[hGrav] = antes; repintarFichaAbierta(); mostrarAviso(msg); }
+        llamar('cambiarGravedadPacienteWeb', [p['ID paciente'], valor])
+          .then(function(r) {
+            if (!r || !r.success) { revertir((r && r.message) || 'No se pudo cambiar la gravedad.'); cargarFichas(); return; }
+            mostrarAviso('Gravedad cambiada a ' + valor + '.');
+            recordarFichas();
+            try { localStorage.setItem('pacienteActualizado', JSON.stringify({ guardado: true, ts: Date.now() })); } catch (err) { /* sin almacenamiento: no es crítico */ }
+            if (window.HCCache) HCCache.cambioDeUsuario();
+            if (r.ordenado) cargarFichas();
+          }, function(err) { revertir('Error al cambiar la gravedad: ' + err); });
+      }
       // Alta desde la ficha: usa la cita del usuario en la semana mostrada (mismo proceso que el botón Alta de la fila).
       function altaDesdeFicha(nombre) {
         var cita = CITAS.find(function(x) { return !x._hueco && x['Usuario'] === nombre; });
@@ -253,6 +279,7 @@
             FichaUsuario.alClic(e, {
               cerrar: function() { cerrarPanel(); },
               estado: menuEstadoFicha,
+              gravedad: menuGravedadFicha,
               accion: function(a) {
                 var citaAct = CITAS.find(function(x) { return !x._hueco && x['Usuario'] === nombre; });
                 if (a === 'cita') abrirCitaPanel(nombre, fichaAbierta ? fichaAbierta.idPaciente : '');

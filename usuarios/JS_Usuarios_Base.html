@@ -99,7 +99,7 @@
       function cuentasFiltros() {
         var term = normalizar(document.getElementById('inputBusqueda').value);
         var base = function(ex) { return TODOS.filter(function(p) { return pasaFiltros(p, term, ex); }); };
-        var c = { estado: {}, gravedad: { leve: 0, moderado: 0, urgente: 0 }, tipo: {}, patologia: {}, tot: {} };
+        var c = { estado: {}, gravedad: { leve: 0, moderado: 0, grave: 0 }, tipo: {}, patologia: {}, tot: {} };
         var b = base('estado'); c.tot.estado = b.length;
         b.forEach(function(p) { var e = (p['Estado'] || '').toString().trim(); if (e) c.estado[e] = (c.estado[e] || 0) + 1; });
         b = base('gravedad'); c.tot.gravedad = b.length;
@@ -126,9 +126,9 @@
             it.push({ punto: claseParaEstado(e), texto: textoEstado(e), n: c.estado[e], marcado: filtroEstado === e, fn: function() { filtroEstado = e; fin(); } });
           });
         } else if (id === 'gravedad') {
-          var col = { leve: 'activo', moderado: 'espera', urgente: 'contactara' };
+          var col = { leve: 'activo', moderado: 'espera', grave: 'contactara' };
           it.push({ punto: '', texto: 'Todas', n: c.tot.gravedad, marcado: !filtroGravedad, fn: function() { filtroGravedad = null; fin(); } });
-          ['leve', 'moderado', 'urgente'].forEach(function(g) {
+          ['leve', 'moderado', 'grave'].forEach(function(g) {
             it.push({ punto: col[g], texto: g.charAt(0).toUpperCase() + g.slice(1), n: c.gravedad[g], marcado: filtroGravedad === g, fn: function() { filtroGravedad = g; fin(); } });
           });
         } else if (id === 'carencias') {
@@ -194,7 +194,7 @@
           var v = JSON.parse(sessionStorage.getItem(CLAVE_VISTA) || 'null');
           if (!v) return;
           document.getElementById('inputBusqueda').value = v.q || '';
-          filtroEstado = v.e || null; filtroGravedad = v.g || null; filtroSinHC = !!v.hc; filtroSinTel = !!v.tl;
+          filtroEstado = v.e || null; filtroGravedad = v.g === 'urgente' ? 'grave' : (v.g || null); filtroSinHC = !!v.hc; filtroSinTel = !!v.tl;
           filtroTipo = v.t || null; filtroPatologia = v.p || null;
           if (v.oc) { ordenCampo = v.oc; ordenDir = v.od === -1 ? -1 : 1; }
         } catch (err) { /* sin almacenamiento */ }
@@ -223,8 +223,12 @@
       function dato(p, nombre) { var h = hdr(nombre); if (!h) return ''; var v = p[h]; return (v === null || v === undefined) ? '' : String(v).trim(); }
       function textoEstado(e) { var s = String(e || ''); return s.replace(/^[^\p{L}\p{N}]+/u, '').trim() || s; }
       function edadTxt(p) { var e = dato(p, 'Edad'); return /^\d+$/.test(e) ? e + ' años' : e; }
-      function claseGravedad(v) { var n = normalizar(v); return n.indexOf('leve') !== -1 ? 'leve' : n.indexOf('moderad') !== -1 ? 'moderado' : n.indexOf('urgent') !== -1 ? 'urgente' : ''; }
-      function chipGravedad(v) { return '<span class="chip-g ' + claseGravedad(v) + '">' + esc(textoEstado(v)) + '</span>'; }
+      function claseGravedad(v) { var n = normalizar(v); return n.indexOf('leve') !== -1 ? 'leve' : n.indexOf('moderad') !== -1 ? 'moderado' : (n.indexOf('grave') !== -1 || n.indexOf('urgent') !== -1) ? 'grave' : ''; }
+      // Chip de gravedad pulsable (menú para cambiarla, como el de estado).
+      function chipGravedad(v, fila) {
+        return '<button type="button" class="chip-g gravedad-btn ' + claseGravedad(v) + '" data-gravedad-fila="' + fila + '" aria-haspopup="menu" title="Cambiar gravedad">' +
+          esc(textoEstado(v)) + '<span class="material-symbols-outlined">expand_more</span></button>';
+      }
 
       function formatearTel(t) { return Telefono.formato(t); }   // regla única: ui/JS_Telefono.html
 
@@ -285,7 +289,7 @@
             (resalta([dato(p, 'DNI'), edadTxt(p)].filter(Boolean).join(' · '), termino) || '—') + '</div></div></div></td>' +
           '<td data-label="Contacto" class="col-contacto"><div class="doble">' + (tel(t1, '') || '<span class="vacio">—</span>') + (t2 ? '<div class="c-sub">' + tel(t2, '') + '</div>' : '') + '</div></td>' +
           '<td data-label="Clínico" class="col-clinico"><div class="doble"><div class="cl-pat" title="' + esc(pats) + '">' + (pats ? resalta(pats, termino) : '<span class="vacio">—</span>') + '</div><div class="c-sub">' +
-            (grav ? chipGravedad(grav) : '') + (tipo ? '<span class="tipo-ing">' + esc(textoEstado(tipo)) + '</span>' : '') + '</div></div></td>' +
+            (grav ? chipGravedad(grav, p._fila) : '') + (tipo ? '<span class="tipo-ing">' + esc(textoEstado(tipo)) + '</span>' : '') + '</div></div></td>' +
           '<td data-label="Estado" class="col-estado">' + badgeEstado(p) + '</td>' +
           '<td data-label="Prioridad" class="celda-prioridad">' + esc(prioridadTxt(p)) + '</td>' +
           '<td data-label="Inscripción">' + (dato(p, 'Fecha inscripción') ? esc(dato(p, 'Fecha inscripción')) : '<span class="vacio">—</span>') + '</td>' +

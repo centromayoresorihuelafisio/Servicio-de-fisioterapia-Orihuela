@@ -24,10 +24,10 @@ function dashNorm_(t) { return dashSinTildes_(t).replace(/\s+/g, ' '); }
 /** Celda de fecha (Date o texto dd/MM/yyyy o yyyy-MM-dd) → 'yyyy-MM-dd'; '' si no es una fecha válida. */
 function dashFechaISO_(v) { return dashFechaValida_(hcAISO_(v, Session.getScriptTimeZone())); }
 
-/** Gravedad escrita en la hoja → 'leve' | 'moderado' | 'urgente' | '' (misma regla que la pestaña Usuarios). */
+/** Gravedad escrita en la hoja → 'leve' | 'moderado' | 'grave' | '' ("Urgente", el nombre antiguo, cuenta como grave) (misma regla que la pestaña Usuarios). */
 function dashClaseGravedad_(v) {
   const n = dashNorm_(v);
-  return n.indexOf('leve') !== -1 ? 'leve' : n.indexOf('moderad') !== -1 ? 'moderado' : n.indexOf('urgent') !== -1 ? 'urgente' : '';
+  return n.indexOf('leve') !== -1 ? 'leve' : n.indexOf('moderad') !== -1 ? 'moderado' : (n.indexOf('grave') !== -1 || n.indexOf('urgent') !== -1) ? 'grave' : '';
 }
 
 /** Patologías de un usuario (de "Patología 1" y "Patología 2"), sin repetir (sin tildes ni mayúsculas) ni puntos finales. */
@@ -94,7 +94,7 @@ function dashLeerMaestraHoja_() {
     });
   });
   const ordenar = m => Object.keys(m).sort().map(k => m[k]);
-  return { pacientes: pacientes, opciones: { gravedades: ['leve', 'moderado', 'urgente'], tipos: ordenar(tipos), patologias: opcionesPat.patologias, zonas: opcionesPat.zonas } };
+  return { pacientes: pacientes, opciones: { gravedades: ['leve', 'moderado', 'grave'], tipos: ordenar(tipos), patologias: opcionesPat.patologias, zonas: opcionesPat.zonas } };
 }
 
 /**

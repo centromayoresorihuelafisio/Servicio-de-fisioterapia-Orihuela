@@ -129,7 +129,7 @@ function obtenerHCWeb_(idHC, idPaciente) {
       nombre: dato(COLUMNAS.MAESTRA.NOMBRE), dni: dato(COLUMNAS.MAESTRA.DNI),
       nacimiento: dato(COLUMNAS.MAESTRA.FECHA_NACIMIENTO), edad: edad,
       telefono: dato(COLUMNAS.MAESTRA.TELEFONO_1), telefono2: dato(COLUMNAS.MAESTRA.TELEFONO_2),
-      inscripcion: dato(COLUMNAS.MAESTRA.FECHA_INSCRIPCION), estado: dato(COLUMNAS.MAESTRA.ESTADO),
+      inscripcion: dato(COLUMNAS.MAESTRA.FECHA_INSCRIPCION), estado: dato(COLUMNAS.MAESTRA.ESTADO), gravedad: dato(COLUMNAS.MAESTRA.GRAVEDAD),
       fila: filaM
     };
 
@@ -322,7 +322,7 @@ function obtenerHCsActivasWeb_() {
           nombre: dato(COLUMNAS.MAESTRA.NOMBRE), dni: dato(COLUMNAS.MAESTRA.DNI),
           nacimiento: dato(COLUMNAS.MAESTRA.FECHA_NACIMIENTO), edad: edad,
           telefono: dato(COLUMNAS.MAESTRA.TELEFONO_1), telefono2: dato(COLUMNAS.MAESTRA.TELEFONO_2),
-          inscripcion: dato(COLUMNAS.MAESTRA.FECHA_INSCRIPCION), estado: dato(COLUMNAS.MAESTRA.ESTADO),
+          inscripcion: dato(COLUMNAS.MAESTRA.FECHA_INSCRIPCION), estado: dato(COLUMNAS.MAESTRA.ESTADO), gravedad: dato(COLUMNAS.MAESTRA.GRAVEDAD),
           fila: i + 2
         };
 

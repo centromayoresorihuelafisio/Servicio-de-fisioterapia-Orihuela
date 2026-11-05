@@ -280,7 +280,7 @@
         [['fGravedad', 'Gravedad', 'priority_high'], ['fTipo', 'Tipo de ingreso', 'input'], ['fZona', 'Zona', 'accessibility_new'], ['fPatologia', 'Patología', 'healing']].forEach(function (x) {
           var sel = $(x[0]);
           if (!sel.value) return;
-          var tono = x[0] === 'fGravedad' ? ({ leve: 'verde', moderado: 'ambar', urgente: 'rojo' }[sel.value] || 'azul') : 'azul';
+          var tono = x[0] === 'fGravedad' ? ({ leve: 'verde', moderado: 'ambar', grave: 'rojo' }[sel.value] || 'azul') : 'azul';
           chipBanda(b, tono, x[2], x[1] + ': ' + sel.options[sel.selectedIndex].text, function (chip) {
             sel.value = '';
             chip.parentNode.removeChild(chip);

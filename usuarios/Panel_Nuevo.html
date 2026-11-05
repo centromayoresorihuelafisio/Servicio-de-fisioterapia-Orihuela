@@ -112,7 +112,7 @@
 .nu .sev-chip { display: inline-flex; align-items: center; font-size: var(--fs-md); font-weight: 500; color: var(--md-on-surface-med); background: var(--md-surface-variant); padding: .35rem 1rem; border-radius: var(--md-shape-full); }
 .nu .sev-chip.leve { background: var(--md-success-bg); color: var(--md-success); }
 .nu .sev-chip.moderado { background: var(--md-warning-bg); color: var(--md-warning-text); }
-.nu .sev-chip.urgente { background: var(--md-error-bg); color: var(--md-error); }
+.nu .sev-chip.grave { background: var(--md-error-bg); color: var(--md-error); }
 
 /* ── Interruptores ── */
 .nu .toggle-field { position: relative; display: flex; align-items: center; gap: .9rem; padding: .85rem 1rem; background: var(--md-bg); border: 1px solid var(--md-outline); border-radius: var(--md-shape-md); cursor: pointer; user-select: none; transition: border-color var(--dur-2) var(--ease), background-color var(--dur-2) var(--ease); }
@@ -163,7 +163,7 @@ window.PanelNuevo = {
     var SEVERITY_MAP = [
       { label: GRAVEDAD_PACIENTE.LEVE, cls: 'leve', min: 0, max: 3 },
       { label: GRAVEDAD_PACIENTE.MODERADO, cls: 'moderado', min: 4, max: 6 },
-      { label: GRAVEDAD_PACIENTE.URGENTE, cls: 'urgente', min: 7, max: 9 }
+      { label: GRAVEDAD_PACIENTE.GRAVE, cls: 'grave', min: 7, max: 9 }
     ];
     var ESTADOS = ESTADOS_PACIENTE.LISTA_NUEVO.slice(), ESTADO_DEF = ESTADOS_PACIENTE.DEFECTO_NUEVO;
     var INGRESOS = TIPOS_INGRESO.LISTA.slice(), INGRESO_DEF = TIPOS_INGRESO.DEFECTO;

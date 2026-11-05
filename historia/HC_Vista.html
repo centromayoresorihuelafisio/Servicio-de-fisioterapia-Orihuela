@@ -9,6 +9,7 @@
   historia/HC_Vista.html
   Página completa de la historia clínica (?page=hc&id=ID_HC). Es solo un envoltorio: toda la ficha vive en historia/Panel_HC.html,
   la misma que se abre como panel lateral en Usuarios y en la Agenda. Aquí se usa en modo "pagina" (botón volver).
+  ui/JS_Ficha (con sus estilos y las listas de incluirEstados_) da el menú de los chips de estado y gravedad de la cabecera.
   Con &imprimir=1 abre el diálogo de impresión en cuanto carga la historia.
 -->
 <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600&family=Material+Symbols+Outlined:opsz,wght,FILL@20..48,300..700,0..1&display=swap" rel="stylesheet">
@@ -18,6 +19,7 @@
 </script>
 <style>
 <?!= include_('ui/CSS_Global'); ?>
+<?!= include_('ui/CSS_Ficha'); ?>
   html,body{margin:0;height:100%}
   body{overflow:hidden}
   #host{height:100vh;height:100dvh}
@@ -27,7 +29,9 @@
 <body>
 <?!= incluirAcceso_('hc'); ?>
 <div id="host"></div>
+<?!= incluirEstados_(); ?>
 <?!= include_('ui/JS_Telefono'); ?>
+<?!= include_('ui/JS_Ficha'); ?>
 <?!= include_('ui/JS_Selector_Fecha'); ?>
 <?!= include_('historia/Panel_HC'); ?>
 <script>

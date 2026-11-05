@@ -176,6 +176,7 @@ window.PanelEditar = {
     function sinEmojiTxt(t) { var s = String(t || '').trim(); return s.replace(/^[^\p{L}\p{N}]+/u, '').trim() || s; }
     function opcionDe(val, opciones) {
       var n = sinEmojiTxt(val).toLowerCase();
+      if (n === 'urgente' && opciones === OPCIONES_GRAVEDAD) return GRAVEDAD_PACIENTE.GRAVE;   // nombre antiguo de Grave
       for (var i = 0; i < opciones.length; i++) if (sinEmojiTxt(opciones[i]).toLowerCase() === n) return opciones[i];
       return val;
     }

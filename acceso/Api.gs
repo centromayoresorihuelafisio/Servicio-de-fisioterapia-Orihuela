@@ -50,6 +50,7 @@ function accesoAcciones_() {
     eliminarPacientesLoteWeb:    { fn: eliminarPacientesLoteWeb_, rol: 'administrador', registrar: true },
     restaurarPacienteWeb:        { fn: restaurarPacienteWeb_, rol: 'usuario', registrar: true, entidad: a => a[0] && a[0][id] },
     cambiarEstadoPacienteWeb:    { fn: cambiarEstadoPacienteWeb_, rol: 'usuario' },
+    cambiarGravedadPacienteWeb:  { fn: cambiarGravedadPacienteWeb_, rol: 'usuario' },
     cambiarEstadoLoteWeb:        { fn: cambiarEstadoLoteWeb_, rol: 'usuario', registrar: true, entidad: a => (a[0] || []).join(', '), detalle: a => a[1] },
     ordenarPacientes:            { fn: ordenarPacientes_, rol: 'usuario' },
     darDeAltaPacienteWeb:        { fn: darDeAltaPacienteWeb_, rol: 'usuario', registrar: true, entidad: a => a[0] },

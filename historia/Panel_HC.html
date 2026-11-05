@@ -109,6 +109,12 @@
 .hc .tr{display:flex;align-items:center;gap:7px;flex-wrap:wrap;font-size:var(--fs-xs);color:var(--md-on-surface-low)}
 .hc .hc-chip.mal{background:var(--md-error-bg);color:var(--md-error)}
 .hc .hc-chip.sm{height:22px;font-size:var(--fs-xs);padding:0 9px}
+.hc .hc-chip.aviso{background:var(--md-warning-bg);color:var(--md-warning-text)}
+/* Chips de estado y gravedad de la cabecera: pulsables, abren el menú para cambiarlos (como en Usuarios) */
+.hc .hc-chip.cambia{border:0;cursor:pointer;font-family:inherit;padding-right:6px}
+.hc .hc-chip.cambia .i{font-size:16px;opacity:.7;margin-left:-2px}
+.hc .hc-chip.cambia:hover{background-image:linear-gradient(color-mix(in srgb,currentColor 8%,transparent),color-mix(in srgb,currentColor 8%,transparent))}
+@media print{.hc .hc-chip.cambia .i{display:none}}
 .hc .spark{width:52px;height:24px;overflow:visible;flex:none}
 .hc .spark polyline{fill:none;stroke:var(--md-primary);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .hc .spark circle{fill:var(--md-primary)}
@@ -285,21 +291,21 @@
       <div class="notas" id="hc-notas">
         <section class="card nota activa" data-k="historia">
           <div class="nota-cab">
-            <span class="ic"><span class="i" aria-hidden="true">description</span></span><div class="ht"><h2>Historia</h2><span>Antecedentes y motivo de consulta</span></div><span class="sp"></span>
+            <span class="ic"><span class="i" aria-hidden="true">description</span></span><div class="ht"><h2>Historia</h2><span>Antecedentes, motivo de consulta, evolución</span></div><span class="sp"></span>
             <button class="btn icon mini-btn" data-fecha="historia" title="Insertar fecha de hoy" style="height:32px;width:32px"><span class="i" aria-hidden="true">calendar_today</span></button>
             <button class="btn icon" data-foco="historia" title="Ampliar" style="height:32px;width:32px"><span class="i" aria-hidden="true">fullscreen</span></button>
           </div>
-          <textarea id="hc-historia" placeholder="Antecedentes, motivo de consulta, valoración inicial…"></textarea>
+          <textarea id="hc-historia" placeholder="Antecedentes, motivo de consulta, evolución…"></textarea>
           <div class="impr"></div>
         </section>
 
         <section class="card nota" data-k="tratamiento">
           <div class="nota-cab">
-            <span class="ic ok"><span class="i" aria-hidden="true">monitor_heart</span></span><div class="ht"><h2>Tratamiento</h2><span>Pauta y evolución por fechas</span></div><span class="sp"></span>
+            <span class="ic ok"><span class="i" aria-hidden="true">monitor_heart</span></span><div class="ht"><h2>Tratamiento</h2><span>Pautas, ejercicios…</span></div><span class="sp"></span>
             <button class="btn icon" data-fecha="tratamiento" title="Insertar fecha de hoy" style="height:32px;width:32px"><span class="i" aria-hidden="true">calendar_today</span></button>
             <button class="btn icon" data-foco="tratamiento" title="Ampliar" style="height:32px;width:32px"><span class="i" aria-hidden="true">fullscreen</span></button>
           </div>
-          <textarea id="hc-tratamiento" placeholder="Pauta, ejercicios, evolución…"></textarea>
+          <textarea id="hc-tratamiento" placeholder="Pautas, ejercicios…"></textarea>
           <div class="impr"></div>
         </section>
       </div>
@@ -381,11 +387,60 @@ window.PanelHC = {
     $('avatar').textContent = u.nombre.split(/\s+/).filter(Boolean).slice(0, 2).map(function (w) { return w[0]; }).join('').toUpperCase();
     pintarMeta(); pintarCampos(); pintarAcciones();
   }
+  // Estado y gravedad se pueden cambiar desde sus chips si la página trae la ficha de usuario (ui/JS_Ficha: menú y listas).
+  function chipsCambiables() { return opts.acciones !== false && !!(window.FichaUsuario && D && D.usuario.idPaciente); }
+  var TONO_GRAVEDAD = { leve: 'ok', moderado: 'aviso', grave: 'mal' };
   function pintarMeta() {
-    var est = D.usuario.estado, t = est.replace(/^[^\p{L}]+/u, '');
+    var u = D.usuario, est = u.estado, t = est.replace(/^[^\p{L}]+/u, '');
     var cls = /alta/i.test(t) ? 'alta' : /activ/i.test(t) ? 'ok' : '';
     $('avatar').className = 'hc-iniciales ' + (cls || '');
-    $('meta').innerHTML = t ? '<span class="hc-chip dot ' + cls + '">' + esc(t) + '</span>' : '';
+    var cambia = chipsCambiables();
+    var chip = function (tipo, tono, texto, vacio) {
+      if (cambia) return '<button type="button" class="hc-chip dot cambia ' + tono + '" data-chip="' + tipo + '" aria-haspopup="menu" title="Cambiar ' + tipo + '">' +
+        esc(texto || vacio) + '<span class="i" aria-hidden="true">expand_more</span></button>';
+      return texto ? '<span class="hc-chip dot ' + tono + '">' + esc(texto) + '</span>' : '';
+    };
+    var h = chip('estado', cls, t, 'Sin estado');
+    if (u.gravedad !== undefined) {   // (una historia precargada antes de este cambio no la trae: sale al refrescarse)
+      var g = window.FichaUsuario ? FichaUsuario.claseGravedad(u.gravedad) : '';
+      h += chip('gravedad', TONO_GRAVEDAD[g] || '', String(u.gravedad || '').replace(/^[^\p{L}]+/u, ''), 'Sin gravedad');
+    }
+    $('meta').innerHTML = h;
+  }
+  $('meta').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-chip]'); if (!b || !D || !chipsCambiables()) return;
+    var u = D.usuario;
+    if (b.dataset.chip === 'estado') {
+      var actual = FichaUsuario.norm(u.estado);
+      FichaUsuario.menuEstado(b, FichaUsuario.estadosDisponibles([u.estado]).map(function (v) {
+        return { punto: FichaUsuario.claseEstado(v), texto: FichaUsuario.textoEstado(v), marcado: FichaUsuario.norm(v) === actual, fn: function () { cambiarEstadoHC(v); } };
+      }));
+    } else {
+      FichaUsuario.menuEstado(b, FichaUsuario.gravedadesMenu(u.gravedad, cambiarGravedadHC));
+    }
+  });
+  function cambiarEstadoHC(valor) {
+    if (FichaUsuario.norm(valor) === FichaUsuario.norm(D.usuario.estado)) return;
+    if (FichaUsuario.claseEstado(valor) === 'alta') { darAlta($('btnAlta')); return; }   // el alta tiene su propio flujo (fechas, episodio e HC)
+    cambiarDatoUsuario('estado', valor, function (id) { return llamar('cambiarEstadoPacienteWeb', [id, valor]); }, 'Estado cambiado a ' + FichaUsuario.textoEstado(valor) + '.', 'No se pudo cambiar el estado.');
+  }
+  function cambiarGravedadHC(valor) {
+    if (FichaUsuario.claseGravedad(valor) === FichaUsuario.claseGravedad(D.usuario.gravedad)) return;
+    cambiarDatoUsuario('gravedad', valor, function (id) { return llamar('cambiarGravedadPacienteWeb', [id, valor]); }, 'Gravedad cambiada a ' + valor + '.', 'No se pudo cambiar la gravedad.');
+  }
+  // Cambia un dato del usuario al momento en pantalla y lo guarda; si falla, vuelve atrás. Al guardar avisa a la página
+  // (Usuarios o la Agenda recargan su lista) y a las demás ventanas, igual que al editar al usuario.
+  function cambiarDatoUsuario(campo, valor, guardar, textoOk, textoError) {
+    var u = D.usuario, antes = u[campo];
+    u[campo] = valor; pintarMeta();
+    var revertir = function (msg) { if (D && D.usuario === u) { u[campo] = antes; pintarMeta(); } aviso(msg); };
+    guardar(u.idPaciente).then(function (r) {
+      if (!r || !r.success) { revertir((r && r.message) || textoError); return; }
+      aviso(textoOk);
+      if (window.HCCache) window.HCCache.cambioDeUsuario();
+      try { localStorage.setItem('pacienteActualizado', JSON.stringify({ guardado: true, ts: Date.now() })); } catch (err) { /* sin almacenamiento: no es crítico */ }
+      if (opts.alCambiar) { try { opts.alCambiar('usuario'); } catch (e2) { /* no crítico */ } }
+    }, function (err) { revertir(textoError + ' ' + (err && err.message ? err.message : err)); });
   }
   var ICD = {
     dni: 'badge',
@@ -500,8 +555,12 @@ window.PanelHC = {
   function iniciarBotonesEpisodios() {
     // Igual que en la Agenda y Usuarios: pide confirmación y llama a darDeAltaPacienteWeb (estado → Alta, cierra el episodio,
     // pone la última visita y reordena Usuarios). La historia se queda abierta y se actualiza sola.
-    $('btnAlta').onclick = function () {
-      var btn = this, ult = episodios[episodios.length - 1], u = D.usuario;
+    $('btnAlta').onclick = function () { darAlta(this); };
+    $('btnNuevo').onclick = function () { episodios.push({ ingreso: hoyISO(), alta: '', nota: '' }); guardarEpisodios(); pintarEpisodios(); pintarTiles(); };
+  }
+  // También se usa al elegir «Alta» en el chip de estado de la cabecera.
+  function darAlta(btn) {
+      var ult = episodios[episodios.length - 1], u = D.usuario;
       if (ult && ult.ingreso && hoyISO() < ult.ingreso) { avisoTemporal('El ingreso es posterior a hoy: corrige la fecha de ingreso antes de dar el alta.'); return; }
       if (epiContando) { avisoTemporal('Espera un momento: se están guardando los episodios.'); return; }
       if (!u.idPaciente) { avisoTemporal('No se encuentra al usuario en Usuarios.'); return; }
@@ -519,8 +578,6 @@ window.PanelHC = {
           }
         }, function (e) { fin(); aviso('Error al dar de alta: ' + (e && e.message ? e.message : e)); });
       });
-    };
-    $('btnNuevo').onclick = function () { episodios.push({ ingreso: hoyISO(), alta: '', nota: '' }); guardarEpisodios(); pintarEpisodios(); pintarTiles(); };
   }
 
   /* ---------- indicadores ---------- */

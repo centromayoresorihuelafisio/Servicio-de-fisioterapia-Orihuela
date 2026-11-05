@@ -180,10 +180,12 @@ const ESTADOS_PACIENTE = (function () {
 /**
  * Gravedad (columna "Gravedad" de la Maestra). FUENTE ÚNICA, sin emoji. En el navegador la define incluirEstados_()
  * (core/WebApp.gs) igual que ESTADOS_PACIENTE. Los rangos de la puntuación de gravedad viven en los formularios.
+ * "Grave" se llamaba "Urgente" hasta el 5-nov-2026: las celdas antiguas con "Urgente" se siguen leyendo como Grave
+ * (y migrarGravedadUrgenteAGrave, en usuarios/BaseDatos.gs, las reescribe de una vez).
  */
 const GRAVEDAD_PACIENTE = (function () {
-  const g = { LEVE: "Leve", MODERADO: "Moderado", URGENTE: "Urgente" };
-  g.LISTA = [g.LEVE, g.MODERADO, g.URGENTE];
+  const g = { LEVE: "Leve", MODERADO: "Moderado", GRAVE: "Grave" };
+  g.LISTA = [g.LEVE, g.MODERADO, g.GRAVE];
   return g;
 })();
 

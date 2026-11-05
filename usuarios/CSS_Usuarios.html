@@ -68,7 +68,7 @@
       .chip-g { font-weight: 600; border-radius: var(--md-shape-full); background: var(--md-surface-variant); color: var(--md-on-surface-med); }
       .chip-g.leve { background: var(--md-success-bg); color: var(--md-success); }
       .chip-g.moderado { background: var(--md-warning-bg); }
-      .chip-g.urgente { background: var(--md-error-bg); color: var(--md-error); }
+      .chip-g.grave { background: var(--md-error-bg); color: var(--md-error); }
       .tipo-ing { font-weight: 500; color: var(--md-on-surface-med); }
       button.badge { border: none; cursor: pointer; font-family: var(--font); display: inline-flex; align-items: center; gap: .1rem; }
       button.badge:hover { background-image: linear-gradient(color-mix(in srgb, currentColor 8%, transparent), color-mix(in srgb, currentColor 8%, transparent)); }
@@ -225,6 +225,10 @@
       button.badge.estado-btn { font-size: var(--fs-xs); padding: .3rem .6rem .3rem .7rem; gap: 0; }
       button.badge.estado-btn::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: currentColor; margin-right: .4rem; flex-shrink: 0; }
       button.badge .material-symbols-outlined { font-size: 16px; margin-left: .1rem; margin-right: -.2rem; opacity: .7; }
+      /* Chip de gravedad pulsable (abre el menú para cambiarla, como el de estado) */
+      button.chip-g { border: none; cursor: pointer; font-family: var(--font); display: inline-flex; align-items: center; padding-right: .4rem; }
+      button.chip-g:hover { background-image: linear-gradient(color-mix(in srgb, currentColor 8%, transparent), color-mix(in srgb, currentColor 8%, transparent)); }
+      button.chip-g .material-symbols-outlined { font-size: 15px; margin-left: .1rem; opacity: .7; }
 
       td.col-contacto { font-size: var(--fs-md); font-weight: 500; font-variant-numeric: tabular-nums; letter-spacing: .01em; color: var(--md-on-surface); }
       td.col-contacto .c-sub { font-size: var(--fs-sm); margin-top: 3px; }

@@ -57,7 +57,7 @@ const PUBLICAS = {
   accesoPrepararHojas: 'editor', accesoComprobarPropietario: 'editor', accesoMedirIteraciones: 'editor', accesoCrearAdministrador: 'editor', accesoProbarCorreo: 'editor',
   accesoSuspenderUsuarios: 'editor', accesoReanudarUsuarios: 'editor', accesoCerrarApp: 'editor', accesoAbrirApp: 'editor',
   configurarMensajeWhatsapp: 'editor', sincronizarContactosGoogle: 'editor', exportarProyectoAUnicoArchivo: 'editor', sembrarHistorialEstado: 'editor', verificarHistorialEstado: 'editor',
-  revisarParesIdsPaciente: 'editor', asignarIdsPaciente: 'editor', revisarIdPacienteEnHC: 'editor', asignarIdPacienteEnHC: 'editor', revisarIdPacienteEnValoraciones: 'editor', asignarIdPacienteEnValoraciones: 'editor',
+  revisarParesIdsPaciente: 'editor', asignarIdsPaciente: 'editor', revisarIdPacienteEnHC: 'editor', asignarIdPacienteEnHC: 'editor', revisarIdPacienteEnValoraciones: 'editor', asignarIdPacienteEnValoraciones: 'editor', migrarGravedadUrgenteAGrave: 'editor',
 };
 // Transición de la fase 2 (17.10): terminada el 2-nov-2026, las dos listas quedan vacías. Si algún día se vuelve a usar,
 // una entrada que ya no hace falta se avisa, para que la lista solo baje.

@@ -259,6 +259,30 @@
           }, function(err) { revertir('Error al cambiar el estado: ' + err); });
       }
 
+      // ---------- Cambio de gravedad en línea (chip de la tabla y de la ficha) ----------
+      function menuGravedad(fila, ancla) {
+        var p = TODOS.find(function(x) { return x._fila === fila; });
+        if (!p) return;
+        abrirMenu(FichaUsuario.gravedadesMenu(dato(p, 'Gravedad'), function(g) { cambiarGravedad(fila, g); }), ancla, true);
+      }
+
+      function cambiarGravedad(fila, valor) {
+        var p = TODOS.find(function(x) { return x._fila === fila; });
+        if (!p) return;
+        var hGrav = hdr('Gravedad') || 'Gravedad', antes = p[hGrav];
+        if (claseGravedad(antes) === claseGravedad(valor)) return;
+        p[hGrav] = valor;
+        refrescarVista();
+        function revertir(msg) { p[hGrav] = antes; refrescarVista(); mostrarAviso(msg); }
+        llamar('cambiarGravedadPacienteWeb', [idPaciente(p), valor])
+          .then(function(res) {
+            if (!res || !res.success) { revertir((res && res.message) || 'No se pudo cambiar la gravedad.'); return; }
+            mostrarAviso('Gravedad cambiada a ' + valor + '.');
+            if (window.HCCache) HCCache.cambioDeUsuario();   // la historia clínica enseña la gravedad en su cabecera
+            if (res.ordenado) cargar();   // la gravedad cuenta para el orden: si el servidor reordenó la hoja, se recarga
+          }, function(err) { revertir('Error al cambiar la gravedad: ' + err); });
+      }
+
       // ---------- Copiar al portapapeles ----------
       function copiarTexto(txt, etiqueta) {
         var ok = false;
@@ -322,6 +346,7 @@
         FichaUsuario.alClic(e, {
           cerrar: cerrarFicha,
           estado: function(btn) { if (pacienteSeleccionado) menuEstado(pacienteSeleccionado._fila, btn); },
+          gravedad: function(btn) { if (pacienteSeleccionado) menuGravedad(pacienteSeleccionado._fila, btn); },
           accion: function(a) { if (pacienteSeleccionado) accionPaciente(a, pacienteSeleccionado._fila); }
         });
       });
@@ -330,6 +355,7 @@
         var t = e.target, c;
         if ((c = t.closest('[data-copiar]'))) { e.stopPropagation(); copiarTexto(c.dataset.copiar, c.dataset.etiqueta); return; }
         if ((c = t.closest('.estado-btn'))) { e.stopPropagation(); menuEstado(Number(c.dataset.estadoFila), c); return; }
+        if ((c = t.closest('.gravedad-btn'))) { e.stopPropagation(); menuGravedad(Number(c.dataset.gravedadFila), c); return; }
         if ((c = t.closest('.btn-fila'))) {
           e.stopPropagation();
           accionPaciente(c.dataset.acc, Number(c.dataset.fila));

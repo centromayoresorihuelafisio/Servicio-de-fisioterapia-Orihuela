@@ -271,6 +271,75 @@ function cambiarEstadoPacienteSinOrden_(idPaciente, nuevoEstado) {
 }
 
 /**
+ * Cambia solo la Gravedad de un usuario (chip de gravedad de Usuarios y de la Historia clínica). Solo acepta los
+ * valores de GRAVEDAD_PACIENTE.LISTA. Como la gravedad cuenta para el orden de la lista, reordena si hace falta,
+ * igual que el cambio de estado. El usuario se localiza por su ID paciente.
+ */
+function cambiarGravedadPacienteWeb_(idPaciente, nuevaGravedad) {
+  const r = cambiarGravedadPacienteSinOrden_(idPaciente, nuevaGravedad);   // el bloqueo ya está liberado al volver
+  if (r.success && r._cambios) {
+    const orden = ordenarPacientesSiProcede_(r._cambios);
+    r.ordenado = orden.ordenado === true;
+  }
+  delete r._cambios;
+  return r;
+}
+
+/** Cuerpo de cambiarGravedadPacienteWeb: cambia la Gravedad dentro del bloqueo. Devuelve además `_cambios` (para decidir si reordenar). */
+function cambiarGravedadPacienteSinOrden_(idPaciente, nuevaGravedad) {
+  const gravedad = GRAVEDAD_PACIENTE.LISTA.find(g => g.toLowerCase() === String(nuevaGravedad || '').trim().toLowerCase());
+  if (!gravedad) return { success: false, message: 'Gravedad no válida.' };
+  const lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(10000);
+
+    const sheet = getSS_().getSheetByName(SHEETS.MAESTRA);
+    if (!sheet) return { success: false, message: `No se encontró la hoja "${SHEETS.MAESTRA}".` };
+
+    const rowIdx = filaMaestraPorId_(sheet, idPaciente);
+    if (!rowIdx) return { success: false, message: 'Ese usuario ya no está en Usuarios. Recarga la página.' };
+
+    const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0].map(h => h.toString().trim());
+    const colGravedad = headers.indexOf(COLUMNAS.MAESTRA.GRAVEDAD);
+    if (colGravedad === -1) return { success: false, message: `No se encontró la columna "${COLUMNAS.MAESTRA.GRAVEDAD}".` };
+
+    const celda = sheet.getRange(rowIdx, colGravedad + 1);
+    const antes = celda.getValue();
+    celda.setValue(gravedad);
+    const cambios = [{ id: idPaciente, campo: COLUMNAS.MAESTRA.GRAVEDAD, antes: antes, despues: gravedad }];
+    historialRegistrar_(cambios, 'Cambio de gravedad');
+    SpreadsheetApp.flush();
+    return { success: true, message: 'Gravedad actualizada.', _cambios: cambios };
+  } catch (e) {
+    Logger.log('Error en cambiarGravedadPacienteWeb: ' + e.message);
+    return { success: false, message: e.message };
+  } finally {
+    try { lock.releaseLock(); } catch (err) { /* sin bloqueo que liberar */ }
+  }
+}
+
+/**
+ * Herramienta del editor (una sola vez): reescribe como "Grave" las celdas de Gravedad que aún dicen "Urgente"
+ * (nombre antiguo, hasta el 5-nov-2026). No toca nada más ni el historial. Se puede repetir sin peligro.
+ */
+function migrarGravedadUrgenteAGrave() {
+  soloPropietario_('migrarGravedadUrgenteAGrave');
+  const sheet = getSS_().getSheetByName(SHEETS.MAESTRA);
+  if (!sheet) throw new Error(`No se encontró la hoja "${SHEETS.MAESTRA}".`);
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0].map(h => h.toString().trim());
+  const col = headers.indexOf(COLUMNAS.MAESTRA.GRAVEDAD);
+  if (col === -1) throw new Error(`No se encontró la columna "${COLUMNAS.MAESTRA.GRAVEDAD}".`);
+  const n = sheet.getLastRow() - 1;
+  if (n < 1) { Logger.log('La hoja no tiene usuarios.'); return; }
+  const rango = sheet.getRange(2, col + 1, n, 1);
+  const valores = rango.getValues();
+  let cambiadas = 0;
+  valores.forEach(f => { if (/urgent/i.test(textoSinEmoji_(f[0]))) { f[0] = GRAVEDAD_PACIENTE.GRAVE; cambiadas++; } });
+  if (cambiadas) rango.setValues(valores);
+  Logger.log(cambiadas ? cambiadas + ' celda(s) cambiadas de "Urgente" a "Grave".' : 'No quedaba ninguna celda con "Urgente".');
+}
+
+/**
  * Cambia el Estado de varios usuarios a la vez (barra de acciones en lote de
  * Usuarios). "Alta" se rechaza aquí: el cliente ya evita
  * enviarla, pero se comprueba también en el servidor por si acaso.
