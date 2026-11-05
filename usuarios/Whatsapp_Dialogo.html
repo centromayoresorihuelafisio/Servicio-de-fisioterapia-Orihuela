@@ -56,6 +56,11 @@
   .wl-plantilla { margin-top: .8rem; border: 1px solid var(--md-outline); border-radius: var(--md-shape-md); padding: .65rem .85rem .8rem; animation: md-entra var(--dur-2) var(--ease); }
   .wl-plantilla .wl-etq { margin-bottom: .2rem; }
   .wl-ayuda { margin: 0 0 .5rem; font-size: var(--fs-xs); color: var(--md-on-surface-low); }
+  /* Guardar como plantilla: solo se activa si el texto difiere del guardado; el estado se lee a su izquierda. */
+  .wl-guardar { display: flex; align-items: center; justify-content: flex-end; gap: .6rem; margin-top: .5rem; }
+  .wl-guardar-estado { font-size: var(--fs-xs); color: var(--md-on-surface-med); }
+  .wl-guardar-estado.ok { color: var(--md-success); }
+  .wl-guardar-estado.error { color: var(--md-error); }
 
   .wl-pie { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; padding: .8rem 1.25rem 1.1rem; border-top: 1px solid var(--md-outline); }
   /* Interruptor Web / escritorio: la pastilla se desliza de una opción a la otra. */
@@ -97,6 +102,10 @@
         <label class="wl-etq" for="wlPlantilla">Mensaje de plantilla</label>
         <p class="wl-ayuda" id="wlAyuda"></p>
         <div class="md-campo md-campo--compacto"><textarea class="md-campo__control" id="wlPlantilla" rows="3"></textarea></div>
+        <div class="wl-guardar">
+          <span class="wl-guardar-estado" id="wlGuardarEstado" role="status" aria-live="polite"></span>
+          <button type="button" class="md-btn md-btn--text" id="wlGuardarPlantilla" title="Usar este texto también en los próximos mensajes" disabled>Guardar como plantilla</button>
+        </div>
       </div>
     </div>
     <div class="wl-resumen" id="wlResumen" hidden></div>
@@ -114,7 +123,7 @@
 <script>
 var WhatsappDialogo = (function() {
   var dlg = document.getElementById('dlgWl');
-  var wl = null;       // { plantilla, lote, duplicados, indice, items:[{fila, nombre, primerNombre, telefono, error, estado, mensajeManual}] }
+  var wl = null;       // { plantilla, guardada (la del servidor), lote, duplicados, indice, items:[{fila, nombre, primerNombre, telefono, error, estado, mensajeManual}] }
   var modo = 'web';    // 'web' | 'escritorio' (se recuerda en este navegador)
   var peticion = 0;    // descarta respuestas de una apertura anterior que llegan tarde
   try { var guardado = localStorage.getItem('wlModo'); if (guardado === 'web' || guardado === 'escritorio') modo = guardado; } catch (e) {}
@@ -203,6 +212,14 @@ var WhatsappDialogo = (function() {
     el('wlBtnPlantilla').setAttribute('aria-expanded', String(mostrar));
     if (mostrar) el('wlPlantilla').focus();
   }
+  // Botón «Guardar como plantilla»: activo solo si el texto difiere del guardado y no está vacío.
+  function pintarGuardar(texto, clase) {
+    var cambiada = !!wl && wl.plantilla.trim() !== '' && wl.plantilla.trim() !== wl.guardada;
+    el('wlGuardarPlantilla').disabled = !cambiada || !!(wl && wl.guardando);
+    var e = el('wlGuardarEstado');
+    e.textContent = texto !== undefined ? texto : (cambiada ? 'Cambio solo para este envío' : '');
+    e.className = 'wl-guardar-estado' + (clase ? ' ' + clase : '');
+  }
 
   // Siguiente usuario en estado "pendiente" después de `desde` (dando la vuelta); -1 si no queda ninguno.
   function siguientePendiente(desde) {
@@ -275,7 +292,8 @@ var WhatsappDialogo = (function() {
     var it = wl.items[wl.indice];
     cabecera(it.nombre, telefonoLegible(it.telefono) + (wl.lote ? ' · ' + (wl.indice + 1) + ' de ' + wl.items.length : ''), iniciales(it.nombre));
     el('wlMensaje').value = mensajeDe(it);
-    el('wlAyuda').textContent = 'Escribe {{nombre}} donde deba ir el nombre' + (wl.lote ? ' de cada usuario. Afecta a todos los usuarios de este lote.' : ' del usuario. Solo vale para este mensaje.');
+    el('wlAyuda').textContent = 'Escribe {{nombre}} donde deba ir el nombre' + (wl.lote ? ' de cada usuario. Afecta a todos los usuarios de este lote.' : ' del usuario.') +
+      ' Para usarlo también en los próximos mensajes, pulsa «Guardar como plantilla».';
     pintarEtiqueta(it);
     pintarModo();
     el('wlAbrir').focus();
@@ -304,7 +322,7 @@ var WhatsappDialogo = (function() {
       if (!res.items.length) { cabecera('WhatsApp'); nota('No hay usuarios para enviar.', true); return; }
       var lote = res.items.length > 1;
       wl = {
-        plantilla: res.plantilla, lote: lote, duplicados: res.duplicados || 0, indice: -1,
+        plantilla: res.plantilla, guardada: String(res.plantilla || '').trim(), guardando: false, lote: lote, duplicados: res.duplicados || 0, indice: -1,
         items: res.items.map(function(it) {
           return { fila: it.fila, nombre: it.nombre, primerNombre: it.primerNombre, telefono: it.telefono,
                    error: it.error, estado: it.error ? 'error' : 'pendiente', mensajeManual: null };
@@ -320,6 +338,7 @@ var WhatsappDialogo = (function() {
       el('wlChips').hidden = !lote;
       el('wlOmitir').hidden = !lote;
       el('wlPlantilla').value = wl.plantilla;
+      pintarGuardar();
       alternarPlantilla(false);
       wl.indice = siguientePendiente(-1);
       pintar();
@@ -338,6 +357,27 @@ var WhatsappDialogo = (function() {
     wl.plantilla = this.value;
     var it = wl.items[wl.indice];
     if (it && it.mensajeManual === null) el('wlMensaje').value = mensajeDe(it);
+    pintarGuardar();
+  });
+  // Guarda la plantilla en el servidor para los próximos mensajes (Usuarios, HC y Agenda). La caché de datos se
+  // actualiza para que el siguiente diálogo ya traiga el texto nuevo.
+  el('wlGuardarPlantilla').addEventListener('click', function() {
+    if (!wl || wl.guardando) return;
+    var w = wl;
+    w.guardando = true;
+    pintarGuardar('Guardando…');
+    llamar('guardarPlantillaWhatsappWeb', [w.plantilla]).then(function(r) {
+      w.guardando = false;
+      if (wl !== w) return;   // el diálogo se cerró mientras guardaba
+      if (!r || !r.success) { pintarGuardar((r && r.message) || 'No se pudo guardar la plantilla.', 'error'); return; }
+      w.guardada = r.plantilla;
+      Object.keys(cache).forEach(function(k) { cache[k].res.plantilla = r.plantilla; });
+      pintarGuardar('Plantilla guardada para los próximos mensajes', 'ok');
+    }, function(err) {
+      w.guardando = false;
+      if (wl !== w) return;
+      pintarGuardar('No se pudo guardar la plantilla: ' + err, 'error');
+    });
   });
   el('wlMensaje').addEventListener('input', function() {
     if (!wl || wl.indice < 0) return;

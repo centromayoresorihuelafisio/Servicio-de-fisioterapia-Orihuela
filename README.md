@@ -46,7 +46,7 @@ Los formularios del panel lateral (`Panel_Valoracion`, `Panel_Editar`, `Panel_Ci
 ## Configuración
 
 - **Hojas y columnas**: todos los nombres están en `core/Config.gs`. Si renombras una pestaña o una cabecera en Sheets, solo hay que cambiarlo ahí.
-- **Propiedades del script**: mensaje de WhatsApp (se cambia ejecutando `configurarMensajeWhatsapp` desde el editor).
+- **Propiedades del script**: mensaje de WhatsApp (se cambia en el diálogo de WhatsApp con «Guardar como plantilla»; `configurarMensajeWhatsapp`, desde el editor, vuelve al texto por defecto).
 - **Servicios avanzados**: People API (contactos), activada en `appsscript.json`.
 - **Zona horaria**: `Europe/Madrid`.
 

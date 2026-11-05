@@ -9,6 +9,21 @@ function _plantillaWhatsapp_() {
   return scriptProperties.getProperty(PROP_KEYS.WHATSAPP_MESSAGE) || WHATSAPP_PLANTILLA_POR_DEFECTO_;
 }
 
+// Límite de la plantilla guardada desde la web: de sobra para un saludo y lejos del tope de las propiedades.
+const WHATSAPP_PLANTILLA_MAX_ = 1000;
+
+/**
+ * Guarda desde el diálogo de WhatsApp el texto como plantilla para los mensajes siguientes (Usuarios, HC y Agenda).
+ * Pueden hacerlo los dos roles (decisión del dueño, 5-nov-2026); api lo anota en "Registro" con el texto nuevo.
+ */
+function guardarPlantillaWhatsappWeb_(texto) {
+  const plantilla = String(texto == null ? '' : texto).replace(/\r\n?/g, '\n').trim();
+  if (!plantilla) return { success: false, message: 'La plantilla no puede quedar vacía.' };
+  if (plantilla.length > WHATSAPP_PLANTILLA_MAX_) return { success: false, message: 'La plantilla es demasiado larga (máximo ' + WHATSAPP_PLANTILLA_MAX_ + ' caracteres).' };
+  PropertiesService.getScriptProperties().setProperty(PROP_KEYS.WHATSAPP_MESSAGE, plantilla);
+  return { success: true, plantilla: plantilla };
+}
+
 /**
  * Primer nombre en formato Title Case para el saludo (misma regla de siempre:
  * si la primera palabra tiene 2 letras o menos, se une con la segunda).

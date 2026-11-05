@@ -1,7 +1,7 @@
 /**
  * Mensaje predefinido de WhatsApp. Se ejecuta a mano desde el editor: muestra en el registro de ejecución el mensaje
- * que había y deja el de por defecto, sin nombres (decisión 6 de la sección 17.8). Para escribir otro texto:
- * Configuración del proyecto > Propiedades de la secuencia de comandos > WHATSAPP_MESSAGE ({{nombre}} pone el nombre).
+ * que había y deja el de por defecto, sin nombres (decisión 6 de la sección 17.8). Otro texto se guarda desde la web,
+ * en el diálogo de WhatsApp, con «Guardar como plantilla» (guardarPlantillaWhatsappWeb_, usuarios/Whatsapp.gs).
  */
 function configurarMensajeWhatsapp() {
   soloPropietario_('configurarMensajeWhatsapp');

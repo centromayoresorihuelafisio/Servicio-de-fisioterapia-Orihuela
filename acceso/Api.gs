@@ -28,6 +28,7 @@ function accesoAcciones_() {
     obtenerHCsActivasWeb:       { fn: obtenerHCsActivasWeb_, rol: 'usuario', renueva: false },
     datosWhatsappMaestraWeb:    { fn: datosWhatsappMaestraWeb_, rol: 'usuario' },
     datosWhatsappLoteAgendaWeb: { fn: datosWhatsappLoteAgendaWeb_, rol: 'usuario' },
+    guardarPlantillaWhatsappWeb: { fn: guardarPlantillaWhatsappWeb_, rol: 'usuario', registrar: true, entidad: () => 'Plantilla WhatsApp', detalle: (a, r) => r && r.plantilla },
 
     // Estadísticas
     obtenerDashboardWeb: { fn: obtenerDashboardWeb_, rol: 'administrador' },
