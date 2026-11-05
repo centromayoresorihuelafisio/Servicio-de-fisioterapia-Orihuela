@@ -471,7 +471,7 @@ window.PanelHC = {
   function pintarCampos() {
     var u = D.usuario, edad = u.edad ? ' <span class="hc-chip sm">' + esc(u.edad) + (/^\d+$/.test(u.edad) ? ' años' : '') + '</span>' : '';
     var h = campo('dni', 'DNI', u.dni) + campo('nac', 'Fecha de nacimiento', u.nacimiento, edad) +
-      campo('tel', 'Teléfono', Telefono.formato(u.telefono), acciones(u.telefono, true)) + campo('tel', 'Teléfono 2', Telefono.formato(u.telefono2), acciones(u.telefono2, false)) +
+      campo('tel', 'Teléfono', Telefono.formato(u.telefono), acciones(u.telefono, true)) + campo('tel', 'Teléfono secundario',Telefono.formato(u.telefono2), acciones(u.telefono2, false)) +
       campo('ins', 'Fecha de inscripción', u.inscripcion);
     $('campos').innerHTML = h || '<p class="vacio-tile">Sin datos personales.</p>';
   }

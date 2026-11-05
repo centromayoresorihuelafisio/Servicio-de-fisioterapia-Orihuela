@@ -305,7 +305,7 @@
           .then(function(res) {
             if (!res || !res.success) { revertir((res && res.message) || 'No se pudo guardar.'); return; }
             if (res.valor !== undefined && res.valor !== p[h]) { p[h] = res.valor; refrescarVista(); }
-            mostrarAviso(valor ? col + ' guardado.' : col + ' borrado.');
+            mostrarAviso(Telefono.etiqueta(col) + (valor ? ' guardado.' : ' borrado.'));
             try { localStorage.setItem('pacienteActualizado', JSON.stringify({ guardado: true, ts: Date.now() })); } catch (err) { /* sin almacenamiento: no es crítico */ }
             if (window.HCCache) HCCache.cambioDeUsuario();   // la historia clínica enseña los teléfonos
           }, function(err) { revertir('Error al guardar: ' + err); });

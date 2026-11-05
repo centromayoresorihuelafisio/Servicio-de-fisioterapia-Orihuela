@@ -14,6 +14,7 @@
     Telefono.wa(t)          -> número para wa.me ("34612345678"; extranjero sin el +).
     Telefono.clave(t)       -> para COMPARAR (solo dígitos, sin el 34 de España): duplicados.
     Telefono.escribiendo(input) -> da formato mientras se escribe en un <input> (mantiene el cursor al final).
+    Telefono.etiqueta(cabecera) -> nombre en pantalla: «Teléfono 1» -> «Teléfono», «Teléfono 2» -> «Teléfono secundario».
 -->
 <script>
   window.Telefono = (function () {
@@ -80,6 +81,15 @@
       if (nuevo !== input.value) input.value = nuevo;
     }
 
-    return { normalizar: normalizar, digitos: normalizar, formato: formato, wa: wa, clave: clave, enVivo: enVivo, escribiendo: escribiendo };
+    // Nombre que ve el dueño en la app (decisión del 5-nov-2026): las columnas de la hoja siguen siendo «Teléfono 1» y
+    // «Teléfono 2», pero en pantalla son siempre «Teléfono» y «Teléfono secundario». Cualquier otro nombre se devuelve tal cual.
+    function etiqueta(cabecera) {
+      var n = texto(cabecera).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+      if (n === 'telefono 1') return 'Teléfono';
+      if (n === 'telefono 2') return 'Teléfono secundario';
+      return texto(cabecera);
+    }
+
+    return { normalizar: normalizar, digitos: normalizar, formato: formato, wa: wa, clave: clave, enVivo: enVivo, escribiendo: escribiendo, etiqueta: etiqueta };
   })();
 </script>

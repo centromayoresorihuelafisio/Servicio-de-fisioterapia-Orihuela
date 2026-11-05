@@ -281,7 +281,7 @@ window.PanelEditar = {
       return '<div class="md-campo md-campo--icono' + (isReadOnly ? ' md-campo--dato' : '') + '">' +
         '<span class="material-symbols-outlined md-campo__icono">' + icon + '</span>' +
         '<input class="md-campo__control" type="' + (isDate ? 'date' : 'text') + '" id="pe-field_' + idSuffix + '" name="' + esc(h) + '" value="' + esc(val) + '" placeholder=" "' + (isReadOnly ? ' disabled' : '') + '>' +
-        '<label class="md-campo__etiqueta" for="pe-field_' + idSuffix + '">' + esc(h) + (isReadOnly ? '<span class="readonly-badge">Solo lectura</span>' : '') + '</label>' +
+        '<label class="md-campo__etiqueta" for="pe-field_' + idSuffix + '">' + esc(Telefono.etiqueta(h)) + (isReadOnly ? '<span class="readonly-badge">Solo lectura</span>' : '') + '</label>' +
       '</div>';
     }
     function construirFormulario(headers, rowData) {
@@ -451,7 +451,7 @@ window.PanelEditar = {
         var changed = val !== origVal;
         if (changed) changedCount++;
         html += '<div class="preview-row' + (changed ? ' changed' : '') + '">' +
-                  '<span class="preview-key">' + esc(key) + (changed ? '<span class="changed-badge">modificado</span>' : '') + '</span>' +
+                  '<span class="preview-key">' + esc(Telefono.etiqueta(key)) + (changed ? '<span class="changed-badge">modificado</span>' : '') + '</span>' +
                   '<span class="preview-val' + (!val ? ' empty' : '') + '">' + (val ? esc(val) : '—') + '</span>' +
                 '</div>';
       }

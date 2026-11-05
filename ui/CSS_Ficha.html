@@ -80,6 +80,8 @@ button.fu-chip:hover { background-image: linear-gradient(color-mix(in srgb, curr
 .fu-anadir { display: inline-flex; align-items: center; gap: .35rem; border: none; background: none; padding: .3rem .5rem; margin: .1rem -.5rem; border-radius: var(--md-shape-sm); font-family: var(--font); font-size: var(--fs-sm); font-weight: 500; color: var(--md-primary); cursor: pointer; transition: background-color var(--dur-1) var(--ease); }
 .fu-anadir .material-symbols-outlined { font-size: 18px; }
 .fu-anadir:hover { background: var(--md-primary-light); }
+/* «Añadir teléfono secundario»: solo al pasar el ratón por la sección (decisión del dueño, 5-nov-2026) */
+.fu-sec:not(:hover):not(:focus-within) .fu-anadir--al-pasar { display: none; }
 .fu-edicion { padding: .45rem 0 .35rem; }
 .fu-edicion-botones { display: flex; justify-content: flex-end; gap: 8px; margin-top: .5rem; }
 

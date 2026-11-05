@@ -223,7 +223,7 @@ window.PanelNuevo = {
           campo('fn', 'cake', 'Fecha de nacimiento', { name: 'Fecha nacimiento', type: 'date' }) +
         '</div>') +
         seccion('contacts', 'Contacto y estado', '<div class="grid-2">' +
-          campo('tel1', 'call', 'Teléfono principal', { name: 'Teléfono 1', type: 'tel', inputmode: 'tel' }) +
+          campo('tel1', 'call', 'Teléfono', { name: 'Teléfono 1', type: 'tel', inputmode: 'tel' }) +
           campo('tel2', 'smartphone', 'Teléfono secundario', { name: 'Teléfono 2', type: 'tel', inputmode: 'tel' }) +
           '<div><input type="hidden" name="Estado" class="nu-estado" value="' + ESTADO_DEF + '">' + desplegable('estado', 'radio_button_checked', 'Estado', ESTADO_DEF, false) + '</div>' +
           '<div><input type="hidden" name="Tipo de Ingreso" class="nu-ingreso" value="' + INGRESO_DEF + '">' + desplegable('ingreso', 'login', 'Tipo de ingreso', INGRESO_DEF, false) + '</div>' +

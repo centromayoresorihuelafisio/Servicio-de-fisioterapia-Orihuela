@@ -36,7 +36,7 @@ var FichaUsuario = (function() {
   var SECCIONES = [
     { titulo: 'Contacto', icono: 'call', vacio: 'Sin teléfono', campos: [
       { col: 'Teléfono 1', tipo: 'tel', editable: true },
-      { col: 'Teléfono 2', tipo: 'tel', nota: 'secundario', editable: true }
+      { col: 'Teléfono 2', tipo: 'tel', nota: 'secundario', editable: true, anadirAlPasar: true }   // su «Añadir» solo al pasar el ratón por Contacto
     ] },
     { titulo: 'Datos personales', icono: 'badge', campos: [
       { col: 'DNI', etq: 'DNI', tipo: 'copia' },
@@ -152,11 +152,11 @@ var FichaUsuario = (function() {
 
   // Lápiz (campo con dato) o «Añadir …» (campo vacío) de la edición directa.
   function htmlLapiz(c) {
-    var t = 'Cambiar ' + c.col.toLowerCase();
+    var t = 'Cambiar ' + Telefono.etiqueta(c.col).toLowerCase();
     return '<button type="button" class="fu-lapiz" data-fu="editar" title="' + esc(t) + '" aria-label="' + esc(t) + '">' + icono('edit') + '</button>';
   }
   function htmlAnadir(c) {
-    return '<button type="button" class="fu-anadir" data-fu="editar">' + icono('add') + 'Añadir ' + esc(c.col.toLowerCase()) + '</button>';
+    return '<button type="button" class="fu-anadir' + (c.anadirAlPasar ? ' fu-anadir--al-pasar' : '') + '" data-fu="editar">' + icono('add') + 'Añadir ' + esc(Telefono.etiqueta(c.col).toLowerCase()) + '</button>';
   }
   // Envoltorio de un campo editable: guarda la cabecera y el valor para abrir el cuadro de edición.
   function htmlEditable(c, v, dentro) {
@@ -314,7 +314,7 @@ var FichaUsuario = (function() {
       : '<input class="md-campo__control" id="' + id + '" type="tel" inputmode="tel" autocomplete="off" placeholder=" " value="' + esc(texto) + '">';
     return '<div class="fu-edicion">' +
       '<div class="md-campo md-campo--icono"><span class="material-symbols-outlined md-campo__icono">' + (largo ? 'notes' : 'call') + '</span>' + ctl +
-        '<label class="md-campo__etiqueta" for="' + id + '">' + esc(col) + '</label>' +
+        '<label class="md-campo__etiqueta" for="' + id + '">' + esc(Telefono.etiqueta(col)) + '</label>' +
         '<p class="md-campo__ayuda">' + (largo ? 'Ctrl+Intro guarda · Esc cancela' : 'Intro guarda · Esc cancela') + '</p></div>' +
       '<div class="fu-edicion-botones">' +
         '<button type="button" class="md-btn md-btn--text" data-fu="edicion-cancelar">Cancelar</button>' +

@@ -255,7 +255,7 @@
           .then(function(r) {
             if (!r || !r.success) { revertir((r && r.message) || 'No se pudo guardar.'); return; }
             if (r.valor !== undefined && r.valor !== p[h]) { p[h] = r.valor; repintarFichaAbierta(); }
-            mostrarAviso(valor ? col + ' guardado.' : col + ' borrado.');
+            mostrarAviso(Telefono.etiqueta(col) + (valor ? ' guardado.' : ' borrado.'));
             recordarFichas();
             try { localStorage.setItem('pacienteActualizado', JSON.stringify({ guardado: true, ts: Date.now() })); } catch (err) { /* sin almacenamiento: no es crítico */ }
             if (window.HCCache) HCCache.cambioDeUsuario();
