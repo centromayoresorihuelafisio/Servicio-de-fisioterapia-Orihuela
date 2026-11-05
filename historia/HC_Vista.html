@@ -33,6 +33,12 @@
 <?!= include_('ui/JS_Telefono'); ?>
 <?!= include_('ui/JS_Ficha'); ?>
 <?!= include_('ui/JS_Selector_Fecha'); ?>
+<?!= include_('ui/Modal_Deshacer'); ?>
+<script>
+<?!= include_('ui/JS_Modal_Deshacer'); ?>
+  // Avisos y confirmaciones como en el resto de la app (Panel_HC los usa si existen): toast y diálogo propio.
+  function mostrarAviso(mensaje) { return avisoFlotante(mensaje); }
+</script>
 <?!= include_('historia/Panel_HC'); ?>
 <script>
   (function () {

@@ -577,12 +577,12 @@ function hcRegistrarPrimeraCita_(url, fechaISO) {
   }
 }
 
-/** Alta médica: escribe hoy como fecha de alta del episodio abierto (el último sin alta). Devuelve el mensaje para el usuario. */
+/** Alta médica: escribe hoy como fecha de alta del episodio abierto (el último sin alta). Devuelve { ok, message } (message solo si falla). */
 function hcAltaEnHoja_(url) {
   const id = hcIdDeUrl_(url);
-  if (!id) return 'El enlace de la historia clínica no es válido.';
+  if (!id) return { ok: false, message: 'El enlace de la historia clínica no es válido: no se anotó la fecha de alta.' };
   const lock = LockService.getScriptLock();
-  if (!lock.tryLock(10000)) return 'La hoja de historias está ocupada: no se anotó la fecha de alta.';
+  if (!lock.tryLock(10000)) return { ok: false, message: 'La hoja de historias está ocupada: no se anotó la fecha de alta.' };
   try {
     const h = hcHojas_(), tz = h.ss.getSpreadsheetTimeZone();
     const ult = h.epi.getLastRow();
@@ -593,13 +593,12 @@ function hcAltaEnHoja_(url) {
       const ing = hcAISO_(r[1], tz);
       if (!objetivo || ing >= ingresoMax) { objetivo = i + 2; ingresoMax = ing; }
     });
-    if (!objetivo) return 'No hay ningún ingreso abierto en la historia clínica: no se anotó la fecha de alta.';
-    const hoy = new Date();
-    h.epi.getRange(objetivo, 3).setNumberFormat('dd/MM/yyyy').setValue(hoy);
+    if (!objetivo) return { ok: false, message: 'No hay ningún ingreso abierto en la historia clínica: no se anotó la fecha de alta.' };
+    h.epi.getRange(objetivo, 3).setNumberFormat('dd/MM/yyyy').setValue(new Date());
     SpreadsheetApp.flush();
-    return 'Fecha de alta anotada en la historia clínica (' + Utilities.formatDate(hoy, tz, 'dd/MM/yyyy') + ').';
+    return { ok: true };
   } catch (e) {
-    return 'No se pudo anotar el alta en la historia: ' + e.message;
+    return { ok: false, message: 'No se pudo anotar el alta en la historia clínica: ' + e.message };
   } finally {
     lock.releaseLock();
   }

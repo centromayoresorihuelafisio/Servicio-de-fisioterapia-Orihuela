@@ -80,6 +80,26 @@
       function mostrarAviso(mensaje) { return mostrarDialogo(mensaje, false); }
       function mostrarConfirm(mensaje, opciones) { return mostrarDialogo(mensaje, true, opciones); }
 
+      // ---------- Aviso ligero (toast), común a Usuarios, Agenda, Valoraciones y la historia clínica a pantalla completa ----------
+      // Cada página define su mostrarAviso(m) como avisoFlotante(m, patrónDeError). Los textos largos o de varias líneas
+      // (p. ej. «hecho, pero algo falló») siguen yendo al diálogo. Sin patrón, es error lo que tonoAviso_ marca como error.
+      var contenedorToasts = null;
+      function avisoFlotante(mensaje, patronError) {
+        var m = (mensaje === null || mensaje === undefined) ? '' : String(mensaje);
+        if (m.indexOf('\n') !== -1 || m.length > 160) return mostrarDialogo(m, false);
+        if (!contenedorToasts) { contenedorToasts = document.createElement('div'); contenedorToasts.className = 'toasts'; document.body.appendChild(contenedorToasts); }
+        var t = document.createElement('div');
+        var error = patronError ? patronError.test(m) : tonoAviso_(m) === 'error';
+        t.className = 'toast-aviso' + (error ? ' error' : '');
+        t.setAttribute('role', 'status');
+        var tono = error ? 'error' : tonoAviso_(m);
+        if (tono) t.appendChild(iconoAviso_(tono));
+        t.appendChild(document.createTextNode(m));
+        contenedorToasts.appendChild(t);
+        setTimeout(function() { t.classList.add('saliendo'); setTimeout(function() { t.remove(); }, 260); }, error ? 6000 : 3800);
+        return Promise.resolve(true);
+      }
+
       // ---------- Deshacer la última eliminación ----------
       // Guarda solo la ÚLTIMA foto (no un historial completo): se pierde al
       // recargar o cambiar de pestaña, o al eliminar otro elemento encima —

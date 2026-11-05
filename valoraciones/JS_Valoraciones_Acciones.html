@@ -25,22 +25,9 @@
       document.getElementById('toastDeshacerBtn').addEventListener('click', ejecutarDeshacer);
       document.getElementById('btnDeshacer').addEventListener('click', ejecutarDeshacer);
 
-      // ---------- Avisos ligeros (toasts): sustituyen al modal salvo textos largos o multilínea ----------
+      // ---------- Avisos ligeros (toasts): avisoFlotante de ui/JS_Modal_Deshacer, con el criterio de error de esta pestaña ----------
       // Se define DESPUÉS del include para sustituir al mostrarAviso() de JS_Modal_Deshacer, igual que en Usuarios y Agenda.
-      var contenedorToasts = (function() { var d = document.createElement('div'); d.className = 'toasts'; document.body.appendChild(d); return d; })();
-      function mostrarAviso(mensaje) {
-        var m = (mensaje === null || mensaje === undefined) ? '' : String(mensaje);
-        if (m.indexOf('\n') !== -1 || m.length > 160) return mostrarDialogo(m, false);
-        var t = document.createElement('div'), error = /^error|no se pudo|no se pudieron|bloqueado/i.test(m);
-        t.className = 'toast-aviso' + (error ? ' error' : '');
-        t.setAttribute('role', 'status');
-        var tono = error ? 'error' : tonoAviso_(m);
-        if (tono) t.appendChild(iconoAviso_(tono));
-        t.appendChild(document.createTextNode(m));
-        contenedorToasts.appendChild(t);
-        setTimeout(function() { t.classList.add('saliendo'); setTimeout(function() { t.remove(); }, 260); }, error ? 6000 : 3800);
-        return Promise.resolve(true);
-      }
+      function mostrarAviso(mensaje) { return avisoFlotante(mensaje, /^error|no se pudo|no se pudieron|bloqueado/i); }
 
       // ---------- Nueva Valoración (formulario en la ficha lateral) ----------
       // El formulario (valoraciones/Panel_Valoracion) se monta dentro de la ficha, con el usuario seleccionado si lo hay.

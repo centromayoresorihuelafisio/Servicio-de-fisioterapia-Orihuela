@@ -1,6 +1,5 @@
 /**
- * Versión web-safe: da de alta al usuario de `fila`, para usar desde el
- * botón "Dar de Alta" de Usuarios.
+ * Da de alta al usuario con ese ID paciente (botón «Dar de alta» de Usuarios, la Agenda y la historia clínica).
  */
 function darDeAltaPacienteWeb_(idPaciente) {
   const ss = getSS_();
@@ -17,9 +16,10 @@ function darDeAltaPacienteWeb_(idPaciente) {
 /**
  * Lógica compartida: busca columnas por sinónimos, valida el estado actual,
  * actualiza Estado, Tipo de Ingreso y Última visita (la Fecha de inscripción
- * se conserva) y, si es posible, escribe la fecha de alta en el documento de
- * Historia Clínica enlazado. Devuelve { success, message } en vez de usar
- * ui.alert, para poder reutilizarse tanto desde el menú como desde la Web App.
+ * se conserva) y, si tiene historia clínica, cierra su ingreso abierto.
+ * Devuelve { success, message }. El mensaje va en una sola línea si todo sale bien
+ * (la pantalla lo enseña como aviso flotante); lo que falle en la historia va en una
+ * línea aparte, y entonces sale como diálogo con el icono de aviso (CONTEXTO.md, sección 6).
  */
 function ejecutarAltaEnFila_(sheet, activeRow) {
   const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
@@ -87,14 +87,9 @@ function ejecutarAltaEnFila_(sheet, activeRow) {
   ], 'Alta');
   // La Fecha de inscripción NO se toca: se conserva al dar el alta.
 
-  let ultimaVisitaMsg = "";
-  if (ultimaVisitaRange) {
-    ultimaVisitaRange.setValue(new Date());
-    ultimaVisitaMsg = "Fecha actualizada.";
-  }
+  if (ultimaVisitaRange) ultimaVisitaRange.setValue(new Date());
 
-  let finalMessage = "Alta correcta.";
-  if (ultimaVisitaMsg) finalMessage += "\n" + ultimaVisitaMsg;
+  let finalMessage = "Alta realizada correctamente.";
 
   if (isDocUpdatePossible) {
     const historiaClinicaRange = sheet.getRange(activeRow, historiaClinicaCol + 1);
@@ -121,13 +116,14 @@ function ejecutarAltaEnFila_(sheet, activeRow) {
       }
     }
 
-    if (docUrl) {
+    // Sin enlace no hay historia que cerrar: el alta basta y no se avisa de nada más.
+    if (docUrl && hcEsFichaWeb_(docUrl)) {
       // HC en la ficha web → la fecha de alta va al episodio abierto de "Episodios HC".
-      finalMessage += "\n\n" + (hcEsFichaWeb_(docUrl)
-        ? hcAltaEnHoja_(docUrl)
-        : "El enlace de la Historia Clínica no es una ficha web (es un documento antiguo): la fecha de alta no se ha anotado en la HC.");
-    } else {
-      finalMessage += "\n\nNo se encontró una URL válida de Historia Clínica (hipervínculo) para actualizar.";
+      const hc = hcAltaEnHoja_(docUrl);
+      if (hc.ok) finalMessage = "Alta realizada correctamente; ingreso cerrado en la historia clínica.";
+      else finalMessage += "\n" + hc.message;
+    } else if (docUrl) {
+      finalMessage += "\nEl enlace de la historia clínica no es una ficha web (es un documento antiguo): no se ha anotado la fecha de alta.";
     }
   }
 
