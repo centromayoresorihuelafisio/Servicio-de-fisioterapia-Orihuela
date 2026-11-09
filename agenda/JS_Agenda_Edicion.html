@@ -708,6 +708,7 @@
       });
       // Al pasar el ratón por un botón de WhatsApp se piden ya los datos: al hacer clic el diálogo sale con el mensaje listo.
       document.addEventListener('pointerover', function(e) {
+        if (Secciones.activa() !== 'agenda') return;   // los botones de WhatsApp de Usuarios son de Usuarios
         var b = e.target.closest ? e.target.closest('.btn-whatsapp, #btnWhatsapp') : null;
         if (!b || b.disabled) return;
         var filas = (b.id === 'btnWhatsapp') ? filasWhatsappSeleccion() : [/^\d+$/.test(b.dataset.fila) ? Number(b.dataset.fila) : b.dataset.fila];   // hoja vieja: número; tabla nueva: ID de cita

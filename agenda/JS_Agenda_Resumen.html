@@ -324,10 +324,11 @@
 
       // Ediciones hechas directamente en la hoja (no avisan por localStorage): se recogen al volver a la pestaña
       // si las fichas tienen más de 1 minuto, y cada 5 minutos mientras la agenda está a la vista.
+      // Escondida tras Usuarios (página de Usuarios y Agenda) tampoco: se recogen al volver (activar, JS_Agenda_Vistas).
       document.addEventListener('visibilitychange', function() {
-        if (!document.hidden && FICHAS.porNombre && Date.now() - FICHAS.t > 60000) cargarFichas();
+        if (!document.hidden && Secciones.activa() === 'agenda' && FICHAS.porNombre && Date.now() - FICHAS.t > 60000) cargarFichas();
       });
-      setInterval(function() { if (!document.hidden) cargarFichas(); }, 5 * 60 * 1000);
+      setInterval(function() { if (!document.hidden && Secciones.activa() === 'agenda') cargarFichas(); }, 5 * 60 * 1000);
 
       // ---------- Panel de resumen (columna derecha) ----------
       var resumenVisible = true, resumenMes = null, resumenSemana = null;
@@ -467,16 +468,17 @@
         if (t.closest('[data-rs-rec-nuevo]')) { abrirRecordatorios({ fecha: hoyISO() }); return; }
         if (t.closest('[data-rs-rec-todos]')) { abrirRecordatorios(); return; }
       });
-      setInterval(renderResumen, 60000);   // «Ahora / Próxima» avanza con el reloj
+      setInterval(function() { if (Secciones.activa() === 'agenda') renderResumen(); }, 60000);   // «Ahora / Próxima» avanza con el reloj (escondida, al volver)
 
       document.getElementById('btnImprimir').addEventListener('click', function() { window.print(); });
       window.addEventListener('beforeprint', function() {
+        if (Secciones.activa() !== 'agenda') return;   // se imprime Usuarios: la Agenda no se toca
         imprimiendo = true;
         var etq = vista === 'hoy' ? 'Hoy' : document.getElementById('etiquetaSemana').textContent;
         document.getElementById('cabImpresion').innerHTML = '<b>Agenda · ' + escapar(etq) + '</b><span>Impreso el ' + new Date().toLocaleDateString('es-ES') + '</span>';
         render();
       });
-      window.addEventListener('afterprint', function() { imprimiendo = false; render(); });
+      window.addEventListener('afterprint', function() { if (!imprimiendo) return; imprimiendo = false; render(); });
       // Píldora flotante fuera de la cabecera, pero dentro de la sección (se esconde con ella en la página de Usuarios y Agenda).
       (document.querySelector('.bloque-seccion[data-seccion="agenda"]') || document.body).appendChild(document.getElementById('barraSeleccion'));
       actualizarBotonHuecos();

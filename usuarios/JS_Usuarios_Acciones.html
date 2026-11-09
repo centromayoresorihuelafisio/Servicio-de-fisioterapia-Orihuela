@@ -153,6 +153,7 @@
       }
       // Al pasar el ratón por el botón de WhatsApp de una fila se piden ya los datos: al hacer clic el diálogo sale con el mensaje listo.
       document.addEventListener('pointerover', function(e) {
+        if (Secciones.activa() !== 'usuarios') return;   // los botones de WhatsApp de la Agenda son de la Agenda
         var btn = e.target.closest ? e.target.closest('.btn-whatsapp') : null;
         var idWa = btn && btn.dataset.fila ? idDeFila(Number(btn.dataset.fila)) : '';
         if (idWa) WhatsappDialogo.precargar('datosWhatsappMaestraWeb', [idWa]);

@@ -146,12 +146,13 @@
         }
       });
 
-      // Cada minuto: actualiza "ahora", la línea de hora y las citas ya terminadas
-      setInterval(function() {
+      // Cada minuto: actualiza "ahora", la línea de hora y las citas ya terminadas (escondida no; se hace al volver)
+      function tickMinuto() {
         actualizarBotonRec();
         if (document.querySelector('.editando') || arrastre || !CITAS.length) return;
         if (vista === 'hoy' || CITAS.some(function(c) { return c._fechaISO === hoyISO(); })) render();
-      }, 60000);
+      }
+      setInterval(function() { if (Secciones.activa() === 'agenda') tickMinuto(); }, 60000);
 
       // ---------- Arrastrar y soltar: mover una cita a un hueco libre ----------
       // Pointer Events (ratón, táctil y lápiz). Con ratón se arrastra desde cualquier
@@ -413,7 +414,14 @@
       function mostrarAviso(mensaje) { return avisoFlotante(mensaje, /^error|no se pudo|no se pudieron|ya est/i); }
       Secciones.registrar('agenda', {
         mostrarAviso: mostrarAviso,
-        activar: function() { if (scrollAHoyPendiente) { scrollAHoyPendiente = false; scrollAHoy(); } }
+        // Al volver a la Agenda (página de Usuarios y Agenda): lo que se dejó de hacer mientras estaba escondida.
+        activar: function() {
+          if (scrollAHoyPendiente) { scrollAHoyPendiente = false; scrollAHoy(); }
+          comprobarVersionAgenda();   // ¿cambió algo mientras no se miraba?
+          tickMinuto();
+          renderResumen();
+          if (FICHAS.porNombre && Date.now() - FICHAS.t > 60000) cargarFichas();
+        }
       });
 
       // ---------- Avatares con iniciales: avatarHtml(nombre), común, en ui/JS_Secciones ----------
@@ -538,7 +546,7 @@
       var ultimaVersionAgenda = null;
 
       function comprobarVersionAgenda() {
-        if (!semanaActual || arrastre) return;
+        if (!semanaActual || arrastre || Secciones.activa() !== 'agenda') return;   // escondida no pregunta: se comprueba al volver
         if (document.querySelector('.editando')) return;
 
         llamar('obtenerVersionAgendaWeb')

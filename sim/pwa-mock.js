@@ -100,6 +100,8 @@
       var p = pacientes.filter(function (x) { return clave(x['Nombre']) === clave(nombre); })[0];
       return p ? { success: true, headers: HEADERS, paciente: p } : { success: false, message: 'No se encontró a este usuario en Usuarios.' };
     },
+    datosWhatsappMaestraWeb: function () { return { success: true, items: [] }; },
+    datosWhatsappLoteAgendaWeb: function () { return { success: true, items: [] }; },
     obtenerRecordatoriosWeb: function () { return { success: true, recordatorios: [] }; },
     obtenerValoracionesWeb: function () { return { pacientes: [] }; },
     obtenerHCsActivasWeb: function () { return { success: true, historias: [] }; },
