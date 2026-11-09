@@ -909,8 +909,10 @@
       @keyframes flash-mov { from { box-shadow: inset 0 0 0 999px color-mix(in srgb, var(--md-primary) 28%, transparent); } to { box-shadow: inset 0 0 0 999px transparent; } }
       :root { --alto-thead: 1px; }
       @keyframes aparece { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+      /* Impresión: lo de html y body solo con la Agenda a la vista (en la página de Usuarios y Agenda, Usuarios no lo hereda);
+         :where() deja la misma especificidad que tenían «*» y «html, body». @page no se puede limitar: vale para toda la página. */
       @media print {
         @page { size: A4 landscape; margin: 10mm; }
-        * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-        html, body { height: auto !important; display: block !important; background: #fff !important; color: #000; font-size: 12px; }
+        :where(html:has(> body.sec-agenda)), :where(html:has(> body.sec-agenda)) * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        html:where(:has(> body.sec-agenda)), body:where(.sec-agenda) { height: auto !important; display: block !important; background: #fff !important; color: #000; font-size: 12px; }
       }

@@ -293,6 +293,11 @@
         background-size: 200% 100%; animation: md-brillo var(--dur-brillo) linear infinite;
       }
 
+      /* --- Bloque de cada sección en una página con varias (Usuarios y Agenda, ui/JS_Secciones): sin caja propia, sus piezas
+             se colocan en <body> igual que en su página suelta; la sección que no está a la vista lleva [hidden] --- */
+      .bloque-seccion { display: contents; }
+      .bloque-seccion[hidden] { display: none; }
+
       /* --- Barra fina de actividad arriba de la pagina: se ve mientras body lleve .ocupado --- */
       .barra-progreso {
         position: fixed; top: 0; left: 0; right: 0; height: 3px; z-index: var(--z-max);

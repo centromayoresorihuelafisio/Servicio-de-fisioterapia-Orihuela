@@ -81,7 +81,8 @@ const PAGINAS_WEB = enCtx('PAGINAS_WEB');
 const PANELES = enCtx('PANELES_DIFERIDOS_').slice();
 const ARCHIVO_DE = {   // clave de ?page= -> archivo de la app (la HC aparte, como en doGet)
   baseDatos: 'usuarios.html', agenda: 'agenda.html', valoraciones: 'valoraciones.html',
-  dashboard: 'estadisticas.html', configuracion: 'configuracion.html', guiaVisual: 'guia-visual.html', hc: 'hc.html'
+  dashboard: 'estadisticas.html', configuracion: 'configuracion.html', guiaVisual: 'guia-visual.html', hc: 'hc.html',
+  usuariosAntes: 'usuarios-antes.html', agendaAntes: 'agenda-antes.html'   // reserva temporal (fase 2 de la sección 20, paso 5)
 };
 Object.keys(PAGINAS_WEB).forEach(function (k) {
   if (!ARCHIVO_DE[k]) fallo('Falta en pwa/build.js (ARCHIVO_DE) el archivo de la página nueva «' + k + '» de PAGINAS_WEB.');
@@ -91,6 +92,7 @@ const paginas = {};   // archivo -> html
 Object.keys(PAGINAS_WEB).forEach(function (k) {
   const t = plantilla(PAGINAS_WEB[k].archivo);
   t.baseUrl = BASE;
+  t.pagina = k;   // como doGet: usuarios.html y agenda.html son la misma página, cada una abre con su sección
   paginas[ARCHIVO_DE[k]] = t.evaluate().getContent();
 });
 

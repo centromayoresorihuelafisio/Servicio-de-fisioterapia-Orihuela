@@ -75,9 +75,9 @@
         if (!p) return;
         var fila = p._fila, el = document.getElementById('ficha');
         fichaAbierta = true; formularioActivo = true; formularioFila = fila; controladorForm = null;
-        document.body.classList.add('con-ficha');
-        document.body.classList.toggle('ficha-ancha', def.ancha === true);
-        document.body.classList.toggle('ficha-hc', def.ancha === 'hc');
+        cuerpoSeccion.classList.add('con-ficha');
+        cuerpoSeccion.classList.toggle('ficha-ancha', def.ancha === true);
+        cuerpoSeccion.classList.toggle('ficha-hc', def.ancha === 'hc');
         el.classList.add('abierta');
         el.setAttribute('aria-hidden', 'false');
         el.innerHTML = '<div class="ficha-form-cab"><button type="button" data-ficha-volver title="Volver a la ficha"><span class="material-symbols-outlined">arrow_back</span></button><div class="ficha-form-tit"></div></div><div class="ficha-form-cuerpo"></div>';
@@ -104,8 +104,8 @@
         quitarSeleccion();                                                   // sin usuario seleccionado (cierra la ficha)
         var el = document.getElementById('ficha');
         fichaAbierta = false; formularioActivo = true; formularioFila = FILA_NUEVO;
-        document.body.classList.add('con-ficha');
-        document.body.classList.remove('ficha-ancha', 'ficha-hc');
+        cuerpoSeccion.classList.add('con-ficha');
+        cuerpoSeccion.classList.remove('ficha-ancha', 'ficha-hc');
         el.classList.add('abierta');
         el.setAttribute('aria-hidden', 'false');
         el.innerHTML = '<div class="ficha-form-cab"><button type="button" data-ficha-volver title="Cerrar"><span class="material-symbols-outlined">arrow_back</span></button><div class="ficha-form-tit">Nuevo usuario</div></div><div class="ficha-form-cuerpo"></div>';
@@ -357,17 +357,17 @@
         // Nuevo usuario: el panel está abierto sin ningún usuario seleccionado; se mantiene hasta que se elija otra fila
         // (entonces cae en la regla de más abajo y se descarta, como los demás formularios).
         if (formularioActivo && formularioFila === FILA_NUEVO && !abierta) {
-          document.body.classList.add('con-ficha');
+          cuerpoSeccion.classList.add('con-ficha');
           el.classList.add('abierta');
           el.setAttribute('aria-hidden', 'false');
           return;
         }
-        document.body.classList.toggle('con-ficha', abierta);
+        cuerpoSeccion.classList.toggle('con-ficha', abierta);
         el.classList.toggle('abierta', abierta);
         el.setAttribute('aria-hidden', abierta ? 'false' : 'true');
         if (formularioActivo && (!abierta || p._fila !== formularioFila)) { cerrarControlador(); formularioActivo = false; controladorForm = null; }
         if (formularioActivo) return; // no pisar el formulario abierto en el panel
-        document.body.classList.remove('ficha-ancha', 'ficha-hc');   // la ficha y el resto de formularios usan el ancho normal
+        cuerpoSeccion.classList.remove('ficha-ancha', 'ficha-hc');   // la ficha y el resto de formularios usan el ancho normal
         if (abierta) FichaUsuario.pintar(el, htmlFicha(p));
       }
 

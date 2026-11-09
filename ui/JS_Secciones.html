@@ -1,7 +1,6 @@
 <!--
   ui/JS_Secciones.html - PUNTO DE ENLACE entre las secciones de una página y las piezas comunes (fase 2 de la sección 20 de
-  CONTEXTO.md: Usuarios y Agenda en una sola página). Mientras siguen siendo páginas separadas, cada una registra una sola
-  sección y todo funciona como antes.
+  CONTEXTO.md: Usuarios y Agenda en una sola página, principal/Principal_Vista). En las demás páginas hay una sola sección.
 
   Se incluye con include_('ui/JS_Secciones') con "!" (fuera de cualquier bloque de script), ANTES del script principal de
   la página. Lo usan Usuarios (usuarios/BaseDatos_Vista), la Agenda (agenda/Web_Vista), Valoraciones (valoraciones/Web_Vista),
@@ -11,7 +10,14 @@
     Secciones.registrar(nombre, opciones)   da de alta una sección. La primera que se registra queda activa.
       opciones: { mostrarAviso(texto), activar(), desactivar() } (todas opcionales)
     Secciones.activa()                      nombre de la sección activa (o null si no hay ninguna).
-    Secciones.cambiar(nombre)               pasa a otra sección: desactivar() de la que sale y activar() de la que entra.
+    Secciones.cambiar(nombre)               pasa a otra sección: desactivar() de la que sale, la esconde (guarda su scroll y sus
+                                            clases de <body>), enseña la otra tal como estaba y llama a su activar().
+    Secciones.iniciar({ inicial, paginas, titulos })   solo en la página con varias secciones, antes de sus bloques: pestañas
+                                            que cambian de sección sin recargar y atrás/adelante entre secciones.
+    Secciones.cuerpo(nombre).classList      add/remove/toggle/contains de las clases de <body> de esa sección (con-ficha,
+                                            compacto…): la sección las usa en vez de document.body.classList.
+  Cada sección vive en <div class="bloque-seccion" data-seccion="nombre"> (ui/CSS_Global: sin caja propia, display: contents) y <body> lleva la
+  clase sec-<nombre> de la activa, a la que van anidados sus estilos.
   Los atajos de teclado y Esc de cada sección empiezan con «si Secciones.activa() no es la mía, nada».
 
   mostrarAviso(texto)   global: lo usan las piezas comunes (ui/JS_Ficha, valoraciones/Panel_Valoraciones, Configuración).
@@ -25,24 +31,108 @@
 -->
 <script>
 var Secciones = (function() {
-  var registro = {}, actual = null;
+  var registro = {}, actual = null, clases = {}, scrolls = {}, conf = null;
 
   function registrar(nombre, opciones) {
     registro[nombre] = opciones || {};
     if (!actual) actual = nombre;
   }
   function activa() { return actual; }
-  function cambiar(nombre) {
+
+  /** Clases de <body> de cada sección: solo están puestas mientras su sección es la activa. */
+  function misClases(n) { return clases[n] || (clases[n] = {}); }
+  function cuerpo(nombre) {
+    var mias = misClases(nombre);
+    function poner(c, si) {
+      if (si) mias[c] = true; else delete mias[c];
+      if (actual === nombre) document.body.classList.toggle(c, si);
+    }
+    return { classList: {
+      add: function() { for (var i = 0; i < arguments.length; i++) poner(arguments[i], true); },
+      remove: function() { for (var i = 0; i < arguments.length; i++) poner(arguments[i], false); },
+      toggle: function(c, forzar) { var si = forzar === undefined ? !mias[c] : !!forzar; poner(c, si); return si; },
+      contains: function(c) { return !!mias[c]; }
+    } };
+  }
+
+  function contenedor(n) { return document.querySelector('.bloque-seccion[data-seccion="' + n + '"]'); }
+  function guardarScroll(n) {
+    var c = contenedor(n), lista = [];
+    if (c) c.querySelectorAll('*').forEach(function(el) { if (el.scrollTop || el.scrollLeft) lista.push([el, el.scrollTop, el.scrollLeft]); });
+    scrolls[n] = lista;
+  }
+  function reponerScroll(n) { (scrolls[n] || []).forEach(function(x) { x[0].scrollTop = x[1]; x[0].scrollLeft = x[2]; }); }
+
+  // ----- Pestañas e historial (solo en la página con varias secciones: Secciones.iniciar) -----
+  function seccionDe(pagina) {
+    for (var n in conf.paginas) if (conf.paginas[n] === pagina) return n;
+    return null;
+  }
+  function pestana(n) { return document.querySelector('nav.tabs-cambio a[data-pagina="' + conf.paginas[n] + '"]'); }
+  function marcarPestanas() {
+    Object.keys(conf.paginas).forEach(function(n) { var a = pestana(n); if (a) a.classList.toggle('activo', n === actual); });
+    if (conf.titulos && conf.titulos[actual]) document.title = conf.titulos[actual];
+  }
+  function apuntarHistorial(n) {
+    if (window.PWA) {   // app instalable: la dirección de cada sección es su archivo (usuarios.html, agenda.html)
+      var a = pestana(n);
+      try { history.pushState({ seccion: n }, '', a ? a.getAttribute('href') : location.href); } catch (err) { /* sin historial */ }
+    } else if (window.google && google.script && google.script.history) {   // web: la dirección de arriba cambia a ?page=…
+      google.script.history.push({ seccion: n }, { page: conf.paginas[n] });
+    }
+  }
+
+  function cambiar(nombre, sinHistorial) {
     if (!registro[nombre] || nombre === actual) return;
-    var sale = registro[actual];
-    if (sale && typeof sale.desactivar === 'function') sale.desactivar();
+    var sale = actual, oSale = registro[sale];
+    if (oSale && typeof oSale.desactivar === 'function') oSale.desactivar();
+    guardarScroll(sale);
+    Object.keys(misClases(sale)).forEach(function(c) { document.body.classList.remove(c); });
+    document.body.classList.remove('sec-' + sale);
+    var cs = contenedor(sale);
+    if (cs) cs.hidden = true;
     actual = nombre;
+    document.body.classList.add('sec-' + nombre);
+    Object.keys(misClases(nombre)).forEach(function(c) { document.body.classList.add(c); });
+    var ce = contenedor(nombre);
+    if (ce) ce.hidden = false;
+    reponerScroll(nombre);
+    if (conf) { marcarPestanas(); if (!sinHistorial) apuntarHistorial(nombre); }
     if (typeof registro[nombre].activar === 'function') registro[nombre].activar();
   }
+
+  /**
+   * Página con varias secciones (principal/Principal_Vista): se llama ANTES de los bloques de las secciones.
+   *   opciones: { inicial: 'usuarios', paginas: { usuarios: 'baseDatos', agenda: 'agenda' }, titulos: { usuarios: 'Usuarios', … } }
+   * Las pestañas de esas páginas cambian de sección sin recargar (con Ctrl o la rueda se siguen abriendo aparte), y atrás y
+   * adelante del navegador vuelven a la sección anterior.
+   */
+  function iniciar(opciones) {
+    conf = opciones;
+    actual = opciones.inicial;
+    document.addEventListener('click', function(e) {
+      var a = e.target.closest ? e.target.closest('nav.tabs-cambio a[data-pagina]') : null;
+      if (!a || e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;
+      var n = seccionDe(a.dataset.pagina);
+      if (!n || !registro[n]) return;
+      e.preventDefault();
+      cambiar(n);
+    });
+    if (window.PWA) {
+      try { history.replaceState({ seccion: actual }, ''); } catch (err) { /* sin historial */ }
+      window.addEventListener('popstate', function(e) { if (e.state && e.state.seccion) cambiar(e.state.seccion, true); });
+    } else if (window.google && google.script && google.script.history) {
+      google.script.history.setChangeHandler(function(e) {
+        var n = (e.state && e.state.seccion) || seccionDe((e.location && e.location.parameter && e.location.parameter.page) || conf.paginas[Object.keys(conf.paginas)[0]]);
+        if (n) cambiar(n, true);
+      });
+    }
+  }
+
   /** Opciones de la sección activa (uso interno de este archivo). */
   function opcionesActiva() { return actual ? registro[actual] : null; }
 
-  return { registrar: registrar, activa: activa, cambiar: cambiar, opcionesActiva_: opcionesActiva };
+  return { registrar: registrar, activa: activa, cambiar: cambiar, iniciar: iniciar, cuerpo: cuerpo, opcionesActiva_: opcionesActiva };
 })();
 
 function mostrarAviso(mensaje) {

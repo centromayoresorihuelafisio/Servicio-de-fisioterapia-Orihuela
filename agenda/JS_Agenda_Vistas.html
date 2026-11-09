@@ -82,7 +82,7 @@
 
       // ---------- Densidad de filas ----------
       function aplicarDensidad(compacto, guardar) {
-        document.body.classList.toggle('compacto', compacto);
+        cuerpoSeccion.classList.toggle('compacto', compacto);
         var bd = document.getElementById('btnDensidad');
         bd.innerHTML = '<span class="material-symbols-outlined">' + (compacto ? 'density_small' : 'density_medium') + '</span>';
         bd.title = compacto ? 'Densidad compacta (clic para espaciar)' : 'Densidad espaciada (clic para compactar)';
@@ -90,7 +90,7 @@
         if (guardar) { try { localStorage.setItem('agendaDensidad', compacto ? 'compacto' : 'comodo'); } catch (err) { /* sin almacenamiento */ } }
       }
       document.getElementById('btnDensidad').addEventListener('click', function() {
-        aplicarDensidad(!document.body.classList.contains('compacto'), true);
+        aplicarDensidad(!cuerpoSeccion.classList.contains('compacto'), true);
       });
       (function() {
         var guardada = null;
@@ -240,7 +240,7 @@
           '</span><small>' + escapar(cita['Hora']) + '</small><span class="ghost-dest" style="display:none"></span>';
         document.body.appendChild(g);
         arrastre.ghost = g;
-        document.body.classList.add('arrastrando-cita');
+        cuerpoSeccion.classList.add('arrastrando-cita');
         try { window.getSelection().removeAllRanges(); } catch (err) { /* no crítico */ }
 
         render(); // enseña los huecos libres mientras se arrastra
@@ -290,7 +290,7 @@
         if (soltar) marcarDestino();
         var destino = soltar ? a.destino : null;
         if (a.ghost) a.ghost.remove();
-        document.body.classList.remove('arrastrando-cita');
+        cuerpoSeccion.classList.remove('arrastrando-cita');
         try { wrapArrastre.releasePointerCapture(a.id); } catch (err) { /* ya liberado */ }
         ultimoArrastreTs = Date.now();
         arrastre = null;
@@ -411,7 +411,10 @@
       // ---------- Avisos ligeros (toasts): avisoFlotante de ui/JS_Modal_Deshacer, con el criterio de error de esta pestaña ----------
       // Dentro del bloque de la sección, mostrarAviso es este; el global (ui/JS_Secciones) va a este mientras la Agenda es la activa.
       function mostrarAviso(mensaje) { return avisoFlotante(mensaje, /^error|no se pudo|no se pudieron|ya est/i); }
-      Secciones.registrar('agenda', { mostrarAviso: mostrarAviso });
+      Secciones.registrar('agenda', {
+        mostrarAviso: mostrarAviso,
+        activar: function() { if (scrollAHoyPendiente) { scrollAHoyPendiente = false; scrollAHoy(); } }
+      });
 
       // ---------- Avatares con iniciales: avatarHtml(nombre), común, en ui/JS_Secciones ----------
 

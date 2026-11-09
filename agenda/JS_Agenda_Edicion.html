@@ -552,7 +552,7 @@
         var el = document.getElementById('agFicha');
         try { if (controladorPanel && controladorPanel.cerrar) controladorPanel.cerrar(); } catch (e) { /* no crítico */ }   // la historia clínica vuelca lo pendiente
         panelAbierto = false; panelClave = ''; controladorPanel = null;
-        document.body.classList.remove('con-ficha', 'ficha-ancha', 'ficha-hc');
+        cuerpoSeccion.classList.remove('con-ficha', 'ficha-ancha', 'ficha-hc');
         el.classList.remove('abierta');
         el.setAttribute('aria-hidden', 'true');
         // El contenido se vacía cuando termina de deslizarse, para que no se vea un panel en blanco al salir.
@@ -575,9 +575,9 @@
         var el = document.getElementById('agFicha');
         if (timerLimpiarPanel) { clearTimeout(timerLimpiarPanel); timerLimpiarPanel = null; }
         panelAbierto = true; panelClave = clave; controladorPanel = null;
-        document.body.classList.add('con-ficha');
-        document.body.classList.toggle('ficha-ancha', ancho === true);
-        document.body.classList.toggle('ficha-hc', ancho === 'hc');
+        cuerpoSeccion.classList.add('con-ficha');
+        cuerpoSeccion.classList.toggle('ficha-ancha', ancho === true);
+        cuerpoSeccion.classList.toggle('ficha-hc', ancho === 'hc');
         el.classList.add('abierta');
         el.setAttribute('aria-hidden', 'false');
         var sinCabecera = !!(opciones && opciones.sinCabecera);

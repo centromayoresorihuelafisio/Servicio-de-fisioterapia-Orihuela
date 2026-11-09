@@ -2,6 +2,9 @@
       // Se incluye dentro del unico <script> de usuarios/BaseDatos_Vista, tras ui/JS_Modal_Deshacer y dentro del bloque de la sección
       // ((function() { … })(), fase 2 de la sección 20 de CONTEXTO.md), en este orden: JS_Usuarios_Base, JS_Usuarios_Ficha, JS_Usuarios_Acciones.
       // Sin scriptlets: include() no los evalua (la direccion de la app llega en URL_BASE_WEB, definida en la pagina).
+
+      // Clases de <body> de esta sección (con-ficha, compacto…): solo se ven mientras es la activa (ui/JS_Secciones).
+      var cuerpoSeccion = Secciones.cuerpo('usuarios');
       var TODOS = [];
       var HEADERS = [];
       var filtroEstado = null;
@@ -380,7 +383,7 @@
 
       function actualizarBarraLote() {
         var n = seleccionMultiple.size, barra = document.getElementById('barraLote');
-        document.body.classList.toggle('seleccion-activa', n > 0);
+        cuerpoSeccion.classList.toggle('seleccion-activa', n > 0);
         barra.classList.toggle('visible', n > 0);
         document.getElementById('bloteN').textContent = n;
       }

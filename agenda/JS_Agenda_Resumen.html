@@ -334,7 +334,7 @@
       try { resumenVisible = localStorage.getItem('agendaResumen') !== '0'; } catch (err) { /* sin almacenamiento */ }
 
       function aplicarResumen() {
-        document.body.classList.toggle('con-resumen', !!resumenVisible && vista !== 'cuadricula');
+        cuerpoSeccion.classList.toggle('con-resumen', !!resumenVisible && vista !== 'cuadricula');
         var b = document.getElementById('btnResumen');
         b.classList.toggle('activo', !!resumenVisible);
         b.title = resumenVisible ? 'Ocultar panel de resumen' : 'Mostrar panel de resumen';
@@ -477,10 +477,12 @@
         render();
       });
       window.addEventListener('afterprint', function() { imprimiendo = false; render(); });
-      document.body.appendChild(document.getElementById('barraSeleccion'));   // píldora flotante fuera de la cabecera
+      // Píldora flotante fuera de la cabecera, pero dentro de la sección (se esconde con ella en la página de Usuarios y Agenda).
+      (document.querySelector('.bloque-seccion[data-seccion="agenda"]') || document.body).appendChild(document.getElementById('barraSeleccion'));
       actualizarBotonHuecos();
       aplicarResumen();
-      cargar();
+      // En la página de Usuarios y Agenda, si se abre en Usuarios, la semana se pide después de la tabla de Usuarios.
+      if (Secciones.activa() === 'agenda') cargar(); else OrdenCarga.despues(function() { cargar(); }, 300);
       // Primero la semana (cargar); al llegar, los recordatorios y las fichas (en segundo plano: cuando lleguen, abrir una
       // ficha ya no necesita al servidor). OrdenCarga y el tope de espera: ui/JS_Carga_Compartida.
       OrdenCarga.despues(function() { cargarRecordatorios(); cargarFichas(); }, 0);

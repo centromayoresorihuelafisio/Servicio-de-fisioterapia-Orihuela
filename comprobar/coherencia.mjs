@@ -47,7 +47,9 @@ const EXCEPCIONES = [
   { c: 'variable', archivo: 'dashboard/JS_Graficos.html', texto: '.gr-export', motivo: 'letra fija de los gráficos exportados a imagen' },
   { c: 'reinicio', archivo: 'agenda/Panel_Cita.html', texto: '.pc-hoja-cuerpo', motivo: 'solo min-height: 0 para que la hoja haga scroll: colocación' },
   { c: 'fuga', archivo: 'ui/CSS_Ficha.html', motivo: 'piezas fu-* de la ficha, reutilizadas a propósito' },
+  { c: 'fuga', archivo: 'dashboard/CSS_Estadisticas.html', texto: 'select.activo también se aplica en ui/JS_Secciones', motivo: 'JS_Secciones solo pone .activo en la pestaña de la barra común' },
   { c: 'puerta', archivo: 'ui/Acceso.html', motivo: 'es la propia llamar(), la única que habla con el servidor' },
+  { c: 'puerta', archivo: 'ui/JS_Secciones.html', motivo: 'historial del navegador (atrás entre Usuarios y Agenda): no habla con el servidor' },
 ];
 
 // ===== Una sola puerta (sección 17): lo que puede quedar público y lo que aún falta por pasar a llamar() =====
@@ -174,8 +176,9 @@ function leerCss(archivo, inicio, cssCrudo) {
       const nidos = contexto.filter(x => x.nido).map(x => x.nido).reverse();
       const resolver = sel => nidos.reduce((s, p) => /^:where\(.*\)$/.test(p) ? s.replace(/&/g, '').trim()
         : (s.includes('&') ? s.replace(/&/g, p) : p + ' ' + s), sel);
+      const seccion = (nidos.map(p => /^:where\(\.sec-([\w-]+)\)$/.exec(p)).find(Boolean) || [])[1] || null;   // solo vale en esa sección
       for (const selector of partirArriba(previo.replace(/\s+/g, ' '), ',').map(resolver)) {
-        reglas.push({ archivo, selector, comps: compuestos(selector), decl, impresion, linea });
+        reglas.push({ archivo, selector, comps: compuestos(selector), decl, impresion, linea, seccion });
       }
     }
     i = fin + 1; ini = i;
@@ -471,12 +474,29 @@ const familia = (a, b) => {
   return !esPanel(a) && !esPanel(b) && path.dirname(a) === path.dirname(b);
 };
 const comparten = (a, b) => [...paginas.values()].some(s => s.has(a) && s.has(b));
+// Secciones de una misma página (fase 2 de la sección 20): una regla anidada en :where(.sec-X) no alcanza el marcado de otra
+// sección (su carpeta). En una vista con varios <div class="bloque-seccion">, el trozo de la sección X es suyo (como su
+// propia página) y el de las otras no le llega: solo cuenta lo de fuera (cabecera y piezas compartidas).
+const seccionDeArchivo = f => (!esPanel(f) && /^(usuarios|agenda)\//.test(f)) ? f.split('/')[0] : null;
+const memoSeccion = new Map();
+function marcadoDeSeccion(g, marc) {
+  if (memoSeccion.has(g)) return memoSeccion.get(g) || marc;
+  memoSeccion.set(g, null);
+  const t = sinEstilos(textoDe.get(g));
+  const trozos = t.split(/<div class="bloque-seccion" data-seccion="/);
+  if (trozos.length < 2) return marc;
+  const fuera = clasesMarcado(trozos[0] + (t.split(/<!-- ===== Piezas compartidas/)[1] || ''));
+  memoSeccion.set(g, fuera);
+  return fuera;
+}
 const vistos = new Set(), hallFuga = [];
 for (const r of propiasPantalla) {
   const clases = [...new Set(r.comps.flatMap(clasesDe))];
   if (!clases.length || !clases.some(x => !piezas.has(x))) continue;
-  for (const [g, marc] of marcado) {
+  for (let [g, marc] of marcado) {
     if (familia(r.archivo, g) || !g.endsWith('.html') || !comparten(r.archivo, g)) continue;
+    if (r.seccion && seccionDeArchivo(g) && seccionDeArchivo(g) !== r.seccion) continue;
+    if (r.seccion) marc = marcadoDeSeccion(g, marc);
     if (!clases.every(x => marc.has(x))) continue;
     const clave = r.archivo + r.selector + g;
     if (vistos.has(clave)) continue;

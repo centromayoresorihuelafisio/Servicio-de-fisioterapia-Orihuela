@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="es">
+  <!--
+    principal/Principal_Vista.html - USUARIOS Y AGENDA en una sola página (fase 2 de la sección 20 de CONTEXTO.md).
+    La sirve doGet para ?page=baseDatos y ?page=agenda (core/WebApp.gs, PAGINAS_WEB) con `pagina` = la clave pedida, y abre
+    con esa sección. Cada sección vive en su <div class="bloque-seccion" data-seccion="…"> (sin caja propia: display: contents),
+    con su JavaScript en su bloque y sus estilos anidados en .sec-usuarios / .sec-agenda (convención en la sección 6).
+    Al pulsar la pestaña de la otra sección se cambia sin recargar (ui/JS_Secciones, Secciones.iniciar): cada una conserva
+    búsqueda, filtros, semana, scroll y lo que tenga abierto. Las piezas compartidas se incluyen una sola vez.
+    Las páginas sueltas de antes (usuarios/BaseDatos_Vista, agenda/Web_Vista) siguen de reserva hasta el paso 5.
+  -->
+  <head>
+    <base target="_top">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><?= pagina === 'agenda' ? 'Agenda' : 'Usuarios' ?></title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600&family=Roboto+Mono:wght@400;500&family=Material+Symbols+Outlined:opsz,wght,FILL@20..48,300..700,0..1&display=swap" rel="stylesheet">
+
+    <style>
+      /* Reinicio común (el que tenía la Agenda) */
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+      button, input, select { font-family: inherit; line-height: inherit; }
+      html{line-height:1.5;-webkit-text-size-adjust:100%;tab-size:4;-webkit-tap-highlight-color:transparent}
+
+      /* Reinicio de Usuarios (sustituye al preflight de Tailwind CDN): solo con Usuarios a la vista, como en su página de antes.
+         :where() no suma especificidad. */
+      :where(.sec-usuarios) {
+        *,::before,::after{box-sizing:border-box;border-width:0;border-style:solid;border-color:var(--md-outline)}
+        body&{line-height:inherit}
+        hr{height:0;color:inherit;border-top-width:1px}
+        h1,h2,h3,h4,h5,h6{font-size:inherit;font-weight:inherit}
+        a{color:inherit;text-decoration:inherit}
+        b,strong{font-weight:bolder}
+        code,kbd,samp,pre{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:1em}
+        small{font-size:80%}
+        table{text-indent:0;border-color:inherit;border-collapse:collapse}
+        button,input,optgroup,select,textarea{font-family:inherit;font-size:100%;font-weight:inherit;line-height:inherit;letter-spacing:inherit;color:inherit;margin:0;padding:0}
+        button,select{text-transform:none}
+        button,[type='button'],[type='reset'],[type='submit']{-webkit-appearance:button;background-color:transparent;background-image:none}
+        progress{vertical-align:baseline}
+        ::-webkit-inner-spin-button,::-webkit-outer-spin-button{height:auto}
+        [type='search']{-webkit-appearance:textfield;outline-offset:-2px}
+        ::-webkit-search-decoration{-webkit-appearance:none}
+        summary{display:list-item}
+        blockquote,dl,dd,hr,figure,p,pre,fieldset{margin:0}
+        fieldset,legend{padding:0}
+        ol,ul,menu{list-style:none;margin:0;padding:0}
+        textarea{resize:vertical}
+        input::placeholder,textarea::placeholder{opacity:1;color:var(--md-on-surface-low)}
+        button,[role="button"]{cursor:pointer}
+        :disabled{cursor:default}
+        img,svg,video,canvas,audio,iframe,embed,object{display:block;vertical-align:middle}
+        img,video{max-width:100%;height:auto}
+        [hidden]{display:none}
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+      }
+
+      <?!= include_('ui/CSS_Global'); ?>
+      <?!= include_('ui/CSS_Ficha'); ?>
+      <?!= include_('usuarios/CSS_Usuarios'); ?>
+      <?!= include_('agenda/CSS_Agenda'); ?>
+    </style>
+  </head>
+  <body class="<?= pagina === 'agenda' ? 'sec-agenda' : 'sec-usuarios' ?>">
+    <?!= incluirAcceso_(pagina); ?>
+    <?!= incluirPestanas_(pagina); ?>
+
+    <!-- ===== Sección Usuarios ===== -->
+    <div class="bloque-seccion" data-seccion="usuarios"<?!= pagina === 'agenda' ? ' hidden' : '' ?>>
+      <header class="top">
+        <!-- Cabecera comun: titulo · buscador · filtros · espacio · herramientas · tema · accion principal (ui/CSS_Global .cabecera-fila).
+             .barra-herramientas se conserva porque el JavaScript vigila sus botones (indicador de "ocupado"). -->
+        <div class="cabecera-fila barra-herramientas">
+          <h1 class="cabecera-titulo"><span class="material-symbols-outlined">folder_shared</span> Usuarios <span class="contador" id="contador"></span></h1>
+          <div class="buscador">
+            <span class="material-symbols-outlined">search</span>
+            <input type="text" id="inputBusqueda" placeholder="Buscar… (/)">
+          </div>
+          <div class="filtros-menus" id="filtrosMenus"></div>
+          <span class="cabecera-espacio"></span>
+          <button class="btn-toolbar deshacer" id="btnDeshacer" title="Deshacer la última eliminación">
+            <span class="material-symbols-outlined">undo</span> Deshacer
+          </button>
+          <button class="btn-toolbar icono-solo" id="btnOrdenar" title="Ordenar usuarios por prioridad (se aplica solo casi siempre, esto es solo para forzarlo)">
+            <span class="material-symbols-outlined">sort</span>
+          </button>
+          <button type="button" class="btn-toolbar btn-nav" id="btnAtajos" title="Atajos de teclado"><span class="material-symbols-outlined">keyboard</span></button>
+          <button type="button" class="btn-toolbar btn-nav" id="btnTema" title="Cambiar tema"></button>
+          <button title="Añadir un usuario nuevo" class="btn-toolbar primario" id="btnNuevoPaciente">
+            <span class="material-symbols-outlined">person_add</span> Añadir usuario
+          </button>
+        </div>
+      </header>
+
+      <div class="tabla-wrap" id="tablaWrap"><div class="skeleton-fila"><div class="md-esqueleto sk-avatar"></div><div class="doble" style="flex:1;gap:.4rem;display:flex;flex-direction:column"><div class="md-esqueleto sk-linea" style="width:38%"></div><div class="md-esqueleto sk-linea" style="width:22%"></div></div></div><div class="skeleton-fila"><div class="md-esqueleto sk-avatar"></div><div class="doble" style="flex:1;gap:.4rem;display:flex;flex-direction:column"><div class="md-esqueleto sk-linea" style="width:30%"></div><div class="md-esqueleto sk-linea" style="width:16%"></div></div></div><div class="skeleton-fila"><div class="md-esqueleto sk-avatar"></div><div class="doble" style="flex:1;gap:.4rem;display:flex;flex-direction:column"><div class="md-esqueleto sk-linea" style="width:44%"></div><div class="md-esqueleto sk-linea" style="width:20%"></div></div></div><div class="skeleton-fila"><div class="md-esqueleto sk-avatar"></div><div class="doble" style="flex:1;gap:.4rem;display:flex;flex-direction:column"><div class="md-esqueleto sk-linea" style="width:26%"></div><div class="md-esqueleto sk-linea" style="width:30%"></div></div></div><div class="skeleton-fila"><div class="md-esqueleto sk-avatar"></div><div class="doble" style="flex:1;gap:.4rem;display:flex;flex-direction:column"><div class="md-esqueleto sk-linea" style="width:34%"></div><div class="md-esqueleto sk-linea" style="width:18%"></div></div></div>
+      </div>
+
+      <div class="barra-lote" id="barraLote"><span class="bl-n"><span id="bloteN">0</span> seleccionados</span>
+        <button title="Cambiar el estado de los usuarios marcados" type="button" id="bloteEstado"><span class="material-symbols-outlined">label</span>Cambiar estado</button>
+        <button title="Eliminar los usuarios marcados" type="button" class="peligro" id="bloteEliminar" data-rol="administrador"><span class="material-symbols-outlined">delete</span>Eliminar</button>
+        <button type="button" class="bl-cerrar" id="bloteCancelar" title="Cancelar selección"><span class="material-symbols-outlined">close</span></button>
+      </div>
+      <aside class="ficha" id="ficha" aria-hidden="true"></aside>
+      <div class="menu-flot" id="menuFlotante"></div>
+      <div class="barra-progreso"></div>
+    </div>
+
+    <!-- ===== Sección Agenda ===== -->
+    <div class="bloque-seccion" data-seccion="agenda"<?!= pagina === 'agenda' ? '' : ' hidden' ?>>
+      <header class="top" id="cabecera">
+
+        <!-- Barra principal (cabecera comun, ui/CSS_Global .cabecera-fila): titulo · buscador · semana y vista · espacio · herramientas · tema · menu -->
+        <div class="barra barra-principal cabecera-fila">
+          <h1 class="cabecera-titulo"><span class="material-symbols-outlined">calendar_month</span> Agenda</h1>
+          <div class="buscador">
+            <span class="material-symbols-outlined">search</span>
+            <input type="text" id="agBusqueda" placeholder="Buscar…  ( / )" title="Buscar por usuario, sesión o notas">
+          </div>
+          <div class="grupo-nav">
+            <button class="btn-toolbar btn-nav" id="btnSemanaAnterior" title="Semana anterior (←)">
+              <span class="material-symbols-outlined">chevron_left</span>
+            </button>
+            <button class="btn-toolbar" id="btnHoy" title="Ir a hoy (T)">
+              <span class="material-symbols-outlined">today</span> Hoy
+            </button>
+            <button class="btn-toolbar btn-nav" id="btnSemanaSiguiente" title="Semana siguiente (→)">
+              <span class="material-symbols-outlined">chevron_right</span>
+            </button>
+          </div>
+          <span class="etiqueta-semana" id="etiquetaSemana"></span>
+          <div class="selector-semana">
+            <span class="material-symbols-outlined">calendar_month</span>
+            <input type="date" id="inputSemana" title="Ir a la semana que contiene esta fecha">
+          </div>
+          <div class="segmentado" role="group" aria-label="Vista">
+            <button type="button" class="seg activo" id="btnVistaSemana" title="Tabla de la semana">Semana</button>
+            <button type="button" class="seg" id="btnVistaHoy" title="Tarjetas con las citas de hoy">Hoy</button>
+            <button type="button" class="seg" id="btnVistaCal" title="Cuadrícula semanal tipo calendario">Cuadrícula</button>
+          </div>
+          <span class="cabecera-espacio"></span>
+          <button class="btn-toolbar deshacer" id="agDeshacer" title="Deshacer la última eliminación">
+            <span class="material-symbols-outlined">undo</span> Deshacer
+          </button>
+          <button type="button" class="btn-toolbar btn-nav" id="btnHuecos" title="Mostrar huecos libres" aria-label="Huecos libres">
+            <span class="material-symbols-outlined">event_available</span>
+          </button>
+          <button type="button" class="btn-toolbar btn-nav" id="btnDensidad" title="Densidad de filas" aria-label="Densidad de filas">
+            <span class="material-symbols-outlined">density_medium</span>
+          </button>
+          <button type="button" class="btn-toolbar btn-nav" id="btnResumen" title="Ocultar panel de resumen" aria-label="Panel de resumen">
+            <span class="material-symbols-outlined">view_sidebar</span>
+          </button>
+          <button class="btn-toolbar btn-nav btn-rec" id="btnRecordatorios" title="Recordatorios (R)" aria-label="Recordatorios">
+            <span class="material-symbols-outlined">checklist</span><span class="badge-rec" id="badgeRec"></span>
+          </button>
+          <button type="button" class="btn-toolbar btn-nav" id="agAtajos" title="Ver los atajos de teclado" aria-label="Atajos de teclado"><span class="material-symbols-outlined">keyboard</span></button>
+          <button type="button" class="btn-toolbar btn-nav" id="agTema" title="Cambiar tema"></button>
+          <div class="menu-wrap" id="menuMasWrap">
+            <button class="btn-toolbar btn-nav" id="btnMenuMas" aria-haspopup="true" aria-expanded="false" title="Más opciones">
+              <span class="material-symbols-outlined">more_vert</span>
+            </button>
+            <div class="menu menu-der" role="menu">
+              <button class="menu-item" id="btnCopiarSemana" role="menuitem" title="Crea las citas de la semana siguiente a partir de las del miércoles, jueves y viernes de esta. Antes de crear nada, enseña la lista para revisarla">
+                <span class="material-symbols-outlined">event_repeat</span>
+                <span>Copiar semana<small>De miércoles a viernes, a la semana siguiente</small></span>
+              </button>
+              <button class="menu-item" id="btnDisponibilidad" role="menuitem" title="Abre o cierra huecos de la agenda: horario del servicio, vacaciones, imprevistos">
+                <span class="material-symbols-outlined">event_busy</span>
+                <span>Disponibilidad<small>Abrir o cerrar huecos de la agenda</small></span>
+              </button>
+              <button title="Imprimir la jornada o la semana" class="menu-item" id="btnImprimir" role="menuitem"><span class="material-symbols-outlined">print</span><span>Imprimir<small>Jornada o semana, con todos los días</small></span></button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Barra contextual: sustituye a la principal con citas seleccionadas -->
+        <div class="barra barra-seleccion" id="barraSeleccion">
+          <button class="btn-toolbar plano btn-nav" id="btnQuitarSeleccion" title="Quitar selección">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+          <span class="contador-seleccion" id="contadorSeleccion"></span>
+
+          <span class="separador"></span>
+
+          <button title="Nueva valoración del usuario seleccionado" class="btn-toolbar plano" id="btnValoracion" disabled>
+            <span class="material-symbols-outlined">assignment</span> Valoración
+          </button>
+          <button title="Abrir WhatsApp con el usuario seleccionado (si hay varios, uno a uno)" class="btn-toolbar plano" id="btnWhatsapp" disabled>
+            <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" fill="currentColor" viewBox="0 0 16 16">
+              <path d="M13.601 2.326A7.854 7.854 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.933 7.933 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.898 7.898 0 0 0 13.6 2.326zM7.994 14.521a6.573 6.573 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.557 6.557 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592zm3.615-4.934c-.197-.099-1.17-.578-1.353-.646-.182-.065-.315-.099-.445.099-.133.197-.513.646-.627.775-.114.133-.232.148-.43.05-.197-.1-.836-.308-1.592-.985-.59-.525-.985-1.175-1.103-1.372-.114-.198-.011-.304.088-.403.087-.088.197-.232.296-.346.1-.114.133-.198.198-.33.065-.134.034-.248-.015-.347-.05-.099-.445-1.076-.612-1.47-.16-.389-.323-.335-.445-.34-.114-.007-.247-.007-.38-.007a.729.729 0 0 0-.529.247c-.182.198-.691.677-.691 1.654 0 .977.71 1.916.81 2.049.098.133 1.394 2.132 3.383 2.992.47.205.84.326 1.129.418.475.152.904.129 1.246.08.38-.058 1.171-.48 1.338-.943.164-.464.164-.86.114-.943-.049-.084-.182-.133-.38-.232z"/>
+            </svg> WhatsApp
+          </button>
+
+          <span class="separador"></span>
+
+          <div class="menu-wrap" id="menuCopiarWrap">
+            <button title="Dar a los usuarios seleccionados su próxima cita, a la misma hora" class="btn-toolbar plano" id="btnMenuCopiar" disabled aria-haspopup="true" aria-expanded="false">
+              <span class="material-symbols-outlined">event_upcoming</span> Próximas citas
+              <span class="material-symbols-outlined">arrow_drop_down</span>
+            </button>
+            <div class="menu" role="menu">
+              <button class="menu-item" id="btnCopiarCita" disabled role="menuitem" title="Crea la próxima cita a la misma hora: de lunes o martes, al miércoles o jueves; de miércoles o jueves, al lunes o martes siguiente; de viernes, al viernes siguiente">
+                <span class="material-symbols-outlined">event_upcoming</span>
+                <span>Una cita<small>En su próximo día de sesión</small></span>
+              </button>
+              <button class="menu-item" id="btnCopiarCita2" disabled role="menuitem" title="Crea las dos próximas citas a la misma hora, para quien viene dos días por semana (lunes y miércoles, o martes y jueves)">
+                <span class="material-symbols-outlined">date_range</span>
+                <span>Dos citas<small>Para quien viene dos días por semana</small></span>
+              </button>
+            </div>
+          </div>
+
+          <span class="espaciador"></span>
+
+          <button class="btn-toolbar peligro" id="btnEliminarCitas" disabled title="Libera la(s) cita(s) seleccionada(s) (borra usuario, teléfono, sesión, asistencia, notas e historia clínica)">
+            <span class="material-symbols-outlined">delete</span> Eliminar
+          </button>
+        </div>
+
+            </header>
+      <div class="solo-impresion" id="cabImpresion"></div>
+
+      <div class="cuerpo" id="cuerpo">
+        <div class="tabla-wrap" id="agTablaWrap"></div>
+        <aside class="resumen" id="resumen" aria-label="Resumen de la jornada"></aside>
+      </div>
+      <aside class="ficha" id="agFicha" aria-hidden="true"></aside>
+      <div class="toast-deshacer" id="toastMover">
+        <span id="toastMoverTexto"></span>
+        <button title="Deshacer el último movimiento" type="button" id="toastMoverBtn">DESHACER</button>
+      </div>
+    </div>
+
+    <!-- ===== Piezas compartidas (una sola vez) ===== -->
+    <!-- Modal propio: sustituye a los alert()/confirm() nativos del navegador. -->
+    <?!= include_('ui/Modal_Deshacer'); ?>
+    <?!= incluirEstados_(); ?>
+    <?!= incluirPatologias_(); ?>
+    <?!= include_('ui/JS_Carga_Compartida'); ?>
+    <?!= include_('ui/JS_Secciones'); ?>
+    <?!= include_('ui/JS_Paneles_Diferidos'); ?>
+    <?!= incluirPanel_('historia/Panel_HC', 'PanelHC'); ?>
+    <?!= incluirPanel_('valoraciones/Panel_Valoracion', 'PanelValoracion'); ?>
+    <?!= incluirPanel_('valoraciones/Panel_Valoraciones', 'PanelValoraciones'); ?>
+    <?!= incluirPanel_('usuarios/Panel_Editar', 'PanelEditar'); ?>
+    <?!= incluirPanel_('agenda/Panel_Cita', 'PanelCita'); ?>
+    <?!= incluirPanel_('agenda/Panel_Disponibilidad', 'PanelDisponibilidad'); ?>
+    <?!= incluirPanel_('usuarios/Panel_Nuevo', 'PanelNuevo'); ?>
+    <?!= include_('ui/JS_Formato_Nombre'); ?>
+    <?!= include_('ui/JS_Telefono'); ?>
+    <?!= include_('ui/JS_Selector_Fecha'); ?>
+    <?!= include_('ui/JS_Valoraciones_Cache'); ?>
+    <?!= include_('ui/JS_HC_Cache'); ?>
+    <?!= include_('ui/JS_Ficha'); ?>
+    <?!= include_('usuarios/Whatsapp_Dialogo'); ?>
+    <?!= include_('agenda/Panel_Recordatorios'); ?>
+
+    <script>
+      // Direccion de la app: se deja aqui porque include() no evalua scriptlets en los archivos incluidos.
+      var URL_BASE_WEB = <?!= JSON.stringify(baseUrl) ?>;
+
+      <?!= include_('ui/JS_Modal_Deshacer'); ?>
+
+      // Sección con la que se abre, pestañas que cambian de sección sin recargar y atrás entre secciones (ui/JS_Secciones).
+      Secciones.iniciar({
+        inicial: <?!= JSON.stringify(pagina === 'agenda' ? 'agenda' : 'usuarios') ?>,
+        paginas: { usuarios: 'baseDatos', agenda: 'agenda' },
+        titulos: { usuarios: 'Usuarios', agenda: 'Agenda' }
+      });
+
+      // Sección Usuarios en su propio bloque: sus nombres no chocan con los de la Agenda.
+      (function() {
+      <?!= include_('usuarios/JS_Usuarios_Base'); ?>
+      <?!= include_('usuarios/JS_Usuarios_Ficha'); ?>
+      <?!= include_('usuarios/JS_Usuarios_Acciones'); ?>
+      })();
+
+      // Sección Agenda en su propio bloque.
+      (function() {
+      <?!= include_('agenda/JS_Agenda_Base'); ?>
+      <?!= include_('agenda/JS_Agenda_Edicion'); ?>
+      <?!= include_('agenda/JS_Agenda_Vistas'); ?>
+      <?!= include_('agenda/JS_Agenda_Resumen'); ?>
+      })();
+    </script>
+  </body>
+</html>

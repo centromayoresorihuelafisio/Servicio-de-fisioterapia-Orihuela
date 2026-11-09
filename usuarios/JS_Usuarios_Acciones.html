@@ -12,7 +12,7 @@
       // Barra de progreso superior mientras algún botón (oculto o no) muestra "procesando"
       new MutationObserver(function() {
         var ocupado = Array.prototype.some.call(document.querySelectorAll('.barra-herramientas button'), function(b) { return b.innerHTML.indexOf('progress_activity') !== -1; });
-        document.body.classList.toggle('ocupado', ocupado);
+        cuerpoSeccion.classList.toggle('ocupado', ocupado);
       }).observe(document.querySelector('.barra-herramientas'), { childList: true, subtree: true });
 
       // Esc: cierra primero el menú y después la ficha
@@ -188,4 +188,5 @@
 
       restaurarVista();
       pintarGuardada();
-      cargar();
+      // En la página de Usuarios y Agenda, si se abre en la Agenda, la tabla se pide después de lo principal de la Agenda.
+      if (Secciones.activa() === 'usuarios') cargar(); else OrdenCarga.despues(function() { cargar(); }, 300);
