@@ -316,7 +316,7 @@
             if (res.snapshots) {   // tabla nueva: se borra la fila; se recarga la semana y Deshacer usa las fotos del servidor (con ID)
               cargar(semanaActual, true);
               actualizarBotonesSeleccion();
-              if (res.snapshots.length) mostrarDeshacer(res.snapshots, 'Cita eliminada.');
+              if (res.snapshots.length) deshacerAgenda.mostrar(res.snapshots, 'Cita eliminada.');
               return;
             }
             var cita = CITAS.find(function(c) { return c._fila == fila; });
@@ -331,7 +331,7 @@
             }
             render();
             actualizarBotonesSeleccion();
-            if (snapshot) mostrarDeshacer(snapshot, 'Cita eliminada.');
+            if (snapshot) deshacerAgenda.mostrar(snapshot, 'Cita eliminada.');
           }, function(err) {
             mostrarAviso('Error: ' + err);
             render();
@@ -357,31 +357,28 @@
             quitarSeleccion();
             cargar(semanaActual, true);
             var fotos = res.snapshots || snapshot;   // tabla nueva: fotos del servidor (con ID); hoja vieja: las del cliente
-            mostrarDeshacer(fotos, fotos.length === 1 ? 'Cita eliminada.' : fotos.length + ' citas eliminadas.');
+            deshacerAgenda.mostrar(fotos, fotos.length === 1 ? 'Cita eliminada.' : fotos.length + ' citas eliminadas.');
           }, function(err) { mostrarAviso('Error: ' + err); });
       }
 
       document.getElementById('btnEliminarCitas').addEventListener('click', manejarEliminarSeleccionadas);
 
-      function ejecutarDeshacer() {
-        if (!ultimaEliminacion || procesandoDeshacer) return;
-        procesandoDeshacer = true;
-        var snapshot = ultimaEliminacion;
-
-        llamar('restaurarCitasWeb', [snapshot])
-          .then(function(res) {
-            procesandoDeshacer = false;
-            if (!res.success) { mostrarAviso(res.message || 'No se pudo deshacer.'); return; }
-            ocultarDeshacer();
-            cargar(semanaActual, true);
-          }, function(err) {
-            procesandoDeshacer = false;
-            mostrarAviso('Error al deshacer: ' + err);
-          });
-      }
-
-      document.getElementById('toastDeshacerBtn').addEventListener('click', ejecutarDeshacer);
-      document.getElementById('btnDeshacer').addEventListener('click', ejecutarDeshacer);
+      // Deshacer (ui/JS_Modal_Deshacer): devuelve true si se restauró; si falla, el botón sigue disponible para reintentar.
+      var deshacerAgenda = Deshacer.crear({
+        boton: document.getElementById('btnDeshacer'),
+        toast: document.getElementById('toastDeshacer'),
+        alDeshacer: function(snapshot) {
+          return llamar('restaurarCitasWeb', [snapshot])
+            .then(function(res) {
+              if (!res.success) { mostrarAviso(res.message || 'No se pudo deshacer.'); return false; }
+              cargar(semanaActual, true);
+              return true;
+            }, function(err) {
+              mostrarAviso('Error al deshacer: ' + err);
+              return false;
+            });
+        }
+      });
 
       // ---------- Selección múltiple (el clic añade o quita de la selección) ----------
       var BOTONES_UNA_SOLA = ['btnValoracion'].map(function(id) { return document.getElementById(id); });

@@ -50,6 +50,7 @@
       </div>
     </header>
     <?!= include_('ui/Modal_Deshacer'); ?>
+    <?!= include_('ui/JS_Secciones'); ?>
     <script>
       <?!= include_('ui/JS_Modal_Deshacer'); ?>
 
@@ -122,23 +123,8 @@
       <?!= include_('configuracion/Seccion_Emergencia'); ?>
     </main>
     <script>
-      // ---------- Tema: automático / oscuro / claro (compartido con las otras pestañas, clave 'temaApp') ----------
-      (function () {
-        var TEMAS = ['auto', 'oscuro', 'claro'], ICONOS_TEMA = { auto: 'contrast', oscuro: 'dark_mode', claro: 'light_mode' };
-        var b = Cf.$('btnTema');
-        function aplicarTema(t, guardar) {
-          if (t === 'auto') document.documentElement.removeAttribute('data-tema'); else document.documentElement.setAttribute('data-tema', t);
-          b.textContent = '';
-          b.appendChild(Cf.icono(ICONOS_TEMA[t]));
-          b.title = 'Tema: ' + t + ' (clic para cambiar)';
-          b.dataset.tema = t;
-          if (guardar) { try { localStorage.setItem('temaApp', t); } catch (err) { /* sin almacenamiento */ } }
-        }
-        b.addEventListener('click', function () { aplicarTema(TEMAS[(TEMAS.indexOf(b.dataset.tema || 'auto') + 1) % TEMAS.length], true); });
-        var t = 'auto';
-        try { t = localStorage.getItem('temaApp') || 'auto'; } catch (err) { /* sin almacenamiento */ }
-        aplicarTema(TEMAS.indexOf(t) === -1 ? 'auto' : t, false);
-      })();
+      // ---------- Tema: automático / oscuro / claro (común: ui/JS_Secciones, clave 'temaApp') ----------
+      Tema.conectar(Cf.$('btnTema'));
     </script>
     <?!= include_('ui/JS_Selector_Fecha'); ?>
   </body>

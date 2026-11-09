@@ -40,13 +40,7 @@
         return partes[2] + '/' + partes[1] + '/' + partes[0].slice(2);
       }
       function formatearTel(t) { return Telefono.formato(t); }   // regla única: ui/JS_Telefono.html
-      function avatarHtml(nombre, extra) {
-        var n = (nombre || '').toString().trim();
-        if (!n) return '';
-        var p = n.split(/\s+/), ini = (p[0].charAt(0) + (p.length > 1 ? p[1].charAt(0) : p[0].charAt(1))).toUpperCase(), hue = 0, low = n.toLowerCase();
-        for (var i = 0; i < low.length; i++) hue = (hue * 31 + low.charCodeAt(i)) % 360;
-        return '<span class="avatar' + (extra ? ' ' + extra : '') + '" style="--h:' + hue + '">' + esc(ini) + '</span>';
-      }
+      // avatarHtml(nombre, extra): común, en ui/JS_Secciones.
       var pendientes = 0;
       function ocupado(d) { pendientes = Math.max(0, pendientes + d); document.body.classList.toggle('ocupado', pendientes > 0); }
 
@@ -466,7 +460,7 @@
             ocupado(-1);
             if (!res.success) { mostrarAviso(res.message || 'No se pudo eliminar la valoración.'); return; }
             cargar();
-            mostrarDeshacer(snapshot, 'Valoración eliminada.');
+            deshacerValoraciones.mostrar(snapshot, 'Valoración eliminada.');
           }, function(err) { ocupado(-1); mostrarAviso('Error al eliminar: ' + err); });
       }
 

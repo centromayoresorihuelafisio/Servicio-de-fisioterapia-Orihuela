@@ -232,13 +232,7 @@
 
       function formatearTel(t) { return Telefono.formato(t); }   // regla única: ui/JS_Telefono.html
 
-      function avatarHtml(nombre, extra) {
-        var n = (nombre || '').toString().trim();
-        if (!n) return '';
-        var p = n.split(/\s+/), ini = (p[0].charAt(0) + (p.length > 1 ? p[1].charAt(0) : p[0].charAt(1))).toUpperCase(), hue = 0, low = n.toLowerCase();
-        for (var i = 0; i < low.length; i++) hue = (hue * 31 + low.charCodeAt(i)) % 360;
-        return '<span class="avatar' + (extra ? ' ' + extra : '') + '" style="--h:' + hue + '">' + esc(ini) + '</span>';
-      }
+      // avatarHtml(nombre, extra): común, en ui/JS_Secciones.
 
       // Columna A: puntuación de prioridad que escribe "Ordenar Usuarios" (ordenarPacientes,
       // en usuarios/BaseDatos.gs). Se localiza por posición (primera columna), no por nombre,
@@ -447,7 +441,7 @@
             seleccionMultiple.clear();
             actualizarBarraLote();
             cargar();
-            if (res && res.success && copias.length) mostrarDeshacer(copias, (res.message) || (copias.length + (copias.length === 1 ? ' usuario eliminado.' : ' usuarios eliminados.')));
+            if (res && res.success && copias.length) deshacerUsuarios.mostrar(copias, (res.message) || (copias.length + (copias.length === 1 ? ' usuario eliminado.' : ' usuarios eliminados.')));
             else mostrarAviso((res && res.message) || (res && res.success ? 'Usuarios eliminados.' : 'No se pudo eliminar.'));
           }, function(err) { cargar(); mostrarAviso('Error al eliminar: ' + err); });
       });

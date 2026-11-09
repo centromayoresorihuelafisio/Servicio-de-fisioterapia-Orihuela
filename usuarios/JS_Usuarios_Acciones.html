@@ -4,7 +4,10 @@
 
 
       // ---------- Avisos ligeros (toasts): avisoFlotante de ui/JS_Modal_Deshacer, con el criterio de error de esta pestaña ----------
-      function mostrarAviso(mensaje) { return avisoFlotante(mensaje, /^error|no se pudo|no se pudieron|bloqueado/i); }
+      // El mostrarAviso global (ui/JS_Secciones) va a este mientras Usuarios es la sección activa.
+      Secciones.registrar('usuarios', {
+        mostrarAviso: function(mensaje) { return avisoFlotante(mensaje, /^error|no se pudo|no se pudieron|bloqueado/i); }
+      });
 
       // Barra de progreso superior mientras algún botón (oculto o no) muestra "procesando"
       new MutationObserver(function() {
@@ -73,49 +76,44 @@
             if (!res.success) { mostrarAviso(res.message || 'No se pudo eliminar el usuario.'); return; }
             quitarSeleccion();
             cargar();
-            mostrarDeshacer(snapshot, 'Usuario eliminado.');
+            deshacerUsuarios.mostrar(snapshot, 'Usuario eliminado.');
           }, function(err) {
             mostrarAviso('Error al eliminar: ' + err);
           });
       }
 
-      function ejecutarDeshacer() {
-        if (!ultimaEliminacion || procesandoDeshacer) return;
-        procesandoDeshacer = true;
-        var snapshot = ultimaEliminacion;
-        if (Array.isArray(snapshot)) { restaurarEnCadena(snapshot, 0); return; } // eliminación en lote
+      // Deshacer (ui/JS_Modal_Deshacer): devuelve true si se restauró; si falla, el botón sigue disponible para reintentar.
+      var deshacerUsuarios = Deshacer.crear({
+        boton: document.getElementById('btnDeshacer'),
+        toast: document.getElementById('toastDeshacer'),
+        alDeshacer: function(snapshot) {
+          if (Array.isArray(snapshot)) return restaurarEnCadena(snapshot, 0); // eliminación en lote
+          return llamar('restaurarPacienteWeb', [snapshot])
+            .then(function(res) {
+              if (!res.success) { mostrarAviso(res.message || 'No se pudo deshacer.'); return false; }
+              cargar();
+              return true;
+            }, function(err) {
+              mostrarAviso('Error al deshacer: ' + err);
+              return false;
+            });
+        }
+      });
 
-        llamar('restaurarPacienteWeb', [snapshot])
-          .then(function(res) {
-            procesandoDeshacer = false;
-            if (!res.success) { mostrarAviso(res.message || 'No se pudo deshacer.'); return; } // el botón sigue disponible para reintentar
-            ocultarDeshacer();
-            cargar();
-          }, function(err) {
-            procesandoDeshacer = false;
-            mostrarAviso('Error al deshacer: ' + err); // el botón sigue disponible para reintentar
-          });
-      }
-
-      // Restaura una lista de fichas de una en una (en orden de fila); si una falla, conserva las pendientes para reintentar.
+      // Restaura una lista de fichas de una en una (en orden de fila); si una falla, devuelve las pendientes para reintentar.
       function restaurarEnCadena(lista, i) {
         if (i >= lista.length) {
-          procesandoDeshacer = false;
-          ocultarDeshacer();
           cargar();
           mostrarAviso(lista.length + (lista.length === 1 ? ' usuario restaurado.' : ' usuarios restaurados.'));
-          return;
+          return Promise.resolve(true);
         }
-        function fallo(msg) { procesandoDeshacer = false; ultimaEliminacion = lista.slice(i); cargar(); mostrarAviso(msg); }
-        llamar('restaurarPacienteWeb', [lista[i]])
+        function fallo(msg) { cargar(); mostrarAviso(msg); return lista.slice(i); }
+        return llamar('restaurarPacienteWeb', [lista[i]])
           .then(function(res) {
-            if (!res || !res.success) { fallo((res && res.message) || 'No se pudieron restaurar todos los usuarios.'); return; }
-            restaurarEnCadena(lista, i + 1);
-          }, function(err) { fallo('Error al deshacer: ' + err); });
+            if (!res || !res.success) return fallo((res && res.message) || 'No se pudieron restaurar todos los usuarios.');
+            return restaurarEnCadena(lista, i + 1);
+          }, function(err) { return fallo('Error al deshacer: ' + err); });
       }
-
-      document.getElementById('toastDeshacerBtn').addEventListener('click', ejecutarDeshacer);
-      document.getElementById('btnDeshacer').addEventListener('click', ejecutarDeshacer);
 
       // ---------- Dar de alta ----------
       async function darDeAltaSeleccionado() {
@@ -186,23 +184,7 @@
         this.blur();
       });
 
-      var TEMAS = ['auto', 'oscuro', 'claro'], ICONOS_TEMA = { auto: 'contrast', oscuro: 'dark_mode', claro: 'light_mode' };
-      function aplicarTema(t, guardar) {
-        if (t === 'auto') document.documentElement.removeAttribute('data-tema'); else document.documentElement.setAttribute('data-tema', t);
-        var b = document.getElementById('btnTema');
-        b.innerHTML = '<span class="material-symbols-outlined">' + ICONOS_TEMA[t] + '</span>';
-        b.title = 'Tema: ' + t + ' (clic para cambiar)';
-        b.dataset.tema = t;
-        if (guardar) { try { localStorage.setItem('temaApp', t); } catch (err) { /* sin almacenamiento */ } }
-      }
-      document.getElementById('btnTema').addEventListener('click', function() {
-        aplicarTema(TEMAS[(TEMAS.indexOf(this.dataset.tema || 'auto') + 1) % TEMAS.length], true);
-      });
-      (function() {
-        var t = 'auto';
-        try { t = localStorage.getItem('temaApp') || 'auto'; } catch (err) { /* sin almacenamiento */ }
-        aplicarTema(TEMAS.indexOf(t) === -1 ? 'auto' : t, false);
-      })();
+      Tema.conectar(document.getElementById('btnTema'));   // tema común: ui/JS_Secciones
 
       restaurarVista();
       pintarGuardada();

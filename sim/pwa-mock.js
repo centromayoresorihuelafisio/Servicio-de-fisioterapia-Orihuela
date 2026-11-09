@@ -96,6 +96,10 @@
       return { success: true, headers: HEADERS, fichas: fichas, generado: Date.now(),
         usuarios: pacientes.map(function (p) { return { id: p['ID paciente'], nombre: p['Nombre'], estado: p['Estado'], telefono: p['Teléfono 1'] }; }) };
     },
+    obtenerFichaUsuarioWeb: function (nombre) {
+      var p = pacientes.filter(function (x) { return clave(x['Nombre']) === clave(nombre); })[0];
+      return p ? { success: true, headers: HEADERS, paciente: p } : { success: false, message: 'No se encontró a este usuario en Usuarios.' };
+    },
     obtenerRecordatoriosWeb: function () { return { success: true, recordatorios: [] }; },
     obtenerValoracionesWeb: function () { return { pacientes: [] }; },
     obtenerHCsActivasWeb: function () { return { success: true, historias: [] }; },

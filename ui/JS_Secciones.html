@@ -1,0 +1,96 @@
+<!--
+  ui/JS_Secciones.html - PUNTO DE ENLACE entre las secciones de una página y las piezas comunes (fase 2 de la sección 20 de
+  CONTEXTO.md: Usuarios y Agenda en una sola página). Mientras siguen siendo páginas separadas, cada una registra una sola
+  sección y todo funciona como antes.
+
+  Se incluye con include_('ui/JS_Secciones') con "!" (fuera de cualquier bloque de script), ANTES del script principal de
+  la página. Lo usan Usuarios (usuarios/BaseDatos_Vista), la Agenda (agenda/Web_Vista), Valoraciones (valoraciones/Web_Vista),
+  Estadísticas (dashboard/Web_Vista) y Configuración (configuracion/Web_Vista).
+
+  Secciones:
+    Secciones.registrar(nombre, opciones)   da de alta una sección. La primera que se registra queda activa.
+      opciones: { mostrarAviso(texto), activar(), desactivar() } (todas opcionales)
+    Secciones.activa()                      nombre de la sección activa (o null si no hay ninguna).
+    Secciones.cambiar(nombre)               pasa a otra sección: desactivar() de la que sale y activar() de la que entra.
+  Los atajos de teclado y Esc de cada sección empiezan con «si Secciones.activa() no es la mía, nada».
+
+  mostrarAviso(texto)   global: lo usan las piezas comunes (ui/JS_Ficha, valoraciones/Panel_Valoraciones, Configuración).
+                        Va al mostrarAviso de la sección activa; sin sección (o si no tiene), al diálogo de ui/JS_Modal_Deshacer.
+  avatarHtml(nombre, extra)   avatar con iniciales y color fijo por nombre (lo pinta ui/CSS_Global .avatar). `extra` = clase
+                        de más (p. ej. 'grande'). Lo usan Usuarios, la Agenda, Valoraciones y ui/JS_Ficha.
+  Tema                  tema automático / oscuro / claro, compartido por todas las pestañas (clave 'temaApp' de localStorage).
+    Tema.conectar(boton)        el botón de la cabecera cambia de tema al pulsarlo; aplica el tema guardado.
+    aplicarTema(t, guardar)     pone el tema t ('auto', 'oscuro' o 'claro') y pinta el icono en todos los botones conectados.
+-->
+<script>
+var Secciones = (function() {
+  var registro = {}, actual = null;
+
+  function registrar(nombre, opciones) {
+    registro[nombre] = opciones || {};
+    if (!actual) actual = nombre;
+  }
+  function activa() { return actual; }
+  function cambiar(nombre) {
+    if (!registro[nombre] || nombre === actual) return;
+    var sale = registro[actual];
+    if (sale && typeof sale.desactivar === 'function') sale.desactivar();
+    actual = nombre;
+    if (typeof registro[nombre].activar === 'function') registro[nombre].activar();
+  }
+  /** Opciones de la sección activa (uso interno de este archivo). */
+  function opcionesActiva() { return actual ? registro[actual] : null; }
+
+  return { registrar: registrar, activa: activa, cambiar: cambiar, opcionesActiva_: opcionesActiva };
+})();
+
+function mostrarAviso(mensaje) {
+  var s = Secciones.opcionesActiva_();
+  if (s && typeof s.mostrarAviso === 'function') return s.mostrarAviso(mensaje);
+  return mostrarDialogo(mensaje, false);
+}
+
+function avatarHtml(nombre, extra) {
+  var n = (nombre || '').toString().trim();
+  if (!n) return '';
+  var p = n.split(/\s+/), ini = (p[0].charAt(0) + (p.length > 1 ? p[1].charAt(0) : p[0].charAt(1))).toUpperCase(), hue = 0, low = n.toLowerCase();
+  for (var i = 0; i < low.length; i++) hue = (hue * 31 + low.charCodeAt(i)) % 360;
+  var seguro = ini.replace(/[&<>"']/g, function(c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; });
+  return '<span class="avatar' + (extra ? ' ' + extra : '') + '" style="--h:' + hue + '">' + seguro + '</span>';
+}
+
+var Tema = (function() {
+  var TEMAS = ['auto', 'oscuro', 'claro'], ICONOS = { auto: 'contrast', oscuro: 'dark_mode', claro: 'light_mode' };
+  var botones = [], actual = 'auto';
+
+  function pintar(b) {
+    b.textContent = '';
+    var ic = document.createElement('span');
+    ic.className = 'material-symbols-outlined';
+    ic.textContent = ICONOS[actual];
+    b.appendChild(ic);
+    b.title = 'Tema: ' + actual + ' (clic para cambiar)';
+    b.dataset.tema = actual;
+  }
+  function aplicar(t, guardar) {
+    if (TEMAS.indexOf(t) === -1) t = 'auto';
+    actual = t;
+    if (t === 'auto') document.documentElement.removeAttribute('data-tema'); else document.documentElement.setAttribute('data-tema', t);
+    botones.forEach(pintar);
+    if (guardar) { try { localStorage.setItem('temaApp', t); } catch (err) { /* sin almacenamiento */ } }
+  }
+  function guardado() {
+    var t = 'auto';
+    try { t = localStorage.getItem('temaApp') || 'auto'; } catch (err) { /* sin almacenamiento */ }
+    return TEMAS.indexOf(t) === -1 ? 'auto' : t;
+  }
+  function conectar(boton) {
+    if (!boton || botones.indexOf(boton) !== -1) return;
+    botones.push(boton);
+    boton.addEventListener('click', function() { aplicar(TEMAS[(TEMAS.indexOf(actual) + 1) % TEMAS.length], true); });
+    aplicar(guardado(), false);
+  }
+  return { aplicar: aplicar, conectar: conectar };
+})();
+function aplicarTema(t, guardar) { Tema.aplicar(t, guardar); }
+</script>

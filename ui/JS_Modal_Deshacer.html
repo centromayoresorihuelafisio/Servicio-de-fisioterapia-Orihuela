@@ -77,7 +77,7 @@
           btnCancelar.addEventListener('click', onCancelar);
         });
       }
-      function mostrarAviso(mensaje) { return mostrarDialogo(mensaje, false); }
+      // mostrarAviso(m) global vive en ui/JS_Secciones (va al de la sección activa; sin ella, a mostrarDialogo).
       function mostrarConfirm(mensaje, opciones) { return mostrarDialogo(mensaje, true, opciones); }
 
       // ---------- Aviso ligero (toast), común a Usuarios, Agenda, Valoraciones y la historia clínica a pantalla completa ----------
@@ -101,35 +101,65 @@
       }
 
       // ---------- Deshacer la última eliminación ----------
-      // Guarda solo la ÚLTIMA foto (no un historial completo): se pierde al
-      // recargar o cambiar de pestaña, o al eliminar otro elemento encima —
-      // cubre el caso real ("me he equivocado") sin la complejidad de un
+      // Guarda solo la ÚLTIMA foto de cada sección (no un historial completo): se pierde al recargar o cambiar de
+      // pestaña, o al eliminar otro elemento encima; cubre el caso real ("me he equivocado") sin la complejidad de un
       // historial de deshacer de verdad.
-      // NOTA: estas tres variables y las dos funciones de abajo son
-      // compartidas (idénticas en Usuarios, Agenda y Valoraciones); lo
-      // que SÍ cambia en cada página es ejecutarDeshacer() — porque cada una
-      // llama a una función de servidor distinta (restaurarPacienteWeb /
-      // restaurarCitasWeb / restaurarValoracionWeb) — así que esa función se
-      // queda definida en cada archivo, no aquí.
-      var ultimaEliminacion = null;
-      var timeoutToastDeshacer = null;
-      var procesandoDeshacer = false;
+      // Cada sección crea el suyo (Usuarios, Agenda, Valoraciones), con su botón «Deshacer» de la cabecera y su forma de
+      // restaurar (restaurarPacienteWeb / restaurarCitasWeb / restaurarValoracionWeb):
+      //   var d = Deshacer.crear({ boton, toast, alDeshacer: function(foto) { ...; return promesa; } });
+      //   d.mostrar(foto, texto)   enseña el botón y el aviso momentáneo (toast, ui/Modal_Deshacer) con su texto
+      //   d.ocultar()              lo quita (y olvida la foto)
+      // alDeshacer(foto) devuelve una promesa (o un valor): true = restaurado (se oculta); false o nada = falló, el botón
+      // sigue para reintentar; otro valor = restaurado en parte, ese valor pasa a ser la foto pendiente (p. ej. el resto
+      // de un lote). El aviso momentáneo puede ser el mismo para varias secciones: su botón deshace la última que lo enseñó.
+      var Deshacer = (function() {
+        var toasts = [];   // { el, dueno, temporizador } por cada aviso momentáneo usado
 
-      function mostrarDeshacer(snapshot, texto) {
-        ultimaEliminacion = snapshot;
+        function datosToast(el) {
+          for (var i = 0; i < toasts.length; i++) if (toasts[i].el === el) return toasts[i];
+          var d = { el: el, dueno: null, temporizador: null };
+          var b = el.querySelector('button');
+          if (b) b.addEventListener('click', function() { if (d.dueno) d.dueno.ejecutar(); });
+          toasts.push(d);
+          return d;
+        }
 
-        document.getElementById('btnDeshacer').classList.add('visible');
+        function crear(o) {
+          var foto = null, procesando = false;
+          var t = o.toast ? datosToast(o.toast) : null;
+          var yo = {
+            mostrar: function(nuevaFoto, texto) {
+              foto = nuevaFoto;
+              if (o.boton) o.boton.classList.add('visible');
+              if (!t) return;
+              t.dueno = yo;
+              var txt = t.el.querySelector('span');
+              if (txt) txt.textContent = texto;
+              t.el.classList.add('visible');
+              if (t.temporizador) clearTimeout(t.temporizador);
+              t.temporizador = setTimeout(function() { t.el.classList.remove('visible'); t.temporizador = null; }, 6000);
+            },
+            ocultar: function() {
+              foto = null;
+              if (o.boton) o.boton.classList.remove('visible');
+              if (!t || t.dueno !== yo) return;
+              t.el.classList.remove('visible');
+              if (t.temporizador) { clearTimeout(t.temporizador); t.temporizador = null; }
+            },
+            ejecutar: function() {
+              if (!foto || procesando) return;
+              procesando = true;
+              var actual = foto;
+              Promise.resolve().then(function() { return o.alDeshacer(actual); }).then(function(r) {
+                procesando = false;
+                if (r === true) yo.ocultar();
+                else if (r !== false && r !== undefined && r !== null) foto = r;
+              }, function() { procesando = false; });
+            }
+          };
+          if (o.boton) o.boton.addEventListener('click', yo.ejecutar);
+          return yo;
+        }
 
-        var toast = document.getElementById('toastDeshacer');
-        document.getElementById('toastDeshacerTexto').textContent = texto;
-        toast.classList.add('visible');
-        if (timeoutToastDeshacer) clearTimeout(timeoutToastDeshacer);
-        timeoutToastDeshacer = setTimeout(function() { toast.classList.remove('visible'); }, 6000);
-      }
-
-      function ocultarDeshacer() {
-        ultimaEliminacion = null;
-        document.getElementById('btnDeshacer').classList.remove('visible');
-        document.getElementById('toastDeshacer').classList.remove('visible');
-        if (timeoutToastDeshacer) { clearTimeout(timeoutToastDeshacer); timeoutToastDeshacer = null; }
-      }
+        return { crear: crear };
+      })();
