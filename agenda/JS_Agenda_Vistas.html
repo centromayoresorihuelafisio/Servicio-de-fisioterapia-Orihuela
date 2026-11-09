@@ -1,5 +1,6 @@
       // agenda/JS_Agenda_Vistas.html - Agenda: navegacion, vistas, atajos, arrastrar, avisos, tema, animaciones, cuadricula y actualizacion automatica.
-      // Se incluye dentro del unico <script> de agenda/Web_Vista, en este orden: JS_Agenda_Base, ui/JS_Modal_Deshacer, JS_Agenda_Edicion, JS_Agenda_Vistas, JS_Agenda_Resumen.
+      // Se incluye dentro del unico <script> de agenda/Web_Vista, tras ui/JS_Modal_Deshacer y dentro del bloque de la sección
+      // ((function() { … })(), fase 2 de la sección 20 de CONTEXTO.md), en este orden: JS_Agenda_Base, JS_Agenda_Edicion, JS_Agenda_Vistas, JS_Agenda_Resumen.
       // Sin scriptlets: include() no los evalua (la direccion de la app llega en URL_BASE_WEB, definida en la pagina).
       // ---------- Navegación de semana ----------
       function hoyISO() { return formatoISO(new Date()); }
@@ -36,7 +37,7 @@
       });
 
       SelectorFecha.enlazar(document.getElementById('inputSemana'), { borrar: false, marcas: marcasDia });   // calendario moderno en lugar del nativo
-      document.getElementById('inputBusqueda').addEventListener('input', render);
+      document.getElementById('agBusqueda').addEventListener('input', render);
 
       document.getElementById('btnHuecos').addEventListener('click', function() {
         mostrarHuecos = !mostrarHuecos;
@@ -61,7 +62,7 @@
       }
 
       function cambiarVista(v) {
-        var w = document.getElementById('tablaWrap');
+        var w = document.getElementById('agTablaWrap');
         w.classList.remove('anim'); void w.offsetWidth; w.classList.add('anim');
         fijarVista(v);
         if (v === 'hoy' && !CITAS.some(function(c) { return c._fechaISO === hoyISO(); })) {
@@ -70,7 +71,7 @@
         }
         render();
         if (v === 'semana') scrollAHoy();
-        else document.getElementById('tablaWrap').scrollTop = 0;
+        else document.getElementById('agTablaWrap').scrollTop = 0;
       }
 
       document.getElementById('btnVistaSemana').addEventListener('click', function() { cambiarVista('semana'); });
@@ -116,27 +117,27 @@
       });
 
       // ---------- Atajos de teclado ----------
-      document.getElementById('btnAtajos').addEventListener('click', function() {
+      document.getElementById('agAtajos').addEventListener('click', function() {
         mostrarAviso('Atajos de teclado\n← / →   Semana anterior / siguiente\nT   Ir a hoy\nR   Recordatorios\n/   Buscar\nEsc   Quitar selección o filtros');
       });
 
-      document.getElementById('inputBusqueda').addEventListener('keydown', function(e) {
+      document.getElementById('agBusqueda').addEventListener('keydown', function(e) {
         if (e.key === 'Escape') { this.value = ''; this.blur(); render(); }
       });
 
       document.addEventListener('keydown', function(e) {
-        if (e.ctrlKey || e.metaKey || e.altKey) return;
+        if (e.ctrlKey || e.metaKey || e.altKey || Secciones.activa() !== 'agenda') return;   // atajos solo con la Agenda a la vista
         var modal = document.getElementById('modalOverlay');
         if (modal && modal.classList.contains('visible')) return;
         var el = document.activeElement, tag = el ? el.tagName : '';
         if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA' || (el && el.isContentEditable)) return;
-        if (el && el.closest && el.closest('#ficha, .fu-menu')) return;   // el foco está en el panel lateral o en su menú de estado
+        if (el && el.closest && el.closest('#agFicha, .fu-menu')) return;   // el foco está en el panel lateral o en su menú de estado
 
         if (e.key === 'ArrowLeft') { e.preventDefault(); moverSemana(-7); }
         else if (e.key === 'ArrowRight') { e.preventDefault(); moverSemana(7); }
         else if (e.key === 't' || e.key === 'T') { document.getElementById('btnHoy').click(); }
         else if (e.key === 'r' || e.key === 'R') { e.preventDefault(); abrirRecordatorios(); }   // preventDefault: si no, la "r" se escribe en el campo que el panel enfoca
-        else if (e.key === '/') { e.preventDefault(); document.getElementById('inputBusqueda').focus(); }
+        else if (e.key === '/') { e.preventDefault(); document.getElementById('agBusqueda').focus(); }
         else if (e.key === 'Escape') {
           var menusAbiertos = document.querySelectorAll('.menu-wrap.abierto');
           if (menusAbiertos.length) menusAbiertos.forEach(function(w) { w.classList.remove('abierto'); });
@@ -187,7 +188,7 @@
         return true;
       }
 
-      var wrapArrastre = document.getElementById('tablaWrap');
+      var wrapArrastre = document.getElementById('agTablaWrap');
 
       wrapArrastre.addEventListener('pointerdown', function(e) {
         if (arrastre || (e.pointerType === 'mouse' && e.button !== 0)) return;
@@ -218,7 +219,7 @@
       window.addEventListener('pointercancel', function() { candidatoArrastre = null; if (arrastre) finalizarArrastre(false); });
       document.addEventListener('selectstart', function(e) { if (arrastre) e.preventDefault(); });
       document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape' && arrastre) { e.stopPropagation(); finalizarArrastre(false); }
+        if (e.key === 'Escape' && arrastre && Secciones.activa() === 'agenda') { e.stopPropagation(); finalizarArrastre(false); }
       }, true);
 
       // El clic que sigue a soltar no debe seleccionar/editar nada.
@@ -408,15 +409,14 @@
       });
 
       // ---------- Avisos ligeros (toasts): avisoFlotante de ui/JS_Modal_Deshacer, con el criterio de error de esta pestaña ----------
-      // El mostrarAviso global (ui/JS_Secciones) va a este mientras la Agenda es la sección activa.
-      Secciones.registrar('agenda', {
-        mostrarAviso: function(mensaje) { return avisoFlotante(mensaje, /^error|no se pudo|no se pudieron|ya est/i); }
-      });
+      // Dentro del bloque de la sección, mostrarAviso es este; el global (ui/JS_Secciones) va a este mientras la Agenda es la activa.
+      function mostrarAviso(mensaje) { return avisoFlotante(mensaje, /^error|no se pudo|no se pudieron|ya est/i); }
+      Secciones.registrar('agenda', { mostrarAviso: mostrarAviso });
 
       // ---------- Avatares con iniciales: avatarHtml(nombre), común, en ui/JS_Secciones ----------
 
       // ---------- Tema: automático / oscuro / claro (común: ui/JS_Secciones) ----------
-      Tema.conectar(document.getElementById('btnTema'));
+      Tema.conectar(document.getElementById('agTema'));
 
       // ---------- Animaciones: desplazamiento al mover, destello y salida al eliminar ----------
       var pendienteFLIP = [], estadoHuecoPrevio = {};
@@ -447,7 +447,7 @@
       }
 
       // Sombra en las columnas fijas al desplazar en horizontal
-      document.getElementById('tablaWrap').addEventListener('scroll', function() { this.classList.toggle('desplazado', this.scrollLeft > 4); }, { passive: true });
+      document.getElementById('agTablaWrap').addEventListener('scroll', function() { this.classList.toggle('desplazado', this.scrollLeft > 4); }, { passive: true });
 
       // ---------- Vista Cuadrícula (calendario semanal) ----------
       function htmlCuadricula(filtradas) {

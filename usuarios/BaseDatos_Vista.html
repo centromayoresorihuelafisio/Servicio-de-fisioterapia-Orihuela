@@ -44,7 +44,7 @@
       <?!= include_('usuarios/CSS_Usuarios'); ?>
     </style>
   </head>
-  <body>
+  <body class="sec-usuarios">
     <?!= incluirAcceso_('baseDatos'); ?>
     <?!= incluirPestanas_('baseDatos'); ?>
     <header class="top">
@@ -112,10 +112,14 @@
       // Direccion de la app: se deja aqui porque include() no evalua scriptlets en los archivos incluidos.
       var URL_BASE_WEB = <?!= JSON.stringify(baseUrl) ?>;
 
+      <?!= include_('ui/JS_Modal_Deshacer'); ?>
+
+      // Sección Usuarios en su propio bloque (fase 2 de la sección 20 de CONTEXTO.md): sus nombres no chocan con los de otra sección.
+      (function() {
       <?!= include_('usuarios/JS_Usuarios_Base'); ?>
       <?!= include_('usuarios/JS_Usuarios_Ficha'); ?>
-      <?!= include_('ui/JS_Modal_Deshacer'); ?>
       <?!= include_('usuarios/JS_Usuarios_Acciones'); ?>
+      })();
     </script>
   </body>
 </html>

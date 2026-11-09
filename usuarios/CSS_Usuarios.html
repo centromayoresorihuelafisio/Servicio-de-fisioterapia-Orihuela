@@ -2,7 +2,13 @@
          Sin scriptlets: include() no los evalua. */
 
       html, body { height: 100%; }
-      body {
+
+      /* Fase 2 (sección 20 de CONTEXTO.md): todo lo propio de Usuarios va dentro de :where(.sec-usuarios) { … } con anidado nativo de CSS.
+         La clase .sec-usuarios la lleva <body>. :where() no suma especificidad: cada regla pesa lo mismo que antes. Las reglas sobre
+         body se escriben body& (el propio body con la clase de la sección). Fuera del bloque (no se pueden o no se deben
+         anidar): html/body de altura, :root, @keyframes y, en la impresión, @page y lo que va sobre html/body. */
+      :where(.sec-usuarios) {
+      body& {
         font-family: var(--font);
         background: var(--md-bg);
         color: var(--md-on-surface);
@@ -115,10 +121,10 @@
         border-left: 1px solid var(--md-outline); box-shadow: var(--md-elev-3); transform: translateX(100%); visibility: hidden; transition: transform var(--dur-3) var(--ease), visibility 0s var(--dur-3); will-change: transform; }
       .ficha.abierta { transform: none; visibility: visible; transition-delay: 0s; }
       /* Formularios que piden más sitio (Cita): el panel pasa de 400 a 520 px solo con pantalla ancha */
-      @media (min-width: 1200px) { body.ficha-ancha { --ficha-w: 520px; } }
+      @media (min-width: 1200px) { body&.ficha-ancha { --ficha-w: 520px; } }
       /* Historia clínica: cajón muy ancho que se superpone a la tabla (no la desplaza) */
-      body.ficha-hc { --ficha-w: min(1120px, 96vw); }
-      body.ficha-hc .ficha { box-shadow: var(--md-elev-3); }
+      body&.ficha-hc { --ficha-w: min(1120px, 96vw); }
+      body&.ficha-hc .ficha { box-shadow: var(--md-elev-3); }
       /* Cabecera y cuerpo de un formulario abierto dentro de la ficha (Valoración, Editar, Cita) */
       .ficha-form-cab { flex: none; display: flex; align-items: center; gap: .5rem; padding: .7rem .8rem; border-bottom: 1px solid var(--md-outline); }
       .ficha-form-cab button { border: none; background: none; cursor: pointer; width: 34px; height: 34px; border-radius: 50%; color: var(--md-on-surface-med); display: inline-flex; align-items: center; justify-content: center; }
@@ -128,13 +134,13 @@
       .ficha-form-cuerpo > * { flex: 1 1 auto; min-height: 0; }
       @media (min-width: 900px) {
         /* Sin animar el margen (forzaba reflujo de la tabla en cada fotograma): el panel se desliza con transform y el contenido se ajusta al instante. */
-        body.con-ficha:not(.ficha-hc) nav.tabs-cambio, body.con-ficha:not(.ficha-hc) header.top, body.con-ficha:not(.ficha-hc) .tabla-wrap { margin-right: var(--ficha-w, 400px); }
+        body&.con-ficha:not(.ficha-hc) nav.tabs-cambio, body&.con-ficha:not(.ficha-hc) header.top, body&.con-ficha:not(.ficha-hc) .tabla-wrap { margin-right: var(--ficha-w, 400px); }
         /* Con la ficha abierta se ocultan Prioridad, Inscripción y las acciones de fila (la ficha ya tiene sus botones) para que la tabla quepa sin scroll horizontal. */
-        body.con-ficha:not(.ficha-hc) .tabla-wrap { overflow-x: hidden; }
-        body.con-ficha:not(.ficha-hc) table { min-width: 0; }
-        body.con-ficha:not(.ficha-hc) thead th:nth-child(n+6), body.con-ficha:not(.ficha-hc) tbody td:nth-child(n+6) { display: none; }
-        body.con-ficha:not(.ficha-hc) thead th.col-usuario, body.con-ficha:not(.ficha-hc) tbody td.col-usuario { width: 250px; min-width: 250px; max-width: 250px; }
-        body.con-ficha:not(.ficha-hc) td.col-clinico { max-width: 240px; }
+        body&.con-ficha:not(.ficha-hc) .tabla-wrap { overflow-x: hidden; }
+        body&.con-ficha:not(.ficha-hc) table { min-width: 0; }
+        body&.con-ficha:not(.ficha-hc) thead th:nth-child(n+6), body&.con-ficha:not(.ficha-hc) tbody td:nth-child(n+6) { display: none; }
+        body&.con-ficha:not(.ficha-hc) thead th.col-usuario, body&.con-ficha:not(.ficha-hc) tbody td.col-usuario { width: 250px; min-width: 250px; max-width: 250px; }
+        body&.con-ficha:not(.ficha-hc) td.col-clinico { max-width: 240px; }
       }
 
       /* .toasts y .toast-aviso: definidos en ui/CSS_Global (V3) */
@@ -158,7 +164,7 @@
       thead th.col-acciones { width: 208px; min-width: 208px; }
       input[type=checkbox].chk-fila, input[type=checkbox].chk-todo { width: 17px; height: 17px; cursor: pointer; accent-color: var(--md-primary); }
       tbody tr td.col-check { opacity: 0; transition: opacity var(--dur-1) var(--ease); }
-      tbody tr:hover td.col-check, tbody tr.seleccion-multiple td.col-check, body.seleccion-activa tbody tr td.col-check, thead th.col-check { opacity: 1; }
+      tbody tr:hover td.col-check, tbody tr.seleccion-multiple td.col-check, body&.seleccion-activa tbody tr td.col-check, thead th.col-check { opacity: 1; }
       tbody tr.seleccion-multiple { background: var(--md-primary-light); }
       tbody tr.fila-activa td.col-usuario { box-shadow: inset 3px 0 0 var(--md-on-surface-low); }
 
@@ -242,3 +248,4 @@
       .tipo-ing { font-size: var(--fs-sm); margin-left: 0; }
 
       .menu-item:focus-visible { outline-offset: -2px; background: var(--md-surface-variant); }
+      }

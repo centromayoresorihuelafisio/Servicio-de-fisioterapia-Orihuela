@@ -1,13 +1,13 @@
       // usuarios/JS_Usuarios_Acciones.html - Usuarios: avisos, barra de herramientas, eliminar, alta, Historia Clinica, WhatsApp, tema y arranque
-      // Se incluye dentro del unico <script> de usuarios/BaseDatos_Vista, en este orden: JS_Usuarios_Base, JS_Usuarios_Ficha, ui/JS_Modal_Deshacer, JS_Usuarios_Acciones.
+      // Se incluye dentro del unico <script> de usuarios/BaseDatos_Vista, tras ui/JS_Modal_Deshacer y dentro del bloque de la sección
+      // ((function() { … })(), fase 2 de la sección 20 de CONTEXTO.md), en este orden: JS_Usuarios_Base, JS_Usuarios_Ficha, JS_Usuarios_Acciones.
       // Sin scriptlets: include() no los evalua (la direccion de la app llega en URL_BASE_WEB, definida en la pagina).
 
 
       // ---------- Avisos ligeros (toasts): avisoFlotante de ui/JS_Modal_Deshacer, con el criterio de error de esta pestaña ----------
-      // El mostrarAviso global (ui/JS_Secciones) va a este mientras Usuarios es la sección activa.
-      Secciones.registrar('usuarios', {
-        mostrarAviso: function(mensaje) { return avisoFlotante(mensaje, /^error|no se pudo|no se pudieron|bloqueado/i); }
-      });
+      // Dentro del bloque de la sección, mostrarAviso es este; el global (ui/JS_Secciones) va a este mientras Usuarios es la activa.
+      function mostrarAviso(mensaje) { return avisoFlotante(mensaje, /^error|no se pudo|no se pudieron|bloqueado/i); }
+      Secciones.registrar('usuarios', { mostrarAviso: mostrarAviso });
 
       // Barra de progreso superior mientras algún botón (oculto o no) muestra "procesando"
       new MutationObserver(function() {
@@ -17,7 +17,7 @@
 
       // Esc: cierra primero el menú y después la ficha
       document.addEventListener('keydown', function(e) {
-        if (e.key !== 'Escape') return;
+        if (e.key !== 'Escape' || Secciones.activa() !== 'usuarios') return;
         if (document.querySelector('dialog[open]')) return;
         if (menuItems) { var ancla = menuAncla; cerrarMenu(); if (ancla && document.contains(ancla) && ancla.focus) ancla.focus(); return; }
         if (formularioActivo) {

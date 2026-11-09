@@ -1,5 +1,6 @@
       // agenda/JS_Agenda_Resumen.html - Agenda: recordatorios, ficha de usuario, estado del usuario, panel de resumen y arranque de la pagina.
-      // Se incluye dentro del unico <script> de agenda/Web_Vista, en este orden: JS_Agenda_Base, ui/JS_Modal_Deshacer, JS_Agenda_Edicion, JS_Agenda_Vistas, JS_Agenda_Resumen.
+      // Se incluye dentro del unico <script> de agenda/Web_Vista, tras ui/JS_Modal_Deshacer y dentro del bloque de la sección
+      // ((function() { … })(), fase 2 de la sección 20 de CONTEXTO.md), en este orden: JS_Agenda_Base, JS_Agenda_Edicion, JS_Agenda_Vistas, JS_Agenda_Resumen.
       // Sin scriptlets: include() no los evalua (la direccion de la app llega en URL_BASE_WEB, definida en la pagina).
       // ---------- Recordatorios (agenda/Recordatorios.gs + agenda/Panel_Recordatorios) ----------
       var REC_ICONOS = { 'Llamar': ['call', 'llamar'], 'Reunión': ['groups', 'reunion'], 'Evento': ['event', 'evento'], 'Nota': ['sticky_note_2', 'nota'], 'Festivo': ['flag', 'festivo'] };
@@ -453,7 +454,7 @@
           return;
         }
         if ((c = t.closest('[data-rs-dia]'))) {
-          var iso = c.dataset.rsDia, wrap = document.getElementById('tablaWrap');
+          var iso = c.dataset.rsDia, wrap = document.getElementById('agTablaWrap');
           var enSemana = semanaActual && iso >= semanaActual && iso <= sumarDiasISO(semanaActual, 6);
           if (enSemana) {
             fijarVista('semana'); render();

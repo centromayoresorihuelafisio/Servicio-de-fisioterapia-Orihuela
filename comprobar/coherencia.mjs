@@ -162,10 +162,19 @@ function leerCss(archivo, inicio, cssCrudo) {
       i = j; ini = j; continue;
     }
     const fin = cierreLlave(css, i + 1);
+    // Anidado nativo (fase 2 de la sección 20): una regla que contiene reglas es un «nido». Sus reglas se leen con el
+    // selector completo; un nido :where(.sec-…) es solo el bloque de la sección y se lee como si no estuviera (body& = body).
+    if (!previo.startsWith('@') && css.slice(i + 1, fin).includes('{')) {
+      contexto.push({ nido: previo.replace(/\s+/g, ' '), pos: i });
+      i++; ini = i; continue;
+    }
     const impresion = contexto.some(x => x.imprimir);
     if (!previo.startsWith('@')) {
       const decl = declaraciones(css.slice(i + 1, fin));
-      for (const selector of partirArriba(previo.replace(/\s+/g, ' '), ',')) {
+      const nidos = contexto.filter(x => x.nido).map(x => x.nido).reverse();
+      const resolver = sel => nidos.reduce((s, p) => /^:where\(.*\)$/.test(p) ? s.replace(/&/g, '').trim()
+        : (s.includes('&') ? s.replace(/&/g, p) : p + ' ' + s), sel);
+      for (const selector of partirArriba(previo.replace(/\s+/g, ' '), ',').map(resolver)) {
         reglas.push({ archivo, selector, comps: compuestos(selector), decl, impresion, linea });
       }
     }

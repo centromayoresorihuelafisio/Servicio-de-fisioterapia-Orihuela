@@ -1,5 +1,6 @@
       // agenda/JS_Agenda_Edicion.html - Agenda: selector de usuarios, edicion en linea, eliminar, seleccion, Valoracion, Dar cita y copiar citas.
-      // Se incluye dentro del unico <script> de agenda/Web_Vista, en este orden: JS_Agenda_Base, ui/JS_Modal_Deshacer, JS_Agenda_Edicion, JS_Agenda_Vistas, JS_Agenda_Resumen.
+      // Se incluye dentro del unico <script> de agenda/Web_Vista, tras ui/JS_Modal_Deshacer y dentro del bloque de la sección
+      // ((function() { … })(), fase 2 de la sección 20 de CONTEXTO.md), en este orden: JS_Agenda_Base, JS_Agenda_Edicion, JS_Agenda_Vistas, JS_Agenda_Resumen.
       // Sin scriptlets: include() no los evalua (la direccion de la app llega en URL_BASE_WEB, definida en la pagina).
       // ---------- Selector de usuarios al pulsar un hueco libre (F5) ----------
       // Ventana flotante anclada al hueco (hoja inferior en móvil) con búsqueda por nombre, DNI o teléfono. Sirve para los tres sitios con
@@ -365,7 +366,7 @@
 
       // Deshacer (ui/JS_Modal_Deshacer): devuelve true si se restauró; si falla, el botón sigue disponible para reintentar.
       var deshacerAgenda = Deshacer.crear({
-        boton: document.getElementById('btnDeshacer'),
+        boton: document.getElementById('agDeshacer'),
         toast: document.getElementById('toastDeshacer'),
         alDeshacer: function(snapshot) {
           return llamar('restaurarCitasWeb', [snapshot])
@@ -444,11 +445,11 @@
       function limpiarFiltros() {
         filtroDiaSinAsis = null;
         filtrosActivos.clear();
-        document.getElementById('inputBusqueda').value = '';
+        document.getElementById('agBusqueda').value = '';
         render();
       }
 
-      document.getElementById('tablaWrap').addEventListener('click', function(e) {
+      document.getElementById('agTablaWrap').addEventListener('click', function(e) {
         var t = e.target;
         if (t.closest('.editando')) return; // no seleccionar mientras se edita
 
@@ -548,7 +549,7 @@
         return true;
       }
       function ocultarPanel() {
-        var el = document.getElementById('ficha');
+        var el = document.getElementById('agFicha');
         try { if (controladorPanel && controladorPanel.cerrar) controladorPanel.cerrar(); } catch (e) { /* no crítico */ }   // la historia clínica vuelca lo pendiente
         panelAbierto = false; panelClave = ''; controladorPanel = null;
         document.body.classList.remove('con-ficha', 'ficha-ancha', 'ficha-hc');
@@ -571,7 +572,7 @@
       async function abrirPanelLateral(clave, titulo, ancho, montar, opciones) {
         if (panelAbierto && panelClave === clave) return false;
         if (!(await descartarPanelSiProcede())) return false;
-        var el = document.getElementById('ficha');
+        var el = document.getElementById('agFicha');
         if (timerLimpiarPanel) { clearTimeout(timerLimpiarPanel); timerLimpiarPanel = null; }
         panelAbierto = true; panelClave = clave; controladorPanel = null;
         document.body.classList.add('con-ficha');
@@ -657,7 +658,7 @@
       }
       document.getElementById('btnDisponibilidad').addEventListener('click', abrirDisponibilidad);
 
-      document.getElementById('ficha').addEventListener('click', function(e) {
+      document.getElementById('agFicha').addEventListener('click', function(e) {
         if (e.target.closest('[data-panel="cerrar"]')) cerrarPanel();
       });
 
@@ -665,7 +666,7 @@
       // llegue además al Esc general de la página (que quitaría la selección de citas). Se aparta si hay un diálogo
       // abierto, el menú Copiar desplegado, un arrastre en curso o la edición en línea / el buscador con el foco.
       document.addEventListener('keydown', function(e) {
-        if (e.key !== 'Escape' || !panelAbierto || arrastre) return;
+        if (e.key !== 'Escape' || !panelAbierto || arrastre || Secciones.activa() !== 'agenda') return;
         var modal = document.getElementById('modalOverlay');
         if (modal && modal.classList.contains('visible')) return;
         if (document.querySelector('.menu-wrap.abierto, .fu-menu')) return;

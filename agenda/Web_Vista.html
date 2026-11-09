@@ -16,7 +16,7 @@
       <?!= include_('agenda/CSS_Agenda'); ?>
     </style>
   </head>
-  <body>
+  <body class="sec-agenda">
     <?!= incluirAcceso_('agenda'); ?>
     <?!= incluirPestanas_('agenda'); ?>
     <header class="top" id="cabecera">
@@ -26,7 +26,7 @@
         <h1 class="cabecera-titulo"><span class="material-symbols-outlined">calendar_month</span> Agenda</h1>
         <div class="buscador">
           <span class="material-symbols-outlined">search</span>
-          <input type="text" id="inputBusqueda" placeholder="Buscar…  ( / )" title="Buscar por usuario, sesión o notas">
+          <input type="text" id="agBusqueda" placeholder="Buscar…  ( / )" title="Buscar por usuario, sesión o notas">
         </div>
         <div class="grupo-nav">
           <button class="btn-toolbar btn-nav" id="btnSemanaAnterior" title="Semana anterior (←)">
@@ -50,7 +50,7 @@
           <button type="button" class="seg" id="btnVistaCal" title="Cuadrícula semanal tipo calendario">Cuadrícula</button>
         </div>
         <span class="cabecera-espacio"></span>
-        <button class="btn-toolbar deshacer" id="btnDeshacer" title="Deshacer la última eliminación">
+        <button class="btn-toolbar deshacer" id="agDeshacer" title="Deshacer la última eliminación">
           <span class="material-symbols-outlined">undo</span> Deshacer
         </button>
         <button type="button" class="btn-toolbar btn-nav" id="btnHuecos" title="Mostrar huecos libres" aria-label="Huecos libres">
@@ -65,8 +65,8 @@
         <button class="btn-toolbar btn-nav btn-rec" id="btnRecordatorios" title="Recordatorios (R)" aria-label="Recordatorios">
           <span class="material-symbols-outlined">checklist</span><span class="badge-rec" id="badgeRec"></span>
         </button>
-        <button type="button" class="btn-toolbar btn-nav" id="btnAtajos" title="Ver los atajos de teclado" aria-label="Atajos de teclado"><span class="material-symbols-outlined">keyboard</span></button>
-        <button type="button" class="btn-toolbar btn-nav" id="btnTema" title="Cambiar tema"></button>
+        <button type="button" class="btn-toolbar btn-nav" id="agAtajos" title="Ver los atajos de teclado" aria-label="Atajos de teclado"><span class="material-symbols-outlined">keyboard</span></button>
+        <button type="button" class="btn-toolbar btn-nav" id="agTema" title="Cambiar tema"></button>
         <div class="menu-wrap" id="menuMasWrap">
           <button class="btn-toolbar btn-nav" id="btnMenuMas" aria-haspopup="true" aria-expanded="false" title="Más opciones">
             <span class="material-symbols-outlined">more_vert</span>
@@ -133,10 +133,10 @@
     <div class="solo-impresion" id="cabImpresion"></div>
 
     <div class="cuerpo" id="cuerpo">
-      <div class="tabla-wrap" id="tablaWrap"></div>
+      <div class="tabla-wrap" id="agTablaWrap"></div>
       <aside class="resumen" id="resumen" aria-label="Resumen de la jornada"></aside>
     </div>
-    <aside class="ficha" id="ficha" aria-hidden="true"></aside>
+    <aside class="ficha" id="agFicha" aria-hidden="true"></aside>
 
     <?!= include_('usuarios/Whatsapp_Dialogo'); ?>
     <?!= include_('ui/Modal_Deshacer'); ?>
@@ -168,11 +168,15 @@
       // Direccion de la app: se deja aqui porque include() no evalua scriptlets en los archivos incluidos.
       var URL_BASE_WEB = <?!= JSON.stringify(baseUrl) ?>;
 
-      <?!= include_('agenda/JS_Agenda_Base'); ?>
       <?!= include_('ui/JS_Modal_Deshacer'); ?>
+
+      // Sección Agenda en su propio bloque (fase 2 de la sección 20 de CONTEXTO.md): sus nombres no chocan con los de otra sección.
+      (function() {
+      <?!= include_('agenda/JS_Agenda_Base'); ?>
       <?!= include_('agenda/JS_Agenda_Edicion'); ?>
       <?!= include_('agenda/JS_Agenda_Vistas'); ?>
       <?!= include_('agenda/JS_Agenda_Resumen'); ?>
+      })();
     </script>
   </body>
 </html>

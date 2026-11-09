@@ -1,5 +1,6 @@
       // agenda/JS_Agenda_Base.html - Agenda: carga de datos, filtros, asistencia, dibujo de la tabla y tarjetas de Hoy.
-      // Se incluye dentro del unico <script> de agenda/Web_Vista, en este orden: JS_Agenda_Base, ui/JS_Modal_Deshacer, JS_Agenda_Edicion, JS_Agenda_Vistas, JS_Agenda_Resumen.
+      // Se incluye dentro del unico <script> de agenda/Web_Vista, tras ui/JS_Modal_Deshacer y dentro del bloque de la sección
+      // ((function() { … })(), fase 2 de la sección 20 de CONTEXTO.md), en este orden: JS_Agenda_Base, JS_Agenda_Edicion, JS_Agenda_Vistas, JS_Agenda_Resumen.
       // Sin scriptlets: include() no los evalua (la direccion de la app llega en URL_BASE_WEB, definida en la pagina).
       // Hora ("HH:mm") a partir de la cual una cita es "de tarde".
       var HORA_CORTE_TARDE = '14:00';
@@ -117,7 +118,7 @@
           return;
         }
         navegacionPendiente = true;
-        document.getElementById('tablaWrap').innerHTML = htmlEsqueleto();
+        document.getElementById('agTablaWrap').innerHTML = htmlEsqueleto();
         pedirSemana(clave, 'navegar', turno);
       }
 
@@ -200,7 +201,7 @@
       // para no tener que hacer scroll hacia abajo un viernes. Si hoy no está
       // en la semana mostrada, vuelve arriba.
       function scrollAHoy() {
-        var wrap = document.getElementById('tablaWrap');
+        var wrap = document.getElementById('agTablaWrap');
         var filaHoy = wrap.querySelector('tr.fila-dia.hoy');
         if (!filaHoy) { wrap.scrollTop = 0; return; }
         var thead = wrap.querySelector('thead');
@@ -210,7 +211,7 @@
       }
 
       function mostrarError(err) {
-        document.getElementById('tablaWrap').innerHTML =
+        document.getElementById('agTablaWrap').innerHTML =
           '<div class="estado-vacio"><span class="estado-icono-wrap error"><span class="material-symbols-outlined estado-icono">cloud_off</span></span>' +
           '<div class="estado-titulo">No se pudo cargar la agenda</div><div class="estado-texto">' + escapar(err && err.message ? err.message : err) + '</div>' +
           '<button title="Volver a cargar la agenda" type="button" class="md-btn md-btn--outline" data-vacio="reintentar"><span class="material-symbols-outlined">refresh</span>Reintentar</button></div>';
@@ -280,7 +281,7 @@
       }
 
       function hayBusqueda() {
-        return normalizar(document.getElementById('inputBusqueda').value) !== '' || filtrosActivos.size > 0;
+        return normalizar(document.getElementById('agBusqueda').value) !== '' || filtrosActivos.size > 0;
       }
 
       function calcularTotalesDia() {
@@ -439,9 +440,7 @@
       }
 
 
-      // Mismo icono de WhatsApp que usa Usuarios.
-      var SVG_WHATSAPP = '<svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 16 16" fill="currentColor">' +
-        '<path d="M13.601 2.326A7.854 7.854 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.933 7.933 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.898 7.898 0 0 0 13.6 2.326zM7.994 14.521a6.573 6.573 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.557 6.557 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592zm3.615-4.934c-.197-.099-1.17-.578-1.353-.646-.182-.065-.315-.099-.445.099-.133.197-.513.646-.627.775-.114.133-.232.148-.43.05-.197-.1-.836-.308-1.592-.985-.59-.525-.985-1.175-1.103-1.372-.114-.198-.011-.304.088-.403.087-.088.197-.232.296-.346.1-.114.133-.198.198-.33.065-.134.034-.248-.015-.347-.05-.099-.445-1.076-.612-1.47-.16-.389-.323-.335-.445-.34-.114-.007-.247-.007-.38-.007a.729.729 0 0 0-.529.247c-.182.198-.691.677-.691 1.654 0 .977.71 1.916.81 2.049.098.133 1.394 2.132 3.383 2.992.47.205.84.326 1.129.418.475.152.904.129 1.246.08.38-.058 1.171-.48 1.338-.943.164-.464.164-.86.114-.943-.049-.084-.182-.133-.38-.232z"/></svg>';
+      // SVG_WHATSAPP (icono de WhatsApp): común, en ui/JS_Secciones.
 
       // Botón «Historia clínica» de una cita (tabla, tarjetas y cuadrícula): azul si la tiene enlazada, apagado si no.
       function htmlBotonHC(fila, cita) {
@@ -573,9 +572,9 @@
       // ---------- Render ----------
       function render() {
         renderResumen();
-        var cont = document.getElementById('tablaWrap');
+        var cont = document.getElementById('agTablaWrap');
         var scrollPrevio = cont.scrollTop; // se conserva al repintar (ediciones, selección, refrescos)
-        var termino = normalizar(document.getElementById('inputBusqueda').value);
+        var termino = normalizar(document.getElementById('agBusqueda').value);
         var hoy = hoyISO();
 
         if (filtroDiaSinAsis) {   // al registrar la última asistencia pendiente del día, se vuelve a la vista normal
@@ -710,7 +709,7 @@
       }
 
       function ajustarHoy() {
-        var w = document.getElementById('tablaWrap');
+        var w = document.getElementById('agTablaWrap');
         w.classList.remove('tj-medio', 'tj-denso');
         if (vista !== 'hoy' || !w.querySelector('.tj-turnos')) return;
         function desborda() { return w.scrollHeight > w.clientHeight + 2; }
@@ -725,7 +724,7 @@
           if (vista !== 'hoy') return;
           cancelAnimationFrame(rafAjuste);
           rafAjuste = requestAnimationFrame(ajustarHoy);
-        }).observe(document.getElementById('tablaWrap'));
+        }).observe(document.getElementById('agTablaWrap'));
       }
 
       function htmlTarjeta(c, ahora, proxima) {
