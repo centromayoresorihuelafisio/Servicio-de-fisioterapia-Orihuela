@@ -99,17 +99,14 @@ function obtenerPanelWeb_(archivo) {
  *   https://script.google.com/macros/s/AAAA.../exec?page=agenda
  */
 //   Usuarios y Agenda son la misma página (principal/Principal_Vista, fase 2 de la sección 20 de CONTEXTO.md): la plantilla
-//   recibe `pagina` (la clave pedida) y abre con esa sección; las dos se cambian sin recargar. usuariosAntes y agendaAntes
-//   son las páginas sueltas de antes, sin pestaña, de reserva hasta que el dueño dé por buena la página nueva (paso 5).
+//   recibe `pagina` (la clave pedida) y abre con esa sección; las dos se cambian sin recargar.
 const PAGINAS_WEB = {
   baseDatos:     { archivo: 'principal/Principal_Vista', titulo: 'Usuarios',    pestana: { icono: 'folder_shared', ayuda: 'Ir a Usuarios' } },
   agenda:        { archivo: 'principal/Principal_Vista', titulo: 'Agenda',      pestana: { icono: 'calendar_month', ayuda: 'Ir a la Agenda' } },
   valoraciones:  { archivo: 'valoraciones/Web_Vista',   titulo: 'Valoraciones', pestana: { icono: 'monitoring', ayuda: 'Ir a Valoraciones' } },
   dashboard:     { archivo: 'dashboard/Web_Vista',      titulo: 'Estadísticas', pestana: { icono: 'dashboard', ayuda: 'Ir a Estadísticas' }, rol: 'administrador' },
   configuracion: { archivo: 'configuracion/Web_Vista',  titulo: 'Configuración', pestana: { icono: 'settings', ayuda: 'Ir a Configuración' }, rol: 'administrador' },
-  guiaVisual:    { archivo: 'ui/Guia_Visual',           titulo: 'Guía visual', rol: 'administrador' },   // banco de pruebas visual (D-V7); sin pestaña
-  usuariosAntes: { archivo: 'usuarios/BaseDatos_Vista', titulo: 'Usuarios' },   // reserva temporal (fase 2, paso 5): sin pestaña
-  agendaAntes:   { archivo: 'agenda/Web_Vista',         titulo: 'Agenda' }      // reserva temporal (fase 2, paso 5): sin pestaña
+  guiaVisual:    { archivo: 'ui/Guia_Visual',           titulo: 'Guía visual', rol: 'administrador' }   // banco de pruebas visual (D-V7); sin pestaña
 };
 
 /**

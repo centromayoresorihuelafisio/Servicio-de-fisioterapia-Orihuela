@@ -3,7 +3,7 @@
  *
  * RENDIMIENTO: antes cada clic en un nombre llamaba al servidor, que releía la
  * La Maestra completa (con todas sus columnas y el rich text de Historia
- * clínica) solo para devolver UNA ficha. Ahora el cliente (agenda/Web_Vista.html)
+ * clínica) solo para devolver UNA ficha. Ahora el cliente (principal/Principal_Vista.html)
  * pide TODAS las fichas de una vez, en segundo plano, con obtenerFichasUsuariosWeb_()
  * y abre el panel desde memoria. obtenerFichaUsuarioWeb_() queda solo como
  * respaldo (usuario dado de alta después de la última carga, o carga aún en curso).

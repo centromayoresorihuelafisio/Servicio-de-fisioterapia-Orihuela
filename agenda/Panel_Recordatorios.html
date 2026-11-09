@@ -1,7 +1,7 @@
 <!--
   agenda/Panel_Recordatorios.html
   Panel lateral de recordatorios de la Agenda Web: crear, editar, marcar como hecho y eliminar.
-  Se incluye desde agenda/Web_Vista con <?!= include_('agenda/Panel_Recordatorios'); ?>
+  Se incluye desde principal/Principal_Vista con <?!= include_('agenda/Panel_Recordatorios'); ?>
   API: PanelRecordatorios.abrir(contenedor, { lista, hoy, nuevoFecha, editarId, confirmar, onActualizado, onCancelar })
     · lista          → recordatorios actuales [{ id, fecha, hora, tipo, texto, hecho }]
     · hoy()          → "yyyy-MM-dd" de hoy (la página ya tiene hoyISO)
@@ -14,7 +14,7 @@
   (botones .md-btn, campos .md-campo--compacto; el foco con teclado lo da la regla global).
   Las clases .rc-t-* (color por tipo) son globales: la página las usa también para las etiquetas de la agenda.
   --rc-c y --rc-bg no son una paleta propia: cada clase .rc-t-* las apunta al color de datos de su tipo (--md-data-*), y las
-  etiquetas, puntos y chips del panel y de agenda/Web_Vista leen de ahí el color del tipo que tengan (decidido en V7).
+  etiquetas, puntos y chips del panel y de principal/Principal_Vista leen de ahí el color del tipo que tengan (decidido en V7).
 -->
 <style>
 /* Color por tipo: lo usan el panel y las etiquetas de la agenda */

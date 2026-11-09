@@ -1,5 +1,5 @@
 // ================================================================================
-// AGENDA WEB — puntos de entrada del cliente (agenda/Web_Vista.html)
+// AGENDA WEB — puntos de entrada del cliente (principal/Principal_Vista.html)
 //
 // Desde el corte (21-oct-2026) la Agenda web trabaja SOLO sobre la tabla "Citas":
 // cada función de este archivo conserva el nombre que llama el cliente con
@@ -41,7 +41,7 @@ function obtenerAgendaSemanaWeb_(fechaISO) {
 
 /**
  * Versión actual de los datos de la Agenda: sube con cada escritura en la tabla "Citas". Llamada barata pensada para el sondeo
- * frecuente de agenda/Web_Vista.html: si el número no cambió, el cliente no pide los datos de la semana.
+ * frecuente de principal/Principal_Vista.html: si el número no cambió, el cliente no pide los datos de la semana.
  */
 function obtenerVersionAgendaWeb_() {
   return { sheetId: 'citas', version: citasVersion_() };

@@ -3,7 +3,7 @@
  *
  * `obtenerAgendaSemanaWeb` (agenda/Web.gs) llama aquí. La hoja `Agenda AAAA-AAAA` quedó congelada como archivo y ya no se lee.
  *
- * Para que el cliente (agenda/Web_Vista.html) no cambie en la lectura, la semana se devuelve con la MISMA forma que daba la hoja vieja:
+ * Para que el cliente (principal/Principal_Vista.html) no cambie en la lectura, la semana se devuelve con la MISMA forma que daba la hoja vieja:
  * `{ citas, semana, headers, opcionesAsistencia }`, donde cada elemento de `citas` es un objeto con una propiedad por cabecera
  * (Fecha, Día, Hora, Usuario, Teléfono, Sesión, Asistencia, Historia clínica, Notas) más `_fila`, `_fechaISO`,
  * `_horaOrden` y `_hueco`. Diferencias con la hoja vieja:
