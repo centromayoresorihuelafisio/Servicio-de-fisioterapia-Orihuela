@@ -1,31 +1,39 @@
 // pwa/iconos.js — Iconos de la app instalable (CONTEXTO.md, sección 20), sin dependencias.
-// Un solo dibujo (una figura con los brazos arriba, estirándose, en blanco sobre el azul principal de la app,
-// --md-primary claro de ui/CSS_Global) del que salen el SVG y los PNG (192, 512 y «maskable» para Android).
+// Un solo dibujo (una cruz sanitaria redondeada en blanco cruzada por una línea de latido, sobre el gris
+// --md-on-surface-med claro de ui/CSS_Global; elegido por el dueño el 9-nov-2026) del que salen el SVG y los PNG
+// (192, 512 y «maskable» para Android). BARRA es el color de la barra de la ventana (--md-bg claro).
 // Rasteriza a mano y guarda en PNG con zlib de Node, como pwa/iconos.js de Asistencia-CM. Lo usa pwa/build.js.
-// Para cambiar el dibujo basta con tocar FONDO, TRAZOS y PUNTOS: el SVG y los PNG salen de ahí.
+// Para cambiar el dibujo basta con tocar FONDO, TRAZOS, PUNTOS y HUECOS: el SVG y los PNG salen de ahí.
+// pwa/manifest.json repite BARRA en theme_color: si cambia uno, cambia el otro.
 'use strict';
 const zlib = require('zlib');
 
 // Coordenadas en una caja de 96 × 96
-const FONDO = [0x0b, 0x57, 0xd0];   // #0b57d0
+const FONDO = [0x5f, 0x63, 0x68];   // #5f6368, gris del icono
+const BARRA = [0xf8, 0xf9, 0xfa];   // #f8f9fa, barra de la ventana (Windows pone la letra en oscuro)
 const RADIO_ESQUINA = 22;
-const MEDIO_TRAZO = 4.5;            // stroke-width 9
-const TRAZOS = [                    // segmentos con extremos redondos
-  [48, 38, 48, 60],                 // cuerpo
-  [48, 42, 31, 27], [48, 42, 65, 27],   // brazos arriba
-  [48, 60, 37, 79], [48, 60, 59, 79]    // piernas
+const TRAZOS = [                    // en blanco, extremos redondos: [x1, y1, x2, y2, medio grosor]
+  [48, 22, 48, 74, 11], [22, 48, 74, 48, 11]   // cruz
 ];
-const PUNTOS = [[48, 22, 8]];       // cabeza: [x, y, radio]
+const PUNTOS = [];                  // círculos blancos: [x, y, radio]
+const HUECOS = [                    // en el color del fondo, encima de lo blanco: línea de latido
+  [24, 49, 37, 49, 2.5], [37, 49, 42, 38, 2.5], [42, 38, 50, 61, 2.5],
+  [50, 61, 56, 45, 2.5], [56, 45, 60, 49, 2.5], [60, 49, 72, 49, 2.5]
+];
 const MUESTRAS = 4;                 // 4 × 4 muestras por píxel para suavizar los bordes
 
 const hex = function (c) { return '#' + c.map(function (v) { return ('0' + v.toString(16)).slice(-2); }).join(''); };
 
 /** El mismo dibujo en SVG (icono de la pestaña del navegador). */
 function svg() {
+  const linea = function (s, color) {
+    return '<path d="M' + s[0] + ' ' + s[1] + 'L' + s[2] + ' ' + s[3] + '" stroke="' + color + '" stroke-width="' + s[4] * 2 + '"/>';
+  };
   return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96">' +
     '<rect width="96" height="96" rx="' + RADIO_ESQUINA + '" fill="' + hex(FONDO) + '"/>' +
-    '<g stroke="#fff" stroke-width="' + MEDIO_TRAZO * 2 + '" stroke-linecap="round" fill="none">' +
-    TRAZOS.map(function (s) { return '<path d="M' + s[0] + ' ' + s[1] + 'L' + s[2] + ' ' + s[3] + '"/>'; }).join('') + '</g>' +
+    '<g stroke-linecap="round" fill="none">' +
+    TRAZOS.map(function (s) { return linea(s, '#fff'); }).join('') +
+    HUECOS.map(function (s) { return linea(s, hex(FONDO)); }).join('') + '</g>' +
     PUNTOS.map(function (p) { return '<circle cx="' + p[0] + '" cy="' + p[1] + '" r="' + p[2] + '" fill="#fff"/>'; }).join('') +
     '</svg>';
 }
@@ -44,7 +52,8 @@ function dentroEsquinas(x, y) {
 }
 
 function esBlanco(x, y) {
-  if (TRAZOS.some(function (s) { return distanciaSegmento(x, y, s) <= MEDIO_TRAZO; })) return true;
+  if (HUECOS.some(function (s) { return distanciaSegmento(x, y, s) <= s[4]; })) return false;
+  if (TRAZOS.some(function (s) { return distanciaSegmento(x, y, s) <= s[4]; })) return true;
   return PUNTOS.some(function (p) { return (x - p[0]) * (x - p[0]) + (y - p[1]) * (y - p[1]) <= p[2] * p[2]; });
 }
 
@@ -134,4 +143,4 @@ module.exports = function iconos() {
     'icono-maskable-512.png': png(512, pixeles(512, true))
   };
 };
-module.exports.color = hex(FONDO);
+module.exports.color = hex(BARRA);
