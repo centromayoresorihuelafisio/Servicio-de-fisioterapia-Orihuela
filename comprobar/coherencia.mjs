@@ -19,7 +19,7 @@ const argRaiz = args.find(a => a.startsWith('--raiz='));
 const RAIZ = argRaiz ? path.resolve(argRaiz.slice(7)) : path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 const GLOBAL = 'ui/CSS_Global.html';
-const CARPETAS_FUERA = new Set(['node_modules', '.git', 'comprobar']);
+const CARPETAS_FUERA = new Set(['node_modules', '.git', 'comprobar', 'pwa', 'sim', '.github']);   // pwa/ y sim/: la app instalable y su prueba (sección 20); su montaje repite las páginas
 
 // ===== Excepciones: lo que se permite a propósito, siempre con su motivo =====
 // c = comprobación; archivo = archivo exacto; texto = (opcional) trozo del hallazgo al que se limita.
@@ -53,7 +53,7 @@ const EXCEPCIONES = [
 // ===== Una sola puerta (sección 17): lo que puede quedar público y lo que aún falta por pasar a llamar() =====
 const API = 'acceso/Api.gs';
 const PUBLICAS = {
-  doGet: 'Apps Script la exige pública', api: 'la única puerta del navegador',
+  doGet: 'Apps Script la exige pública', api: 'la única puerta del navegador', doPost: 'puerta de la app instalable (PWA): solo pasa la petición a api()',
   accesoPrepararHojas: 'editor', accesoComprobarPropietario: 'editor', accesoMedirIteraciones: 'editor', accesoCrearAdministrador: 'editor', accesoProbarCorreo: 'editor',
   accesoSuspenderUsuarios: 'editor', accesoReanudarUsuarios: 'editor', accesoCerrarApp: 'editor', accesoAbrirApp: 'editor',
   configurarMensajeWhatsapp: 'editor', sincronizarContactosGoogle: 'editor', exportarProyectoAUnicoArchivo: 'editor', sembrarHistorialEstado: 'editor', verificarHistorialEstado: 'editor',

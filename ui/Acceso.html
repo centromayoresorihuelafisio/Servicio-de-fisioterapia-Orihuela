@@ -63,6 +63,11 @@
     <p>Con tu usuario no puedes abrir esta página. Te llevamos a Usuarios.</p>
     <a class="md-btn md-btn--tonal" href="<?= baseUrl ?>?page=baseDatos" target="_top">Ir a Usuarios</a>
   </div>
+  <div class="acceso-tarjeta" id="acceso-cerrada" hidden>
+    <h1>Aplicación cerrada</h1>
+    <p id="acceso-cerrada-texto"></p>
+    <button class="md-btn md-btn--tonal" type="button" id="acceso-cerrada-reintentar">Volver a intentarlo</button>
+  </div>
 </div>
 <script>
   (function () {
@@ -163,11 +168,37 @@
       window.llamar('comprobarSesion').then(function (p) { aplicarPerfil(p, true); }, function () { /* si la sesión no vale, enviar ya ha pedido el login */ });
     }
 
-    /** Llamada directa al servidor, sin cola: la usan el login y lo que tiene que pasar con el cierre puesto. */
+    /** Plan de emergencia, nivel 3 (17.9): con la app cerrada, api() no atiende nada. Se tapa todo con el aviso. */
+    function mostrarCerrada(texto) {
+      esperando = true;
+      pantallaPedida = 'cerrada';
+      cierre.hidden = false;
+      formLogin.hidden = true;
+      formCambio.hidden = true;
+      $('acceso-denegada').hidden = true;
+      $('acceso-cerrada-texto').textContent = texto || 'La aplicación está cerrada por ahora.';
+      $('acceso-cerrada').hidden = false;
+      aislarPagina();
+    }
+
+    /**
+     * Llamada directa al servidor, sin cola: la usan el login y lo que tiene que pasar con el cierre puesto.
+     * En la app instalable (sección 20) no hay google.script.run: pwa/api.js da window.PWA.enviar, que va por fetch a
+     * doPost y responde lo mismo que api().
+     */
     function directa(accion, datos, alTerminar) {
+      var avisarFin = function (r) {
+        r = r || { ok: false, error: 'El servidor no ha respondido.' };
+        if (r.codigo === 'CERRADA') { mostrarCerrada(r.error); return; }   // la llamada no sigue: la página queda tapada
+        alTerminar(r);
+      };
+      if (window.PWA && window.PWA.enviar) {
+        window.PWA.enviar(leerToken(), accion, datos).then(avisarFin, function (err) { avisarFin({ ok: false, error: err.message }); });
+        return;
+      }
       google.script.run
-        .withSuccessHandler(function (r) { alTerminar(r || { ok: false, error: 'El servidor no ha respondido.' }); })
-        .withFailureHandler(function (err) { alTerminar({ ok: false, error: err.message }); })
+        .withSuccessHandler(avisarFin)
+        .withFailureHandler(function (err) { avisarFin({ ok: false, error: err.message }); })
         .api(leerToken(), accion, datos);
     }
 
@@ -199,16 +230,19 @@
       });
     };
 
-    /** Deja inerte lo que hay detrás del cierre, para que el tabulador no llegue a la página. */
+    /**
+     * Deja inerte lo que hay detrás del cierre, para que el tabulador no llegue a la página. La pantalla «Conectar la
+     * app» de la app instalable (.pwa-conexion, pwa/api.js) va por encima del login y se respeta.
+     */
     function aislarPagina() {
       Array.prototype.forEach.call(document.body.children, function (el) {
-        if (el !== cierre && !el.inert) { el.inert = true; desactivados.push(el); }
+        if (el !== cierre && !el.inert && !el.classList.contains('pwa-conexion')) { el.inert = true; desactivados.push(el); }
       });
     }
 
     function pedir(pantalla) {
       esperando = true;
-      if (pantallaPedida === 'denegada') return;  // la página ya va camino de Usuarios
+      if (pantallaPedida === 'denegada' || pantallaPedida === 'cerrada') return;  // va camino de Usuarios, o la app está cerrada
       if (pantalla === pantallaPedida) return;   // varias llamadas pueden caducar a la vez: el foco no debe saltar mientras se escribe
       pantallaPedida = pantalla;
       cierre.hidden = false;
@@ -267,6 +301,7 @@
 
     // Los atajos de teclado de las páginas no deben reaccionar a lo que se escribe aquí.
     cierre.addEventListener('keydown', function (ev) { ev.stopPropagation(); });
+    $('acceso-cerrada-reintentar').addEventListener('click', function () { window.location.reload(); });
 
     function cerrarSesion() {
       directa('cerrarSesion', [], function () { guardarToken(''); aplicarPerfil(null); pedir('login'); });

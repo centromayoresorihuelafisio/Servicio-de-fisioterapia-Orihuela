@@ -1,0 +1,11 @@
+# Qué sube clasp push a Apps Script: solo el código del servidor y de las pantallas (.gs, .html) y el manifiesto.
+# La app instalable (pwa/), su simulación (sim/), la publicación (.github/) y las comprobaciones (comprobar/) se quedan fuera.
+**/**
+!**/*.gs
+!**/*.html
+!appsscript.json
+pwa/**
+sim/**
+.github/**
+comprobar/**
+node_modules/**

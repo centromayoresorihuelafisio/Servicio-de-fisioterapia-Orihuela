@@ -18,6 +18,7 @@ function accesoAcciones_() {
   const id = COLUMNAS.MAESTRA.ID_PACIENTE;
   return {
     iniciarSesion:     { fn: accesoIniciarSesion_, rol: 'publica' },
+    conectarPWA:       { fn: pwaComprobarConexion_, rol: 'publica' },   // la app instalable comprueba la dirección /exec (sección 20)
     comprobarSesion:   { fn: sesionComprobar_, rol: 'usuario' },
     cerrarSesion:      { fn: sesionCerrar_, rol: 'usuario', conTemporal: true },
     cambiarPassword:   { fn: accesoCambiarPassword_, rol: 'usuario', conTemporal: true },
@@ -129,6 +130,31 @@ function apiResolverSesion_(token) {
   sesion.rolAnotar = rebajado ? perfil.rol + ' (como ' + sesion.verComo + ')' : perfil.rol;
   sesion.debeCambiar = perfil.debeCambiar;
   return sesion;
+}
+
+/** Respuesta de la acción pública conectarPWA: solo confirma que la dirección es esta aplicación. Ningún dato. */
+function pwaComprobarConexion_() {
+  return { app: 'Fisioterapia Orihuela' };
+}
+
+/**
+ * Puerta de la app instalable (PWA, CONTEXTO.md, sección 20). La PWA no tiene google.script.run: envía con fetch un
+ * POST en text/plain (así el navegador no hace la consulta previa de CORS) con { token, accion, datos }, y aquí se pasa
+ * tal cual a api(), que ya pone la lista blanca, los roles, «Registro», la sesión y el cierre de emergencia.
+ * Responde lo mismo que api(), en JSON.
+ */
+function doPost(e) {
+  let respuesta;
+  try {
+    let p = null;
+    try { p = JSON.parse((e && e.postData && e.postData.contents) || ''); } catch (err) { p = null; }
+    respuesta = p && typeof p === 'object'
+      ? api(p.token, p.accion, p.datos)
+      : { ok: false, error: 'Petición no válida.' };
+  } catch (err) {
+    respuesta = { ok: false, error: 'No se pudo atender la petición: ' + (err && err.message ? err.message : err) };
+  }
+  return ContentService.createTextOutput(JSON.stringify(respuesta)).setMimeType(ContentService.MimeType.JSON);
 }
 
 function api(token, accion, datos) {

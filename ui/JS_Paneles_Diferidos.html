@@ -7,7 +7,8 @@
   Con PANELES_BAJO_DEMANDA = true (core/Config.gs), incluirPanel() deja en la página un resguardo
   (window.PanelValoracion = { abrir }) en lugar del panel entero. El primer abrir():
     · si el panel ya está descargado, lo abre igual que siempre (síncrono);
-    · si no, muestra "Cargando…", pide el panel al servidor (obtenerPanelWeb), lo monta y lo abre.
+    · si no, muestra "Cargando…", pide el panel al servidor (obtenerPanelWeb; en la app instalable, a su propio sitio con
+      PWA.panel), lo monta y lo abre.
   El controlador que devuelve abrir() responde a haCambiado() y alEscape() desde el primer momento.
   Además, cuando la página ya tiene lo suyo (OrdenCarga, ui/JS_Carga_Compartida; sin él, unos segundos después de
   cargar), los paneles se descargan de uno en uno en segundo plano, de modo que normalmente ya están listos cuando se pulsa el botón.
@@ -40,7 +41,9 @@ var PanelesDiferidos = (function () {
 
   function cargar(ruta) {
     if (CARGAS[ruta]) return CARGAS[ruta];
-    CARGAS[ruta] = llamar('obtenerPanelWeb', [ruta])
+    // En la app instalable (sección 20) el panel ya viaja con la app: se lee de su propio sitio, sin esperar al servidor.
+    var pedido = (window.PWA && window.PWA.panel) ? window.PWA.panel(ruta) : llamar('obtenerPanelWeb', [ruta]);
+    CARGAS[ruta] = pedido
       .then(montar)
       .catch(function (e) { delete CARGAS[ruta]; throw e; });   // se podrá reintentar
     return CARGAS[ruta];

@@ -1,0 +1,40 @@
+# Publica la app instalable (PWA; CONTEXTO.md, sección 20) en GitHub Pages cada vez que cambia su código en main.
+# Monta pwa/dist/ con node pwa/build.js (sin dependencias) y lo sube a Pages.
+# Hace falta, una vez: Settings › Pages › Build and deployment › Source: «GitHub Actions».
+# Orden de cada subida (sección 0): clasp push y clasp deploy -i ANTES de git push, para que el servidor ya tenga
+# lo que pida la PWA nueva cuando esta se publique.
+name: Publicar PWA
+
+on:
+  push:
+    branches: [main]
+    paths: ['**/*.html', 'core/*.gs', 'pwa/**', '.github/workflows/pwa.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.despliegue.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node pwa/build.js
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: pwa/dist
+      - id: despliegue
+        uses: actions/deploy-pages@v4

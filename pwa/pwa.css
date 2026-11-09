@@ -1,0 +1,14 @@
+/* pwa/pwa.css — Solo en la app instalable (CONTEXTO.md, sección 20): la pantalla «Conectar la app» de pwa/api.js.
+   Usa las variables de ui/CSS_Global; no escribe colores, esquinas, sombras ni capas sueltos. */
+.pwa-conexion {
+  position: fixed; inset: 0; z-index: var(--z-max); display: flex; align-items: center; justify-content: center;
+  padding: 16px; background: var(--md-bg); color: var(--md-on-surface); font-family: var(--font);
+}
+.pwa-conexion-caja {
+  display: flex; flex-direction: column; gap: 16px; box-sizing: border-box; width: 100%; max-width: 420px; padding: 32px;
+  background: var(--md-surface); border-radius: var(--md-shape-xl); box-shadow: var(--md-elev-2);
+}
+.pwa-conexion-icono { align-self: center; border-radius: var(--md-shape-lg); }
+.pwa-conexion h1 { margin: 0; text-align: center; font-size: var(--fs-h); font-weight: 500; }
+.pwa-conexion p { margin: 0; font-size: var(--fs-md); color: var(--md-on-surface-med); }
+.pwa-conexion .pwa-conexion-error { color: var(--md-error); min-height: 1.3em; }
