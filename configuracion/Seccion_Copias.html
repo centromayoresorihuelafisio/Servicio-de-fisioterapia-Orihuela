@@ -1,0 +1,104 @@
+<!--
+  configuracion/Seccion_Copias.html
+  Sección «Copias de seguridad» de Configuración (CONTEXTO.md, sección 21): el interruptor de la copia semanal
+  (acción copiasActivar), «Hacer una copia ahora» (copiasHacerAhora) y la lista de copias guardadas (copiasEstado).
+  El trabajo lo hace core/Copias_Seguridad.gs.
+-->
+<details class="md-seccion" id="cfCopias">
+  <summary><span class="material-symbols-outlined" aria-hidden="true">backup</span>Copias de seguridad <small id="cfCopResumen">de la hoja de cálculo</small><span class="material-symbols-outlined md-seccion__chev" aria-hidden="true">expand_more</span></summary>
+  <div class="md-seccion__cuerpo">
+    <p class="cf-texto" id="cfCopExplica">Una copia completa de la hoja cada semana, en una carpeta de tu Drive. Se guardan las últimas y las más viejas van a la papelera de Drive. Si la copia automática falla, te llega un correo.</p>
+    <div class="cf-barra">
+      <label class="md-interruptor"><input type="checkbox" role="switch" id="cfCopSemanal" disabled><span class="md-interruptor__pista"></span><span id="cfCopSemanalTexto">Cargando…</span></label>
+    </div>
+    <div class="cf-barra">
+      <button type="button" class="md-btn md-btn--tonal" id="cfCopAhora" disabled><span class="material-symbols-outlined" aria-hidden="true">backup</span>Hacer una copia ahora</button>
+      <button type="button" class="md-btn md-btn--text" id="cfCopCarpeta" hidden><span class="material-symbols-outlined" aria-hidden="true">folder_open</span>Abrir la carpeta</button>
+    </div>
+    <div class="md-tabla-marco">
+      <table class="md-tabla">
+        <thead><tr><th>Copia</th><th>Hecha el</th><th>Abrir</th></tr></thead>
+        <tbody id="cfCopFilas"><tr><td colspan="3" class="md-tabla__vacia"><span class="md-girador" role="status" aria-label="Cargando"></span></td></tr></tbody>
+      </table>
+    </div>
+    <p class="cf-pie">Para recuperar datos: abre la copia, busca lo que falta y cópialo a la hoja de siempre (o, para una pestaña entera, clic derecho en la pestaña de la copia › «Copiar en» › hoja de cálculo existente). No sustituyas el archivo de siempre por la copia: la aplicación trabaja con ese archivo.</p>
+  </div>
+</details>
+<script>
+  (function () {
+    var el = Cf.el, interruptor = Cf.$('cfCopSemanal'), bAhora = Cf.$('cfCopAhora'), bCarpeta = Cf.$('cfCopCarpeta'), carpetaUrl = '';
+
+    function pintarVacio(texto) {
+      var tb = Cf.$('cfCopFilas');
+      tb.textContent = '';
+      var tr = el('tr'), td = el('td', 'md-tabla__vacia', texto);
+      td.colSpan = 3;
+      tr.appendChild(td);
+      tb.appendChild(tr);
+    }
+
+    function pintar(estado) {
+      interruptor.checked = !!estado.activa;
+      interruptor.disabled = false;
+      bAhora.disabled = false;
+      Cf.$('cfCopSemanalTexto').textContent = estado.activa ? 'Copia semanal activada: ' + estado.cuando : 'Copia semanal desactivada';
+      Cf.$('cfCopResumen').textContent = estado.activa ? 'semanal, activada' : 'copia semanal desactivada';
+      Cf.$('cfCopExplica').textContent = 'Una copia completa de la hoja cada semana, en la carpeta «' + estado.carpetaNombre + '» de tu Drive. ' +
+        'Se guardan las ' + estado.guardar + ' últimas (también las hechas a mano) y las más viejas van a la papelera de Drive. ' +
+        'Si la copia automática falla, te llega un correo.';
+      carpetaUrl = estado.carpetaUrl || '';
+      bCarpeta.hidden = !carpetaUrl;
+
+      var copias = estado.copias || [];
+      if (!copias.length) { pintarVacio('Aún no hay ninguna copia.'); return; }
+      var tb = Cf.$('cfCopFilas');
+      tb.textContent = '';
+      copias.forEach(function (c) {
+        var tr = el('tr');
+        tr.appendChild(el('td', '', c.nombre));
+        tr.appendChild(el('td', 'md-tabla__mono', c.fecha));
+        var td = el('td');
+        var b = Cf.boton('md-btn--text', 'open_in_new', 'Abrir', 'Abrir esta copia en otra pestaña (solo para mirar o copiar datos)');
+        b.addEventListener('click', function () { window.open(c.url, '_blank'); });
+        td.appendChild(b);
+        tr.appendChild(td);
+        tb.appendChild(tr);
+      });
+    }
+
+    function cargar() {
+      llamar('copiasEstado').then(pintar, function (err) {
+        Cf.$('cfCopSemanalTexto').textContent = err.message;
+        pintarVacio(err.message);
+      });
+    }
+
+    interruptor.addEventListener('change', function () {
+      var activar = interruptor.checked;
+      interruptor.checked = !activar;   // no cambia hasta que se confirme y lo diga el servidor
+      Cf.confirmar(activar
+        ? '¿Activar la copia de seguridad semanal?\nSe hará sola cada domingo de madrugada.'
+        : '¿Quitar la copia de seguridad semanal?\nLas copias ya hechas no se borran.').then(function (si) {
+        if (!si) return;
+        interruptor.disabled = true;
+        llamar('copiasActivar', [activar]).then(function (estado) {
+          pintar(estado);
+          Cf.avisar(estado.activa ? 'Copia semanal activada.' : 'Copia semanal quitada.', 'ok');
+        }, function (err) { interruptor.disabled = false; Cf.fallo(err); });
+      });
+    });
+
+    bAhora.addEventListener('click', function () {
+      bAhora.disabled = true;
+      Cf.esperar(bAhora, llamar('copiasHacerAhora')).then(function (estado) {
+        pintar(estado);
+        var h = estado.hecha || {};
+        Cf.avisar('Copia hecha: ' + h.nombre + (h.borradas ? '. ' + h.borradas + ' copia(s) vieja(s) a la papelera.' : '.'), 'ok');
+      }, function (err) { bAhora.disabled = false; Cf.fallo(err); });
+    });
+
+    bCarpeta.addEventListener('click', function () { if (carpetaUrl) window.open(carpetaUrl, '_blank'); });
+
+    Cf.alAbrir('cfCopias', cargar);
+  })();
+</script>

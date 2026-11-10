@@ -100,7 +100,12 @@ function accesoAcciones_() {
     registroConsultar:        { fn: registroConsultar_, rol: 'administrador' },
     registroRecuperarUsuario: { fn: registroRecuperarUsuario_, rol: 'administrador', registrar: true, entidad: (a, r) => r && r.idPaciente, detalle: (a, r) => 'desde la fila ' + a[0] + ' de Registro' + (r && r.nombre ? ': ' + r.nombre : '') },
     interruptoresLeer:        { fn: interruptoresLeer_, rol: 'administrador' },
-    suspenderUsuarios:        { fn: interruptorSuspender_, rol: 'administrador', registrar: true, entidad: () => 'Accesos', detalle: a => a[0] === true ? 'suspender a los no administradores' : 'reanudar a los no administradores' }
+    suspenderUsuarios:        { fn: interruptorSuspender_, rol: 'administrador', registrar: true, entidad: () => 'Accesos', detalle: a => a[0] === true ? 'suspender a los no administradores' : 'reanudar a los no administradores' },
+
+    // Copias de seguridad de la hoja (core/Copias_Seguridad.gs, CONTEXTO.md, sección 21)
+    copiasEstado:     { fn: copiasEstado_, rol: 'administrador' },
+    copiasActivar:    { fn: copiasActivar_, rol: 'administrador', registrar: true, entidad: () => 'Copias de seguridad', detalle: a => a[0] === true ? 'activar la copia semanal' : 'quitar la copia semanal' },
+    copiasHacerAhora: { fn: copiasHacerAhora_, rol: 'administrador', registrar: true, entidad: () => 'Copias de seguridad', detalle: (a, r) => r && r.hecha && r.hecha.nombre }
   };
 }
 
