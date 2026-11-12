@@ -11,6 +11,11 @@
   bloque de script), ANTES del script principal de la página. Uso:
     enlazarFormatoNombre(inputElemento);   enlazarFormatoDni(inputElemento);
   Para valores ya escritos: formatoNombreFinal(texto) (quita además los espacios de los extremos).
+  NOMBRE OFICIAL (alta y «Editar»; CONTEXTO.md, sección 22): la misma regla más «M» o «Mª» delante = MARIA:
+    enlazarFormatoNombreOficial(input);   formatoNombreOficialFinal(texto).
+  Usa nombresMariaDelante_ de core/Nombres_Oficiales.gs, que la página recibe con incluirNombres_() (sin copia); en el
+  servidor es normalizarNombreOficial_. Sin incluirNombres_() en la página se queda en la regla común. El «Nombre
+  habitual», el nombre de una cita y la ficha usan solo la regla común (formatoNombreEscribiendo / formatoNombreFinal).
   Letra del DNI/NIE: validarDni(texto) → { aplica, valido, letra }. Solo se valida lo que tiene forma de DNI (8 cifras + letra) o de
   NIE (X/Y/Z + 7 cifras + letra): el campo también admite SIP u otros documentos y esos no se tocan (aplica = false).
 -->
@@ -25,6 +30,9 @@
       .replace(/ {2,}/g, ' ');                               // sin espacios dobles
   }
   function formatoNombreFinal(v) { return formatoNombreEscribiendo(v).trim(); }
+  function formatoMariaDelante_(v) { return typeof nombresMariaDelante_ === 'function' ? nombresMariaDelante_(v) : v; }
+  function formatoNombreOficialEscribiendo(v) { return formatoMariaDelante_(formatoNombreEscribiendo(v)); }
+  function formatoNombreOficialFinal(v) { return formatoMariaDelante_(formatoNombreFinal(v)); }
   function formatoDni(v) { return (v || '').toString().toUpperCase(); }
   // Letra de control del DNI/NIE (resto de dividir el número entre 23). `letra` es la que correspondería al número escrito.
   var LETRAS_DNI_ = 'TRWAGMYFPDXBNJZSQVHLCKE';
@@ -54,6 +62,9 @@
 
   function enlazarFormatoNombre(input) {
     if (input) input.addEventListener('input', function (e) { if (!e.isComposing) sanitizeName(input); });
+  }
+  function enlazarFormatoNombreOficial(input) {
+    if (input) input.addEventListener('input', function (e) { if (!e.isComposing) aplicarFormatoInput_(input, formatoNombreOficialEscribiendo); });
   }
   function enlazarFormatoDni(input) {
     if (input) input.addEventListener('input', function (e) { if (!e.isComposing) sanitizeDni(input); });

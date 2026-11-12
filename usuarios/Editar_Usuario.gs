@@ -91,7 +91,7 @@ function actualizarPacienteSinOrden_(updatedData, idPaciente) {
       const nombreAntes = (filaActual[colNombreIdx] || '').toString().trim();
       const nombreEnviado = (newRowValues[colNombreIdx] || '').toString().trim();
       if (nombreEnviado !== nombreAntes) {
-        const nombreNuevo = normalizarNombreUsuario_(nombreEnviado);
+        const nombreNuevo = normalizarNombreOficial_(nombreEnviado);   // regla del nombre oficial: «M» delante = MARIA
         // throw (no return): el formulario trata cualquier respuesta como "guardado" y solo muestra el aviso si hay error
         if (!nombreNuevo) throw new Error('El nombre no puede quedar vacío y solo admite letras y espacios.');
         newRowValues[colNombreIdx] = nombreNuevo;

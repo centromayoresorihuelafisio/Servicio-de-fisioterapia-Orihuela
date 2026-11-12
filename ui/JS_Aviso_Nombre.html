@@ -1,0 +1,73 @@
+<!--
+  ui/JS_Aviso_Nombre.html
+  Aviso del NOMBRE OFICIAL bajo el campo «Nombre» del alta (usuarios/Panel_Nuevo) y de «Editar» (usuarios/Panel_Editar)
+  (CONTEXTO.md, sección 22, fase 3). NUNCA bloquea: solo propone. Casos y textos: nombresAvisos_ de core/Nombres_Oficiales.gs,
+  que la página recibe con incluirNombres_() (sin copia en el navegador); sin ella, no avisa.
+    · Diminutivo como primera palabra: «¿El nombre oficial es MANUEL? …» con «Cambiar a MANUEL» / «Es su nombre real»;
+      los dudosos (FINA…) ofrecen sus opciones.
+    · Sin apellidos o con uno solo, y apellidos abreviados («GLEZ»): con «Está bien así».
+  Sale al salir del campo (decisión del dueño, 12-nov-2026) y se esconde mientras se escribe. «Es su nombre real» / «Está bien
+  así» no vuelven a avisar de lo mismo mientras el formulario siga abierto.
+  Uso (tras ui/JS_Formato_Nombre):
+    var aviso = AvisoNombre.enlazar(input, { original, ponerHabitual(habitual), alCambiar() });
+      original: si se da, no avisa mientras el nombre siga siendo ese («Editar»: solo si se cambia el nombre).
+      ponerHabitual: al elegir una opción con diminutivo, recibe el nombre habitual que correspondería (PACO).
+      alCambiar: tras cambiar el nombre desde el aviso (para volver a mirar duplicados, por ejemplo).
+    aviso.revisar() / aviso.ocultar().
+  Aspecto: el aviso común .md-aviso-linea--largo (ui/CSS_Global).
+-->
+<script>
+  var AvisoNombre = (function () {
+    function enlazar(input, op) {
+      op = op || {};
+      var campoEl = input.closest('.md-campo') || input.parentNode;
+      var caja = document.createElement('div');
+      caja.setAttribute('data-aviso', 'nombre');
+      campoEl.appendChild(caja);
+      var descartados = {};
+
+      function ocultar() { caja.textContent = ''; }
+      function revisar() {
+        ocultar();
+        if (typeof nombresAvisos_ !== 'function') return;   // página sin incluirNombres_(): no se avisa
+        var v = String(input.value || '').trim();
+        if (!v || (op.original !== undefined && v === String(op.original || '').trim())) return;
+        nombresAvisos_(v).forEach(function (a) { if (!descartados[a.clave]) caja.appendChild(linea(a)); });
+      }
+      function boton(texto, fn) {
+        var b = document.createElement('button'); b.type = 'button'; b.className = 'md-aviso-linea__btn'; b.textContent = texto;
+        // mousedown sin foco: el clic no hace salir del campo antes de tiempo (eso volvería a pintar el aviso bajo el ratón)
+        b.addEventListener('mousedown', function (e) { e.preventDefault(); });
+        b.addEventListener('click', fn);
+        return b;
+      }
+      function linea(a) {
+        var d = document.createElement('div'); d.className = 'md-aviso-linea md-aviso-linea--largo'; d.setAttribute('role', 'status');
+        var ico = document.createElement('span'); ico.className = 'ms'; ico.setAttribute('aria-hidden', 'true'); ico.textContent = 'warning';
+        var txt = document.createElement('span'); txt.className = 'md-aviso-linea__txt';
+        a.texto.forEach(function (t, i) {   // los trozos de posición impar van resaltados
+          if (i % 2) { var b = document.createElement('b'); b.textContent = t; txt.appendChild(b); }
+          else txt.appendChild(document.createTextNode(t));
+        });
+        var acc = document.createElement('span'); acc.className = 'md-aviso-linea__acciones';
+        a.opciones.forEach(function (o) {
+          acc.appendChild(boton(o.etiqueta, function () {
+            input.value = o.nombre;
+            input.dispatchEvent(new Event('input', { bubbles: true }));   // formato, cambios pendientes y errores de la página
+            if (o.habitual && op.ponerHabitual) op.ponerHabitual(o.habitual);
+            revisar();
+            if (op.alCambiar) op.alCambiar();
+          }));
+        });
+        acc.appendChild(boton(a.descartar, function () { descartados[a.clave] = true; revisar(); }));
+        d.appendChild(ico); d.appendChild(txt); d.appendChild(acc);
+        return d;
+      }
+
+      input.addEventListener('input', function (e) { if (!e.isComposing) ocultar(); });
+      input.addEventListener('blur', revisar);
+      return { revisar: revisar, ocultar: ocultar };
+    }
+    return { enlazar: enlazar };
+  })();
+</script>

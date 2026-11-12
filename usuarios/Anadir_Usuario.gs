@@ -78,11 +78,14 @@ function guardarPaciente_(datos) {
   let idPacienteNuevo = '';
   if (colIdPaciente !== -1) { idPacienteNuevo = Utilities.getUuid(); nuevaFila[colIdPaciente] = idPacienteNuevo; }
 
-  // Formato unificado (core/Utils.gs): el formulario ya lo aplica al escribir; aquí se
-  // garantiza también en el servidor por si el dato llega de otra vía.
+  // Formato unificado: el formulario ya lo aplica al escribir; aquí se garantiza también en el servidor por si el dato
+  // llega de otra vía. El nombre sigue la regla del nombre oficial («M» delante = MARIA; core/Nombres_Oficiales.gs);
+  // el nombre habitual, solo la regla común (core/Utils.gs).
   const colNombreFormato = encabezados.indexOf(COLUMNAS.MAESTRA.NOMBRE);
   const colDniFormato = encabezados.indexOf(COLUMNAS.MAESTRA.DNI);
-  if (colNombreFormato !== -1) nuevaFila[colNombreFormato] = normalizarNombreUsuario_(nuevaFila[colNombreFormato]);
+  const colHabitualFormato = encabezados.findIndex(h => h.toString().trim() === COLUMNAS.MAESTRA.NOMBRE_HABITUAL);
+  if (colNombreFormato !== -1) nuevaFila[colNombreFormato] = normalizarNombreOficial_(nuevaFila[colNombreFormato]);
+  if (colHabitualFormato !== -1) nuevaFila[colHabitualFormato] = normalizarNombreUsuario_(nuevaFila[colHabitualFormato]);
   if (colDniFormato !== -1) nuevaFila[colDniFormato] = normalizarDniUsuario_(nuevaFila[colDniFormato]);
 
   // Teléfonos (regla única, core/Utils.gs → telefonoNormalizar_): se guardan solo con dígitos y como texto.

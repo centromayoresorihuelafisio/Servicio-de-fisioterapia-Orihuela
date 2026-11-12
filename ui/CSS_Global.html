@@ -271,6 +271,32 @@
       .md-campo--dato .md-campo__control:disabled { font-family: var(--font-mono); font-size: var(--fs-sm); color: var(--md-on-surface-med); }
       .md-campo--dato .md-campo__etiqueta { top: 0; font-size: var(--fs-xs); }
 
+      /* --- Aviso en linea bajo un campo: no bloquea; icono, texto y botones de texto. Lo usan el aviso de usuario ya existente
+         del alta (usuarios/Panel_Nuevo) y el del nombre oficial (ui/JS_Aviso_Nombre).
+         Marcado:  <div class="md-aviso-linea" role="status"><span class="ms">warning</span>
+                     <span class="md-aviso-linea__txt">Coincidencia: <b>NOMBRE</b></span>
+                     <button type="button" class="md-aviso-linea__btn">Editar</button></div>
+         Una sola linea (el texto se corta con «…»). Variante --largo: el texto ocupa las lineas que necesite y los botones
+         (dentro de .md-aviso-linea__acciones) bajan a la derecha si no caben. Se oculta con el atributo hidden. --- */
+      .md-aviso-linea {
+        display: flex; align-items: center; gap: .4rem; margin: 4px 0 0 14px; padding: .15rem .3rem .15rem .5rem; min-height: 28px;
+        border-radius: var(--md-shape-sm); border-left: 3px solid var(--md-warning); background: var(--md-warning-bg);
+        color: var(--md-on-surface); font-size: var(--fs-xs); line-height: 1.3;
+      }
+      .md-aviso-linea[hidden] { display: none; }
+      .md-aviso-linea > .ms { font-size: 16px; color: var(--md-warning-text); flex: none; }
+      .md-aviso-linea__txt { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .md-aviso-linea__txt b { font-weight: 600; }
+      .md-aviso-linea__mas { flex: none; color: var(--md-on-surface-med); font-weight: 600; }
+      .md-aviso-linea__btn {
+        flex: none; border: 0; background: transparent; color: var(--md-primary); font: inherit; font-weight: 600;
+        cursor: pointer; padding: .15rem .4rem; border-radius: var(--md-shape-xs);
+      }
+      .md-aviso-linea__btn:hover { background: var(--md-primary-light); }
+      .md-aviso-linea--largo { flex-wrap: wrap; padding-block: .25rem; }
+      .md-aviso-linea--largo .md-aviso-linea__txt { flex-basis: 12rem; white-space: normal; }
+      .md-aviso-linea__acciones { display: flex; flex-wrap: wrap; justify-content: flex-end; margin-left: auto; }
+
       /* --- Chip: 32 px. Seleccionado = fondo del contenedor primario y marca delante (no solo color) --- */
       .md-chip {
         display: inline-flex; align-items: center; gap: 6px; box-sizing: border-box; height: 32px; padding: 0 12px;

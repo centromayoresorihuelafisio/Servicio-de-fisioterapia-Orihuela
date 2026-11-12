@@ -12,7 +12,8 @@
   Guarda con actualizarPaciente(data, idPaciente) (usuarios/Editar_Usuario.gs).
   Identidad: el servidor localiza al usuario por su ID paciente (no por número de fila ni nombre), así que aunque la hoja
   se reordene mientras el panel está abierto se edita siempre a la misma persona; si ya no existe, no se guarda nada.
-  Requiere ui/JS_Formato_Nombre en la página (enlazarFormatoNombre / enlazarFormatoDni / validarDni).
+  Requiere ui/JS_Formato_Nombre en la página (enlazarFormatoNombreOficial / enlazarFormatoNombre / enlazarFormatoDni / validarDni),
+  incluirNombres_() y ui/JS_Aviso_Nombre (aviso del nombre oficial si se cambia el nombre; sin ellos no avisa).
 -->
 <style>
 .pe {
@@ -378,8 +379,18 @@ window.PanelEditar = {
       });
       // Nombre y DNI: misma regla que en el alta (ui/JS_Formato_Nombre). Solo se aplica al escribir:
       // los datos ya guardados no se tocan hasta que alguien edite ese campo.
-      enlazarFormatoNombre(byName('Nombre')[0]);
-      enlazarFormatoNombre(byName('Nombre habitual')[0]);   // misma regla que el nombre (CONTEXTO.md, sección 22)
+      // El nombre sigue la regla del nombre oficial («M» delante = MARIA); el nombre habitual, solo la común.
+      var inpNombre = byName('Nombre')[0], inpHabitual = byName('Nombre habitual')[0];
+      enlazarFormatoNombreOficial(inpNombre);
+      enlazarFormatoNombre(inpHabitual);   // misma regla que el nombre (CONTEXTO.md, sección 22)
+      // Aviso del nombre oficial (ui/JS_Aviso_Nombre): solo si se cambia el nombre (decisión del dueño, 12-nov-2026). No bloquea.
+      if (inpNombre && window.AvisoNombre) AvisoNombre.enlazar(inpNombre, {
+        original: inpNombre.value,
+        ponerHabitual: function (h) {
+          if (!inpHabitual || inpHabitual.value.trim()) return;
+          inpHabitual.value = h; inpHabitual.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+      });
       enlazarFormatoDni(byName('DNI')[0]);
       // Letra del DNI/NIE: ver revisarLetraDni(). Se comprueba al escribir y al salir del campo.
       var inpDni = byName('DNI')[0];

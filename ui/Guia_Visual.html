@@ -217,6 +217,21 @@
       <label class="md-campo md-campo--compacto"><input type="date" class="md-campo__control"><span class="md-campo__etiqueta">Fecha (compacto)</span></label>
       <label class="md-campo md-campo--compacto"><input type="time" class="md-campo__control"><span class="md-campo__etiqueta">Hora (compacto)</span></label>
     </div>
+    <p>Aviso en línea bajo un campo (.md-aviso-linea): no bloquea. De una línea, el de usuario ya existente del alta; con --largo, el del nombre oficial del alta y de «Editar» (ui/JS_Aviso_Nombre).</p>
+    <div class="gv-rejilla">
+      <div class="md-campo md-campo--icono">
+        <span class="material-symbols-outlined md-campo__icono" aria-hidden="true">person</span>
+        <input class="md-campo__control" id="gv-c9" placeholder=" " value="MARIA PERAL FENOLL">
+        <label class="md-campo__etiqueta" for="gv-c9">Aviso de una línea</label>
+        <div class="md-aviso-linea" role="status"><span class="ms" aria-hidden="true">warning</span><span class="md-aviso-linea__txt">Coincidencia: <b>MARIA PERAL FENOL</b></span><span class="md-aviso-linea__mas">+1</span><button type="button" class="md-aviso-linea__btn">Editar</button></div>
+      </div>
+      <div class="md-campo md-campo--icono">
+        <span class="material-symbols-outlined md-campo__icono" aria-hidden="true">person</span>
+        <input class="md-campo__control" id="gv-c10" placeholder=" " value="PACO GIL ROS">
+        <label class="md-campo__etiqueta" for="gv-c10">Aviso largo (nombre oficial)</label>
+        <div class="md-aviso-linea md-aviso-linea--largo" role="status"><span class="ms" aria-hidden="true">warning</span><span class="md-aviso-linea__txt">¿El nombre oficial es <b>FRANCISCO</b>? Escríbelo como en el DNI o la SIP.</span><span class="md-aviso-linea__acciones"><button type="button" class="md-aviso-linea__btn">Cambiar a FRANCISCO</button><button type="button" class="md-aviso-linea__btn">Es su nombre real</button></span></div>
+      </div>
+    </div>
   </section>
 
   <section class="gv-sec">

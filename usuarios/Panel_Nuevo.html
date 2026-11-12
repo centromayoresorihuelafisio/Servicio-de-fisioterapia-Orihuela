@@ -16,7 +16,10 @@
     · Al guardar muestra el mensaje y, tras un instante, llama a onGuardado(mensaje) (la página recarga la tabla).
   Funciones de servidor (usuarios/Anadir_Usuario.gs): guardarPaciente y generarHistoriaClinicaRegistroUsuario.
   CSS acotado a .nu y basado en los tokens de la página (--md-*, respeta el tema oscuro). A 400 px todo va en una columna.
-  Requiere ui/JS_Formato_Nombre en la página (sanitizeName, sanitizeDni, formatoNombreFinal, formatoDni, validarDni).
+  Requiere ui/JS_Formato_Nombre en la página (enlazarFormatoNombreOficial, sanitizeDni, formatoNombreOficialFinal, formatoDni, validarDni),
+  incluirNombres_() y ui/JS_Aviso_Nombre (aviso del nombre oficial bajo «Nombre completo»; sin ellos no avisa, pero el alta sigue igual).
+  Nombre oficial (CONTEXTO.md, sección 22): «M» o «Mª» delante pasa sola a MARIA; si se acepta el cambio de un diminutivo del aviso,
+  el diminutivo viaja en el campo oculto «Nombre habitual» (se guarda si la Maestra tiene esa columna).
 -->
 <style>
 .nu {
@@ -144,16 +147,6 @@
 .nu .nu-dup-mas { font-size: var(--fs-sm); color: var(--md-on-surface-med); padding: .1rem .2rem; }
 .nu .nu-dup-pie { margin-top: 1.1rem; flex-wrap: wrap; }
 
-/* ── Aviso en línea bajo un campo: ya existe un usuario con ese dato (una sola línea, para no ocupar alto) ── */
-.nu .nu-aviso { display: none; align-items: center; gap: .4rem; margin: 4px 0 0 14px; padding: .15rem .3rem .15rem .5rem; min-height: 28px; border-radius: var(--md-shape-sm); border-left: 3px solid var(--md-warning); background: var(--md-warning-bg); color: var(--md-on-surface); font-size: var(--fs-xs); line-height: 1.3; }
-.nu .nu-aviso.visible { display: flex; }
-.nu .nu-aviso > .ms { font-size: 16px; color: var(--md-warning-text); flex: none; }
-.nu .nu-aviso-txt { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.nu .nu-aviso-nom { font-weight: 600; }
-.nu .nu-aviso-mas { flex: none; color: var(--md-on-surface-med); font-weight: 600; }
-.nu .nu-aviso-btn { flex: none; border: 0; background: transparent; color: var(--md-primary); font: inherit; font-weight: 600; cursor: pointer; padding: .15rem .4rem; border-radius: var(--md-shape-xs); }
-.nu .nu-aviso-btn:hover { background: var(--md-primary-light); }
-
 </style>
 
 <script>
@@ -218,6 +211,7 @@ window.PanelNuevo = {
       '<div class="nu-cuerpo"><form class="nu-form" novalidate onsubmit="return false">' +
         seccion('badge', 'Datos personales', '<div class="grid-2">' +
           campo('nombre', 'person', 'Nombre completo', { name: 'Nombre', req: true }) +
+          '<input type="hidden" id="nu-habitual" name="Nombre habitual">' +   // lo rellena el aviso del nombre oficial (PACO → FRANCISCO)
           campo('dni', 'id_card', 'Identificación (DNI / SIP)', { name: 'DNI' }) +
           campo('fi', 'event', 'Fecha de inscripción', { name: 'Fecha inscripción', type: 'date', req: true }) +
           campo('fn', 'cake', 'Fecha de nacimiento', { name: 'Fecha nacimiento', type: 'date' }) +
@@ -282,7 +276,7 @@ window.PanelNuevo = {
       el.addEventListener('input', function () { clearError(el); });
       el.addEventListener('change', function () { clearError(el); });
     });
-    iNombre.addEventListener('input', function (e) { if (!e.isComposing) sanitizeName(iNombre); });
+    enlazarFormatoNombreOficial(iNombre);   // regla del nombre oficial: «M» delante = MARIA (ui/JS_Formato_Nombre)
     iDni.addEventListener('input', function (e) { if (!e.isComposing) sanitizeDni(iDni); });
     // Letra de control del DNI/NIE (ui/JS_Formato_Nombre → validarDni). Solo si el valor tiene forma de DNI/NIE: el campo también
     // admite SIP u otros documentos. Se avisa en cuanto el número está completo y también impide guardar; si no hay DNI, se deja vacío.
@@ -518,25 +512,29 @@ window.PanelNuevo = {
     var AVISO_TXT = { dni: 'Coincidencia:', telefono: 'Coincidencia:', nombre: 'Coincidencia:' };
     // Una sola línea para no ocupar alto en el panel lateral: enseña la coincidencia más fiable; si hay más, "+N" (el texto flotante y
     // la capa que sale al guardar las listan todas).
+    // Aspecto: el aviso común .md-aviso-linea (ui/CSS_Global), en una sola línea.
     function pintarAviso(input, tipo, res) {
-      var campoEl = input.closest('.md-campo'), a = campoEl.querySelector('.nu-aviso');
-      if (!a) { a = document.createElement('div'); a.className = 'nu-aviso'; a.setAttribute('role', 'status'); campoEl.appendChild(a); }
+      var campoEl = input.closest('.md-campo'), a = campoEl.querySelector('[data-aviso="dup"]');
+      if (!a) {
+        a = document.createElement('div'); a.className = 'md-aviso-linea'; a.setAttribute('data-aviso', 'dup'); a.setAttribute('role', 'status'); a.hidden = true;
+        campoEl.appendChild(a);
+      }
       a.textContent = '';
-      if (!res.total) { a.classList.remove('visible'); return; }
+      if (!res.total) { a.hidden = true; return; }
       var c = res.candidatos[0];
       var ico = document.createElement('span'); ico.className = 'ms'; ico.textContent = 'warning';
-      var txt = document.createElement('span'); txt.className = 'nu-aviso-txt';
+      var txt = document.createElement('span'); txt.className = 'md-aviso-linea__txt';
       txt.title = res.candidatos.map(function (x) { return x.nombre; }).join('\n');
       txt.appendChild(document.createTextNode(AVISO_TXT[tipo] + ' '));
-      var nom = document.createElement('b'); nom.className = 'nu-aviso-nom'; nom.textContent = c.nombre; txt.appendChild(nom);
+      var nom = document.createElement('b'); nom.textContent = c.nombre; txt.appendChild(nom);
       a.appendChild(ico); a.appendChild(txt);
       if (res.total > 1) {
-        var mas = document.createElement('span'); mas.className = 'nu-aviso-mas'; mas.textContent = '+' + (res.total - 1);
+        var mas = document.createElement('span'); mas.className = 'md-aviso-linea__mas'; mas.textContent = '+' + (res.total - 1);
         mas.title = 'Hay ' + (res.total - 1) + ' coincidencia(s) más. Pasa el ratón por el texto para verlas todas.'; a.appendChild(mas);
       }
-      var btn = document.createElement('button'); btn.type = 'button'; btn.className = 'nu-aviso-btn'; btn.textContent = 'Editar'; btn.title = 'Abrir su ficha para editarla';
+      var btn = document.createElement('button'); btn.type = 'button'; btn.className = 'md-aviso-linea__btn'; btn.textContent = 'Editar'; btn.title = 'Abrir su ficha para editarla';
       btn.addEventListener('click', function () { irAEditar(c.fila); });
-      a.appendChild(btn); a.classList.add('visible');
+      a.appendChild(btn); a.hidden = false;
     }
     function revisarCampo(input, tipo) {
       pintarAviso(input, tipo, tipo === 'dni' ? coincidencias('', input.value, [])
@@ -553,6 +551,11 @@ window.PanelNuevo = {
     // El nombre se revisa al salir del campo: mientras se escribe daría coincidencias a medias.
     iNombre.addEventListener('input', function () { clearTimeout(temporizadores[iNombre.id]); pintarAviso(iNombre, 'nombre', { total: 0, candidatos: [] }); });
     iNombre.addEventListener('blur', function () { revisarCampo(iNombre, 'nombre'); });
+    // Aviso del nombre oficial (ui/JS_Aviso_Nombre): diminutivo, apellidos que faltan o abreviados. No bloquea el alta.
+    if (window.AvisoNombre) AvisoNombre.enlazar(iNombre, {
+      ponerHabitual: function (h) { var oc = q('#nu-habitual'); if (!oc.value) oc.value = h; },
+      alCambiar: function () { revisarCampo(iNombre, 'nombre'); }
+    });
 
     /* ── Cierre ── */
     // El panel no se cierra solo: avisa a la página (onCancelar), que pregunta por los cambios sin guardar
@@ -605,7 +608,7 @@ window.PanelNuevo = {
         return;
       }
       // Valores finales con la regla única (sin espacios sobrantes) antes de enviar
-      iNombre.value = formatoNombreFinal(iNombre.value);
+      iNombre.value = formatoNombreOficialFinal(iNombre.value);
       iDni.value = formatoDni(iDni.value).trim();
       var datos = recogerDatos(), dni = iDni.value.trim();
       // Último freno antes de crear el alta: si coincide con usuarios ya existentes (DNI, teléfono o nombre parecido) se avisa.

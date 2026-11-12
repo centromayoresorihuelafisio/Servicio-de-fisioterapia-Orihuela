@@ -1,7 +1,7 @@
 // pwa/build.js — Monta la app instalable (PWA; CONTEXTO.md, sección 20) con el mismo código que la web de Apps Script.
-// No hay una segunda copia de las pantallas: ejecuta en Node core/Config.gs, core/Patologias.gs y core/WebApp.gs (sin
-// cambiarlos) y evalúa las mismas plantillas que doGet, con sus include_, incluirPanel_, incluirAcceso_,
-// incluirPestanas_, incluirEstados_ e incluirPatologias_. Igual que Apps Script, solo evalúa las <? ?> de las
+// No hay una segunda copia de las pantallas: ejecuta en Node core/Config.gs, core/Patologias.gs, core/Utils.gs,
+// core/Nombres_Oficiales.gs y core/WebApp.gs (sin cambiarlos) y evalúa las mismas plantillas que doGet, con sus include_,
+// incluirPanel_, incluirAcceso_, incluirPestanas_, incluirEstados_, incluirPatologias_ e incluirNombres_. Igual que Apps Script, solo evalúa las <? ?> de las
 // plantillas, nunca las de lo incluido con include_() (trampa 2 de la sección 7).
 //   · una página por entrada de PAGINAS_WEB, más hc.html (historia/HC_Vista) e index.html, que hace de doGet: lleva
 //     ./?page=… a su archivo; la dirección de la app (baseUrl) es «./».
@@ -39,7 +39,7 @@ ctx.__esc = function (v) {
   return String(v === null || v === undefined ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;')
     .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 };
-['core/Config.gs', 'core/Patologias.gs', 'core/WebApp.gs'].forEach(function (f) {
+['core/Config.gs', 'core/Patologias.gs', 'core/Utils.gs', 'core/Nombres_Oficiales.gs', 'core/WebApp.gs'].forEach(function (f) {
   vm.runInContext(leer(f), ctx, { filename: f });
 });
 const enCtx = function (codigo) { return vm.runInContext(codigo, ctx); };

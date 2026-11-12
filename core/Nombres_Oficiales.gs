@@ -1,6 +1,8 @@
 // core/Nombres_Oficiales.gs
-// Nombres oficiales (CONTEXTO.md, sección 22). ÚNICA lista de diminutivos y abreviaturas del proyecto: la usa la
-// herramienta de la fase 2 (ya retirada) y la usarán los avisos del alta y de «Editar» (fase 3).
+// Nombres oficiales (CONTEXTO.md, sección 22). ÚNICA lista de diminutivos y abreviaturas del proyecto: la usó la
+// herramienta de la fase 2 (ya retirada) y la usan el alta y «Editar» (fase 3): «M» delante = MARIA al guardar
+// (normalizarNombreOficial_) y los avisos del nombre (nombresAvisos_). El navegador no tiene copia: incluirNombres_()
+// le sirve estas mismas listas y funciones.
 // Solo lógica pura (no lee ni escribe la hoja): se prueba fuera de Google con `node comprobar/nombres.mjs`.
 // Decisiones del dueño (12-nov-2026): MAMEN y MARICARMEN = MARIA CARMEN; MONSE = MONSERRATE; «M» delante = MARIA.
 // ================================================================================
@@ -231,4 +233,110 @@ function nombresPosiblesDuplicados_(lista) {
     }
   }
   return salida;
+}
+
+/**
+ * «M» o «Mª» como primera palabra = MARIA (decisión del dueño, 12-nov-2026). `texto` ya normalizado con la regla del
+ * nombre (normalizarNombreUsuario_ / formatoNombreEscribiendo, que dejan «Mª» en «M»). Solo actúa si detrás hay un
+ * espacio: así sirve también mientras se escribe («M » → «MARIA ») y deja en paz un «M» suelto o «MANOLO».
+ */
+function nombresMariaDelante_(texto) {
+  const s = String(texto === null || texto === undefined ? '' : texto);
+  const i = s.indexOf(' ');
+  if (i <= 0) return s;
+  return NOMBRES_M_MARIA_.indexOf(s.slice(0, i)) !== -1 ? 'MARIA' + s.slice(i) : s;
+}
+
+/**
+ * Regla del NOMBRE OFICIAL (alta y «Editar»): la regla común del nombre (normalizarNombreUsuario_, core/Utils.gs) más
+ * «M» delante = MARIA. En el navegador es formatoNombreOficialEscribiendo / formatoNombreOficialFinal
+ * (ui/JS_Formato_Nombre), que usan esta misma nombresMariaDelante_ servida por incluirNombres_().
+ * El «Nombre habitual» NO pasa por aquí: sigue solo la regla común.
+ */
+function normalizarNombreOficial_(texto) {
+  return nombresMariaDelante_(normalizarNombreUsuario_(texto));
+}
+
+/**
+ * Avisos SIN bloquear para el nombre que se escribe en el alta o en «Editar» (fase 3 de la sección 22):
+ *   diminutivo conocido como primera palabra (seguro o dudoso), sin apellidos o con uno solo, y apellidos abreviados.
+ * Devuelve una lista de { clave, texto, opciones, descartar }:
+ *   texto: trozos de la frase; los de posición impar van resaltados (['¿El nombre oficial es ', 'MANUEL', '? …']).
+ *   opciones: [{ etiqueta, nombre, habitual }] = botones que cambian el nombre (habitual = lo que pasaría a
+ *     «Nombre habitual» si estaba vacío; '' si nada).
+ *   descartar: texto del botón que lo da por bueno; clave: para no volver a enseñar un aviso ya descartado.
+ */
+function nombresAvisos_(nombre) {
+  const palabras = normalizarNombreOficial_(nombre).split(' ').filter(Boolean);
+  if (!palabras.length) return [];
+  const avisos = [];
+  const actual = palabras.join(' ');
+  const largoPila = nombresLargoDePila_(palabras);
+  const conPrimera = function (nueva) { return [nueva].concat(palabras.slice(1)).join(' '); };
+  // Nombre habitual que correspondería: el nombre de pila tal como se ha escrito (sin partículas al final).
+  const pila = palabras.slice(0, largoPila);
+  while (pila.length > 1 && NOMBRES_PARTICULAS_.indexOf(pila[pila.length - 1]) !== -1) pila.pop();
+  const habitual = pila.join(' ');
+
+  // 1. Diminutivo como primera palabra.
+  const p = palabras[0];
+  let eq = NOMBRES_DIMINUTIVOS_[p];
+  if (p === 'MARI') eq = largoPila > 1 ? 'MARIA' : ['MARIA'];   // MARI delante de otro nombre = MARIA; sola, dudosa
+  if (typeof eq === 'string') {
+    avisos.push({
+      clave: 'diminutivo:' + actual,
+      texto: ['¿El nombre oficial es ', eq, '? Escríbelo como en el DNI o la SIP.'],
+      opciones: [{ etiqueta: 'Cambiar a ' + eq, nombre: conPrimera(eq), habitual: habitual }],
+      descartar: 'Es su nombre real'
+    });
+  } else if (Array.isArray(eq)) {
+    const texto = ['¿El nombre oficial es '];
+    eq.forEach(function (o, i) { if (i) texto.push(i === eq.length - 1 ? ' o ' : ', '); texto.push(o); });
+    texto.push('? Míralo en el DNI o la SIP.');
+    avisos.push({
+      clave: 'diminutivo:' + actual,
+      texto: texto,
+      opciones: eq.filter(function (o) { return o !== p; }).map(function (o) {
+        return { etiqueta: o, nombre: conPrimera(o), habitual: habitual };
+      }),
+      descartar: 'Es su nombre real'
+    });
+  }
+
+  // 2. Apellidos que faltan.
+  const sinParticulas = palabras.filter(function (w) { return NOMBRES_PARTICULAS_.indexOf(w) === -1; }).length;
+  if (sinParticulas === 1) {
+    avisos.push({ clave: 'apellidos:' + actual, texto: ['Faltan los apellidos. Escríbelos como en el DNI o la SIP.'], opciones: [], descartar: 'Está bien así' });
+  } else if (sinParticulas === 2) {
+    avisos.push({ clave: 'apellidos:' + actual, texto: ['Solo hay un apellido. Si tiene dos, escríbelos como en el DNI o la SIP.'], opciones: [], descartar: 'Está bien así' });
+  }
+
+  // 3. Apellidos abreviados («GLEZ»).
+  palabras.forEach(function (w, i) {
+    const largo = NOMBRES_ABREVIATURAS_[w];
+    if (!largo) return;
+    const copia = palabras.slice(); copia[i] = largo;
+    avisos.push({
+      clave: 'abreviatura:' + w + ':' + actual,
+      texto: ['«' + w + '» parece abreviado. ¿Es ', largo, '?'],
+      opciones: [{ etiqueta: 'Cambiar a ' + largo, nombre: copia.join(' '), habitual: '' }],
+      descartar: 'Está bien así'
+    });
+  });
+  return avisos;
+}
+
+/**
+ * Entrega al navegador las listas y funciones de nombres de este archivo (y normalizarNombreUsuario_, que usan) sin
+ * copiarlas: escribe su mismo código. Se pone UNA vez por página, antes de ui/JS_Formato_Nombre y ui/JS_Aviso_Nombre
+ * (como incluirEstados_). La app instalable la calcula al montar (pwa/build.js ejecuta este archivo y core/Utils.gs).
+ */
+function incluirNombres_() {
+  const listas = { NOMBRES_DIMINUTIVOS_: NOMBRES_DIMINUTIVOS_, NOMBRES_ABREVIATURAS_: NOMBRES_ABREVIATURAS_,
+    NOMBRES_PARTICULAS_: NOMBRES_PARTICULAS_, NOMBRES_M_MARIA_: NOMBRES_M_MARIA_ };
+  const funciones = [normalizarNombreUsuario_, nombresLargoDePila_, nombresMariaDelante_, normalizarNombreOficial_, nombresAvisos_];
+  let js = '';
+  Object.keys(listas).forEach(function (k) { js += 'var ' + k + ' = ' + JSON.stringify(listas[k]) + ';\n'; });
+  funciones.forEach(function (f) { js += f.toString() + '\n'; });
+  return '<script>\n' + js.replace(/<\//g, '<\\/') + '</script>';
 }
