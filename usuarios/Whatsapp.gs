@@ -25,26 +25,27 @@ function guardarPlantillaWhatsappWeb_(texto) {
 }
 
 /**
- * Primer nombre en formato Title Case para el saludo (misma regla de siempre:
- * si la primera palabra tiene 2 letras o menos, se une con la segunda).
+ * Primer nombre en formato Title Case para el saludo:
+ *   · si la primera palabra tiene 2 letras o menos, se une con la segunda (regla de siempre, para «M CARMEN»);
+ *   · si empieza por MARIA y tiene más de 3 palabras, saluda con todo lo que va delante de los dos apellidos
+ *     («MARIA CARMEN LOPEZ GARCIA» -> «Maria Carmen», «MARIA DEL CARMEN …» -> «Maria del Carmen»; sección 22).
+ *     Con 3 palabras o menos solo «Maria» («MARIA PERAL FENOLL»: la segunda es un apellido).
  */
 function _primerNombreWhatsapp_(nombreCompleto) {
-  const palabras = nombreCompleto.toString().trim().split(/\s+/);
-  let primerNombre = "";
-  if (palabras.length > 0) {
-    let palabra1 = palabras[0];
-    if (palabra1.replace(/[^a-zA-ZñÑáéíóúÁÉÍÓÚ]/g, "").length <= 2 && palabras.length > 1) {
-      let palabra2 = palabras[1];
-      palabra1 = palabra1.replace(/[^a-zA-ZñÑáéíóúÁÉÍÓÚ]/g, "");
-      palabra2 = palabra2.replace(/[^a-zA-ZñÑáéíóúÁÉÍÓÚ]/g, "");
-      primerNombre = palabra1.charAt(0).toUpperCase() + palabra1.slice(1).toLowerCase() + " " +
-                      palabra2.charAt(0).toUpperCase() + palabra2.slice(1).toLowerCase();
-    } else {
-      palabra1 = palabra1.replace(/[^a-zA-ZñÑáéíóúÁÉÍÓÚ]/g, "");
-      primerNombre = palabra1.charAt(0).toUpperCase() + palabra1.slice(1).toLowerCase();
-    }
-  }
-  return primerNombre;
+  const PARTICULAS = ['de', 'del', 'la', 'las', 'los', 'y'];
+  const palabras = String(nombreCompleto == null ? '' : nombreCompleto).trim().split(/\s+/)
+    .map(function(p) { return p.replace(/[^a-zA-ZñÑáéíóúÁÉÍÓÚüÜ]/g, ""); }).filter(Boolean);
+  if (!palabras.length) return "";
+  const sinTildes = palabras[0].normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase();
+  let cuantas = 1;
+  if (palabras[0].length <= 2 && palabras.length > 1) cuantas = 2;
+  else if (sinTildes === 'MARIA' && palabras.length > 3) cuantas = palabras.length - 2;
+  const nombre = palabras.slice(0, cuantas).map(function(p, i) {
+    const min = p.toLowerCase();
+    return (i > 0 && PARTICULAS.indexOf(min) !== -1) ? min : p.charAt(0).toUpperCase() + min.slice(1);
+  });
+  while (nombre.length > 1 && PARTICULAS.indexOf(nombre[nombre.length - 1]) !== -1) nombre.pop();
+  return nombre.join(" ");
 }
 
 /**

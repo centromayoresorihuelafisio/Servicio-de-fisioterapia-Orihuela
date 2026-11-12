@@ -61,6 +61,7 @@ const PUBLICAS = {
   configurarMensajeWhatsapp: 'editor', sincronizarContactosGoogle: 'editor', exportarProyectoAUnicoArchivo: 'editor', sembrarHistorialEstado: 'editor', verificarHistorialEstado: 'editor',
   revisarParesIdsPaciente: 'editor', asignarIdsPaciente: 'editor', revisarIdPacienteEnHC: 'editor', asignarIdPacienteEnHC: 'editor', revisarIdPacienteEnValoraciones: 'editor', asignarIdPacienteEnValoraciones: 'editor',
   copiasActivarSemanal: 'editor', copiaSeguridadAhora: 'editor',
+  revisarNombres: 'editor', aplicarNombres: 'editor',
   copiaSeguridadSemanal: 'la lanza el activador semanal de copias; solo trabaja si la llama un activador de este proyecto (copiasEsActivador_)',
 };
 // Transición de la fase 2 (17.10): terminada el 2-nov-2026, las dos listas quedan vacías. Si algún día se vuelve a usar,
