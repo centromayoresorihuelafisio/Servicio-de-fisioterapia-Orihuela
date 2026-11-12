@@ -287,20 +287,24 @@ function cambiarGravedadPacienteWeb_(idPaciente, nuevaGravedad) {
 
 /**
  * Cambia UN dato de la ficha sin abrir el formulario de edición (lápiz de la ficha de Usuarios y de la Agenda).
- * Solo admite Teléfono 1, Teléfono 2 y Observaciones: el resto (nombre, DNI, fechas, patologías) sigue pasando por
- * el formulario «Editar», que tiene su revisión de cambios. Escribe solo esa casilla (no reescribe la fila, a
- * diferencia de actualizarPaciente_) y ninguno de los tres cuenta para el orden, así que no reordena.
- * Devuelve { success, message, valor } con el valor tal como ha quedado guardado (teléfono normalizado).
+ * Solo admite Teléfono 1, Teléfono 2, Observaciones y Nombre habitual: el resto (nombre, DNI, fechas, patologías) sigue
+ * pasando por el formulario «Editar», que tiene su revisión de cambios. Escribe solo esa casilla (no reescribe la fila, a
+ * diferencia de actualizarPaciente_) y ninguno cuenta para el orden, así que no reordena.
+ * Devuelve { success, message, valor } con el valor tal como ha quedado guardado (teléfono normalizado; nombre habitual
+ * con la regla del nombre: mayúsculas, sin tildes ni signos).
  */
 function cambiarDatoFichaPacienteWeb_(idPaciente, campo, nuevoValor) {
   const C = COLUMNAS.MAESTRA;
-  const permitidos = [C.TELEFONO_1, C.TELEFONO_2, C.OBSERVACIONES];
+  const permitidos = [C.TELEFONO_1, C.TELEFONO_2, C.OBSERVACIONES, C.NOMBRE_HABITUAL];
   const col = permitidos.find(c => c === String(campo || '').trim());
   if (!col) return { success: false, message: 'Ese dato no se puede cambiar desde la ficha: usa «Editar».' };
 
   let valor = (nuevoValor === null || nuevoValor === undefined) ? '' : String(nuevoValor).trim();
   if (col === C.OBSERVACIONES) {
     if (valor.length > 5000) return { success: false, message: 'Las observaciones son demasiado largas.' };
+  } else if (col === C.NOMBRE_HABITUAL) {
+    valor = normalizarNombreUsuario_(valor);   // vacío = se borra
+    if (valor.length > 60) return { success: false, message: 'El nombre habitual es demasiado largo.' };
   } else {
     const tel = telefonoAnalizar_(valor);
     if (tel.tipo === 'ilegible') return { success: false, message: 'El teléfono solo admite números (y un + delante si es de otro país).' };
@@ -315,7 +319,9 @@ function cambiarDatoFichaPacienteWeb_(idPaciente, campo, nuevoValor) {
       if (!rowIdx) return { success: false, message: 'Ese usuario ya no está en Usuarios. Recarga la página.' };
       const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0].map(h => h.toString().trim());
       const idx = headers.indexOf(col);
-      if (idx === -1) return { success: false, message: `No se encontró la columna "${col}".` };
+      if (idx === -1) return { success: false, message: col === C.NOMBRE_HABITUAL
+        ? 'Falta la columna «Nombre habitual» en la hoja «' + SHEETS.MAESTRA + '»: escríbela en la fila 1, al final.'
+        : `No se encontró la columna "${col}".` };
 
       const celda = sheet.getRange(rowIdx, idx + 1);
       celda.setNumberFormat('@');   // texto: Sheets no convierte el teléfono en número ni unas observaciones como «1/2» en fecha

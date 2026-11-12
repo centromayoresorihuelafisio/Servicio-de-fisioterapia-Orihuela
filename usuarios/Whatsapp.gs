@@ -48,10 +48,20 @@ function _primerNombreWhatsapp_(nombreCompleto) {
 }
 
 /**
+ * Saludo con el nombre habitual (columna «Nombre habitual», CONTEXTO.md sección 22): entero y con cada palabra en
+ * Title Case («MARI CARMEN» -> «Mari Carmen»). Si está vacío, devuelve '' y se usa el primer nombre de siempre.
+ */
+function _nombreHabitualWhatsapp_(habitual) {
+  return String(habitual || '').trim().split(/\s+/).filter(Boolean)
+    .map(function(p) { return p.charAt(0).toUpperCase() + p.slice(1).toLowerCase(); }).join(' ');
+}
+
+/**
  * Datos para el asistente de WhatsApp desde Usuarios. Recibe IDs de usuario (no filas ni nombres: con
  * homónimos, buscar el teléfono por nombre escribiría a otra persona) y devuelve lo mismo que datosWhatsappLoteAgendaWeb_
  * (Web.gs): la plantilla cruda con {{nombre}} y, por usuario, nombre, primer nombre y teléfono ya con prefijo (o el
  * error que impide escribirle). `fila` va solo como información (etiqueta si no hubiera nombre).
+ * El «primer nombre» del saludo es el nombre habitual si lo tiene; si no, el primer nombre de la columna Nombre.
  */
 function datosWhatsappMaestraWeb_(idsPaciente) {
   try {
@@ -68,6 +78,8 @@ function datosWhatsappMaestraWeb_(idsPaciente) {
     const lastRow = hoja.getLastRow();
     const nombres = lastRow >= 2 ? hoja.getRange(2, idxNombre + 1, lastRow - 1, 1).getValues() : [];
     const telefonos = lastRow >= 2 ? hoja.getRange(2, idxTelefono + 1, lastRow - 1, 1).getValues() : [];
+    const idxHabitual = obtenerIndiceColumnaPorNombre_(hoja, COLUMNAS.MAESTRA.NOMBRE_HABITUAL);   // opcional
+    const habituales = (lastRow >= 2 && idxHabitual !== -1) ? hoja.getRange(2, idxHabitual + 1, lastRow - 1, 1).getValues() : [];
 
     const vistos = Object.create(null);
     const items = [];
@@ -84,7 +96,8 @@ function datosWhatsappMaestraWeb_(idsPaciente) {
       if (!telefono) { items.push({ idPaciente: id, fila: fila, nombre: nombre, primerNombre: '', telefono: '', error: 'No hay teléfono para ' + nombre }); return; }
       const numFinal = telefonoWhatsapp_(telefono);
       if (!numFinal) { items.push({ idPaciente: id, fila: fila, nombre: nombre, primerNombre: '', telefono: '', error: 'No hay teléfono para ' + nombre }); return; }
-      items.push({ idPaciente: id, fila: fila, nombre: nombre, primerNombre: _primerNombreWhatsapp_(nombre), telefono: numFinal, error: null });
+      const saludo = _nombreHabitualWhatsapp_(habituales.length ? habituales[fila - 2][0] : '') || _primerNombreWhatsapp_(nombre);
+      items.push({ idPaciente: id, fila: fila, nombre: nombre, primerNombre: saludo, telefono: numFinal, error: null });
     });
     return { success: true, plantilla: _plantillaWhatsapp_(), items: items, duplicados: duplicados };
   } catch (e) {

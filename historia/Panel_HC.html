@@ -58,6 +58,14 @@
 .hc .campo dt{margin:0;width:26px;height:26px;border-radius:var(--md-shape-sm);display:grid;place-items:center;background:var(--md-primary-light);color:var(--md-primary)}
 .hc .campo dt .i{font-size: 15px}
 .hc .campo dd{margin:0;font-weight:500;display:flex;align-items:center;gap:8px;min-width:0}
+/* Nombre habitual: lápiz al pasar el ratón y «Añadir» si está vacío; el cuadro de edición es el de la ficha (ui/CSS_Ficha: .fu-edicion) */
+.hc .campo-habitual .hc-lapiz{margin-left:auto;flex-shrink:0;display:inline-grid;place-items:center;width:26px;height:26px;padding:0;border:0;background:none;border-radius:var(--md-shape-full);color:var(--md-on-surface-low);cursor:pointer;opacity:0;transition:opacity var(--dur-1) var(--ease),background-color var(--dur-1) var(--ease)}
+.hc .campo-habitual:hover .hc-lapiz,.hc .campo-habitual .hc-lapiz:focus-visible{opacity:1}
+.hc .campo-habitual .hc-lapiz:hover{background:var(--md-primary-light);color:var(--md-primary)}
+.hc .campo-habitual .hc-lapiz .i{font-size:15px}
+.hc .hc-anadir{border:0;background:none;padding:2px 6px;margin:0 -6px;border-radius:var(--md-shape-sm);font:inherit;font-size:var(--fs-sm);font-weight:500;color:var(--md-primary);cursor:pointer}
+.hc .hc-anadir:hover{background:var(--md-primary-light)}
+.hc .campo-habitual .fu-edicion{grid-column:1 / -1}
 .hc .acc{margin-left:auto;display:flex;gap:2px}
 .hc .mini{width:28px;height:28px;border-radius:50%;border:0;background:transparent;color:var(--md-on-surface-low);display:grid;place-items:center;cursor:pointer;position:relative;overflow:hidden;transition:background-color var(--dur-1) var(--ease),color var(--dur-1) var(--ease)}
 .hc .mini:hover{background:var(--md-primary-light);color:var(--md-primary)}
@@ -439,6 +447,7 @@ window.PanelHC = {
     }, function (err) { revertir(textoError + ' ' + (err && err.message ? err.message : err)); });
   }
   var ICD = {
+    habitual: 'record_voice_over',
     dni: 'badge',
     nac: 'cake',
     tel: 'call',
@@ -463,9 +472,69 @@ window.PanelHC = {
     }
     return '<span class="acc">' + enlaceTel + chat + '</span>';
   }
+  // ---------- Nombre habitual (cómo le gusta que le llamen): se cambia aquí mismo y se guarda en la Maestra ----------
+  // Mismo dato que el lápiz de la ficha de Usuarios y la Agenda (cambiarDatoFichaPacienteWeb); misma regla que el nombre.
+  var habitualAbierto = false;
+  function habitualEditable() { return opts.acciones !== false && !!(D && D.usuario.idPaciente); }
+  function campoHabitual(u) {
+    var v = u.habitual || '';
+    if (!v && !habitualEditable()) return '';
+    var dentro = v
+      ? esc(v) + (habitualEditable() ? '<button type="button" class="hc-lapiz" data-habitual="editar" title="Cambiar nombre habitual" aria-label="Cambiar nombre habitual"><span class="i" aria-hidden="true">edit</span></button>' : '')
+      : '<button type="button" class="hc-anadir" data-habitual="editar">Añadir nombre habitual</button>';
+    return '<div class="campo campo-habitual" title="Nombre habitual (cómo le gusta que le llamen)"><dt><span class="i" aria-hidden="true">' + ICD.habitual + '</span></dt><dd>' + dentro + '</dd></div>';
+  }
+  function nombreHabitualFinal(v) { return typeof formatoNombreFinal === 'function' ? formatoNombreFinal(v) : String(v || '').toUpperCase().trim(); }
+  function abrirHabitual(texto) {
+    var fila = root.querySelector('.campo-habitual'); if (!fila) return;
+    habitualAbierto = true;
+    var id = 'hc-habitual-campo';
+    fila.innerHTML = '<div class="fu-edicion">' +
+      '<div class="md-campo md-campo--icono"><span class="material-symbols-outlined md-campo__icono" aria-hidden="true">' + ICD.habitual + '</span>' +
+        '<input class="md-campo__control" id="' + id + '" type="text" maxlength="60" autocomplete="off" spellcheck="false" placeholder=" " value="' + esc(texto) + '">' +
+        '<label class="md-campo__etiqueta" for="' + id + '">Nombre habitual</label>' +
+        '<p class="md-campo__ayuda">Cómo le gusta que le llamen · Intro guarda · Esc cancela</p></div>' +
+      '<div class="fu-edicion-botones">' +
+        '<button type="button" class="md-btn md-btn--text" data-habitual="cancelar">Cancelar</button>' +
+        '<button type="button" class="md-btn md-btn--tonal" data-habitual="guardar"><span class="material-symbols-outlined" aria-hidden="true">check</span>Guardar</button>' +
+      '</div></div>';
+    var inp = fila.querySelector('input');
+    inp.addEventListener('input', function (e) { if (e.isComposing) return; if (typeof sanitizeName === 'function') sanitizeName(inp); else inp.value = inp.value.toUpperCase(); });
+    inp.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); cerrarHabitual(); }
+      else if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); e.stopPropagation(); guardarHabitual(); }
+    });
+    inp.focus(); var n = inp.value.length; try { inp.setSelectionRange(n, n); } catch (err) { /* sin cursor */ }
+  }
+  function cerrarHabitual() { habitualAbierto = false; if (D) pintarCampos(); }
+  function guardarHabitual() {
+    var inp = root.querySelector('#hc-habitual-campo'); if (!inp || !D) return;
+    var u = D.usuario, antes = u.habitual || '', nuevo = nombreHabitualFinal(inp.value);
+    if (nuevo === antes) { cerrarHabitual(); return; }
+    u.habitual = nuevo; cerrarHabitual();
+    var revertir = function (msg) { if (D && D.usuario === u) { u.habitual = antes; pintarCampos(); abrirHabitual(nuevo); } avisoTemporal(msg); };
+    llamar('cambiarDatoFichaPacienteWeb', [u.idPaciente, 'Nombre habitual', nuevo]).then(function (r) {
+      if (!r || !r.success) { revertir((r && r.message) || 'No se pudo guardar el nombre habitual.'); return; }
+      if (r.valor !== undefined && r.valor !== u.habitual && D && D.usuario === u) { u.habitual = r.valor; pintarCampos(); }
+      aviso(nuevo ? 'Nombre habitual guardado.' : 'Nombre habitual borrado.');
+      if (window.HCCache) window.HCCache.cambioDeUsuario();
+      try { localStorage.setItem('pacienteActualizado', JSON.stringify({ guardado: true, ts: Date.now() })); } catch (err) { /* sin almacenamiento: no es crítico */ }
+      if (opts.alCambiar) { try { opts.alCambiar('usuario'); } catch (e2) { /* no crítico */ } }
+    }, function (err) { revertir('No se pudo guardar el nombre habitual. ' + (err && err.message ? err.message : err)); });
+  }
+  root.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-habitual]'); if (!b || !D) return;
+    var a = b.dataset.habitual;
+    if (a === 'editar') abrirHabitual(D.usuario.habitual || '');
+    else if (a === 'guardar') guardarHabitual();
+    else if (a === 'cancelar') cerrarHabitual();
+  });
+
   function pintarCampos() {
+    if (habitualAbierto && root.querySelector('#hc-habitual-campo')) return;   // no se pisa lo que se está escribiendo
+    habitualAbierto = false;
     var u = D.usuario, edad = u.edad ? ' <span class="hc-chip sm">' + esc(u.edad) + (/^\d+$/.test(u.edad) ? ' años' : '') + '</span>' : '';
-    var h = campo('dni', 'DNI', u.dni) + campo('nac', 'Fecha de nacimiento', u.nacimiento, edad) +
+    var h = campoHabitual(u) + campo('dni', 'DNI', u.dni) + campo('nac', 'Fecha de nacimiento', u.nacimiento, edad) +
       campo('tel', 'Teléfono', Telefono.formato(u.telefono), acciones(u.telefono, true)) + campo('tel', 'Teléfono secundario',Telefono.formato(u.telefono2), acciones(u.telefono2, false)) +
       campo('ins', 'Fecha de inscripción', u.inscripcion);
     $('campos').innerHTML = h || '<p class="vacio-tile">Sin datos personales.</p>';

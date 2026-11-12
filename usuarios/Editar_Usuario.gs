@@ -99,6 +99,9 @@ function actualizarPacienteSinOrden_(updatedData, idPaciente) {
     }
     if (colDniIdx !== -1) newRowValues[colDniIdx] = normalizarDniUsuario_(newRowValues[colDniIdx]);
   }
+  // Nombre habitual: misma regla que el nombre (mayúsculas, sin tildes ni signos); puede quedar vacío.
+  const colHabitualIdx = headers.findIndex(h => h.toString().trim() === COLUMNAS.MAESTRA.NOMBRE_HABITUAL);
+  if (colHabitualIdx !== -1) newRowValues[colHabitualIdx] = normalizarNombreUsuario_(newRowValues[colHabitualIdx]);
 
   // Teléfonos (regla única, core/Utils.gs → telefonoNormalizar_): solo dígitos y como texto.
   const colTel1Idx = headers.indexOf(COLUMNAS.MAESTRA.TELEFONO_1);

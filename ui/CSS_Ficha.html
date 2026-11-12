@@ -77,6 +77,9 @@ button.fu-chip:hover { background-image: linear-gradient(color-mix(in srgb, curr
 .fu-lapiz:hover { background: var(--md-primary-light); color: var(--md-primary); }
 .fu-editable .fu-campo.largo { display: flex; align-items: flex-start; gap: .5rem; }
 .fu-editable .fu-campo.largo .fu-val { flex: 1; }
+.fu-editable .fu-campo--nombre { justify-content: flex-start; }   /* nombre habitual: etiqueta a la izquierda y el valor junto al lápiz */
+.fu-editable .fu-campo--nombre .fu-val { margin-left: auto; }
+.fu-editable .fu-campo--nombre .fu-lapiz { margin-left: -.5rem; }
 .fu-anadir { display: inline-flex; align-items: center; gap: .35rem; border: none; background: none; padding: .3rem .5rem; margin: .1rem -.5rem; border-radius: var(--md-shape-sm); font-family: var(--font); font-size: var(--fs-sm); font-weight: 500; color: var(--md-primary); cursor: pointer; transition: background-color var(--dur-1) var(--ease); }
 .fu-anadir .material-symbols-outlined { font-size: 18px; }
 .fu-anadir:hover { background: var(--md-primary-light); }

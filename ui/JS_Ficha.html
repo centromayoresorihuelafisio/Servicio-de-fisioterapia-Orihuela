@@ -18,9 +18,10 @@
     contenedor.addEventListener('click', function(e) { FichaUsuario.alClic(e, { cerrar, estado, gravedad, accion, guardarCampo }); });
   opciones: { nombre, acciones, pie, extraCabecera, excluir, editable }  (ver FichaUsuario.html)
 
-  Edición directa (opciones.editable = true): los campos marcados `editable` en SECCIONES (Teléfono 1, Teléfono 2 y
-  Observaciones) llevan un lápiz, y los vacíos un «Añadir …». Al pulsarlo, el campo pasa a ser un cuadro de texto con
-  Guardar y Cancelar (Intro guarda en el teléfono, Ctrl+Intro en las observaciones; Esc cancela). Al guardar se llama a
+  Edición directa (opciones.editable = true): los campos marcados `editable` en SECCIONES (Teléfono 1, Teléfono 2,
+  Observaciones y Nombre habitual) llevan un lápiz, y los vacíos un «Añadir …». Al pulsarlo, el campo pasa a ser un cuadro
+  de texto con Guardar y Cancelar (Intro guarda en el teléfono y el nombre habitual, Ctrl+Intro en las observaciones; Esc
+  cancela). El nombre habitual se escribe con la regla del nombre (ui/JS_Formato_Nombre, si la página lo incluye). Al guardar se llama a
   h.guardarCampo(cabecera, valor): la página cambia el dato en memoria, repinta y llama al servidor
   (cambiarDatoFichaPacienteWeb); si falla, vuelve a abrir el cuadro con lo escrito con FichaUsuario.editar(...).
   Mientras hay un cuadro abierto, pintar() no repinta la ficha de ese mismo usuario (no se pierde lo escrito); con otro
@@ -39,6 +40,7 @@ var FichaUsuario = (function() {
       { col: 'Teléfono 2', tipo: 'tel', nota: 'secundario', editable: true, anadirAlPasar: true }   // su «Añadir» solo al pasar el ratón por Contacto
     ] },
     { titulo: 'Datos personales', icono: 'badge', campos: [
+      { col: 'Nombre habitual', etq: 'Nombre habitual', tipo: 'nombre', editable: true, anadirAlPasar: true },   // su «Añadir» solo al pasar el ratón
       { col: 'DNI', etq: 'DNI', tipo: 'copia' },
       { col: 'Fecha nacimiento', etq: 'Nacimiento' },
       { col: 'Fecha inscripción', etq: 'Inscripción' }
@@ -170,6 +172,10 @@ var FichaUsuario = (function() {
       if (!v) return htmlAnadir(c);
       return '<div class="fu-tel">' + icono('call') + htmlCopia(Telefono.digitos(v) || v, 'Teléfono', formatearTel(v)) + (c.nota ? '<span class="fu-nota">' + esc(c.nota) + '</span>' : '') + (editable ? htmlLapiz(c) : '') + '</div>';
     }
+    if (c.tipo === 'nombre') {
+      if (!v) return htmlAnadir(c);
+      return '<div class="fu-campo fu-campo--nombre"><span class="fu-etq">' + esc(c.etq) + '</span><span class="fu-val">' + esc(v) + '</span>' + (editable ? htmlLapiz(c) : '') + '</div>';
+    }
     if (c.tipo === 'largo') {
       if (!v) return htmlAnadir(c);
       return '<div class="fu-campo largo"><span class="fu-val">' + esc(v) + '</span>' + (editable ? htmlLapiz(c) : '') + '</div>';
@@ -300,43 +306,54 @@ var FichaUsuario = (function() {
     return true;
   }
 
-  // ---------- Edición directa de un campo (teléfonos y observaciones) ----------
+  // ---------- Edición directa de un campo (teléfonos, observaciones y nombre habitual) ----------
   // edicion = { cont, wrap, col, original, html, guardar, control, pendiente }: un solo cuadro abierto a la vez.
   var edicion = null;
-  function esObservaciones(col) { return norm(col) === 'observaciones'; }
+  // Qué cuadro lleva cada campo: 'largo' (observaciones), 'nombre' (nombre habitual) o 'tel' (teléfonos).
+  function tipoEdicion(col) { var n = norm(col); return n === 'observaciones' ? 'largo' : n === 'nombre habitual' ? 'nombre' : 'tel'; }
+  // Regla del nombre al escribir y al guardar (ui/JS_Formato_Nombre); sin ese archivo en la página, solo mayúsculas (el servidor aplica la regla igualmente).
+  function nombreFinal(v) { return typeof formatoNombreFinal === 'function' ? formatoNombreFinal(v) : String(v || '').toUpperCase().trim(); }
   function editableDe(contenedor, col) {
     var ws = contenedor.querySelectorAll('.fu-editable');
     for (var i = 0; i < ws.length; i++) if (ws[i].getAttribute('data-col') === col) return ws[i];
     return null;
   }
   function htmlEdicion(col, texto) {
-    var largo = esObservaciones(col), id = 'fu-edicion-campo';
+    var tipo = tipoEdicion(col), largo = tipo === 'largo', id = 'fu-edicion-campo';
     var ctl = largo
       ? '<textarea class="md-campo__control" id="' + id + '" rows="4" maxlength="5000" placeholder=" ">' + esc(texto) + '</textarea>'
-      : '<input class="md-campo__control" id="' + id + '" type="tel" inputmode="tel" autocomplete="off" placeholder=" " value="' + esc(texto) + '">';
+      : tipo === 'nombre'
+        ? '<input class="md-campo__control" id="' + id + '" type="text" maxlength="60" autocomplete="off" spellcheck="false" placeholder=" " value="' + esc(texto) + '">'
+        : '<input class="md-campo__control" id="' + id + '" type="tel" inputmode="tel" autocomplete="off" placeholder=" " value="' + esc(texto) + '">';
+    var ayuda = largo ? 'Ctrl+Intro guarda · Esc cancela' : tipo === 'nombre' ? 'Cómo le gusta que le llamen · Intro guarda · Esc cancela' : 'Intro guarda · Esc cancela';
     return '<div class="fu-edicion">' +
-      '<div class="md-campo md-campo--icono"><span class="material-symbols-outlined md-campo__icono">' + (largo ? 'notes' : 'call') + '</span>' + ctl +
+      '<div class="md-campo md-campo--icono"><span class="material-symbols-outlined md-campo__icono">' + (largo ? 'notes' : tipo === 'nombre' ? 'person' : 'call') + '</span>' + ctl +
         '<label class="md-campo__etiqueta" for="' + id + '">' + esc(Telefono.etiqueta(col)) + '</label>' +
-        '<p class="md-campo__ayuda">' + (largo ? 'Ctrl+Intro guarda · Esc cancela' : 'Intro guarda · Esc cancela') + '</p></div>' +
+        '<p class="md-campo__ayuda">' + ayuda + '</p></div>' +
       '<div class="fu-edicion-botones">' +
         '<button type="button" class="md-btn md-btn--text" data-fu="edicion-cancelar">Cancelar</button>' +
         '<button type="button" class="md-btn md-btn--tonal" data-fu="edicion-guardar">' + icono('check') + 'Guardar</button>' +
       '</div></div>';
   }
-  // Valor para guardar o comparar: el teléfono en su forma de guardado; las observaciones, sin espacios al final.
+  // Valor para guardar o comparar: el teléfono en su forma de guardado; las observaciones, sin espacios al final; el nombre habitual, con la regla del nombre.
   function limpioEdicion(col, v) {
-    return esObservaciones(col) ? String(v || '').trim() : Telefono.normalizar(v);
+    var tipo = tipoEdicion(col);
+    return tipo === 'largo' ? String(v || '').trim() : tipo === 'nombre' ? nombreFinal(v) : Telefono.normalizar(v);
   }
   function abrirEdicion(wrap, col, texto, guardar) {
     if (edicion) cancelarEdicion();
-    var raiz = wrap.closest('.fu'), cont = raiz ? raiz.parentNode : wrap.parentNode, tel = !esObservaciones(col);
+    var raiz = wrap.closest('.fu'), cont = raiz ? raiz.parentNode : wrap.parentNode, tipo = tipoEdicion(col), tel = tipo === 'tel', unaLinea = tipo !== 'largo';
     edicion = { cont: cont, wrap: wrap, col: col, original: wrap.getAttribute('data-valor') || '', html: wrap.innerHTML, guardar: guardar, pendiente: null };
     wrap.innerHTML = htmlEdicion(col, tel ? formatearTel(texto) : (texto || ''));
     var ctl = edicion.control = wrap.querySelector('.md-campo__control');
     if (tel) ctl.addEventListener('input', function() { Telefono.escribiendo(ctl); });
+    if (tipo === 'nombre') ctl.addEventListener('input', function(e) {
+      if (e.isComposing) return;
+      if (typeof sanitizeName === 'function') sanitizeName(ctl); else ctl.value = ctl.value.toUpperCase();
+    });
     ctl.addEventListener('keydown', function(e) {
       if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); cancelarEdicion(); }
-      else if (e.key === 'Enter' && !e.isComposing && (tel || e.ctrlKey || e.metaKey)) { e.preventDefault(); e.stopPropagation(); guardarEdicion(); }
+      else if (e.key === 'Enter' && !e.isComposing && (unaLinea || e.ctrlKey || e.metaKey)) { e.preventDefault(); e.stopPropagation(); guardarEdicion(); }
     });
     ctl.focus({ preventScroll: true });
     wrap.scrollIntoView({ block: 'nearest' });

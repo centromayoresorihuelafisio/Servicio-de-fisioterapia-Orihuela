@@ -126,7 +126,7 @@ function obtenerHCWeb_(idHC, idPaciente) {
     }
     const usuario = {
       idPaciente: dato(COLUMNAS.MAESTRA.ID_PACIENTE),
-      nombre: dato(COLUMNAS.MAESTRA.NOMBRE), dni: dato(COLUMNAS.MAESTRA.DNI),
+      nombre: dato(COLUMNAS.MAESTRA.NOMBRE), habitual: dato(COLUMNAS.MAESTRA.NOMBRE_HABITUAL), dni: dato(COLUMNAS.MAESTRA.DNI),
       nacimiento: dato(COLUMNAS.MAESTRA.FECHA_NACIMIENTO), edad: edad,
       telefono: dato(COLUMNAS.MAESTRA.TELEFONO_1), telefono2: dato(COLUMNAS.MAESTRA.TELEFONO_2),
       inscripcion: dato(COLUMNAS.MAESTRA.FECHA_INSCRIPCION), estado: dato(COLUMNAS.MAESTRA.ESTADO), gravedad: dato(COLUMNAS.MAESTRA.GRAVEDAD),
@@ -319,7 +319,7 @@ function obtenerHCsActivasWeb_() {
         if (iHC !== -1) docUrl = extraerUrlHistoriaClinica_(row[iHC], ricos[i][0], formulas[i][0]);
         const usuario = {
           idPaciente: dato(COLUMNAS.MAESTRA.ID_PACIENTE),
-          nombre: dato(COLUMNAS.MAESTRA.NOMBRE), dni: dato(COLUMNAS.MAESTRA.DNI),
+          nombre: dato(COLUMNAS.MAESTRA.NOMBRE), habitual: dato(COLUMNAS.MAESTRA.NOMBRE_HABITUAL), dni: dato(COLUMNAS.MAESTRA.DNI),
           nacimiento: dato(COLUMNAS.MAESTRA.FECHA_NACIMIENTO), edad: edad,
           telefono: dato(COLUMNAS.MAESTRA.TELEFONO_1), telefono2: dato(COLUMNAS.MAESTRA.TELEFONO_2),
           inscripcion: dato(COLUMNAS.MAESTRA.FECHA_INSCRIPCION), estado: dato(COLUMNAS.MAESTRA.ESTADO), gravedad: dato(COLUMNAS.MAESTRA.GRAVEDAD),

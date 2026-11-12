@@ -181,7 +181,7 @@ window.PanelEditar = {
       return val;
     }
     var SECCIONES = [
-      { name: "Datos Personales",       fields: ["Nombre","DNI","Fecha nacimiento","Fecha inscripción"] },
+      { name: "Datos Personales",       fields: ["Nombre","Nombre habitual","DNI","Fecha nacimiento","Fecha inscripción"] },
       { name: "Estado y Clasificación", fields: ["Estado","Gravedad","Tipo de Ingreso"] },
       { name: "Contacto",               fields: ["Teléfono 1","Teléfono 2"] },
       { name: "Diagnóstico",            fields: ["Patología 1","Patología 2"] },
@@ -379,6 +379,7 @@ window.PanelEditar = {
       // Nombre y DNI: misma regla que en el alta (ui/JS_Formato_Nombre). Solo se aplica al escribir:
       // los datos ya guardados no se tocan hasta que alguien edite ese campo.
       enlazarFormatoNombre(byName('Nombre')[0]);
+      enlazarFormatoNombre(byName('Nombre habitual')[0]);   // misma regla que el nombre (CONTEXTO.md, sección 22)
       enlazarFormatoDni(byName('DNI')[0]);
       // Letra del DNI/NIE: ver revisarLetraDni(). Se comprueba al escribir y al salir del campo.
       var inpDni = byName('DNI')[0];

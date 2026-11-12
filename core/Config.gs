@@ -38,6 +38,9 @@ const PROP_KEYS = {
 const COLUMNAS = {
   MAESTRA: {
     NOMBRE: "Nombre",
+    // Cómo le gusta al usuario que le llamen (p. ej. «MONSE»), aunque no sea el nombre del DNI (CONTEXTO.md, sección 22).
+    // Columna opcional, al final de la Maestra; misma regla de escritura que el nombre (normalizarNombreUsuario_).
+    NOMBRE_HABITUAL: "Nombre habitual",
     DNI: "DNI",
     FECHA_NACIMIENTO: "Fecha nacimiento",
     // Nombre del campo "Edad" que calculan al leer los lectores de la Maestra. La edad NO se guarda en la hoja
