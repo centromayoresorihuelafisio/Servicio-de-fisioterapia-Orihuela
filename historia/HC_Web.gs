@@ -246,14 +246,17 @@ function hcContarAsistencia_(usuario, desdeISO, tz) {
 /**
  * Las historias clínicas de TODOS los usuarios en estado Activo, en una sola llamada, con exactamente el mismo
  * formato que devuelve obtenerHCWeb para cada una. La usa ui/JS_HC_Cache.html para precargarlas en segundo plano
- * (Usuarios y Agenda) y que la ficha se abra al instante.
+ * (Usuarios y Agenda) y que la ficha se abra al instante. Con grupo 'espera' devuelve las de los usuarios En espera
+ * (HCCache las pide después de las activas, en una segunda llamada, para no retrasar las activas).
  *
  * Cada hoja (Maestra, Historias Clínicas, Episodios HC, Valoraciones, Agenda) se lee UNA sola vez, en vez de una vez
  * por usuario. Es SOLO LECTURA: no escribe nada. Si un usuario falla, se salta y el resto sigue.
+ * @param {string=} grupo  'espera' para los usuarios En espera; cualquier otro valor (o nada), los Activos.
  * @return {{success:boolean, items?:Object[], generado?:number, message?:string}}
  */
-function obtenerHCsActivasWeb_() {
+function obtenerHCsActivasWeb_(grupo) {
   try {
+    const marca = grupo === 'espera' ? 'ESPERA' : 'ACTIV';
     const h = hcHojas_(), tz = h.ss.getSpreadsheetTimeZone();
     const maestra = h.ss.getSheetByName(SHEETS.MAESTRA);
     if (!maestra) return { success: false, message: 'No se encontró la hoja "' + SHEETS.MAESTRA + '".' };
@@ -304,7 +307,7 @@ function obtenerHCsActivasWeb_() {
     valores.forEach(function (row, i) {
       try {
         if (!String(row[iNombre] || '').trim()) return;
-        if (hcNorm_(row[iEstado]).indexOf('ACTIV') === -1) return;          // solo usuarios Activos
+        if (hcNorm_(row[iEstado]).indexOf(marca) === -1) return;            // solo usuarios Activos (o En espera)
 
         const dato = function (nombreCol) {
           const k = col(nombreCol); if (k === -1) return '';

@@ -1,5 +1,6 @@
 <!--
-  ui/JS_HC_Cache.html - PRECARGA de las historias clínicas (HC) de los usuarios en estado ACTIVO, compartida por la
+  ui/JS_HC_Cache.html - PRECARGA de las historias clínicas (HC) de los usuarios en estado ACTIVO y, justo después,
+  de los usuarios EN ESPERA (segunda llamada, para que las activas lleguen antes), compartida por
   Usuarios y la Agenda (principal/Principal_Vista). Con ella, al pulsar "Historia" la ficha
   (historia/Panel_HC) se pinta al instante desde memoria, sin esperar al servidor.
 
@@ -22,9 +23,9 @@
                                   Si hay `id` (ID HC) manda el id; si no, se busca por ID paciente.
     HCCache.guardar(resp)         guarda/actualiza una HC (respuesta de obtenerHCWeb, ya con los cambios locales).
     HCCache.invalidar(id)         borra una entrada (p. ej. si un guardado falló y ya no se sabe cómo está en la hoja).
-    HCCache.recargar()            vuelve a leer todas las activas en segundo plano.
+    HCCache.recargar()            vuelve a leer todas las activas (y después las de espera) en segundo plano.
     HCCache.cambioDeUsuario()     avisar tras cambiar un estado o dar un alta: marca todo como obsoleto y recarga.
-    HCCache.estado()              { entradas, cargada, cargando } (para depurar desde la consola).
+    HCCache.estado()              { entradas, cargada, cargando, cargandoEspera } (para depurar desde la consola).
 -->
 <script>
 var HCCache = (function() {
@@ -33,7 +34,8 @@ var HCCache = (function() {
   var RECARGA_MS = 5 * 60000;      // al volver a la pestaña tras este tiempo se recarga todo
   var porId = {};                  // id HC -> { r: respuesta, t: instante en que se recibió/guardó }
   var idPorPaciente = {};          // ID paciente -> id HC (null si hubiera dos historias con el mismo ID paciente)
-  var cargando = false, cargada = false, tUltimaCarga = 0, reintentado = false;
+  var RETRASO_ESPERA = 1000;       // ms tras llegar las activas antes de pedir las de usuarios En espera
+  var cargando = false, cargada = false, tUltimaCarga = 0, reintentado = false, cargandoEspera = false;
   var memoria = window.MemoriaPestanas || null;
 
   // Copia para la siguiente pestaña (se escribe un momento después; varios cambios seguidos, una sola vez).
@@ -67,6 +69,17 @@ var HCCache = (function() {
 
   function marcarObsoleto() { Object.keys(porId).forEach(function(k) { porId[k].t = 0; }); recordar(); }
 
+  // Mete en la caché lo recibido. Lo que la ficha guardó mientras viajaba la respuesta es más nuevo: se respeta.
+  function incorporar(res, inicio) {
+    if (!res || !res.success || !res.items) return false;
+    res.items.forEach(function(r) {
+      var e = porId[r.id];
+      if (e && e.t > inicio) return;
+      indexar(r, Date.now());
+    });
+    return true;
+  }
+
   function cargar() {
     if (cargando) return;
     if (document.hidden) { setTimeout(cargar, 4000); return; }     // pestaña en segundo plano: se espera
@@ -75,18 +88,27 @@ var HCCache = (function() {
     llamar('obtenerHCsActivasWeb')
       .then(function(res) {
         cargando = false;
-        if (!res || !res.success || !res.items) return;
-        res.items.forEach(function(r) {
-          var e = porId[r.id];
-          if (e && e.t > inicio) return;      // la ficha guardó algo más nuevo mientras viajaba la respuesta: se respeta
-          indexar(r, Date.now());
-        });
+        if (!incorporar(res, inicio)) return;
         cargada = true; tUltimaCarga = Date.now();
         recordar();
+        setTimeout(cargarEspera, RETRASO_ESPERA);   // después, las de usuarios En espera
       }, function() {
         cargando = false;
         if (!reintentado) { reintentado = true; setTimeout(cargar, 20000); }   // un único reintento; si no, se abrirá por el camino normal
       });
+  }
+
+  // Segunda tanda: usuarios En espera. Sin reintento: si falla, su ficha se abre por el camino normal.
+  function cargarEspera() {
+    if (cargandoEspera) return;
+    if (document.hidden) { setTimeout(cargarEspera, 4000); return; }
+    cargandoEspera = true;
+    var inicio = Date.now();
+    llamar('obtenerHCsActivasWeb', ['espera'])
+      .then(function(res) {
+        cargandoEspera = false;
+        if (incorporar(res, inicio)) recordar();
+      }, function() { cargandoEspera = false; });
   }
 
   // Al volver a la pestaña después de un rato, se refresca todo.
@@ -122,7 +144,7 @@ var HCCache = (function() {
 
   return {
     obtener: obtener, guardar: guardar, invalidar: invalidar, recargar: cargar, cambioDeUsuario: cambioDeUsuario,
-    estado: function() { return { entradas: Object.keys(porId).length, cargada: cargada, cargando: cargando }; }
+    estado: function() { return { entradas: Object.keys(porId).length, cargada: cargada, cargando: cargando, cargandoEspera: cargandoEspera }; }
   };
 })();
 </script>

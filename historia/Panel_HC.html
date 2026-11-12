@@ -393,10 +393,18 @@ window.PanelHC = {
   }
   // Estado y gravedad se pueden cambiar desde sus chips si la página trae la ficha de usuario (ui/JS_Ficha: menú y listas).
   function chipsCambiables() { return opts.acciones !== false && !!(window.FichaUsuario && D && D.usuario.idPaciente); }
-  var TONO_GRAVEDAD = { leve: 'ok', moderado: 'aviso', grave: 'mal' };
+  // Mismos colores que los chips de la ficha y la tabla de Usuarios («No responde» va en gris, como allí).
+  function tonoEstadoHC(t) {
+    var n = String(t || '').toLowerCase();
+    return /activ/.test(n) ? 'ok' : /espera/.test(n) ? 'aviso' : /contactar/.test(n) ? 'mal' : /alta/.test(n) ? 'alta' : '';
+  }
+  function tonoGravedadHC(v) {
+    var n = String(v || '').toLowerCase();
+    return /leve/.test(n) ? 'ok' : /moderad/.test(n) ? 'aviso' : /grave|urgent/.test(n) ? 'mal' : '';
+  }
   function pintarMeta() {
     var u = D.usuario, est = u.estado, t = est.replace(/^[^\p{L}]+/u, '');
-    var cls = /alta/i.test(t) ? 'alta' : /activ/i.test(t) ? 'ok' : '';
+    var cls = tonoEstadoHC(t);
     var cambia = chipsCambiables();
     var chip = function (tipo, tono, texto, vacio) {
       if (cambia) return '<button type="button" class="hc-chip dot cambia ' + tono + '" data-chip="' + tipo + '" aria-haspopup="menu" title="Cambiar ' + tipo + '">' +
@@ -405,8 +413,7 @@ window.PanelHC = {
     };
     var h = chip('estado', cls, t, 'Sin estado');
     if (u.gravedad !== undefined) {   // (una historia precargada antes de este cambio no la trae: sale al refrescarse)
-      var g = window.FichaUsuario ? FichaUsuario.claseGravedad(u.gravedad) : '';
-      h += chip('gravedad', TONO_GRAVEDAD[g] || '', String(u.gravedad || '').replace(/^[^\p{L}]+/u, ''), 'Sin gravedad');
+      h += chip('gravedad', tonoGravedadHC(u.gravedad),String(u.gravedad || '').replace(/^[^\p{L}]+/u, ''), 'Sin gravedad');
     }
     $('meta').innerHTML = h;
   }
