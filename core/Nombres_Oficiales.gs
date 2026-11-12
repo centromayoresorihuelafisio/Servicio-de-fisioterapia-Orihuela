@@ -1,6 +1,6 @@
 // core/Nombres_Oficiales.gs
 // Nombres oficiales (CONTEXTO.md, sección 22). ÚNICA lista de diminutivos y abreviaturas del proyecto: la usa la
-// herramienta de la fase 2 (herramientas/Revisar_Nombres.gs) y la usarán los avisos del alta y de «Editar» (fase 3).
+// herramienta de la fase 2 (ya retirada) y la usarán los avisos del alta y de «Editar» (fase 3).
 // Solo lógica pura (no lee ni escribe la hoja): se prueba fuera de Google con `node comprobar/nombres.mjs`.
 // Decisiones del dueño (12-nov-2026): MAMEN y MARICARMEN = MARIA CARMEN; MONSE = MONSERRATE; «M» delante = MARIA.
 // ================================================================================
