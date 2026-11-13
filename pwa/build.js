@@ -136,7 +136,7 @@ Object.keys(paginas).forEach(function (f) { paginas[f] = cabeza(paginas[f], f); 
 
 // index.html: hace de doGet. Lleva ./?page=… (y ./ a secas) al archivo de esa página, conservando lo demás (también el
 // enlace #conectar=…, por eso aquí no se carga pwa.js, que lo leería y lo quitaría antes de saltar).
-paginas['index.html'] = cabeza('<!DOCTYPE html>\n<html lang="es">\n<head>\n<title>Fisioterapia Orihuela</title>\n</head>\n' +
+paginas['index.html'] = cabeza('<!DOCTYPE html>\n<html lang="es">\n<head>\n<title>Servicio de Fisioterapia</title>\n</head>\n' +
   '<body>\n<script>\n(function () {\n  var A = ' + JSON.stringify(ARCHIVO_DE) + ';\n' +
   "  var q = new URLSearchParams(location.search), k = q.get('page') || 'baseDatos';\n" +
   "  q.delete('page');\n  var resto = q.toString();\n" +
