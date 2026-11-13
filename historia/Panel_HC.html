@@ -487,7 +487,7 @@ window.PanelHC = {
     var v = u.habitual || '';
     if (!v && !habitualEditable()) return '';
     var dentro = v
-      ? esc(v) + (habitualEditable() ? '<button type="button" class="hc-lapiz" data-habitual="editar" title="Cambiar nombre habitual" aria-label="Cambiar nombre habitual"><span class="i" aria-hidden="true">edit</span></button>' : '')
+      ? esc(typeof formatoNombreVisible === 'function' ? formatoNombreVisible(v) : v) + (habitualEditable() ? '<button type="button" class="hc-lapiz" data-habitual="editar" title="Cambiar nombre habitual" aria-label="Cambiar nombre habitual"><span class="i" aria-hidden="true">edit</span></button>' : '')
       : '<button type="button" class="hc-anadir" data-habitual="editar">Añadir nombre habitual</button>';
     return '<div class="campo campo-habitual" title="Nombre habitual (cómo le gusta que le llamen)"><dt><span class="i" aria-hidden="true">' + ICD.habitual + '</span></dt><dd>' + dentro + '</dd></div>';
   }

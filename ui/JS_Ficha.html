@@ -196,7 +196,7 @@ var FichaUsuario = (function() {
     }
     if (c.tipo === 'nombre') {
       if (!v) return htmlAnadir(c);
-      return '<div class="fu-campo fu-campo--nombre"><span class="fu-etq">' + esc(c.etq) + '</span><span class="fu-val">' + esc(v) + '</span>' + (editable ? htmlLapiz(c) : '') + '</div>';
+      return '<div class="fu-campo fu-campo--nombre"><span class="fu-etq">' + esc(c.etq) + '</span><span class="fu-val">' + esc(nombreVisible(v)) + '</span>' + (editable ? htmlLapiz(c) : '') + '</div>';
     }
     if (c.tipo === 'largo') {
       if (!v) return htmlAnadir(c);
@@ -219,10 +219,10 @@ var FichaUsuario = (function() {
   }
 
   function htmlCabecera(p, headers, o) {
-    var edad = valor(p, headers, 'Edad'), est = valor(p, headers, 'Estado');
+    var edad = valor(p, headers, 'Edad'), est = valor(p, headers, 'Estado'), habitual = valor(p, headers, 'Nombre habitual');
     if (/^\d+$/.test(edad)) edad += ' años';
     return '<div class="fu-cab">' + (typeof avatarHtml === 'function' ? avatarHtml(o.nombre) : '') +
-      '<div class="fu-tit"><div class="fu-nombre">' + esc(o.nombre) + '</div><div class="fu-meta">' +
+      '<div class="fu-tit"><div class="fu-nombre"' + (habitual ? ' title="' + esc('Le llaman ' + nombreVisible(habitual)) + '"' : '') + '>' + esc(o.nombre) + '</div><div class="fu-meta">' +
         (edad ? '<span>' + esc(edad) + '</span>' : '') +
         '<button type="button" class="fu-chip ' + claseEstado(est) + '" data-fu="estado" aria-haspopup="menu" title="Cambiar estado">' + (est ? esc(textoEstado(est)) : 'Sin estado') + icono('expand_more') + '</button>' +
         (o.extraCabecera || '') + '</div></div>' +
@@ -340,6 +340,8 @@ var FichaUsuario = (function() {
   // Qué cuadro lleva cada campo: 'largo' (observaciones), 'nombre' (nombre habitual) o 'tel' (teléfonos).
   function tipoEdicion(col) { var n = norm(col); return n === 'observaciones' ? 'largo' : n === 'nombre habitual' ? 'nombre' : 'tel'; }
   // Regla del nombre al escribir y al guardar (ui/JS_Formato_Nombre); sin ese archivo en la página, solo mayúsculas (el servidor aplica la regla igualmente).
+  // Nombre habitual para enseñar: «Mari Carmen» (en la hoja sigue en mayúsculas; ui/JS_Formato_Nombre, si la página lo incluye).
+  function nombreVisible(v) { return typeof formatoNombreVisible === 'function' ? formatoNombreVisible(v) : String(v || ''); }
   function nombreFinal(v) { return typeof formatoNombreFinal === 'function' ? formatoNombreFinal(v) : String(v || '').toUpperCase().trim(); }
   function editableDe(contenedor, col) {
     var ws = contenedor.querySelectorAll('.fu-editable');

@@ -16,6 +16,7 @@
   Usa nombresMariaDelante_ de core/Nombres_Oficiales.gs, que la página recibe con incluirNombres_() (sin copia); en el
   servidor es normalizarNombreOficial_. Sin incluirNombres_() en la página se queda en la regla común. El «Nombre
   habitual», el nombre de una cita y la ficha usan solo la regla común (formatoNombreEscribiendo / formatoNombreFinal).
+  Para ENSEÑAR el nombre habitual («Mari Carmen») sin cambiar lo guardado: formatoNombreVisible(texto).
   Letra del DNI/NIE: validarDni(texto) → { aplica, valido, letra }. Solo se valida lo que tiene forma de DNI (8 cifras + letra) o de
   NIE (X/Y/Z + 7 cifras + letra): el campo también admite SIP u otros documentos y esos no se tocan (aplica = false).
 -->
@@ -30,6 +31,14 @@
       .replace(/ {2,}/g, ' ');                               // sin espacios dobles
   }
   function formatoNombreFinal(v) { return formatoNombreEscribiendo(v).trim(); }
+  // Solo para MOSTRAR (la hoja sigue en mayúsculas): primera letra de cada palabra en mayúscula y el resto en minúscula;
+  // DE, DEL, LA, LAS, LOS e Y en minúscula salvo al principio («MARIA DEL CARMEN» → «Maria del Carmen»).
+  function formatoNombreVisible(v) {
+    return String(v || '').trim().toLowerCase().replace(/\s+/g, ' ').split(' ').map(function(p, i) {
+      if (i > 0 && /^(de|del|la|las|los|y)$/.test(p)) return p;
+      return p.charAt(0).toUpperCase() + p.slice(1);
+    }).join(' ');
+  }
   function formatoMariaDelante_(v) { return typeof nombresMariaDelante_ === 'function' ? nombresMariaDelante_(v) : v; }
   function formatoNombreOficialEscribiendo(v) { return formatoMariaDelante_(formatoNombreEscribiendo(v)); }
   function formatoNombreOficialFinal(v) { return formatoMariaDelante_(formatoNombreFinal(v)); }

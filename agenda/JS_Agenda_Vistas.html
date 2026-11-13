@@ -516,7 +516,7 @@
         if (esHoy && proxima && proxima._fila === c._fila) clases.push('proxima');
         if (filasSeleccionadas.has(c._fila)) clases.push('seleccionada');
         if (!visible) clases.push('atenuada');
-        var tip = [c['Usuario'], sinEmoji(c['Asistencia']), c['Notas']].filter(function(v) { return !vacioTxt(v); }).join(' · ');
+        var tip = [tituloNombreCita(c['Usuario']), sinEmoji(c['Asistencia']), c['Notas']].filter(function(v) { return !vacioTxt(v); }).join(' · ');
         return '<div class="' + clases.join(' ') + '" data-fila="' + c._fila + '" title="' + escapar(tip) + '">' +
           '<span class="asa material-symbols-outlined">drag_indicator</span>' + avatarHtml(c['Usuario']) +
           '<span class="nombre-u">' + escapar(c['Usuario']) + '</span>' + badgeFaltas(c) +

@@ -162,6 +162,7 @@
             // La lista del selector de huecos sale de las mismas fichas (no se lee la Maestra otra vez) e incluye a los homónimos.
             if (res.usuarios) { var primera = !USUARIOS_HUECO; USUARIOS_HUECO = SelectorUsuario.preparar(res.usuarios); if (primera) SelectorUsuario.refrescar(); }
             repintarFichaAbierta();                         // si la ficha abierta cambió en la hoja, se actualiza al momento
+            ponerTitulosNombre();                           // «Le llaman …» al pasar el ratón por el nombre de cada cita
           }, function() {
             FICHAS.cargando = false;   // no crítico: se reintenta en el próximo ciclo
           });

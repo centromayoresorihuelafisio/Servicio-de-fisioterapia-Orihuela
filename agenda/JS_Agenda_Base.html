@@ -552,7 +552,7 @@
 
         var titulo = (header === 'Usuario' && !vacio) ? ' title="' + escapar(valor) + '"' : '';
         var interior = vacio ? '—' : escapar(valor);
-        if (header === 'Usuario' && !vacio && !esHueco) interior = '<div class="celda-usuario" data-ficha-fila="' + fila + '">' + avatarHtml(valor) + '<span class="nombre-u">' + escapar(valor) + '</span>' + badgeFaltas(c) + '</div>';
+        if (header === 'Usuario' && !vacio && !esHueco) interior = '<div class="celda-usuario" data-ficha-fila="' + fila + '" title="' + escapar(tituloNombreCita(valor)) + '">' + avatarHtml(valor) + '<span class="nombre-u">' + escapar(valor) + '</span>' + badgeFaltas(c) + '</div>';
         return '<td class="' + (vacio ? 'vacio' : '') + '"' + titulo + '>' + interior + '</td>';
       }
 
@@ -732,6 +732,19 @@
         }).observe(document.getElementById('agTablaWrap'));
       }
 
+      // Descripción al pasar el ratón por el nombre de la cita: el nombre y, si lo tiene, su nombre habitual («Le llaman Mari Carmen»),
+      // sacado de las fichas en memoria (FICHAS, agenda/JS_Agenda_Resumen). Si aún no han llegado, solo el nombre: ponerTitulosNombre lo completa.
+      function tituloNombreCita(nombre) {
+        var f = typeof fichaDeMemoria === 'function' ? fichaDeMemoria(nombre) : null;
+        var h = f && f.paciente ? String(f.paciente['Nombre habitual'] || '').trim() : '';
+        return String(nombre || '') + (h ? ' · Le llaman ' + formatoNombreVisible(h) : '');
+      }
+      function ponerTitulosNombre() {
+        document.querySelectorAll('.tj-nombre[data-ficha-fila], .celda-usuario[data-ficha-fila]').forEach(function(el) {
+          var n = el.querySelector('.nombre-u');
+          if (n) el.title = tituloNombreCita(n.textContent);
+        });
+      }
       function htmlTarjeta(c, ahora, proxima) {
         var hora = c['Hora'] || '—';
 
@@ -759,7 +772,7 @@
         return '<div class="' + clases.join(' ') + '" data-fila="' + c._fila + '">' +
           '<div class="tj-top"><span class="asa material-symbols-outlined" title="Arrastra para mover la cita a otro hueco libre">drag_indicator</span><span class="chk"></span><span class="tj-hora">' + escapar(hora) + '</span>' + tagTxt +
             '<span class="tj-fill"></span>' + (vacioTxt(c['Sesión']) ? '' : htmlSesion(c['Sesión'], c._fila)) + '<span class="tj-acciones">' + htmlBotonesFila(c._fila, c) + '</span></div>' +
-          '<div class="tj-nombre" data-ficha-fila="' + c._fila + '" title="' + escapar(c['Usuario']) + '">' + avatarHtml(c['Usuario']) + '<span class="nombre-u">' + escapar(c['Usuario']) + '</span>' + badgeFaltas(c) + '</div>' +
+          '<div class="tj-nombre" data-ficha-fila="' + c._fila + '" title="' + escapar(tituloNombreCita(c['Usuario'])) + '">' + avatarHtml(c['Usuario']) + '<span class="nombre-u">' + escapar(c['Usuario']) + '</span>' + badgeFaltas(c) + '</div>' +
           asis + notas + '</div>';
       }
 
