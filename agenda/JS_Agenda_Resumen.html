@@ -240,6 +240,31 @@
             if (r.ordenado) cargarFichas();
           }, function(err) { revertir('Error al cambiar la gravedad: ' + err); });
       }
+      // ---------- Tipo de ingreso del usuario desde la ficha (chip pulsable: cambiar o quitar, como en Usuarios) ----------
+      function menuIngresoFicha(ancla) {
+        var res = fichaAbierta && fichaDeMemoria(fichaAbierta.nombre);
+        if (!res) return;
+        var hIng = FichaUsuario.cabecera(res.headers, 'Tipo de Ingreso') || 'Tipo de Ingreso';
+        FichaUsuario.menuEstado(ancla, FichaUsuario.ingresosMenu(res.paciente[hIng], cambiarIngresoFicha));
+      }
+      function cambiarIngresoFicha(valor) {
+        var res = fichaAbierta && fichaDeMemoria(fichaAbierta.nombre);
+        if (!res) return;
+        var p = res.paciente, hIng = FichaUsuario.cabecera(res.headers, 'Tipo de Ingreso') || 'Tipo de Ingreso', antes = p[hIng];
+        if (FichaUsuario.ingresoDatos(antes).valor === valor) return;
+        if (!p['ID paciente']) { mostrarAviso('No se pudo cambiar el tipo de ingreso: vuelve a abrir la ficha e inténtalo de nuevo.'); cargarFichas(); return; }
+        p[hIng] = valor;
+        repintarFichaAbierta();
+        function revertir(msg) { p[hIng] = antes; repintarFichaAbierta(); mostrarAviso(msg); }
+        llamar('cambiarIngresoPacienteWeb', [p['ID paciente'], valor])
+          .then(function(r) {
+            if (!r || !r.success) { revertir((r && r.message) || 'No se pudo cambiar el tipo de ingreso.'); cargarFichas(); return; }
+            mostrarAviso(valor ? 'Tipo de ingreso cambiado a ' + valor + '.' : 'Tipo de ingreso quitado correctamente.');
+            recordarFichas();
+            try { localStorage.setItem('pacienteActualizado', JSON.stringify({ guardado: true, ts: Date.now() })); } catch (err) { /* sin almacenamiento: no es crítico */ }
+            if (r.ordenado) cargarFichas();
+          }, function(err) { revertir('Error al cambiar el tipo de ingreso: ' + err); });
+      }
       // ---------- Teléfonos y observaciones desde la ficha (lápiz: edición directa de ui/JS_Ficha, como en Usuarios) ----------
       function guardarCampoFicha(col, valor) {
         var res = fichaAbierta && fichaDeMemoria(fichaAbierta.nombre);
@@ -306,6 +331,7 @@
               cerrar: function() { cerrarPanel(); },
               estado: menuEstadoFicha,
               gravedad: menuGravedadFicha,
+              ingreso: menuIngresoFicha,
               guardarCampo: guardarCampoFicha,
               accion: function(a) {
                 var citaAct = CITAS.find(function(x) { return !x._hueco && x['Usuario'] === nombre; });

@@ -178,6 +178,7 @@ window.PanelEditar = {
     function opcionDe(val, opciones) {
       var n = sinEmojiTxt(val).toLowerCase();
       if (n === 'urgente' && opciones === OPCIONES_GRAVEDAD) return GRAVEDAD_PACIENTE.GRAVE;   // nombre antiguo de Grave
+      if (n === TIPOS_INGRESO.ANTIGUO_ANTES.toLowerCase() && opciones === OPCIONES_INGRESO) return TIPOS_INGRESO.ANTIGUO;   // nombre antiguo (hasta el 13-nov-2026)
       for (var i = 0; i < opciones.length; i++) if (sinEmojiTxt(opciones[i]).toLowerCase() === n) return opciones[i];
       return val;
     }

@@ -32,6 +32,11 @@ button.fu-chip { cursor: pointer; font-size: var(--fs-xs); padding: .28rem .45re
 button.fu-chip::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: currentColor; margin-right: .4rem; flex-shrink: 0; }
 button.fu-chip .material-symbols-outlined { font-size: 16px; margin-left: .1rem; opacity: .7; }
 button.fu-chip:hover { background-image: linear-gradient(color-mix(in srgb, currentColor 8%, transparent), color-mix(in srgb, currentColor 8%, transparent)); }
+/* Tipo de ingreso (13-nov-2026): con borde y sin fondo, sin punto, con su icono delante (como .md-insignia--borde de la lista). */
+.fu-chip--borde { background: transparent; border: 1px solid var(--md-outline-strong); color: var(--md-on-surface-med); }
+button.fu-chip--borde { padding: calc(.28rem - 1px) calc(.45rem - 1px) calc(.28rem - 1px) calc(.6rem - 1px); }
+button.fu-chip--borde::before { display: none; }
+button.fu-chip .material-symbols-outlined.fu-chip__ico { font-size: 14px; margin: 0 .3rem 0 0; opacity: 1; }
 
 /* ---------- Acciones rapidas ---------- */
 .fu-acciones { flex: none; display: flex; gap: .4rem; padding: 0 1rem .9rem; border-bottom: 1px solid var(--md-outline); }
@@ -108,6 +113,8 @@ button.fu-chip:hover { background-image: linear-gradient(color-mix(in srgb, curr
 .fu-menu-item:hover, .fu-menu-item:focus-visible { background: var(--md-surface-variant); }
 .fu-menu-item:focus-visible { outline-offset: -2px; }
 .fu-menu-item .material-symbols-outlined { margin-left: auto; font-size: 18px; color: var(--md-primary); }
+.fu-menu-item .fu-menu-ico { margin-left: 0; font-size: 18px; color: var(--md-on-surface-med); }
+.fu-menu-item--separado { margin-top: .3rem; border-top: 1px solid var(--md-outline); border-radius: 0 0 var(--md-shape-sm) var(--md-shape-sm); }
 .fu-punto { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; background: var(--md-on-surface-low); }
 .fu-punto.activo { background: var(--md-success); }
 .fu-punto.espera { background: var(--md-warning); }

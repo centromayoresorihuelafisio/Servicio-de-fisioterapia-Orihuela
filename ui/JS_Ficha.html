@@ -15,7 +15,7 @@
 
   Uso:
     FichaUsuario.pintar(contenedor, FichaUsuario.html(usuario, cabeceras, opciones));
-    contenedor.addEventListener('click', function(e) { FichaUsuario.alClic(e, { cerrar, estado, gravedad, accion, guardarCampo }); });
+    contenedor.addEventListener('click', function(e) { FichaUsuario.alClic(e, { cerrar, estado, gravedad, ingreso, accion, guardarCampo }); });
   opciones: { nombre, acciones, pie, extraCabecera, excluir, editable }  (ver FichaUsuario.html)
 
   Edición directa (opciones.editable = true): los campos marcados `editable` en SECCIONES (Teléfono 1, Teléfono 2,
@@ -33,7 +33,7 @@ var FichaUsuario = (function() {
   var ESTADOS_BASE = ESTADOS_PACIENTE.LISTA_EDICION.slice();
 
   // Secciones de la ficha, en orden. Cada campo: col = cabecera real de la hoja, etq = etiqueta que se muestra,
-  // tipo = como se pinta (tel, copia, gravedad, limpio, largo; sin tipo = texto normal).
+  // tipo = como se pinta (tel, copia, gravedad, ingreso, limpio, largo; sin tipo = texto normal).
   var SECCIONES = [
     { titulo: 'Contacto', icono: 'call', vacio: 'Sin teléfono', campos: [
       { col: 'Teléfono 1', tipo: 'tel', editable: true },
@@ -47,7 +47,7 @@ var FichaUsuario = (function() {
     ] },
     { titulo: 'Clínico', icono: 'stethoscope', campos: [
       { col: 'Gravedad', etq: 'Gravedad', tipo: 'gravedad' },
-      { col: 'Tipo de Ingreso', etq: 'Ingreso', tipo: 'limpio' },
+      { col: 'Tipo de Ingreso', etq: 'Ingreso', tipo: 'ingreso' },
       { col: 'Patología 1', etq: 'Principal' },
       { col: 'Patología 2', etq: 'Secundaria' }
     ] },
@@ -117,6 +117,28 @@ var FichaUsuario = (function() {
     });
   }
 
+  // Tipo de ingreso: icono y texto corto del chip (lista de Usuarios y ficha). FUENTE ÚNICA en el navegador. Reconoce también
+  // el nombre guardado antes del 13-nov-2026 («Antiguo paciente») y celdas con emoji. Un valor desconocido sale tal cual, sin icono.
+  function ingresoDatos(v) {
+    var tx = textoEstado(v), n = norm(tx);
+    if (!tx) return { valor: '', icono: '', corto: '', completo: '' };
+    if (n.indexOf('volante') !== -1) return { valor: TIPOS_INGRESO.VOLANTE, icono: 'receipt_long', corto: 'Volante', completo: TIPOS_INGRESO.VOLANTE };
+    if (n.indexOf('derivacion') !== -1) return { valor: TIPOS_INGRESO.DERIVACION_PROPIA, icono: 'person', corto: 'Propia', completo: TIPOS_INGRESO.DERIVACION_PROPIA };
+    if (n.indexOf('antiguo') !== -1) return { valor: TIPOS_INGRESO.ANTIGUO, icono: 'history', corto: 'Antiguo', completo: TIPOS_INGRESO.ANTIGUO };
+    return { valor: tx, icono: '', corto: tx, completo: tx };
+  }
+  // Menu del tipo de ingreso (chip de la ficha): los de TIPOS_INGRESO.LISTA con su icono y, si tiene uno, «Quitar tipo de
+  // ingreso» al final. elegir(valor) se llama al pulsar uno; elegir('') = quitarlo.
+  function ingresosMenu(actual, elegir) {
+    var act = ingresoDatos(actual).valor;
+    var items = TIPOS_INGRESO.LISTA.map(function(t) {
+      var d = ingresoDatos(t);
+      return { icono: d.icono, texto: t, titulo: 'Cambiar tipo de ingreso a ' + t, marcado: act === t, fn: function() { elegir(t); } };
+    });
+    if (act) items.push({ icono: 'close', texto: 'Quitar tipo de ingreso', titulo: 'Dejar sin tipo de ingreso', separado: true, fn: function() { elegir(''); } });
+    return items;
+  }
+
   // `existentes` = valores de la columna Estado de la hoja.
   function estadosDisponibles(existentes) {
     var porClase = {}, extra = [];
@@ -183,6 +205,11 @@ var FichaUsuario = (function() {
     var cont;
     if (c.tipo === 'copia') cont = htmlCopia(v, c.etq, v);
     else if (c.tipo === 'gravedad') cont = '<button type="button" class="fu-chip ' + claseGravedad(v) + '" data-fu="gravedad" aria-haspopup="menu" title="Cambiar gravedad">' + (v ? esc(textoEstado(v)) : 'Sin gravedad') + icono('expand_more') + '</button>';
+    else if (c.tipo === 'ingreso') {
+      var d = ingresoDatos(v);
+      cont = '<button type="button" class="fu-chip fu-chip--borde" data-fu="ingreso" aria-haspopup="menu" title="' + esc(d.completo ? 'Tipo de ingreso: ' + d.completo + ' · clic para cambiarlo' : 'Poner tipo de ingreso') + '">' +
+        (d.icono ? '<span class="material-symbols-outlined fu-chip__ico" aria-hidden="true">' + d.icono + '</span>' : '') + esc(d.corto || 'Sin tipo') + icono('expand_more') + '</button>';
+    }
     else cont = '<span class="fu-val">' + esc(c.tipo === 'limpio' ? textoEstado(v) : v) + '</span>';
     return '<div class="fu-campo"><span class="fu-etq">' + esc(c.etq) + '</span>' + cont + '</div>';
   }
@@ -236,7 +263,7 @@ var FichaUsuario = (function() {
         usados[norm(c.col)] = true;
         var v = valor(p, headers, c.col), editable = !!(o.editable && c.editable && cabecera(headers, c.col));
         if (editable) return htmlEditable(c, v, htmlCampo(c, v, true));   // sale siempre: si está vacío, con «Añadir …»
-        return (v || c.tipo === 'gravedad') ? htmlCampo(c, v) : '';   // la gravedad sale siempre, para poder ponerla desde el chip
+        return (v || c.tipo === 'gravedad' || c.tipo === 'ingreso') ? htmlCampo(c, v) : '';   // gravedad e ingreso salen siempre, para poder ponerlos desde el chip
       }).join('');
       if (!campos) {
         if (!s.vacio) return '';                                   // sin datos: la seccion no sale
@@ -285,7 +312,7 @@ var FichaUsuario = (function() {
   }
 
   // Un solo manejador de clics para la ficha. La copia la resuelve el componente; el resto lo decide la pagina:
-  //   h.cerrar()   h.estado(botonChip)   h.gravedad(botonChip)   h.accion(id)
+  //   h.cerrar()   h.estado(botonChip)   h.gravedad(botonChip)   h.ingreso(botonChip)   h.accion(id)
   // Devuelve true si el clic era de la ficha.
   function alClic(e, h) {
     var t = e.target, c = t && t.closest ? t.closest('[data-fu]') : null;
@@ -295,6 +322,7 @@ var FichaUsuario = (function() {
     else if (a === 'cerrar') { if (h && h.cerrar) h.cerrar(); }
     else if (a === 'estado') { if (h && h.estado) h.estado(c); }
     else if (a === 'gravedad') { if (h && h.gravedad) h.gravedad(c); }
+    else if (a === 'ingreso') { if (h && h.ingreso) h.ingreso(c); }
     else if (a === 'accion') { if (h && h.accion) h.accion(c.getAttribute('data-acc')); }
     else if (a === 'editar') {
       var w = c.closest('.fu-editable');
@@ -389,7 +417,8 @@ var FichaUsuario = (function() {
   }
 
   // ---------- Menu flotante de estado (y de gravedad) ----------
-  // items: [{ punto, texto, titulo, marcado, fn }] (titulo opcional: por defecto "Cambiar estado a ..."). Se cierra con clic fuera, Esc, Tab, scroll o al cambiar el tamano.
+  // items: [{ punto, texto, titulo, marcado, fn }] (titulo opcional: por defecto "Cambiar estado a ..."). Con `icono`, el item
+  // lleva ese icono en lugar del punto; con `separado`, una raya encima (para «Quitar …»). Se cierra con clic fuera, Esc, Tab, scroll o al cambiar el tamano.
   var menuActual = null;
   function cerrarMenu(devolverFoco) {
     if (!menuActual) return;
@@ -406,8 +435,9 @@ var FichaUsuario = (function() {
     var el = document.createElement('div');
     el.className = 'fu-menu'; el.setAttribute('role', 'menu');
     el.innerHTML = items.map(function(it, i) {
-      return '<button type="button" role="menuitemradio" aria-checked="' + (it.marcado ? 'true' : 'false') + '" class="fu-menu-item" title="' + esc(it.titulo || ('Cambiar estado a ' + it.texto)) + '" data-i="' + i + '">' +
-        '<span class="fu-punto ' + esc(it.punto || '') + '"></span><span>' + esc(it.texto) + '</span>' + (it.marcado ? icono('check') : '') + '</button>';
+      return '<button type="button" role="menuitemradio" aria-checked="' + (it.marcado ? 'true' : 'false') + '" class="fu-menu-item' + (it.separado ? ' fu-menu-item--separado' : '') + '" title="' + esc(it.titulo || ('Cambiar estado a ' + it.texto)) + '" data-i="' + i + '">' +
+        (it.icono ? '<span class="material-symbols-outlined fu-menu-ico" aria-hidden="true">' + esc(it.icono) + '</span>' : '<span class="fu-punto ' + esc(it.punto || '') + '"></span>') +
+        '<span>' + esc(it.texto) + '</span>' + (it.marcado ? icono('check') : '') + '</button>';
     }).join('');
     document.body.appendChild(el);
     var r = ancla.getBoundingClientRect(), w = el.offsetWidth, hgt = el.offsetHeight;
@@ -450,7 +480,7 @@ var FichaUsuario = (function() {
   return {
     html: html, mensaje: mensaje, pintar: pintar, alClic: alClic, menuEstado: menuEstado, cerrarMenu: cerrarMenu,
     estadosDisponibles: estadosDisponibles, claseEstado: claseEstado, textoEstado: textoEstado,
-    gravedadesMenu: gravedadesMenu, claseGravedad: claseGravedad,
+    gravedadesMenu: gravedadesMenu, claseGravedad: claseGravedad, ingresosMenu: ingresosMenu, ingresoDatos: ingresoDatos,
     cabecera: cabecera, valor: valor, norm: norm, formatearTel: formatearTel, copiar: copiar,
     editar: editar, hayEdicion: hayEdicion, cancelarEdicion: cancelarEdicion
   };

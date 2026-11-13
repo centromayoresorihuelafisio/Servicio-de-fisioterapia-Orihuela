@@ -67,6 +67,7 @@ function ordenarPacientesEnBloqueo_() {
   PUNTOS_INGRESO[clave(TIPOS_INGRESO.VOLANTE)] = 200;
   PUNTOS_INGRESO[clave(TIPOS_INGRESO.DERIVACION_PROPIA)] = 200;
   PUNTOS_INGRESO[clave(TIPOS_INGRESO.ANTIGUO)] = 100;
+  PUNTOS_INGRESO[clave(TIPOS_INGRESO.ANTIGUO_ANTES)] = 100;
   const PUNTOS_GRAVEDAD = {};
   PUNTOS_GRAVEDAD[clave(GRAVEDAD_PACIENTE.LEVE)] = 10;
   PUNTOS_GRAVEDAD[clave(GRAVEDAD_PACIENTE.MODERADO)] = 20;
@@ -78,6 +79,9 @@ function ordenarPacientesEnBloqueo_() {
   for (let i = 1; i < data.length; i++) {
     const row = data[i];
     const estadoRaw = row[idxEstado];
+    // «Antiguo paciente» pasa a llamarse «Antiguo usuario» (13-nov-2026): como aquí se reescribe la hoja entera, se
+    // aprovecha para dejar el nombre nuevo (no es un cambio de dato, así que no va al historial).
+    if (clave(row[idxIngreso]) === clave(TIPOS_INGRESO.ANTIGUO_ANTES)) row[idxIngreso] = TIPOS_INGRESO.ANTIGUO;
 
     if (!estadoRaw || estadoRaw.toString().trim() === "") {
       row[0] = null;

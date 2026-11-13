@@ -253,14 +253,12 @@
         return '<button type="button" class="chip-g gravedad-btn ' + claseGravedad(v) + '" data-gravedad-fila="' + fila + '" aria-haspopup="menu" title="Cambiar gravedad">' +
           esc(textoEstado(v)) + '<span class="material-symbols-outlined">expand_more</span></button>';
       }
-      // Chip de tipo de ingreso (solo se muestra; se cambia en Editar). Con borde y sin color, para no competir con la
-      // gravedad. Icono + texto corto; el nombre completo va en el title. Un valor desconocido sale tal cual, sin icono.
+      // Chip de tipo de ingreso (aquí solo se muestra; se cambia desde el chip de la ficha o en Editar). Con borde y sin color,
+      // para no competir con la gravedad. Icono y texto corto de FichaUsuario.ingresoDatos (ui/JS_Ficha, fuente única).
       function chipTipoIngreso(v) {
-        var tx = textoEstado(v), n = normalizar(tx);
-        var d = n.indexOf('volante') !== -1 ? ['receipt_long', 'Volante'] : n.indexOf('derivacion') !== -1 ? ['person', 'Propia'] :
-          n.indexOf('antiguo') !== -1 ? ['history', 'Antiguo'] : ['', tx];
-        return '<span class="md-insignia md-insignia--borde" title="Tipo de ingreso: ' + esc(tx) + '">' +
-          (d[0] ? '<span class="material-symbols-outlined" aria-hidden="true">' + d[0] + '</span>' : '') + esc(d[1]) + '</span>';
+        var d = FichaUsuario.ingresoDatos(v);
+        return '<span class="md-insignia md-insignia--borde" title="Tipo de ingreso: ' + esc(d.completo) + '">' +
+          (d.icono ? '<span class="material-symbols-outlined" aria-hidden="true">' + d.icono + '</span>' : '') + esc(d.corto) + '</span>';
       }
 
       function formatearTel(t) { return Telefono.formato(t); }   // regla única: ui/JS_Telefono.html

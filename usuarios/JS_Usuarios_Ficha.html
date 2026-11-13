@@ -290,6 +290,34 @@
           }, function(err) { revertir('Error al cambiar la gravedad: ' + err); });
       }
 
+      // ---------- Tipo de ingreso desde el chip de la ficha (cambiar o quitar; cuenta para el orden, como la gravedad) ----------
+      function menuIngreso(fila, ancla) {
+        var p = TODOS.find(function(x) { return x._fila === fila; });
+        if (!p) return;
+        var items = [];
+        FichaUsuario.ingresosMenu(dato(p, 'Tipo de Ingreso'), function(t) { cambiarIngreso(fila, t); }).forEach(function(it) {
+          if (it.separado) items.push({ sep: true });
+          items.push(it);
+        });
+        abrirMenu(items, ancla, true);
+      }
+
+      function cambiarIngreso(fila, valor) {
+        var p = TODOS.find(function(x) { return x._fila === fila; });
+        if (!p) return;
+        var hIng = hdr('Tipo de Ingreso') || 'Tipo de Ingreso', antes = p[hIng];
+        if (FichaUsuario.ingresoDatos(antes).valor === valor) return;
+        p[hIng] = valor;
+        refrescarVista();
+        function revertir(msg) { p[hIng] = antes; refrescarVista(); mostrarAviso(msg); }
+        llamar('cambiarIngresoPacienteWeb', [idPaciente(p), valor])
+          .then(function(res) {
+            if (!res || !res.success) { revertir((res && res.message) || 'No se pudo cambiar el tipo de ingreso.'); return; }
+            mostrarAviso(valor ? 'Tipo de ingreso cambiado a ' + valor + '.' : 'Tipo de ingreso quitado correctamente.');
+            if (res.ordenado) cargar();   // cuenta para el orden: si el servidor reordenó la hoja, se recarga
+          }, function(err) { revertir('Error al cambiar el tipo de ingreso: ' + err); });
+      }
+
       // ---------- Teléfonos y observaciones desde la ficha (lápiz: edición directa de ui/JS_Ficha) ----------
       // Se cambia en memoria y se repinta al momento; si el servidor no lo guarda, se deshace y el cuadro vuelve a abrirse con lo escrito.
       function guardarCampoFicha(col, valor) {
@@ -377,6 +405,7 @@
           cerrar: cerrarFicha,
           estado: function(btn) { if (pacienteSeleccionado) menuEstado(pacienteSeleccionado._fila, btn); },
           gravedad: function(btn) { if (pacienteSeleccionado) menuGravedad(pacienteSeleccionado._fila, btn); },
+          ingreso: function(btn) { if (pacienteSeleccionado) menuIngreso(pacienteSeleccionado._fila, btn); },
           accion: function(a) { if (pacienteSeleccionado) accionPaciente(a, pacienteSeleccionado._fila); },
           guardarCampo: guardarCampoFicha
         });

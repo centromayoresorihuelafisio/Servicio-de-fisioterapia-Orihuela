@@ -53,6 +53,7 @@ function accesoAcciones_() {
     restaurarPacienteWeb:        { fn: restaurarPacienteWeb_, rol: 'usuario', registrar: true, entidad: a => a[0] && a[0][id] },
     cambiarEstadoPacienteWeb:    { fn: cambiarEstadoPacienteWeb_, rol: 'usuario' },
     cambiarGravedadPacienteWeb:  { fn: cambiarGravedadPacienteWeb_, rol: 'usuario' },
+    cambiarIngresoPacienteWeb:   { fn: cambiarIngresoPacienteWeb_, rol: 'usuario' },
     cambiarDatoFichaPacienteWeb: { fn: cambiarDatoFichaPacienteWeb_, rol: 'usuario', registrar: true, entidad: a => a[0], detalle: a => a[1] },
     cambiarEstadoLoteWeb:        { fn: cambiarEstadoLoteWeb_, rol: 'usuario', registrar: true, entidad: a => (a[0] || []).join(', '), detalle: a => a[1] },
     ordenarPacientes:            { fn: ordenarPacientes_, rol: 'usuario' },

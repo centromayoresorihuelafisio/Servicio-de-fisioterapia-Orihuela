@@ -341,6 +341,32 @@ function cambiarDatoFichaPacienteWeb_(idPaciente, campo, nuevoValor) {
 function cambiarGravedadPacienteSinOrden_(idPaciente, nuevaGravedad) {
   const gravedad = GRAVEDAD_PACIENTE.LISTA.find(g => g.toLowerCase() === String(nuevaGravedad || '').trim().toLowerCase());
   if (!gravedad) return { success: false, message: 'Gravedad no válida.' };
+  return cambiarCampoPrioridadSinOrden_(idPaciente, COLUMNAS.MAESTRA.GRAVEDAD, gravedad, 'Cambio de gravedad', 'Gravedad actualizada.');
+}
+
+/**
+ * Cambia o quita el Tipo de Ingreso de un usuario (chip de la ficha de Usuarios y de la Agenda). Solo acepta los valores de
+ * TIPOS_INGRESO.LISTA o '' (quitarlo). Cuenta para el orden de la lista, así que reordena si hace falta, como la gravedad.
+ */
+function cambiarIngresoPacienteWeb_(idPaciente, nuevoTipo) {
+  const texto = String(nuevoTipo || '').trim();
+  const tipo = texto === '' ? '' : TIPOS_INGRESO.LISTA.find(t => t.toLowerCase() === texto.toLowerCase());
+  if (tipo === undefined) return { success: false, message: 'Tipo de ingreso no válido.' };
+  const r = cambiarCampoPrioridadSinOrden_(idPaciente, COLUMNAS.MAESTRA.TIPO_INGRESO, tipo, 'Cambio de tipo de ingreso',
+    tipo ? 'Tipo de ingreso actualizado.' : 'Tipo de ingreso quitado.');
+  if (r.success && r._cambios) {
+    const orden = ordenarPacientesSiProcede_(r._cambios);
+    r.ordenado = orden.ordenado === true;
+  }
+  delete r._cambios;
+  return r;
+}
+
+/**
+ * Escribe UNA casilla de la Maestra que cuenta para el orden (Gravedad o Tipo de Ingreso) dentro del bloqueo, y la apunta en
+ * el historial. Devuelve además `_cambios` (para decidir si reordenar). `valor` ya viene validado.
+ */
+function cambiarCampoPrioridadSinOrden_(idPaciente, columna, valor, motivo, mensaje) {
   const lock = LockService.getScriptLock();
   try {
     lock.waitLock(10000);
@@ -352,18 +378,18 @@ function cambiarGravedadPacienteSinOrden_(idPaciente, nuevaGravedad) {
     if (!rowIdx) return { success: false, message: 'Ese usuario ya no está en Usuarios. Recarga la página.' };
 
     const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0].map(h => h.toString().trim());
-    const colGravedad = headers.indexOf(COLUMNAS.MAESTRA.GRAVEDAD);
-    if (colGravedad === -1) return { success: false, message: `No se encontró la columna "${COLUMNAS.MAESTRA.GRAVEDAD}".` };
+    const col = headers.indexOf(columna);
+    if (col === -1) return { success: false, message: `No se encontró la columna "${columna}".` };
 
-    const celda = sheet.getRange(rowIdx, colGravedad + 1);
+    const celda = sheet.getRange(rowIdx, col + 1);
     const antes = celda.getValue();
-    celda.setValue(gravedad);
-    const cambios = [{ id: idPaciente, campo: COLUMNAS.MAESTRA.GRAVEDAD, antes: antes, despues: gravedad }];
-    historialRegistrar_(cambios, 'Cambio de gravedad');
+    celda.setValue(valor);
+    const cambios = [{ id: idPaciente, campo: columna, antes: antes, despues: valor }];
+    historialRegistrar_(cambios, motivo);
     SpreadsheetApp.flush();
-    return { success: true, message: 'Gravedad actualizada.', _cambios: cambios };
+    return { success: true, message: mensaje, _cambios: cambios };
   } catch (e) {
-    Logger.log('Error en cambiarGravedadPacienteWeb: ' + e.message);
+    Logger.log('Error al cambiar ' + columna + ': ' + e.message);
     return { success: false, message: e.message };
   } finally {
     try { lock.releaseLock(); } catch (err) { /* sin bloqueo que liberar */ }

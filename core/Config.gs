@@ -206,8 +206,10 @@ const GRAVEDAD_PACIENTE = (function () {
  * Gravedad. Al dar el alta la celda se vacía (usuarios/Alta.gs).
  */
 const TIPOS_INGRESO = (function () {
-  const t = { VOLANTE: "Volante", DERIVACION_PROPIA: "Derivación propia", ANTIGUO: "Antiguo paciente" };
+  const t = { VOLANTE: "Volante", DERIVACION_PROPIA: "Derivación propia", ANTIGUO: "Antiguo usuario" };
   t.LISTA = [t.VOLANTE, t.DERIVACION_PROPIA, t.ANTIGUO];
+  // Nombre guardado hasta el 13-nov-2026. Se sigue reconociendo como ANTIGUO, y ordenarPacientes lo reescribe con el nuevo.
+  t.ANTIGUO_ANTES = "Antiguo paciente";
   t.DEFECTO = t.VOLANTE;
   return t;
 })();
