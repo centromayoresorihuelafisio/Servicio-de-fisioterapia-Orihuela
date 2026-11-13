@@ -109,7 +109,7 @@ function normalizarNombreUsuario_(texto) {
     .trim();
 }
 
-/** DNI (o SIP) siempre en mayúsculas y sin espacios en los extremos. */
+/** DNI siempre en mayúsculas y sin espacios en los extremos. */
 function normalizarDniUsuario_(texto) {
   return texto ? texto.toString().trim().toUpperCase() : '';
 }

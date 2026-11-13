@@ -18,7 +18,7 @@
   habitual», el nombre de una cita y la ficha usan solo la regla común (formatoNombreEscribiendo / formatoNombreFinal).
   Para ENSEÑAR el nombre habitual («Mari Carmen») sin cambiar lo guardado: formatoNombreVisible(texto).
   Letra del DNI/NIE: validarDni(texto) → { aplica, valido, letra }. Solo se valida lo que tiene forma de DNI (8 cifras + letra) o de
-  NIE (X/Y/Z + 7 cifras + letra): el campo también admite SIP u otros documentos y esos no se tocan (aplica = false).
+  NIE (X/Y/Z + 7 cifras + letra): lo que no tiene esa forma no se toca (aplica = false).
 -->
 <script>
   function formatoNombreEscribiendo(v) {

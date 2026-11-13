@@ -73,6 +73,10 @@ button.fu-chip .material-symbols-outlined.fu-chip__ico { font-size: 14px; margin
 .fu-copia .material-symbols-outlined { font-size: 14px; opacity: 0; color: var(--md-on-surface-low); transition: opacity var(--dur-1) var(--ease); }
 .fu-copia:hover { background: var(--md-primary-light); }
 .fu-copia:hover .material-symbols-outlined, .fu-copia:focus-visible .material-symbols-outlined { opacity: 1; }
+/* Valor a la derecha (DNI): el icono de copiar va a la IZQUIERDA del valor y no ocupa sitio (el botón crece hacia el hueco
+   de la izquierda con el mismo margen negativo), así todos los valores de la sección acaban en el mismo borde. */
+.fu-campo .fu-copia { padding-left: calc(.7rem + 14px); margin-left: calc(-.7rem - 14px); }
+.fu-campo .fu-copia .material-symbols-outlined { order: -1; }
 
 /* ---------- Edición directa (teléfonos y observaciones: ui/JS_Ficha, opción editable) ---------- */
 /* El lápiz se ve al pasar el ratón por el campo o al llegar con el teclado; «Añadir …» se ve siempre. */
@@ -82,9 +86,11 @@ button.fu-chip .material-symbols-outlined.fu-chip__ico { font-size: 14px; margin
 .fu-lapiz:hover { background: var(--md-primary-light); color: var(--md-primary); }
 .fu-editable .fu-campo.largo { display: flex; align-items: flex-start; gap: .5rem; }
 .fu-editable .fu-campo.largo .fu-val { flex: 1; }
-.fu-editable .fu-campo--nombre { justify-content: flex-start; }   /* nombre habitual: etiqueta a la izquierda y el valor junto al lápiz */
-.fu-editable .fu-campo--nombre .fu-val { margin-left: auto; }
-.fu-editable .fu-campo--nombre .fu-lapiz { margin-left: -.5rem; }
+/* Nombre habitual: etiqueta a la izquierda, valor en el borde derecho (como el resto de la sección) y el lápiz a la
+   izquierda del valor, en el hueco libre: al aparecer no mueve nada. */
+.fu-editable .fu-campo--nombre { justify-content: flex-start; }
+.fu-editable .fu-campo--nombre .fu-val { order: 2; }
+.fu-editable .fu-campo--nombre .fu-lapiz { order: 1; margin-right: -.6rem; }
 .fu-anadir { display: inline-flex; align-items: center; gap: .35rem; border: none; background: none; padding: .3rem .5rem; margin: .1rem -.5rem; border-radius: var(--md-shape-sm); font-family: var(--font); font-size: var(--fs-sm); font-weight: 500; color: var(--md-primary); cursor: pointer; transition: background-color var(--dur-1) var(--ease); }
 .fu-anadir .material-symbols-outlined { font-size: 18px; }
 .fu-anadir:hover { background: var(--md-primary-light); }

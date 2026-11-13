@@ -212,7 +212,7 @@ window.PanelNuevo = {
         seccion('badge', 'Datos personales', '<div class="grid-2">' +
           campo('nombre', 'person', 'Nombre completo', { name: 'Nombre', req: true }) +
           '<input type="hidden" id="nu-habitual" name="Nombre habitual">' +   // lo rellena el aviso del nombre oficial (PACO → FRANCISCO)
-          campo('dni', 'id_card', 'Identificación (DNI / SIP)', { name: 'DNI' }) +
+          campo('dni', 'id_card', 'DNI', { name: 'DNI' }) +
           campo('fi', 'event', 'Fecha de inscripción', { name: 'Fecha inscripción', type: 'date', req: true }) +
           campo('fn', 'cake', 'Fecha de nacimiento', { name: 'Fecha nacimiento', type: 'date' }) +
         '</div>') +
@@ -278,8 +278,8 @@ window.PanelNuevo = {
     });
     enlazarFormatoNombreOficial(iNombre);   // regla del nombre oficial: «M» delante = MARIA (ui/JS_Formato_Nombre)
     iDni.addEventListener('input', function (e) { if (!e.isComposing) sanitizeDni(iDni); });
-    // Letra de control del DNI/NIE (ui/JS_Formato_Nombre → validarDni). Solo si el valor tiene forma de DNI/NIE: el campo también
-    // admite SIP u otros documentos. Se avisa en cuanto el número está completo y también impide guardar; si no hay DNI, se deja vacío.
+    // Letra de control del DNI/NIE (ui/JS_Formato_Nombre → validarDni). Solo si el valor tiene forma de DNI/NIE.
+    // Se avisa en cuanto el número está completo y también impide guardar; si no hay DNI, se deja vacío.
     function mensajeLetraDni() {
       if (typeof validarDni !== 'function') return '';   // ui/JS_Formato_Nombre sin actualizar: no se valida, pero el alta sigue funcionando
       var v = validarDni(iDni.value);

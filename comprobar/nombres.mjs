@@ -94,7 +94,7 @@ function avisa(nombre, esperado) {
   if (bien && esperado.texto) bien = a.some(x => x.texto.join('').includes(esperado.texto));
   ok(bien, `${nombre || '(vacío)'} → ${esperado.claves.join(', ') || 'sin aviso'}`, a);
 }
-avisa('PACO GIL ROS', { claves: ['diminutivo'], opciones: [['Cambiar a FRANCISCO', 'FRANCISCO GIL ROS', 'PACO']], texto: '¿El nombre oficial es FRANCISCO? Escríbelo como en el DNI o la SIP.' });
+avisa('PACO GIL ROS', { claves: ['diminutivo'], opciones: [['Cambiar a FRANCISCO', 'FRANCISCO GIL ROS', 'PACO']], texto: '¿El nombre oficial es FRANCISCO? Escríbelo como en el DNI.' });
 avisa('MAMEN ROCAMORA SANZ', { claves: ['diminutivo'], opciones: [['Cambiar a MARIA CARMEN', 'MARIA CARMEN ROCAMORA SANZ', 'MAMEN']] });
 avisa('FINA ORTS LLOR', { claves: ['diminutivo'], opciones: [['JOSEFA', 'JOSEFA ORTS LLOR', 'FINA'], ['JOSEFINA', 'JOSEFINA ORTS LLOR', 'FINA']], texto: 'JOSEFA o JOSEFINA? Míralo' });
 avisa('CARMELA RUIZ GIL', { claves: ['diminutivo'], opciones: [['CARMEN', 'CARMEN RUIZ GIL', 'CARMELA']] });   // «CARMELA» = botón «Es su nombre real»

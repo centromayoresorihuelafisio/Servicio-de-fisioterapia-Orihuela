@@ -8,8 +8,8 @@
 // ================================================================================
 
 /**
- * Diminutivos de nombre de pila. Un texto = equivalencia segura; una lista = dudoso (lo decide el dueño con el DNI o
- * la SIP; la lista son las opciones que se le enseñan). «MARI» va aparte: delante de otro nombre es MARIA (seguro);
+ * Diminutivos de nombre de pila. Un texto = equivalencia segura; una lista = dudoso (lo decide el dueño con el DNI;
+ * la lista son las opciones que se le enseñan). «MARI» va aparte: delante de otro nombre es MARIA (seguro);
  * sola es dudosa.
  */
 const NOMBRES_DIMINUTIVOS_ = {
@@ -127,14 +127,14 @@ function nombresAnalizar_(nombre, extra) {
       conDiminutivo = true;
       if (i + 1 < largoPila) { palabras[i] = 'MARIA'; subir(1, 'MARI = MARIA'); }
       else if (i > 0) { palabras[i] = 'MARIA'; subir(1, 'MARI = MARIA'); }
-      else if (!dudoso) { dudoso = { indice: i, opciones: ['MARIA'] }; subir(2, 'MARI sola: ¿es MARIA? Míralo en el DNI o la SIP'); }
+      else if (!dudoso) { dudoso = { indice: i, opciones: ['MARIA'] }; subir(2, 'MARI sola: ¿es MARIA? Míralo en el DNI'); }
       continue;
     }
     const eq = NOMBRES_DIMINUTIVOS_[p];
     if (!eq) continue;
     conDiminutivo = true;
     if (typeof eq === 'string') { palabras[i] = eq; subir(1, p + ' = ' + eq); }
-    else if (!dudoso) { dudoso = { indice: i, opciones: eq }; subir(2, p + ': ¿' + eq.join(' o ') + '? Míralo en el DNI o la SIP'); }
+    else if (!dudoso) { dudoso = { indice: i, opciones: eq }; subir(2, p + ': ¿' + eq.join(' o ') + '? Míralo en el DNI'); }
     else { subir(3, 'Dos nombres dudosos (' + palabras[dudoso.indice] + ' y ' + p + ')'); }
   }
 
@@ -285,14 +285,14 @@ function nombresAvisos_(nombre) {
   if (typeof eq === 'string') {
     avisos.push({
       clave: 'diminutivo:' + actual,
-      texto: ['¿El nombre oficial es ', eq, '? Escríbelo como en el DNI o la SIP.'],
+      texto: ['¿El nombre oficial es ', eq, '? Escríbelo como en el DNI.'],
       opciones: [{ etiqueta: 'Cambiar a ' + eq, nombre: conPrimera(eq), habitual: habitual }],
       descartar: 'Es su nombre real'
     });
   } else if (Array.isArray(eq)) {
     const texto = ['¿El nombre oficial es '];
     eq.forEach(function (o, i) { if (i) texto.push(i === eq.length - 1 ? ' o ' : ', '); texto.push(o); });
-    texto.push('? Míralo en el DNI o la SIP.');
+    texto.push('? Míralo en el DNI.');
     avisos.push({
       clave: 'diminutivo:' + actual,
       texto: texto,
@@ -306,9 +306,9 @@ function nombresAvisos_(nombre) {
   // 2. Apellidos que faltan.
   const sinParticulas = palabras.filter(function (w) { return NOMBRES_PARTICULAS_.indexOf(w) === -1; }).length;
   if (sinParticulas === 1) {
-    avisos.push({ clave: 'apellidos:' + actual, texto: ['Faltan los apellidos. Escríbelos como en el DNI o la SIP.'], opciones: [], descartar: 'Está bien así' });
+    avisos.push({ clave: 'apellidos:' + actual, texto: ['Faltan los apellidos. Escríbelos como en el DNI.'], opciones: [], descartar: 'Está bien así' });
   } else if (sinParticulas === 2) {
-    avisos.push({ clave: 'apellidos:' + actual, texto: ['Solo hay un apellido. Si tiene dos, escríbelos como en el DNI o la SIP.'], opciones: [], descartar: 'Está bien así' });
+    avisos.push({ clave: 'apellidos:' + actual, texto: ['Solo hay un apellido. Si tiene dos, escríbelos como en el DNI.'], opciones: [], descartar: 'Está bien así' });
   }
 
   // 3. Apellidos abreviados («GLEZ»).
