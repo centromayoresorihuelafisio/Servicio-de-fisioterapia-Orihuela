@@ -7,13 +7,13 @@
       var cuerpoSeccion = Secciones.cuerpo('usuarios');
       var TODOS = [];
       var HEADERS = [];
-      var filtroEstado = null;
+      var filtroEstados = []; // varios estados a la vez, o [NO_ALTA] (atajo «Todos menos alta»)
       var COL_HISTORIA = null;
       var pacienteSeleccionado = null; // { _fila, Nombre, ... } o null
       var filtroGravedad = null, filtroSinHC = false, filtroSinTel = false, filtroSinCitas = false;
       // Aviso «sin citas» (usuarios/Sin_Citas.gs, sección 23 de CONTEXTO.md): { idPaciente: { dias, desde, porInicio } } y el umbral.
       var SIN_CITAS = {}, SIN_CITAS_DIAS = 14;
-      var filtroTipo = null, filtroPatologia = null;
+      var filtroTipo = null, filtroPatologia = null, filtroZona = null; // zona (Columna, Hombro…) o una patología, nunca las dos
       var seleccionMultiple = new Set();
       var ordenCampo = null, ordenDir = 1; // 1 = asc, -1 = desc
       var ultimosFiltrados = [], filaActivaFila = null;
@@ -61,14 +61,26 @@
         return (txt || '').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
       }
 
-      // ---------- Filtros (menús desplegables) ----------
+      // ---------- Filtros y orden (botones solo con icono; lo que hacen y lo elegido van en su «title») ----------
+      // VACIO = «Sin rellenar» (Gravedad, Derivación, Patología) y «Sin estado»; NO_ALTA = atajo «Todos menos alta» de Estado.
+      var VACIO = '__vacio__', NO_ALTA = '__noAlta__', ZONA_OTRAS = 'Otras';
       var FILTROS_DEF = [
         { id: 'estado', etq: 'Estado', icono: 'label' },
         { id: 'gravedad', etq: 'Gravedad', icono: 'priority_high' },
-        { id: 'carencias', etq: 'Sin HC / TLF / citas', icono: 'folder_off' },
+        { id: 'pendientes', etq: 'Pendientes', icono: 'pending_actions' },
         { id: 'tipo', etq: 'Derivación', icono: 'alt_route' },
-        { id: 'patologia', etq: 'Patología', icono: 'medical_services' }
+        { id: 'patologia', etq: 'Patología o zona', icono: 'medical_services' }
       ];
+      // Formas de ordenar (botón «Ordenar» y cabeceras de la tabla). 'inicial' = sentido del primer clic; 'dir' = cómo se dice cada sentido.
+      var ORDENES = [
+        { id: 'prioridad', texto: 'Prioridad', icono: 'trending_up', inicial: -1, dir: { '1': 'De menor a mayor', '-1': 'De mayor a menor' } },
+        { id: 'nombre', texto: 'Nombre', icono: 'sort_by_alpha', inicial: 1, dir: { '1': 'De la A a la Z', '-1': 'De la Z a la A' } },
+        { id: 'edad', texto: 'Edad', icono: 'cake', inicial: 1, dir: { '1': 'De menor a mayor', '-1': 'De mayor a menor' } },
+        { id: 'gravedad', texto: 'Gravedad', icono: 'priority_high', inicial: -1, dir: { '1': 'De leve a grave', '-1': 'De grave a leve' } },
+        { id: 'estado', texto: 'Estado', icono: 'label', inicial: 1, dir: { '1': 'En el orden de la lista', '-1': 'En orden inverso' } },
+        { id: 'inscripcion', texto: 'Inscripción', icono: 'event', inicial: 1, dir: { '1': 'Las más antiguas primero', '-1': 'Las más recientes primero' } }
+      ];
+      function ordenDef(id) { return ORDENES.filter(function(o) { return o.id === id; })[0] || null; }
 
       // Patologías individuales: cada campo puede traer varias separadas por , ; / | · + o salto de línea.
       var SEP_PAT = /\s*(?:[,;\/|·+]|\r?\n)\s*/;
@@ -84,6 +96,22 @@
         });
         return out;
       }
+      // Zona de cada patología según la lista oficial (PATOLOGIAS_LISTA, core/Patologias.gs); lo escrito a mano va a «Otras».
+      var PAT_OFICIAL = null;
+      function patOficial() {
+        if (!PAT_OFICIAL) {
+          PAT_OFICIAL = { mapa: {}, zonas: [] };
+          (typeof PATOLOGIAS_LISTA !== 'undefined' ? PATOLOGIAS_LISTA : []).forEach(function(x) {
+            PAT_OFICIAL.mapa[normalizar(x.nombre)] = x;
+            if (PAT_OFICIAL.zonas.indexOf(x.grupo) === -1) PAT_OFICIAL.zonas.push(x.grupo);
+          });
+          if (PAT_OFICIAL.zonas.indexOf(ZONA_OTRAS) === -1) PAT_OFICIAL.zonas.push(ZONA_OTRAS);   // la lista oficial ya puede traer su propio «Otras»
+        }
+        return PAT_OFICIAL;
+      }
+      function zonaDe(nombre) { var o = patOficial().mapa[normalizar(nombre)]; return o ? o.grupo : ZONA_OTRAS; }
+      function zonasDe(p) { var out = []; patologiasDe(p).forEach(function(s) { var z = zonaDe(s); if (out.indexOf(z) === -1) out.push(z); }); return out; }
+
       function sinHC(p) { return !esUrl(COL_HISTORIA ? p[COL_HISTORIA] : ''); }
       function sinTelefono(p) { return !(dato(p, 'Teléfono 1') || dato(p, 'Teléfono 2')); }
       function sinCitas(p) { var id = p && p['ID paciente'] ? String(p['ID paciente']).trim() : ''; return id ? SIN_CITAS[id] || null : null; }
@@ -97,15 +125,45 @@
         return '<span class="md-insignia md-insignia--aviso" title="' + esc(t + '. Dale una cita o el alta.') + '">Sin citas ' + s.dias + ' días</span>';
       }
 
+      function estadoDe(p) { return (p['Estado'] || '').toString().trim(); }
+      function tipoDe(p) { return normalizar(textoEstado(dato(p, 'Tipo de Ingreso'))); }
+      function esAlta(e) { return claseParaEstado(e) === 'alta'; }
+      // Estados que hay ahora en la tabla (VACIO si alguien no tiene ninguno).
+      function estadosPresentes() {
+        var out = [];
+        TODOS.forEach(function(p) { var e = estadoDe(p) || VACIO; if (out.indexOf(e) === -1) out.push(e); });
+        return out.sort(function(a, b) { return a === VACIO ? 1 : b === VACIO ? -1 : a.localeCompare(b, 'es'); });
+      }
+      function pasaEstado(p) {
+        if (!filtroEstados.length) return true;
+        var e = estadoDe(p);
+        return filtroEstados[0] === NO_ALTA ? !esAlta(e) : filtroEstados.indexOf(e || VACIO) !== -1;
+      }
+      function pasaGravedad(p) {
+        if (!filtroGravedad) return true;
+        return filtroGravedad === VACIO ? !dato(p, 'Gravedad') : claseGravedad(dato(p, 'Gravedad')) === filtroGravedad;
+      }
+      function pasaTipo(p) {
+        if (!filtroTipo) return true;
+        var t = tipoDe(p);
+        return filtroTipo === VACIO ? !t : t === normalizar(filtroTipo);
+      }
+      function pasaPatologia(p) {
+        if (filtroZona) return zonasDe(p).indexOf(filtroZona) !== -1;
+        if (!filtroPatologia) return true;
+        var pats = patologiasDe(p);
+        return filtroPatologia === VACIO ? !pats.length : pats.map(normalizar).indexOf(normalizar(filtroPatologia)) !== -1;
+      }
+
       // 'excluir' permite calcular los contadores de un menú ignorando su propio filtro (conteo por facetas).
       function pasaFiltros(p, terminoNorm, excluir) {
-        if (excluir !== 'estado' && filtroEstado && (p['Estado'] || '').toString().trim() !== filtroEstado) return false;
-        if (excluir !== 'gravedad' && filtroGravedad && claseGravedad(dato(p, 'Gravedad')) !== filtroGravedad) return false;
+        if (excluir !== 'estado' && !pasaEstado(p)) return false;
+        if (excluir !== 'gravedad' && !pasaGravedad(p)) return false;
         if (excluir !== 'sinHC' && filtroSinHC && !sinHC(p)) return false;
         if (excluir !== 'sinTel' && filtroSinTel && !sinTelefono(p)) return false;
         if (excluir !== 'sinCitas' && filtroSinCitas && !sinCitas(p)) return false;
-        if (excluir !== 'tipo' && filtroTipo && normalizar(textoEstado(dato(p, 'Tipo de Ingreso'))) !== normalizar(filtroTipo)) return false;
-        if (excluir !== 'patologia' && filtroPatologia && patologiasDe(p).map(normalizar).indexOf(normalizar(filtroPatologia)) === -1) return false;
+        if (excluir !== 'tipo' && !pasaTipo(p)) return false;
+        if (excluir !== 'patologia' && !pasaPatologia(p)) return false;
         if (!terminoNorm) return true;
         // Los teléfonos se guardan solo con dígitos ("612345678") pero se ven como "612 34 56 78": si lo escrito parece un número,
         // se compara por dígitos para que se pueda buscar tal como se ve en pantalla.
@@ -118,32 +176,55 @@
       function cuentasFiltros() {
         var term = normalizar(document.getElementById('inputBusqueda').value);
         var base = function(ex) { return TODOS.filter(function(p) { return pasaFiltros(p, term, ex); }); };
-        var c = { estado: {}, gravedad: { leve: 0, moderado: 0, grave: 0 }, tipo: {}, patologia: {}, tot: {} };
+        var c = { estado: {}, noAlta: 0, gravedad: { leve: 0, moderado: 0, grave: 0 }, tipo: {}, patologia: {}, zona: {}, vacio: { gravedad: 0, tipo: 0, patologia: 0 }, tot: {} };
         var b = base('estado'); c.tot.estado = b.length;
-        b.forEach(function(p) { var e = (p['Estado'] || '').toString().trim(); if (e) c.estado[e] = (c.estado[e] || 0) + 1; });
+        b.forEach(function(p) { var e = estadoDe(p) || VACIO; c.estado[e] = (c.estado[e] || 0) + 1; if (!esAlta(estadoDe(p))) c.noAlta++; });
         b = base('gravedad'); c.tot.gravedad = b.length;
-        b.forEach(function(p) { var g = claseGravedad(dato(p, 'Gravedad')); if (g) c.gravedad[g]++; });
+        b.forEach(function(p) { var v = dato(p, 'Gravedad'), g = claseGravedad(v); if (!v) c.vacio.gravedad++; else if (g) c.gravedad[g]++; });
         b = base('tipo'); c.tot.tipo = b.length;
         b.forEach(function(p) {
           var tx = textoEstado(dato(p, 'Tipo de Ingreso')), k = normalizar(tx);
-          if (k) { c.tipo[k] = c.tipo[k] || { texto: tx, n: 0 }; c.tipo[k].n++; }
+          if (!k) { c.vacio.tipo++; return; }
+          c.tipo[k] = c.tipo[k] || { texto: tx, n: 0 }; c.tipo[k].n++;
         });
         b = base('patologia'); c.tot.patologia = b.length;
-        b.forEach(function(p) { patologiasDe(p).forEach(function(s) { var k = normalizar(s); c.patologia[k] = c.patologia[k] || { texto: s, n: 0 }; c.patologia[k].n++; }); });
+        b.forEach(function(p) {
+          var pats = patologiasDe(p);
+          if (!pats.length) { c.vacio.patologia++; return; }
+          pats.forEach(function(s) { var k = normalizar(s); c.patologia[k] = c.patologia[k] || { texto: s, n: 0, zona: zonaDe(s) }; c.patologia[k].n++; });
+          zonasDe(p).forEach(function(z) { c.zona[z] = (c.zona[z] || 0) + 1; });
+        });
         c.sinHC = base('sinHC').filter(sinHC).length;
         c.sinTel = base('sinTel').filter(sinTelefono).length;
         c.sinCitas = base('sinCitas').filter(sinCitas).length;
         return c;
       }
 
+      // Estado admite varios a la vez: marcar uno estando en «Todos menos alta» parte de esa misma lista.
+      function alternarEstado(e) {
+        var pres = estadosPresentes();
+        var lista = filtroEstados[0] === NO_ALTA ? pres.filter(function(x) { return x === VACIO || !esAlta(x); }) : filtroEstados.slice();
+        var i = lista.indexOf(e);
+        if (i === -1) lista.push(e); else lista.splice(i, 1);
+        filtroEstados = pres.every(function(x) { return lista.indexOf(x) !== -1; }) ? [] : lista;
+      }
+      function nombreEstado(e) { return e === VACIO ? 'Sin estado' : textoEstado(e); }
+
       function itemsFiltro(id) {
         var c = cuentasFiltros(), it = [];
         var fin = function() { construirMenusFiltro(); render(); };
+        var sinRellenar = function(n, marcado, fn) { return { icono: 'remove', texto: 'Sin rellenar', titulo: 'Usuarios sin este dato', n: n, marcado: marcado, fn: fn }; };
         if (id === 'estado') {
-          if (filtroEstado && !c.estado[filtroEstado]) c.estado[filtroEstado] = 0;
-          it.push({ punto: '', texto: 'Todos', n: c.tot.estado, marcado: !filtroEstado, fn: function() { filtroEstado = null; fin(); } });
-          Object.keys(c.estado).sort().forEach(function(e) {
-            it.push({ punto: claseParaEstado(e), texto: textoEstado(e), n: c.estado[e], marcado: filtroEstado === e, fn: function() { filtroEstado = e; fin(); } });
+          var modo = filtroEstados[0] === NO_ALTA;
+          it.push({ punto: '', texto: 'Todos', n: c.tot.estado, marcado: !filtroEstados.length, fn: function() { filtroEstados = []; fin(); } });
+          it.push({ icono: 'person_check', texto: 'Todos menos alta', n: c.noAlta, marcado: modo, fn: function() { filtroEstados = modo ? [] : [NO_ALTA]; fin(); } });
+          it.push({ sep: true });
+          var claves = Object.keys(c.estado);
+          if (!modo) filtroEstados.forEach(function(e) { if (claves.indexOf(e) === -1) { c.estado[e] = 0; claves.push(e); } });
+          claves.sort(function(a, b) { return a === VACIO ? 1 : b === VACIO ? -1 : a.localeCompare(b, 'es'); }).forEach(function(e) {
+            var marcado = modo ? (e === VACIO || !esAlta(e)) : filtroEstados.indexOf(e) !== -1;
+            it.push({ punto: e === VACIO ? '' : claseParaEstado(e), texto: nombreEstado(e), titulo: 'Marca o desmarca: puedes elegir varios', n: c.estado[e], marcado: marcado,
+              fn: function() { alternarEstado(e); fin(); abrirMenuFiltro('estado'); } });
           });
         } else if (id === 'gravedad') {
           var col = { leve: 'activo', moderado: 'espera', grave: 'contactara' };
@@ -151,18 +232,56 @@
           ['leve', 'moderado', 'grave'].forEach(function(g) {
             it.push({ punto: col[g], texto: g.charAt(0).toUpperCase() + g.slice(1), n: c.gravedad[g], marcado: filtroGravedad === g, fn: function() { filtroGravedad = g; fin(); } });
           });
-        } else if (id === 'carencias') {
-          it.push({ icono: 'folder_off', texto: 'Sin Historia Clínica', n: c.sinHC, marcado: filtroSinHC, fn: function() { filtroSinHC = !filtroSinHC; fin(); abrirMenuFiltro('carencias'); } });
-          it.push({ icono: 'phone_disabled', texto: 'Sin teléfono', n: c.sinTel, marcado: filtroSinTel, fn: function() { filtroSinTel = !filtroSinTel; fin(); abrirMenuFiltro('carencias'); } });
-          it.push({ icono: 'event_busy', texto: 'Sin citas (' + SIN_CITAS_DIAS + ' días o más)', n: c.sinCitas, marcado: filtroSinCitas, fn: function() { filtroSinCitas = !filtroSinCitas; fin(); abrirMenuFiltro('carencias'); } });
-        } else {
-          var esTipo = id === 'tipo', mapa = esTipo ? c.tipo : c.patologia, sel = esTipo ? filtroTipo : filtroPatologia, actual = normalizar(sel);
-          if (actual && !mapa[actual]) mapa[actual] = { texto: sel, n: 0 };
-          var poner = function(v) { if (esTipo) filtroTipo = v; else filtroPatologia = v; fin(); };
-          it.push({ texto: 'Todas', n: c.tot[id], marcado: !actual, fn: function() { poner(null); } });
-          Object.keys(mapa).sort(function(a, b) { return mapa[a].texto.localeCompare(mapa[b].texto, 'es'); }).forEach(function(k) {
-            it.push({ texto: mapa[k].texto, n: mapa[k].n, marcado: actual === k, fn: function() { poner(mapa[k].texto); } });
+          it.push({ sep: true }, sinRellenar(c.vacio.gravedad, filtroGravedad === VACIO, function() { filtroGravedad = VACIO; fin(); }));
+        } else if (id === 'pendientes') {
+          var alternar = function(fn) { return function() { fn(); fin(); abrirMenuFiltro('pendientes'); }; };
+          it.push({ cabecera: 'Faltan datos' });
+          it.push({ icono: 'folder_off', texto: 'Sin Historia Clínica', n: c.sinHC, marcado: filtroSinHC, fn: alternar(function() { filtroSinHC = !filtroSinHC; }) });
+          it.push({ icono: 'phone_disabled', texto: 'Sin teléfono', n: c.sinTel, marcado: filtroSinTel, fn: alternar(function() { filtroSinTel = !filtroSinTel; }) });
+          it.push({ sep: true }, { cabecera: 'Seguimiento' });
+          it.push({ icono: 'event_busy', texto: 'Sin citas (' + SIN_CITAS_DIAS + ' días o más)', titulo: 'Episodio abierto y ' + SIN_CITAS_DIAS + ' días o más sin citas, sin ninguna más adelante',
+            n: c.sinCitas, marcado: filtroSinCitas, fn: alternar(function() { filtroSinCitas = !filtroSinCitas; }) });
+        } else if (id === 'tipo') {
+          var actual = filtroTipo && filtroTipo !== VACIO ? normalizar(filtroTipo) : '';
+          if (actual && !c.tipo[actual]) c.tipo[actual] = { texto: filtroTipo, n: 0 };
+          it.push({ texto: 'Todas', n: c.tot.tipo, marcado: !filtroTipo, fn: function() { filtroTipo = null; fin(); } });
+          Object.keys(c.tipo).sort(function(a, b) { return c.tipo[a].texto.localeCompare(c.tipo[b].texto, 'es'); }).forEach(function(k) {
+            it.push({ texto: c.tipo[k].texto, n: c.tipo[k].n, marcado: actual === k, fn: function() { filtroTipo = c.tipo[k].texto; fin(); } });
           });
+          it.push({ sep: true }, sinRellenar(c.vacio.tipo, filtroTipo === VACIO, function() { filtroTipo = VACIO; fin(); }));
+        } else if (id === 'patologia') {
+          // Agrupadas por zona: la fila de la zona elige la zona entera; debajo, sus patologías. Lo que no está en la lista oficial, en «Otras».
+          var selPat = filtroPatologia && filtroPatologia !== VACIO ? normalizar(filtroPatologia) : '';
+          if (selPat && !c.patologia[selPat]) c.patologia[selPat] = { texto: filtroPatologia, n: 0, zona: zonaDe(filtroPatologia) };
+          if (filtroZona && !c.zona[filtroZona]) c.zona[filtroZona] = 0;
+          var ponerPat = function(v) { filtroPatologia = v; filtroZona = null; fin(); };
+          it.push({ texto: 'Todas', n: c.tot.patologia, marcado: !filtroPatologia && !filtroZona, fn: function() { ponerPat(null); } });
+          it.push(sinRellenar(c.vacio.patologia, filtroPatologia === VACIO, function() { ponerPat(VACIO); }));
+          patOficial().zonas.forEach(function(z) {
+            var pats = Object.keys(c.patologia).filter(function(k) { return c.patologia[k].zona === z; });
+            if (!pats.length && c.zona[z] === undefined) return;
+            it.push({ sep: true });
+            it.push({ icono: 'select_all', texto: z, titulo: 'Toda la zona: ' + z, fuerte: true, n: c.zona[z] || 0, marcado: filtroZona === z,
+              fn: function() { filtroZona = z; filtroPatologia = null; fin(); } });
+            pats.sort(function(a, b) { return c.patologia[a].texto.localeCompare(c.patologia[b].texto, 'es'); }).forEach(function(k) {
+              var o = patOficial().mapa[k];
+              it.push({ texto: c.patologia[k].texto, titulo: c.patologia[k].texto + (o && o.codigo ? ' · CIE-10 ' + o.codigo : ''), sangria: true,
+                n: c.patologia[k].n, marcado: selPat === k, fn: function() { ponerPat(c.patologia[k].texto); } });
+            });
+          });
+        } else if (id === 'orden') {
+          it.push({ icono: 'table_rows', texto: 'Orden de la hoja', marcado: !ordenCampo, fn: function() { ordenCampo = null; ordenDir = 1; fin(); } });
+          it.push({ sep: true }, { cabecera: 'Ordenar por' });
+          ORDENES.forEach(function(o) {
+            it.push({ icono: o.icono, texto: o.texto, marcado: ordenCampo === o.id, fn: function() { if (ordenCampo !== o.id) { ordenCampo = o.id; ordenDir = o.inicial; } fin(); } });
+          });
+          var od = ordenDef(ordenCampo);
+          if (od) {
+            it.push({ sep: true }, { cabecera: 'Sentido' });
+            [od.inicial, -od.inicial].forEach(function(d) {
+              it.push({ icono: d === 1 ? 'arrow_upward' : 'arrow_downward', texto: od.dir[String(d)], marcado: ordenDir === d, fn: function() { ordenDir = d; fin(); } });
+            });
+          }
         }
         return it;
       }
@@ -172,36 +291,54 @@
         if (btn) abrirMenu(itemsFiltro(id), btn, true);
       }
 
+      function quitarFiltros() {
+        filtroEstados = []; filtroGravedad = null; filtroTipo = null; filtroPatologia = null; filtroZona = null;
+        filtroSinHC = false; filtroSinTel = false; filtroSinCitas = false;
+      }
+
+      // Lo elegido en cada filtro, en palabras (va en el «title» del botón); '' = sin filtro.
+      function valoresFiltros() {
+        var lista = function(v) { return v.length > 2 ? v.slice(0, 2).join(', ') + ' y ' + (v.length - 2) + ' más' : v.join(', '); };
+        return {
+          estado: filtroEstados[0] === NO_ALTA ? 'Todos menos alta' : lista(filtroEstados.map(nombreEstado)),
+          gravedad: filtroGravedad === VACIO ? 'Sin rellenar' : filtroGravedad ? filtroGravedad.charAt(0).toUpperCase() + filtroGravedad.slice(1) : '',
+          pendientes: [filtroSinHC && 'Sin Historia Clínica', filtroSinTel && 'Sin teléfono', filtroSinCitas && 'Sin citas'].filter(Boolean).join(', '),
+          tipo: filtroTipo === VACIO ? 'Sin rellenar' : filtroTipo || '',
+          patologia: filtroZona ? 'Zona ' + filtroZona : filtroPatologia === VACIO ? 'Sin rellenar' : filtroPatologia || ''
+        };
+      }
+
+      function botonFiltro(id, icono, titulo, on) {
+        return '<button type="button" class="filtro-menu' + (on ? ' on' : '') + '" data-filtro="' + id + '" title="' + esc(titulo) + '" aria-label="' + esc(titulo) +
+          '" aria-haspopup="menu" aria-expanded="false"><span class="material-symbols-outlined" aria-hidden="true">' + icono + '</span></button>';
+      }
+
       function construirMenusFiltro() {
         var cont = document.getElementById('filtrosMenus');
-        if (filtroEstado && !TODOS.some(function(p) { return (p['Estado'] || '').toString().trim() === filtroEstado; })) filtroEstado = null;
-        if (filtroTipo && !TODOS.some(function(p) { return normalizar(textoEstado(dato(p, 'Tipo de Ingreso'))) === normalizar(filtroTipo); })) filtroTipo = null;
-        if (filtroPatologia && !TODOS.some(function(p) { return patologiasDe(p).map(normalizar).indexOf(normalizar(filtroPatologia)) !== -1; })) filtroPatologia = null;
-        var val = {
-          estado: filtroEstado ? textoEstado(filtroEstado) : '',
-          gravedad: filtroGravedad ? filtroGravedad.charAt(0).toUpperCase() + filtroGravedad.slice(1) : '',
-          carencias: (function() {
-            var v = [filtroSinHC && 'HC', filtroSinTel && 'TLF', filtroSinCitas && 'citas'].filter(Boolean);
-            return v.length > 1 ? v.join(' + ') : v.length ? 'Sin ' + v[0] : '';
-          })(),
-          tipo: filtroTipo || '', patologia: filtroPatologia || ''
-        };
-        var hay = filtroEstado || filtroGravedad || filtroSinHC || filtroSinTel || filtroSinCitas || filtroTipo || filtroPatologia;
-        cont.innerHTML = FILTROS_DEF.map(function(f) {
-          var v = val[f.id];
-          return '<button type="button" class="filtro-menu' + (v ? ' on' : '') + '" data-filtro="' + f.id + '" title="Filtrar por ' + esc(f.etq).toLowerCase() + '" aria-haspopup="menu" aria-expanded="false"><span class="material-symbols-outlined">' + f.icono + '</span>' +
-            esc(f.etq) + (v ? '<span class="filtro-val">' + esc(v) + '</span>' : '') + '<span class="material-symbols-outlined">arrow_drop_down</span></button>';
-        }).join('') + (hay ? '<button type="button" class="filtro-limpiar" data-filtro="limpiar" title="Quitar filtros" aria-label="Quitar filtros"><span class="material-symbols-outlined">filter_alt_off</span></button>' : '');
+        // Lo elegido que ya no existe en la tabla se suelta (p. ej. tras cambiar el último usuario de ese estado).
+        if (filtroEstados.length && filtroEstados[0] !== NO_ALTA) {
+          var pres = estadosPresentes();
+          filtroEstados = filtroEstados.filter(function(e) { return pres.indexOf(e) !== -1; });
+        }
+        if (filtroTipo && filtroTipo !== VACIO && !TODOS.some(function(p) { return tipoDe(p) === normalizar(filtroTipo); })) filtroTipo = null;
+        if (filtroPatologia && filtroPatologia !== VACIO && !TODOS.some(function(p) { return patologiasDe(p).map(normalizar).indexOf(normalizar(filtroPatologia)) !== -1; })) filtroPatologia = null;
+        if (filtroZona && !TODOS.some(function(p) { return zonasDe(p).indexOf(filtroZona) !== -1; })) filtroZona = null;
+        var val = valoresFiltros();
+        var hay = FILTROS_DEF.some(function(f) { return val[f.id]; });
+        var od = ordenDef(ordenCampo);
+        cont.innerHTML = botonFiltro('orden', 'swap_vert', od ? 'Ordenado por ' + od.texto.toLowerCase() + ': ' + od.dir[String(ordenDir)].toLowerCase() : 'Ordenar la lista', !!od) +
+          '<span class="filtros-sep" aria-hidden="true"></span>' +
+          FILTROS_DEF.map(function(f) {
+            var v = val[f.id];
+            return botonFiltro(f.id, f.icono, v ? f.etq + ': ' + v : 'Filtrar por ' + f.etq.toLowerCase(), !!v);
+          }).join('') +
+          (hay ? '<button type="button" class="filtro-limpiar" data-filtro="limpiar" title="Quitar filtros" aria-label="Quitar filtros"><span class="material-symbols-outlined" aria-hidden="true">filter_alt_off</span></button>' : '');
       }
 
       document.getElementById('filtrosMenus').addEventListener('click', function(e) {
         var b = e.target.closest('[data-filtro]');
         if (!b) return;
-        if (b.dataset.filtro === 'limpiar') {
-          filtroEstado = null; filtroGravedad = null; filtroTipo = null; filtroPatologia = null; filtroSinHC = false; filtroSinTel = false; filtroSinCitas = false;
-          construirMenusFiltro(); render();
-          return;
-        }
+        if (b.dataset.filtro === 'limpiar') { quitarFiltros(); construirMenusFiltro(); render(); return; }
         abrirMenuFiltro(b.dataset.filtro);
       });
 
@@ -209,8 +346,8 @@
       var CLAVE_VISTA = 'bdVista';
       function guardarVista() {
         try {
-          sessionStorage.setItem(CLAVE_VISTA, JSON.stringify({ q: document.getElementById('inputBusqueda').value, e: filtroEstado, g: filtroGravedad,
-            hc: filtroSinHC, tl: filtroSinTel, sc: filtroSinCitas, t: filtroTipo, p: filtroPatologia, oc: ordenCampo, od: ordenDir }));
+          sessionStorage.setItem(CLAVE_VISTA, JSON.stringify({ q: document.getElementById('inputBusqueda').value, e: filtroEstados, g: filtroGravedad,
+            hc: filtroSinHC, tl: filtroSinTel, sc: filtroSinCitas, t: filtroTipo, p: filtroPatologia, z: filtroZona, oc: ordenCampo, od: ordenDir }));
         } catch (err) { /* sin almacenamiento */ }
       }
       function restaurarVista() {
@@ -218,9 +355,11 @@
           var v = JSON.parse(sessionStorage.getItem(CLAVE_VISTA) || 'null');
           if (!v) return;
           document.getElementById('inputBusqueda').value = v.q || '';
-          filtroEstado = v.e || null; filtroGravedad = v.g === 'urgente' ? 'grave' : (v.g || null); filtroSinHC = !!v.hc; filtroSinTel = !!v.tl; filtroSinCitas = !!v.sc;
-          filtroTipo = v.t || null; filtroPatologia = v.p || null;
-          if (v.oc) { ordenCampo = v.oc; ordenDir = v.od === -1 ? -1 : 1; }
+          // 'e' era un solo estado (texto) antes de poder elegir varios.
+          filtroEstados = Array.isArray(v.e) ? v.e.filter(Boolean) : v.e ? [v.e] : [];
+          filtroGravedad = v.g === 'urgente' ? 'grave' : (v.g || null); filtroSinHC = !!v.hc; filtroSinTel = !!v.tl; filtroSinCitas = !!v.sc;
+          filtroTipo = v.t || null; filtroPatologia = v.p || null; filtroZona = v.z || null;
+          if (v.oc && ordenDef(v.oc)) { ordenCampo = v.oc; ordenDir = v.od === -1 ? -1 : 1; }
         } catch (err) { /* sin almacenamiento */ }
       }
 
@@ -348,7 +487,7 @@
             'No se encontró ningún usuario con ese criterio.<button title="Quitar filtros y búsqueda" type="button" class="btn-toolbar" id="btnVacioLimpiar">Quitar filtros</button></div>';
           document.getElementById('btnVacioLimpiar').addEventListener('click', function() {
             document.getElementById('inputBusqueda').value = '';
-            filtroEstado = null; filtroGravedad = null; filtroSinHC = false; filtroSinTel = false; filtroSinCitas = false; filtroTipo = null; filtroPatologia = null;
+            quitarFiltros();
             construirMenusFiltro(); render();
           });
           return;
@@ -373,14 +512,19 @@
 
       function ordenarFiltrados(lista) {
         if (!ordenCampo) return lista;
-        var estados = estadosDisponibles();
-        var claves = { nombre: function(p) { return normalizar(p['Nombre']); },
-          estado: function(p) { var i = estados.indexOf(dato(p, 'Estado')); return i === -1 ? 999 : i; },
-          prioridad: function(p) { var n = prioridadNum(p); return n === null ? -Infinity : n; },
-          inscripcion: function(p) { return parseFechaEs(dato(p, 'Fecha inscripción')); } };
+        var estados = estadosDisponibles(), pesoG = { leve: 1, moderado: 2, grave: 3 };
+        // Cada clave devuelve null cuando falta el dato: esos usuarios van siempre al final, sea cual sea el sentido.
+        var claves = { nombre: function(p) { return normalizar(p['Nombre']) || null; },
+          estado: function(p) { var i = estados.indexOf(dato(p, 'Estado')); return i === -1 ? null : i; },
+          prioridad: function(p) { return prioridadNum(p); },
+          edad: function(p) { var e = dato(p, 'Edad'); return /^\d+$/.test(e) ? Number(e) : null; },
+          gravedad: function(p) { return pesoG[claseGravedad(dato(p, 'Gravedad'))] || null; },
+          inscripcion: function(p) { var t = parseFechaEs(dato(p, 'Fecha inscripción')); return t === -Infinity ? null : t; } };
         var clave = claves[ordenCampo];
+        if (!clave) return lista;
         return lista.slice().sort(function(a, b) {
           var x = clave(a), y = clave(b);
+          if (x === null || y === null) return x === y ? 0 : x === null ? 1 : -1;
           return (x < y ? -1 : x > y ? 1 : 0) * ordenDir;
         });
       }
@@ -388,12 +532,12 @@
       document.getElementById('tablaWrap').addEventListener('click', function(e) {
         var th = e.target.closest('th.ordenable');
         if (!th) return;
-        // Ciclo: dirección inicial → inversa → sin orden (vuelve al orden de la hoja). Prioridad empieza por mayor puntuación.
-        var campo = th.dataset.orden, inicial = campo === 'prioridad' ? -1 : 1;
+        // Ciclo: sentido inicial → inverso → sin orden (vuelve al orden de la hoja). El sentido inicial de cada campo está en ORDENES.
+        var campo = th.dataset.orden, od = ordenDef(campo), inicial = od ? od.inicial : 1;
         if (ordenCampo !== campo) { ordenCampo = campo; ordenDir = inicial; }
         else if (ordenDir === inicial) ordenDir = -inicial;
         else { ordenCampo = null; ordenDir = 1; }
-        render();
+        construirMenusFiltro(); render();
       });
 
       function refrescarVista() { construirMenusFiltro(); render(); renderFicha(); }

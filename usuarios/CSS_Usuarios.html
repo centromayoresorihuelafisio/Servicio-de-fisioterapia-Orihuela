@@ -207,16 +207,19 @@
       }
       /* ===== Filtros desplegables, fondo de filas y barra inferior ===== */
       .filtros-menus { display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; }
-      .filtro-menu, .filtro-limpiar { display: inline-flex; align-items: center; gap: .25rem; height: 34px; border: 1px solid var(--md-outline); background: var(--md-surface);
-        color: var(--md-on-surface-med); border-radius: var(--md-shape-full); padding: 0 .35rem 0 .7rem; font-family: var(--font); font-size: var(--fs-xs); font-weight: 500;
-        cursor: pointer; white-space: nowrap; transition: background-color var(--dur-1) var(--ease), border-color var(--dur-1) var(--ease), color var(--dur-1) var(--ease); }
+      /* Botones de filtro y de orden: solo icono, redondos; lo que hacen y lo elegido van en su «title» (13-nov-2026). */
+      .filtro-menu, .filtro-limpiar { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; padding: 0; flex-shrink: 0;
+        border: 1px solid var(--md-outline); background: var(--md-surface); color: var(--md-on-surface-med); border-radius: var(--md-shape-full); cursor: pointer;
+        transition: background-color var(--dur-1) var(--ease), border-color var(--dur-1) var(--ease), color var(--dur-1) var(--ease); }
       .filtro-menu:hover, .filtro-limpiar:hover { background: var(--md-surface-variant); }
       .filtro-menu.on { background: var(--md-primary-container); border-color: transparent; color: var(--md-primary-dark); }
-      .filtro-menu .material-symbols-outlined { font-size: 18px; }
-      .filtro-val { max-width: 150px; overflow: hidden; text-overflow: ellipsis; font-weight: 700; }
-      .filtro-val::before { content: ':'; margin-right: .25rem; font-weight: 500; }
-      .filtro-limpiar { padding: 0 .5rem; }
-      .filtro-limpiar .material-symbols-outlined { font-size: 18px; }
+      .filtro-menu[aria-expanded="true"] { border-color: var(--md-primary); }
+      .filtro-menu .material-symbols-outlined, .filtro-limpiar .material-symbols-outlined { font-size: 18px; }
+      .filtros-sep { width: 1px; height: 22px; background: var(--md-outline); margin: 0 .15rem; }
+      /* Menús de filtro: títulos de grupo, zona en negrita y sus patologías con sangría */
+      .menu-cab { padding: .45rem .7rem .2rem; font-size: var(--fs-2xs); font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--md-on-surface-low); }
+      .menu-item.fuerte { font-weight: 700; }
+      .menu-item.sangria { padding-left: 2.2rem; }
       .menu-flot { max-height: min(60vh, 380px); overflow-y: auto; }
       .menu-n { margin-left: auto; font-size: var(--fs-xs); opacity: .6; font-weight: 600; padding-left: 1rem; }
       .menu-n + .check { margin-left: .4rem; }

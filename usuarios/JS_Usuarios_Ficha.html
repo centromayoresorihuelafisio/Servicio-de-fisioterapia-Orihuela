@@ -195,8 +195,9 @@
         m.setAttribute('role', 'menu');
         m.innerHTML = items.map(function(it, i) {
           if (it.sep) return '<div class="menu-sep" role="separator"></div>';
+          if (it.cabecera) return '<div class="menu-cab" role="presentation">' + esc(it.cabecera) + '</div>';   // título de grupo, no se pulsa
           var rol = it.marcado !== undefined ? 'menuitemcheckbox" aria-checked="' + (it.marcado ? 'true' : 'false') : 'menuitem';
-          return '<button type="button" role="' + rol + '" class="menu-item' + (it.peligro ? ' peligro' : '') + '" title="' + esc(it.titulo || it.texto) + '" data-i="' + i + '">' +
+          return '<button type="button" role="' + rol + '" class="menu-item' + (it.peligro ? ' peligro' : '') + (it.fuerte ? ' fuerte' : '') + (it.sangria ? ' sangria' : '') + '" title="' + esc(it.titulo || it.texto) + '" data-i="' + i + '">' +
             (it.punto !== undefined ? '<span class="punto ' + it.punto + '"></span>' : it.icono ? '<span class="material-symbols-outlined">' + it.icono + '</span>' : '') +
             '<span>' + esc(it.texto) + '</span>' + (it.n !== undefined ? '<span class="menu-n">' + it.n + '</span>' : '') + (it.marcado ? '<span class="material-symbols-outlined check">check</span>' : '') + '</button>';
         }).join('');

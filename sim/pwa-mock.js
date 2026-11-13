@@ -26,12 +26,12 @@
   // ---------- Datos inventados ----------
   var HC = function (id) { return URL_SIM + '?page=hc&id=' + id; };
   var HEADERS = ['Nº', 'Nombre', 'DNI', 'Teléfono 1', 'Teléfono 2', 'Fecha nacimiento', 'Estado', 'Tipo de Ingreso', 'Gravedad',
-    'Fecha inscripción', 'Historia clínica', 'Observaciones', 'ID paciente', 'Nombre habitual', 'Edad'];
+    'Fecha inscripción', 'Historia clínica', 'Observaciones', 'ID paciente', 'Nombre habitual', 'Edad', 'Patología 1', 'Patología 2'];
   var PERSONAS = [
-    ['Ana Prueba Uno', '00000001A', '600000001', '', '01/02/1950', 'Activo', 'Volante', 'Leve', '01/09/2026', HC('HC-1'), 'Usuario inventado', 'P-1', '', 76],
-    ['Benito Ficticio Dos', '00000002B', '600000002', '965000002', '15/06/1948', 'Activo', 'Derivación propia', 'Moderado', '05/09/2026', HC('HC-2'), '', 'P-2', '', 78],
-    ['Carmen Ejemplo Tres', '00000003C', '600000003', '', '20/11/1955', 'En espera', 'Volante', 'Grave', '10/10/2026', '', '', 'P-3', 'MAMEN', 70],
-    ['Daniel Simulado Cuatro', '00000004D', '600000004', '', '03/03/1945', 'Alta', 'Antiguo paciente', '', '01/06/2026', HC('HC-4'), '', 'P-4', '', 81],
+    ['Ana Prueba Uno', '00000001A', '600000001', '', '01/02/1950', 'Activo', 'Volante', 'Leve', '01/09/2026', HC('HC-1'), 'Usuario inventado', 'P-1', '', 76, 'Lumbalgia', 'Cervicalgia'],
+    ['Benito Ficticio Dos', '00000002B', '600000002', '965000002', '15/06/1948', 'Activo', 'Derivación propia', 'Moderado', '05/09/2026', HC('HC-2'), '', 'P-2', '', 78, 'Hernia discal lumbar', ''],
+    ['Carmen Ejemplo Tres', '00000003C', '600000003', '', '20/11/1955', 'En espera', 'Volante', 'Grave', '10/10/2026', '', '', 'P-3', 'MAMEN', 70, 'Lumbalgia', 'Dolor de rodilla raro'],
+    ['Daniel Simulado Cuatro', '00000004D', '600000004', '', '03/03/1945', 'Alta', 'Antiguo paciente', '', '01/06/2026', HC('HC-4'), '', 'P-4', '', 81, 'Vértigo posicional (VPPB)', ''],
     ['Elena Demo Cinco', '00000005E', '', '', '30/07/1960', 'Contactará', 'Volante', 'Leve', '20/10/2026', '', '', 'P-5', '', 66],
     ['Félix Inventado Seis', '00000006F', '600000006', '', '12/12/1952', 'No responde', 'Volante', '', '25/10/2026', '', '', 'P-6', '', 73]
   ];
