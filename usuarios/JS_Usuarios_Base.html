@@ -233,6 +233,15 @@
         return '<button type="button" class="chip-g gravedad-btn ' + claseGravedad(v) + '" data-gravedad-fila="' + fila + '" aria-haspopup="menu" title="Cambiar gravedad">' +
           esc(textoEstado(v)) + '<span class="material-symbols-outlined">expand_more</span></button>';
       }
+      // Chip de tipo de ingreso (solo se muestra; se cambia en Editar). Con borde y sin color, para no competir con la
+      // gravedad. Icono + texto corto; el nombre completo va en el title. Un valor desconocido sale tal cual, sin icono.
+      function chipTipoIngreso(v) {
+        var tx = textoEstado(v), n = normalizar(tx);
+        var d = n.indexOf('volante') !== -1 ? ['receipt_long', 'Volante'] : n.indexOf('derivacion') !== -1 ? ['person', 'Propia'] :
+          n.indexOf('antiguo') !== -1 ? ['history', 'Antiguo'] : ['', tx];
+        return '<span class="md-insignia md-insignia--borde" title="Tipo de ingreso: ' + esc(tx) + '">' +
+          (d[0] ? '<span class="material-symbols-outlined" aria-hidden="true">' + d[0] + '</span>' : '') + esc(d[1]) + '</span>';
+      }
 
       function formatearTel(t) { return Telefono.formato(t); }   // regla única: ui/JS_Telefono.html
 
@@ -286,7 +295,7 @@
             (resalta([dato(p, 'DNI'), edadTxt(p)].filter(Boolean).join(' · '), termino) || '—') + '</div></div></div></td>' +
           '<td data-label="Contacto" class="col-contacto"><div class="doble">' + (tel(t1, '') || '<span class="vacio">—</span>') + (t2 ? '<div class="c-sub">' + tel(t2, '') + '</div>' : '') + '</div></td>' +
           '<td data-label="Clínico" class="col-clinico"><div class="doble"><div class="cl-pat" title="' + esc(pats) + '">' + (pats ? resalta(pats, termino) : '<span class="vacio">—</span>') + '</div><div class="c-sub">' +
-            (grav ? chipGravedad(grav, p._fila) : '') + (tipo ? '<span class="tipo-ing">' + esc(textoEstado(tipo)) + '</span>' : '') + '</div></div></td>' +
+            (grav ? chipGravedad(grav, p._fila) : '') + (tipo ? chipTipoIngreso(tipo) : '') + '</div></div></td>' +
           '<td data-label="Estado" class="col-estado">' + badgeEstado(p) + '</td>' +
           '<td data-label="Prioridad" class="celda-prioridad">' + esc(prioridadTxt(p)) + '</td>' +
           '<td data-label="Inscripción">' + (dato(p, 'Fecha inscripción') ? esc(dato(p, 'Fecha inscripción')) : '<span class="vacio">—</span>') + '</td>' +

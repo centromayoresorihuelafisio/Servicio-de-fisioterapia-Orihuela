@@ -529,7 +529,8 @@
                              </summary><div class="md-seccion__cuerpo">...</div></details>
          Tabla de datos:     <div class="md-tabla-marco"><table class="md-tabla">...</table></div>
          Interruptor:        <label class="md-interruptor"><input type="checkbox" role="switch"><span class="md-interruptor__pista"></span>Texto</label>
-         Etiqueta de estado: <span class="md-insignia md-insignia--ok">Activa</span> (--aviso, --error, --neutra) */
+         Etiqueta de estado: <span class="md-insignia md-insignia--ok">Activa</span> (--aviso, --error, --neutra, --borde;
+                             admite un icono delante: <span class="material-symbols-outlined">history</span>) */
       details.md-seccion { background: var(--md-surface); border: 1px solid var(--md-outline); border-radius: var(--md-shape-md); }
       details.md-seccion > summary {
         list-style: none; cursor: pointer; display: flex; align-items: center; gap: .6rem; padding: .8rem 1rem;
@@ -583,6 +584,9 @@
       .md-insignia--aviso  { background: var(--md-warning-bg); color: var(--md-warning-text); }
       .md-insignia--error  { background: var(--md-error-bg); color: var(--md-error); }
       .md-insignia--neutra { background: var(--md-primary-light); color: var(--md-primary-dark); }
+      /* Con borde y sin fondo: un dato que se informa sin destacar (tipo de ingreso en Usuarios, 13-nov-2026). Mismo alto. */
+      .md-insignia--borde  { background: transparent; border: 1px solid var(--md-outline-strong); padding: calc(.1rem - 1px) calc(.55rem - 1px); }
+      .md-insignia .material-symbols-outlined { font-size: 14px; }
 
       /* --- Reducir movimiento (V2): una sola llave. Las cuatro duraciones pasan a casi 0 y todo lo que
              usa --dur-* lo respeta. El girador sigue girando (es informacion), mas despacio. --- */
