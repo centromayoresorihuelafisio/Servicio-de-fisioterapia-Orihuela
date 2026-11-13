@@ -222,7 +222,7 @@ var FichaUsuario = (function() {
     var edad = valor(p, headers, 'Edad'), est = valor(p, headers, 'Estado'), habitual = valor(p, headers, 'Nombre habitual');
     if (/^\d+$/.test(edad)) edad += ' años';
     return '<div class="fu-cab">' + (typeof avatarHtml === 'function' ? avatarHtml(o.nombre) : '') +
-      '<div class="fu-tit"><div class="fu-nombre"' + (habitual ? ' title="' + esc('Le llaman ' + nombreVisible(habitual)) + '"' : '') + '>' + esc(o.nombre) + '</div><div class="fu-meta">' +
+      '<div class="fu-tit"><div class="fu-nombre"' + (habitual ? ' title="' + esc(o.nombre + ' (' + nombreVisible(habitual) + ')') + '"' : '') + '>' + esc(o.nombre) + '</div><div class="fu-meta">' +
         (edad ? '<span>' + esc(edad) + '</span>' : '') +
         '<button type="button" class="fu-chip ' + claseEstado(est) + '" data-fu="estado" aria-haspopup="menu" title="Cambiar estado">' + (est ? esc(textoEstado(est)) : 'Sin estado') + icono('expand_more') + '</button>' +
         (o.extraCabecera || '') + '</div></div>' +

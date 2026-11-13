@@ -310,8 +310,8 @@
         var tel = function(t, cls) { return t ? '<span class="' + cls + ' copiable" data-copiar="' + esc(Telefono.digitos(t) || t) + '" data-etiqueta="Teléfono" title="Copiar">' + resalta(formatearTel(t), termino) + '</span>' : ''; };
         return '<tr data-fila="' + p._fila + '" class="' + (sel ? 'seleccionada ' : '') + (enLote ? 'seleccion-multiple' : '') + '">' +
           '<td class="col-check"><input type="checkbox" class="chk-fila" data-fila="' + p._fila + '"' + (enLote ? ' checked' : '') + '></td>' +
-          '<td class="col-usuario"><div class="celda-u">' + avatarHtml(p['Nombre']) + '<div class="doble"><div class="u-linea"><div class="u-nombre"' + (habitual ? ' title="' + esc('Le llaman ' + habitual) + '"' : '') + '>' + resalta(p['Nombre'], termino) + '</div>' + insigniaSinCitas(p) + '</div><div class="u-sub">' +
-            (habitual ? '<span title="Nombre habitual (cómo le gusta que le llamen)">«' + resalta(habitual, termino) + '»</span>' + (dato(p, 'DNI') || edadTxt(p) ? ' · ' : '') : '') +
+          '<td class="col-usuario"><div class="celda-u">' + avatarHtml(p['Nombre']) + '<div class="doble"><div class="u-linea"><div class="u-nombre"' + (habitual ? ' title="' + esc(p['Nombre'] + ' (' + habitual + ')') + '"' : '') + '>' + resalta(p['Nombre'], termino) + '</div>' + insigniaSinCitas(p) + '</div><div class="u-sub">' +
+            (habitual ? '<span title="Nombre habitual (cómo le gusta que le llamen)">(' + resalta(habitual, termino) + ')</span>' + (dato(p, 'DNI') || edadTxt(p) ? ' · ' : '') : '') +
             (resalta([dato(p, 'DNI'), edadTxt(p)].filter(Boolean).join(' · '), termino) || (habitual ? '' : '—')) + '</div></div></div></td>' +
           '<td data-label="Contacto" class="col-contacto"><div class="doble">' + (tel(t1, '') || '<span class="vacio">—</span>') + (t2 ? '<div class="c-sub">' + tel(t2, '') + '</div>' : '') + '</div></td>' +
           '<td data-label="Clínico" class="col-clinico"><div class="doble"><div class="cl-pat" title="' + esc(pats) + '">' + (pats ? resalta(pats, termino) : '<span class="vacio">—</span>') + '</div><div class="c-sub">' +

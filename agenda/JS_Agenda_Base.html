@@ -732,12 +732,12 @@
         }).observe(document.getElementById('agTablaWrap'));
       }
 
-      // Descripción al pasar el ratón por el nombre de la cita: el nombre y, si lo tiene, su nombre habitual («Le llaman Mari Carmen»),
+      // Descripción al pasar el ratón por el nombre de la cita: el nombre y, si lo tiene, su nombre habitual entre paréntesis («MARIA CARMEN LOPEZ (Mari Carmen)»),
       // sacado de las fichas en memoria (FICHAS, agenda/JS_Agenda_Resumen). Si aún no han llegado, solo el nombre: ponerTitulosNombre lo completa.
       function tituloNombreCita(nombre) {
         var f = typeof fichaDeMemoria === 'function' ? fichaDeMemoria(nombre) : null;
         var h = f && f.paciente ? String(f.paciente['Nombre habitual'] || '').trim() : '';
-        return String(nombre || '') + (h ? ' · Le llaman ' + formatoNombreVisible(h) : '');
+        return String(nombre || '') + (h ? ' (' + formatoNombreVisible(h) + ')' : '');
       }
       function ponerTitulosNombre() {
         document.querySelectorAll('.tj-nombre[data-ficha-fila], .celda-usuario[data-ficha-fila]').forEach(function(el) {
