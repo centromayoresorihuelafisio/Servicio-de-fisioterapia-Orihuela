@@ -75,7 +75,10 @@ function obtenerBaseDatosCompletaWeb_() {
 
     // "Edad" viaja siempre como una columna más, haya o no columna "Edad" en la hoja.
     if (colNacimiento !== -1 && headers.indexOf(COLUMNAS.MAESTRA.EDAD) === -1) headers.push(COLUMNAS.MAESTRA.EDAD);
-    return { headers: headers, pacientes: pacientes };
+    // Aviso «sin citas» (usuarios/Sin_Citas.gs): si falla, la lista sale igual, sin el aviso.
+    let sinCitas = {};
+    try { sinCitas = sinCitasPorPaciente_(); } catch (eSc) { Logger.log('obtenerBaseDatosCompletaWeb: sin citas: ' + eSc.message); }
+    return { headers: headers, pacientes: pacientes, sinCitas: sinCitas, sinCitasDias: SIN_CITAS_DIAS };
   } catch (e) {
     Logger.log("Error en obtenerBaseDatosCompletaWeb: " + e.message);
     return { headers: [], pacientes: [], error: e.message };

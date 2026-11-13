@@ -10,7 +10,9 @@
       var filtroEstado = null;
       var COL_HISTORIA = null;
       var pacienteSeleccionado = null; // { _fila, Nombre, ... } o null
-      var filtroGravedad = null, filtroSinHC = false, filtroSinTel = false;
+      var filtroGravedad = null, filtroSinHC = false, filtroSinTel = false, filtroSinCitas = false;
+      // Aviso «sin citas» (usuarios/Sin_Citas.gs, sección 23 de CONTEXTO.md): { idPaciente: { dias, desde, porInicio } } y el umbral.
+      var SIN_CITAS = {}, SIN_CITAS_DIAS = 14;
       var filtroTipo = null, filtroPatologia = null;
       var seleccionMultiple = new Set();
       var ordenCampo = null, ordenDir = 1; // 1 = asc, -1 = desc
@@ -37,6 +39,8 @@
       function aplicarTabla(res) {
         HEADERS = res.headers || [];
         TODOS = res.pacientes || [];
+        SIN_CITAS = res.sinCitas || {};
+        if (res.sinCitasDias) SIN_CITAS_DIAS = res.sinCitasDias;
         COL_HISTORIA = HEADERS.find(function(h) { return h.toLowerCase().indexOf('historia') !== -1; });
         reanclarSeleccion();
       }
@@ -61,7 +65,7 @@
       var FILTROS_DEF = [
         { id: 'estado', etq: 'Estado', icono: 'label' },
         { id: 'gravedad', etq: 'Gravedad', icono: 'priority_high' },
-        { id: 'carencias', etq: 'Sin HC / TLF', icono: 'folder_off' },
+        { id: 'carencias', etq: 'Sin HC / TLF / citas', icono: 'folder_off' },
         { id: 'tipo', etq: 'Derivación', icono: 'alt_route' },
         { id: 'patologia', etq: 'Patología', icono: 'medical_services' }
       ];
@@ -82,6 +86,16 @@
       }
       function sinHC(p) { return !esUrl(COL_HISTORIA ? p[COL_HISTORIA] : ''); }
       function sinTelefono(p) { return !(dato(p, 'Teléfono 1') || dato(p, 'Teléfono 2')); }
+      function sinCitas(p) { var id = p && p['ID paciente'] ? String(p['ID paciente']).trim() : ''; return id ? SIN_CITAS[id] || null : null; }
+      function fechaSinCitas(iso) { var m = String(iso || '').match(/^(\d{4})-(\d{2})-(\d{2})$/); return m ? m[3] + '/' + m[2] + '/' + m[1] : ''; }
+      // Etiqueta ámbar junto al nombre: episodio abierto y SIN_CITAS_DIAS días o más sin citas, sin ninguna más adelante.
+      function insigniaSinCitas(p) {
+        var s = sinCitas(p);
+        if (!s) return '';
+        var t = s.porInicio ? 'Episodio abierto desde el ' + fechaSinCitas(s.desde) + ' y sin citas desde entonces'
+          : 'Episodio abierto: la última cita fue el ' + fechaSinCitas(s.desde) + ' y no tiene ninguna más adelante';
+        return '<span class="md-insignia md-insignia--aviso" title="' + esc(t + '. Dale una cita o el alta.') + '">Sin citas ' + s.dias + ' días</span>';
+      }
 
       // 'excluir' permite calcular los contadores de un menú ignorando su propio filtro (conteo por facetas).
       function pasaFiltros(p, terminoNorm, excluir) {
@@ -89,6 +103,7 @@
         if (excluir !== 'gravedad' && filtroGravedad && claseGravedad(dato(p, 'Gravedad')) !== filtroGravedad) return false;
         if (excluir !== 'sinHC' && filtroSinHC && !sinHC(p)) return false;
         if (excluir !== 'sinTel' && filtroSinTel && !sinTelefono(p)) return false;
+        if (excluir !== 'sinCitas' && filtroSinCitas && !sinCitas(p)) return false;
         if (excluir !== 'tipo' && filtroTipo && normalizar(textoEstado(dato(p, 'Tipo de Ingreso'))) !== normalizar(filtroTipo)) return false;
         if (excluir !== 'patologia' && filtroPatologia && patologiasDe(p).map(normalizar).indexOf(normalizar(filtroPatologia)) === -1) return false;
         if (!terminoNorm) return true;
@@ -117,6 +132,7 @@
         b.forEach(function(p) { patologiasDe(p).forEach(function(s) { var k = normalizar(s); c.patologia[k] = c.patologia[k] || { texto: s, n: 0 }; c.patologia[k].n++; }); });
         c.sinHC = base('sinHC').filter(sinHC).length;
         c.sinTel = base('sinTel').filter(sinTelefono).length;
+        c.sinCitas = base('sinCitas').filter(sinCitas).length;
         return c;
       }
 
@@ -138,6 +154,7 @@
         } else if (id === 'carencias') {
           it.push({ icono: 'folder_off', texto: 'Sin Historia Clínica', n: c.sinHC, marcado: filtroSinHC, fn: function() { filtroSinHC = !filtroSinHC; fin(); abrirMenuFiltro('carencias'); } });
           it.push({ icono: 'phone_disabled', texto: 'Sin teléfono', n: c.sinTel, marcado: filtroSinTel, fn: function() { filtroSinTel = !filtroSinTel; fin(); abrirMenuFiltro('carencias'); } });
+          it.push({ icono: 'event_busy', texto: 'Sin citas (' + SIN_CITAS_DIAS + ' días o más)', n: c.sinCitas, marcado: filtroSinCitas, fn: function() { filtroSinCitas = !filtroSinCitas; fin(); abrirMenuFiltro('carencias'); } });
         } else {
           var esTipo = id === 'tipo', mapa = esTipo ? c.tipo : c.patologia, sel = esTipo ? filtroTipo : filtroPatologia, actual = normalizar(sel);
           if (actual && !mapa[actual]) mapa[actual] = { texto: sel, n: 0 };
@@ -163,10 +180,13 @@
         var val = {
           estado: filtroEstado ? textoEstado(filtroEstado) : '',
           gravedad: filtroGravedad ? filtroGravedad.charAt(0).toUpperCase() + filtroGravedad.slice(1) : '',
-          carencias: filtroSinHC && filtroSinTel ? 'HC + TLF' : filtroSinHC ? 'Sin HC' : filtroSinTel ? 'Sin TLF' : '',
+          carencias: (function() {
+            var v = [filtroSinHC && 'HC', filtroSinTel && 'TLF', filtroSinCitas && 'citas'].filter(Boolean);
+            return v.length > 1 ? v.join(' + ') : v.length ? 'Sin ' + v[0] : '';
+          })(),
           tipo: filtroTipo || '', patologia: filtroPatologia || ''
         };
-        var hay = filtroEstado || filtroGravedad || filtroSinHC || filtroSinTel || filtroTipo || filtroPatologia;
+        var hay = filtroEstado || filtroGravedad || filtroSinHC || filtroSinTel || filtroSinCitas || filtroTipo || filtroPatologia;
         cont.innerHTML = FILTROS_DEF.map(function(f) {
           var v = val[f.id];
           return '<button type="button" class="filtro-menu' + (v ? ' on' : '') + '" data-filtro="' + f.id + '" title="Filtrar por ' + esc(f.etq).toLowerCase() + '" aria-haspopup="menu" aria-expanded="false"><span class="material-symbols-outlined">' + f.icono + '</span>' +
@@ -178,7 +198,7 @@
         var b = e.target.closest('[data-filtro]');
         if (!b) return;
         if (b.dataset.filtro === 'limpiar') {
-          filtroEstado = null; filtroGravedad = null; filtroTipo = null; filtroPatologia = null; filtroSinHC = false; filtroSinTel = false;
+          filtroEstado = null; filtroGravedad = null; filtroTipo = null; filtroPatologia = null; filtroSinHC = false; filtroSinTel = false; filtroSinCitas = false;
           construirMenusFiltro(); render();
           return;
         }
@@ -190,7 +210,7 @@
       function guardarVista() {
         try {
           sessionStorage.setItem(CLAVE_VISTA, JSON.stringify({ q: document.getElementById('inputBusqueda').value, e: filtroEstado, g: filtroGravedad,
-            hc: filtroSinHC, tl: filtroSinTel, t: filtroTipo, p: filtroPatologia, oc: ordenCampo, od: ordenDir }));
+            hc: filtroSinHC, tl: filtroSinTel, sc: filtroSinCitas, t: filtroTipo, p: filtroPatologia, oc: ordenCampo, od: ordenDir }));
         } catch (err) { /* sin almacenamiento */ }
       }
       function restaurarVista() {
@@ -198,7 +218,7 @@
           var v = JSON.parse(sessionStorage.getItem(CLAVE_VISTA) || 'null');
           if (!v) return;
           document.getElementById('inputBusqueda').value = v.q || '';
-          filtroEstado = v.e || null; filtroGravedad = v.g === 'urgente' ? 'grave' : (v.g || null); filtroSinHC = !!v.hc; filtroSinTel = !!v.tl;
+          filtroEstado = v.e || null; filtroGravedad = v.g === 'urgente' ? 'grave' : (v.g || null); filtroSinHC = !!v.hc; filtroSinTel = !!v.tl; filtroSinCitas = !!v.sc;
           filtroTipo = v.t || null; filtroPatologia = v.p || null;
           if (v.oc) { ordenCampo = v.oc; ordenDir = v.od === -1 ? -1 : 1; }
         } catch (err) { /* sin almacenamiento */ }
@@ -291,7 +311,7 @@
         var tel = function(t, cls) { return t ? '<span class="' + cls + ' copiable" data-copiar="' + esc(Telefono.digitos(t) || t) + '" data-etiqueta="Teléfono" title="Copiar">' + resalta(formatearTel(t), termino) + '</span>' : ''; };
         return '<tr data-fila="' + p._fila + '" class="' + (sel ? 'seleccionada ' : '') + (enLote ? 'seleccion-multiple' : '') + '">' +
           '<td class="col-check"><input type="checkbox" class="chk-fila" data-fila="' + p._fila + '"' + (enLote ? ' checked' : '') + '></td>' +
-          '<td class="col-usuario"><div class="celda-u">' + avatarHtml(p['Nombre']) + '<div class="doble"><div class="u-nombre">' + resalta(p['Nombre'], termino) + '</div><div class="u-sub">' +
+          '<td class="col-usuario"><div class="celda-u">' + avatarHtml(p['Nombre']) + '<div class="doble"><div class="u-linea"><div class="u-nombre">' + resalta(p['Nombre'], termino) + '</div>' + insigniaSinCitas(p) + '</div><div class="u-sub">' +
             (resalta([dato(p, 'DNI'), edadTxt(p)].filter(Boolean).join(' · '), termino) || '—') + '</div></div></div></td>' +
           '<td data-label="Contacto" class="col-contacto"><div class="doble">' + (tel(t1, '') || '<span class="vacio">—</span>') + (t2 ? '<div class="c-sub">' + tel(t2, '') + '</div>' : '') + '</div></td>' +
           '<td data-label="Clínico" class="col-clinico"><div class="doble"><div class="cl-pat" title="' + esc(pats) + '">' + (pats ? resalta(pats, termino) : '<span class="vacio">—</span>') + '</div><div class="c-sub">' +
@@ -328,7 +348,7 @@
             'No se encontró ningún usuario con ese criterio.<button title="Quitar filtros y búsqueda" type="button" class="btn-toolbar" id="btnVacioLimpiar">Quitar filtros</button></div>';
           document.getElementById('btnVacioLimpiar').addEventListener('click', function() {
             document.getElementById('inputBusqueda').value = '';
-            filtroEstado = null; filtroGravedad = null; filtroSinHC = false; filtroSinTel = false; filtroTipo = null; filtroPatologia = null;
+            filtroEstado = null; filtroGravedad = null; filtroSinHC = false; filtroSinTel = false; filtroSinCitas = false; filtroTipo = null; filtroPatologia = null;
             construirMenusFiltro(); render();
           });
           return;

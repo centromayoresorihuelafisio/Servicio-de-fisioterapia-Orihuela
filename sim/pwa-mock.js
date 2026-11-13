@@ -86,7 +86,11 @@
     },
     comprobarSesion: function () { return PERFIL; },
     cerrarSesion: function () { return { success: true }; },
-    obtenerBaseDatosCompletaWeb: function () { return { headers: HEADERS, pacientes: pacientes }; },
+    // Aviso «sin citas» inventado (sección 23 de CONTEXTO.md): Benito por su última cita y Ana por el inicio del episodio.
+    obtenerBaseDatosCompletaWeb: function () {
+      return { headers: HEADERS, pacientes: pacientes, sinCitasDias: 14,
+        sinCitas: { 'P-2': { dias: 18, desde: '2026-10-26', porInicio: false }, 'P-1': { dias: 73, desde: '2026-09-01', porInicio: true } } };
+    },
     obtenerAgendaSemanaWeb: function (f) { return semana(f); },
     refrescarAgendaSemanaWeb: function (f) { return semana(f); },
     obtenerVersionAgendaWeb: function () { return { sheetId: 'citas', version: 1 }; },

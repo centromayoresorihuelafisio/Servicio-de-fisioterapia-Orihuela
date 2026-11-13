@@ -108,6 +108,13 @@ const ASISTENCIA_CITA = {
 const ABSENTISMO_UMBRAL = 3;
 
 /**
+ * Aviso «sin citas» (decisión del dueño, 13-nov-2026; sección 23 de CONTEXTO.md): un usuario lo tiene si su último episodio de la
+ * HC está abierto (con inicio y sin alta), no tiene ninguna cita de hoy en adelante y su última cita (o el inicio, si no tuvo
+ * ninguna desde entonces) fue hace este número de días o más. Se ve junto al nombre en Usuarios y como filtro.
+ */
+const SIN_CITAS_DIAS = 14;
+
+/**
  * Campos de la Maestra cuyos cambios se guardan en el historial (usuarios/Historial_Estado.gs). Estado + Tipo de Ingreso +
  * Gravedad son lo que decide la "Prioridad" (la puntuación de usuarios/Ordenar.gs); la puntuación en sí no se guarda.
  */
