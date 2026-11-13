@@ -19,14 +19,14 @@
     background: var(--md-surface); border-radius: var(--md-shape-xl); box-shadow: var(--md-elev-2);
   }
   .acceso-tarjeta h1 { margin: 0; font-size: var(--fs-h); font-weight: 500; }
+  #acceso-login h1 { text-align: center; }   /* título de la entrada centrado (dueño, 13-nov-2026) */
   .acceso-tarjeta p { margin: 0; font-size: var(--fs-md); color: var(--md-on-surface-med); }
   .acceso-tarjeta .acceso-error { color: var(--md-error); min-height: 1.3em; }
   @media print { .acceso-cierre { display: none; } }
 </style>
 <div class="acceso-cierre" id="acceso-cierre" role="dialog" aria-modal="true" aria-label="Acceso a la aplicación">
   <form class="acceso-tarjeta" id="acceso-login" autocomplete="on">
-    <h1>Fisioterapia Orihuela</h1>
-    <p>Escribe tu usuario y tu contraseña.</p>
+    <h1>Servicio de Fisioterapia</h1>
     <div class="md-campo md-campo--icono">
       <span class="material-symbols-outlined md-campo__icono" aria-hidden="true">person</span>
       <input class="md-campo__control" id="acceso-usuario" placeholder=" " autocomplete="username" maxlength="60">
