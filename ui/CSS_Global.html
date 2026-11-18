@@ -442,6 +442,12 @@
       nav.tabs-cambio a.tab-cambio:hover { background: color-mix(in srgb, var(--md-primary) 6%, transparent); }
       nav.tabs-cambio a.tab-cambio.activo { background: var(--md-primary-container); color: var(--md-primary-dark); cursor: default; }
       nav.tabs-cambio a.tab-cambio .material-symbols-outlined { font-size: 18px; }
+      /* Pantalla estrecha (Android, solo para mirar; sección 20): pestañas solo con icono y, si aun así no cabe, en dos filas.
+         Si la barra fuera más ancha que la pantalla, Chrome alejaría toda la página y la app se vería encogida en una esquina. */
+      @media (max-width: 640px) {
+        nav.tabs-cambio { flex-wrap: wrap; padding-inline: .5rem; }
+        nav.tabs-cambio a.tab-cambio { font-size: 0; gap: 0; padding: .5rem .75rem; }
+      }
 
       /* Lo que solo ve el administrador (data-rol="administrador"): ui/Acceso marca <html data-rol-acceso> con el rol que
          confirma el servidor. Mientras no se sepa, no se ve. Es comodidad: la seguridad está en api() (17.2). */
